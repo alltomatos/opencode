@@ -1,5 +1,5 @@
 import { type Accessor, createMemo, createResource } from "solid-js"
-import { createStore } from "solid-js/store"
+import { createStore, produce } from "solid-js/store"
 import { DateTime } from "luxon"
 import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } from "remeda"
 import { createSimpleContext } from "@opencode-ai/ui/context"
@@ -14,6 +14,7 @@ type Store = {
   user: User[]
   recent: ModelKey[]
   variant?: Record<string, string | undefined>
+  categories: Record<string, string>
 }
 
 const RECENT_LIMIT = 5
@@ -34,6 +35,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
         user: [],
         recent: [],
         variant: {},
+        categories: {},
       }),
     )
 
@@ -127,6 +129,17 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       update(model, state ? "show" : "hide")
     }
 
+    const category = (model: ModelKey) => store.categories[modelKey(model)]
+
+    const setCategories = (providerID: string, entries: { id: string; category: string }[]) => {
+      setStore(
+        "categories",
+        produce((draft) => {
+          for (const entry of entries) draft[modelKey({ providerID, modelID: entry.id })] = entry.category
+        }),
+      )
+    }
+
     const push = (model: ModelKey) => {
       const uniq = uniqueBy([model, ...store.recent], (x) => `${x.providerID}:${x.modelID}`)
       if (uniq.length > RECENT_LIMIT) uniq.pop()
@@ -160,6 +173,8 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       find,
       visible,
       setVisibility,
+      category,
+      setCategories,
       recent: {
         list: () => recentModels()!,
         push,

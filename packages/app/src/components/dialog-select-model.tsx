@@ -6,11 +6,13 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { popularProviders } from "@/hooks/use-providers"
 import { Button } from "@opencode-ai/ui/button"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { Tag } from "@opencode-ai/ui/tag"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { List } from "@opencode-ai/ui/list"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon } from "@opencode-ai/ui/v2/icon"
 import { Tag as TagV2 } from "@opencode-ai/ui/v2/badge-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
@@ -42,6 +44,79 @@ const sortModelGroups = (a: { category: string; items: ModelItem[] }, b: { categ
   if (!aPopular && bPopular) return 1
   if (aPopular && bPopular) return aIndex - bIndex
   return a.items[0].provider.name.localeCompare(b.items[0].provider.name)
+}
+
+const sortProviders = (a: { id: string; name: string }, b: { id: string; name: string }) => {
+  const aIndex = popularProviders.indexOf(a.id)
+  const bIndex = popularProviders.indexOf(b.id)
+  const aPopular = aIndex >= 0
+  const bPopular = bIndex >= 0
+
+  if (aPopular && !bPopular) return -1
+  if (!aPopular && bPopular) return 1
+  if (aPopular && bPopular) return aIndex - bIndex
+  return a.name.localeCompare(b.name)
+}
+
+const createProviderList = (model: ModelState) =>
+  createMemo(() => {
+    const seen = new Map<string, { id: string; name: string }>()
+    for (const item of model.list()) {
+      if (!model.visible({ modelID: item.id, providerID: item.provider.id })) continue
+      if (!seen.has(item.provider.id)) seen.set(item.provider.id, { id: item.provider.id, name: item.provider.name })
+    }
+    return Array.from(seen.values()).sort(sortProviders)
+  })
+
+export function ModelProviderSelectorV2(props: {
+  model?: ModelState
+  current?: string
+  onSelect: (providerID: string) => void
+  onConnect: () => void
+}) {
+  const model = props.model ?? useLocal().model
+  const language = useLanguage()
+  const providers = createProviderList(model)
+  const currentProvider = () => providers().find((provider) => provider.id === props.current)
+
+  return (
+    <TooltipV2 placement="top" value={language.t("dialog.model.selectProvider.title")}>
+      <MenuV2 gutter={6} modal={false} placement="top-start">
+        <MenuV2.Trigger
+          as={ButtonV2}
+          variant="ghost-muted"
+          size="normal"
+          class="min-w-0 max-w-[160px] justify-start ![font-weight:440]"
+          aria-label={language.t("dialog.model.selectProvider.title")}
+        >
+          <Show when={currentProvider()}>{(provider) => <ProviderIcon id={provider().id} class="size-4 shrink-0 opacity-60" />}</Show>
+          <span class="truncate leading-5">{currentProvider()?.name ?? language.t("dialog.model.provider.label")}</span>
+          <span class="-ms-0.5 -me-1 flex shrink-0">
+            <Icon name="chevron-down" />
+          </span>
+        </MenuV2.Trigger>
+        <MenuV2.Portal>
+          <MenuV2.Content>
+            <MenuV2.RadioGroup value={props.current} onChange={props.onSelect}>
+              <For each={providers()}>
+                {(provider) => (
+                  <MenuV2.RadioItem value={provider.id} closeOnSelect>
+                    <ProviderIcon id={provider.id} class="size-4 shrink-0 opacity-60" />
+                    <span class="min-w-0 flex-1 truncate leading-5">{provider.name}</span>
+                  </MenuV2.RadioItem>
+                )}
+              </For>
+            </MenuV2.RadioGroup>
+            <MenuV2.Separator />
+            <MenuV2.Item onSelect={props.onConnect}>
+              <Icon name="plus" size="small" />
+              <span class="min-w-0 flex-1 truncate leading-5">{language.t("command.provider.connect")}</span>
+            </MenuV2.Item>
+          </MenuV2.Content>
+        </MenuV2.Portal>
+      </MenuV2>
+    </TooltipV2>
+  )
 }
 
 const ModelList: Component<{
@@ -271,7 +346,13 @@ function createModelSelectorController(input: {
       const filtered = query
         ? allModels().filter((item) => matchesModelSearch(query, [item.name, item.id, item.provider.name]))
         : allModels()
-      return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+      return [...filtered].sort((a, b) => {
+        const aCombo = model.category({ modelID: a.id, providerID: a.provider.id }) === "combo"
+        const bCombo = model.category({ modelID: b.id, providerID: b.provider.id }) === "combo"
+        if (aCombo && !bCombo) return -1
+        if (!aCombo && bCombo) return 1
+        return a.name.localeCompare(b.name)
+      })
     },
     groups: (models: ModelItem[]) => {
       const byProvider = new Map<string, ModelItem[]>()

@@ -10,6 +10,9 @@ import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
+import { SettingsSkillsV2 } from "./skills"
+import { SettingsMcpV2 } from "./mcp"
+import { SettingsMarketplaceV2 } from "./marketplace"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -85,11 +88,37 @@ export const DialogSettings: Component<{
                     </TabsV2.Trigger>
                   </div>
                 </div>
+
+                <div class="flex flex-col gap-1.5">
+                  <TabsV2.SectionTitle>{language.t("settings.section.customize")}</TabsV2.SectionTitle>
+                  <div class="flex flex-col gap-1.5 w-full">
+                    <TabsV2.Trigger value="skills">
+                      <Icon name="brain" />
+                      {language.t("settings.skills.title")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="mcp">
+                      <Icon name="link" />
+                      {language.t("settings.mcp.title")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="marketplace">
+                      <Icon name="providers" />
+                      {language.t("settings.marketplace.title")}
+                    </TabsV2.Trigger>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="settings-v2-nav-footer">
               <span>{language.t("app.name.desktop")}</span>
               <span>v{platform.version}</span>
+              <a
+                href="https://github.com/alltomatos/opencode"
+                target="_blank"
+                rel="noreferrer"
+                class="settings-v2-nav-footer-credit"
+              >
+                {language.t("settings.footer.credit")}
+              </a>
             </div>
           </div>
         </TabsV2.List>
@@ -107,6 +136,15 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="skills" class="settings-v2-panel">
+          <SettingsSkillsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="mcp" class="settings-v2-panel">
+          <SettingsMcpV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="marketplace" class="settings-v2-panel">
+          <SettingsMarketplaceV2 onNavigate={(value) => void startTransition(() => setTab(value))} />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

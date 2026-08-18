@@ -7,8 +7,9 @@ import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import type { ReferenceInfo } from "@opencode-ai/sdk/v2/client"
 import { createEffect, createMemo, on, Show } from "solid-js"
-import { ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
+import { ModelProviderSelectorV2, ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
+import { PromptInputV2ModeControl } from "@/components/prompt-input-mode"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
@@ -19,12 +20,14 @@ import { useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
+import { useLocal } from "@/context/local"
 import { usePermission } from "@/context/permission"
 import { type ImageAttachmentPart, usePrompt } from "@/context/prompt"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { createSessionTabs } from "@/pages/session/helpers"
+import { decode64 } from "@/utils/base64"
 import { showToast } from "@/utils/toast"
 import { PromptInputV2, type PromptInputV2Suggestion } from "@opencode-ai/session-ui/v2/prompt-input"
 import {
@@ -42,12 +45,16 @@ export type PromptInputV2ComposerProps = {
 export type PromptInputV2ControllerProps = Omit<PromptInputProps, "class" | "submission">
 export type PromptInputV2ComposerController = PromptInputV2Interaction & {
   readonly model: PromptInputProps["controls"]["model"]
+  readonly agent: PromptInputProps["controls"]["agents"]
+  readonly sessionID?: string
 }
 
 export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const dialog = useDialog()
   const command = useCommand()
   const language = useLanguage()
+  const sdk = useSDK()
+  const permission = usePermission()
 
   return (
     <div class="flex flex-col gap-3">
@@ -58,6 +65,14 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         variantControlVisible={!props.controller.model.loading}
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
+        modeControl={
+          <PromptInputV2ModeControl
+            agent={props.controller.agent}
+            permission={permission}
+            sessionID={props.controller.sessionID}
+            directory={sdk().directory}
+          />
+        }
         modelControl={
           <PromptInputV2ModelControl
             loading={props.controller.model.loading}
@@ -409,6 +424,8 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     },
   })
   Object.defineProperty(controller, "model", { get: () => props.controls.model })
+  Object.defineProperty(controller, "agent", { get: () => props.controls.agents })
+  Object.defineProperty(controller, "sessionID", { get: () => props.controls.session.id })
 
   command.register("prompt-input", () => [
     {
@@ -479,73 +496,101 @@ function PromptInputV2ModelControl(props: {
   onClose: () => void
   onUnpaidClick: () => void
 }) {
+  const dialog = useDialog()
+  const local = useLocal()
+  const directory = () => decode64(local.slug())
   const shouldAnimate = createMemo<boolean>((previous) => previous ?? props.loading)
-  const content = () => (
+
+  const handleConnectProvider = () => {
+    void import("@/components/dialog-connect-provider").then((module) => {
+      void dialog.show(() => <module.DialogConnectProvider directory={directory} />)
+    })
+  }
+
+  const handleProviderSelect = (providerID: string) => {
+    if (providerID === props.providerID) return
+    const next = props.model.list().find((item) => item.provider.id === providerID)
+    if (next) props.model.set({ modelID: next.id, providerID: next.provider.id }, { recent: true })
+  }
+
+  const modelContent = () => (
     <>
-      <Show when={props.providerID}>
-        {(providerID) => (
-          <ProviderIcon
-            id={providerID()}
-            class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
-            style={{ "will-change": "opacity", transform: "translateZ(0)" }}
-          />
-        )}
-      </Show>
       <span class="truncate leading-4">{props.modelName}</span>
       <span class="-ml-0.5 -mr-1 flex shrink-0">
         <Icon name="chevron-down" />
       </span>
     </>
   )
+
   return (
     <Show when={!props.loading}>
-      <TooltipV2
-        placement="top"
-        gutter={4}
-        value={
-          <>
-            {props.title}
-            <KeybindV2 keys={props.keybind} variant="neutral" />
-          </>
-        }
-      >
-        <Show
-          when={props.paid}
-          fallback={
-            <ButtonV2
-              data-action="prompt-model"
-              data-control-type="dialog"
-              variant="ghost-muted"
-              size="normal"
-              class="min-w-0 max-w-[220px] justify-start ![font-weight:440] group"
-              classList={{ "animate-in fade-in": shouldAnimate() }}
-              style={{ height: "28px" }}
-              onClick={props.onUnpaidClick}
-            >
-              {content()}
-            </ButtonV2>
-          }
-        >
-          <ModelSelectorPopoverV2
+      <div class="flex items-center gap-1">
+        <Show when={props.paid}>
+          <ModelProviderSelectorV2
             model={props.model}
-            trigger={(triggerProps) => (
-              <ButtonV2
-                {...triggerProps}
-                variant="ghost-muted"
-                size="normal"
-                style={{ height: "28px" }}
-                class="min-w-0 max-w-[220px] justify-start ![font-weight:440] group"
-                classList={{ "animate-in fade-in": shouldAnimate() }}
-                data-action="prompt-model"
-                data-control-type="popover"
-              >
-                {content()}
-              </ButtonV2>
-            )}
-            onClose={props.onClose}
+            current={props.providerID}
+            onSelect={handleProviderSelect}
+            onConnect={handleConnectProvider}
           />
         </Show>
-      </TooltipV2>
+        <TooltipV2
+          placement="top"
+          gutter={4}
+          value={
+            <>
+              {props.title}
+              <KeybindV2 keys={props.keybind} variant="neutral" />
+            </>
+          }
+        >
+          <Show
+            when={props.paid}
+            fallback={
+              <ButtonV2
+                data-action="prompt-model"
+                data-control-type="dialog"
+                variant="ghost-muted"
+                size="normal"
+                class="min-w-0 max-w-[220px] justify-start ![font-weight:440] group"
+                classList={{ "animate-in fade-in": shouldAnimate() }}
+                style={{ height: "28px" }}
+                onClick={props.onUnpaidClick}
+              >
+                <Show when={props.providerID}>
+                  {(providerID) => (
+                    <ProviderIcon
+                      id={providerID()}
+                      class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
+                      style={{ "will-change": "opacity", transform: "translateZ(0)" }}
+                    />
+                  )}
+                </Show>
+                {modelContent()}
+              </ButtonV2>
+            }
+          >
+            <ModelSelectorPopoverV2
+              model={props.model}
+              provider={props.providerID}
+              trigger={(triggerProps) => (
+                <ButtonV2
+                  {...triggerProps}
+                  variant="ghost-muted"
+                  size="normal"
+                  style={{ height: "28px" }}
+                  class="min-w-0 max-w-[220px] justify-start ![font-weight:440] group"
+                  classList={{ "animate-in fade-in": shouldAnimate() }}
+                  data-action="prompt-model"
+                  data-control-type="popover"
+                >
+                  {modelContent()}
+                </ButtonV2>
+              )}
+              onClose={props.onClose}
+            />
+          </Show>
+        </TooltipV2>
+      </div>
     </Show>
   )
 }

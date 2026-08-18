@@ -16,6 +16,7 @@ import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
 import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
+import { createBrowserPanel, getBrowserPanel, type PanelState } from "./browser-panel"
 
 const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
@@ -230,7 +231,21 @@ export function createMainWindow(id: string = randomUUID()) {
     win.show()
   })
 
+  try {
+    const browserPanel = createBrowserPanel(win, (state: PanelState) => {
+      if (!win.isDestroyed()) win.webContents.send("browser-panel-state-changed", state)
+    })
+    win.once("close", () => browserPanel.destroy())
+  } catch (error) {
+    writeLog("browser-panel", `failed to create: ${String(error)}`, undefined, "error")
+  }
+
   return win
+}
+
+export function getWindowBrowserPanel(win: BrowserWindow | null) {
+  if (!win) return undefined
+  return getBrowserPanel(win)
 }
 
 export function openExternalURL(value: string) {

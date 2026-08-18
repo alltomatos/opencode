@@ -6,6 +6,8 @@ import { getLogger } from "./logging"
 import { getUserShell, loadShellEnv } from "./shell-env"
 import { getStore } from "./store"
 import { DEFAULT_SERVER_URL_KEY } from "./store-keys"
+import { startBrowserBridge } from "./browser-bridge"
+import { getActiveBrowserPanel } from "./browser-panel"
 
 export type HealthCheck = { wait: Promise<void> }
 
@@ -60,6 +62,19 @@ export async function spawnLocalServer(
   password: string,
   options: SpawnLocalServerOptions,
 ) {
+  const bridge = await startBrowserBridge((_id) => getActiveBrowserPanel()).catch((error) => {
+    options.onStderr?.(`browser bridge failed to start: ${String(error)}`)
+    return undefined
+  })
+  if (bridge) {
+    Object.assign(process.env, {
+      OPENCODE_BROWSER_BRIDGE_PORT: String(bridge.port),
+      OPENCODE_BROWSER_BRIDGE_TOKEN: bridge.token,
+      OPENCODE_EXPERIMENTAL_BROWSER_TOOL: "true",
+    })
+    options.onStdout?.(`browser bridge started on port ${bridge.port}`)
+  }
+
   const sidecar = join(dirname(fileURLToPath(import.meta.url)), "sidecar.js")
   const child = utilityProcess.fork(sidecar, [], {
     cwd: process.cwd(),

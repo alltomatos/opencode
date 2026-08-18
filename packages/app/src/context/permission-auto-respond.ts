@@ -1,5 +1,15 @@
 import { base64Encode } from "@opencode-ai/core/util/encode"
 
+export type AutoAcceptLevel = boolean | "edits"
+
+const EDIT_ACTIONS = new Set(["edit"])
+
+export function matchesAutoAcceptLevel(level: AutoAcceptLevel | undefined, permission: { permission?: string }) {
+  if (level === true) return true
+  if (level === "edits") return !!permission.permission && EDIT_ACTIONS.has(permission.permission)
+  return false
+}
+
 export function acceptKey(sessionID: string, directory?: string) {
   if (!directory) return sessionID
   return `${base64Encode(directory)}/${sessionID}`
@@ -9,14 +19,17 @@ export function directoryAcceptKey(directory: string) {
   return `${base64Encode(directory)}/*`
 }
 
-function accepted(autoAccept: Record<string, boolean>, sessionID: string, directory?: string) {
+function accepted(autoAccept: Record<string, AutoAcceptLevel>, sessionID: string, directory?: string) {
   const key = acceptKey(sessionID, directory)
   return autoAccept[key] ?? autoAccept[sessionID]
 }
 
-export function isDirectoryAutoAccepting(autoAccept: Record<string, boolean>, directory: string) {
-  const key = directoryAcceptKey(directory)
-  return autoAccept[key] ?? false
+export function directoryAutoAcceptLevel(autoAccept: Record<string, AutoAcceptLevel>, directory: string) {
+  return autoAccept[directoryAcceptKey(directory)]
+}
+
+export function isDirectoryAutoAccepting(autoAccept: Record<string, AutoAcceptLevel>, directory: string) {
+  return directoryAutoAcceptLevel(autoAccept, directory) === true
 }
 
 function sessionLineage(session: { id: string; parentID?: string }[], sessionID: string) {
@@ -37,24 +50,35 @@ function sessionLineage(session: { id: string; parentID?: string }[], sessionID:
   return ids
 }
 
-export function autoRespondsPermission(
-  autoAccept: Record<string, boolean>,
-  session: { id: string; parentID?: string }[],
-  permission: { sessionID: string },
-  directory?: string,
-) {
-  const value = sessionAutoAccept(autoAccept, session, permission, directory)
-  if (value !== undefined) return value
-  return directory ? isDirectoryAutoAccepting(autoAccept, directory) : false
-}
-
-export function sessionAutoAccept(
-  autoAccept: Record<string, boolean>,
+export function sessionAutoAcceptLevel(
+  autoAccept: Record<string, AutoAcceptLevel>,
   session: { id: string; parentID?: string }[],
   permission: { sessionID: string },
   directory?: string,
 ) {
   return sessionLineage(session, permission.sessionID)
     .map((id) => accepted(autoAccept, id, directory))
-    .find((item): item is boolean => item !== undefined)
+    .find((item): item is AutoAcceptLevel => item !== undefined)
+}
+
+export function autoRespondsPermission(
+  autoAccept: Record<string, AutoAcceptLevel>,
+  session: { id: string; parentID?: string }[],
+  permission: { sessionID: string; permission?: string },
+  directory?: string,
+) {
+  const level = sessionAutoAcceptLevel(autoAccept, session, permission, directory)
+  const resolved = level !== undefined ? level : directory ? directoryAutoAcceptLevel(autoAccept, directory) : undefined
+  return matchesAutoAcceptLevel(resolved, permission)
+}
+
+export function sessionAutoAccept(
+  autoAccept: Record<string, AutoAcceptLevel>,
+  session: { id: string; parentID?: string }[],
+  permission: { sessionID: string; permission?: string },
+  directory?: string,
+) {
+  const level = sessionAutoAcceptLevel(autoAccept, session, permission, directory)
+  if (level === undefined) return undefined
+  return matchesAutoAcceptLevel(level, permission)
 }

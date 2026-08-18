@@ -26,6 +26,7 @@ import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
+import { useSettingsDialog } from "./settings-dialog"
 import { WindowsAppMenu } from "./windows-app-menu"
 import { applyPath, backPath, forwardPath } from "./titlebar-history"
 import { TitlebarTabStrip } from "@/components/titlebar-tab-strip"
@@ -66,6 +67,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
   const platform = usePlatform()
   const command = useCommand()
   const language = useLanguage()
+  const showSettings = useSettingsDialog()
   const settings = useSettings()
   const server = useServer()
   const navigate = useNavigate()
@@ -580,6 +582,15 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
               }}
               data-tauri-drag-region
             >
+              <Tooltip placement="bottom" value={language.t("command.settings.open")}>
+                <IconButton
+                  icon="settings-gear"
+                  variant="ghost"
+                  size="normal"
+                  onClick={() => showSettings()}
+                  aria-label={language.t("command.settings.open")}
+                />
+              </Tooltip>
               <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end" />
               <Show when={windows()}>
                 <div class="shrink-0" style={{ width: windowsControlsWidth() }} />
@@ -606,11 +617,22 @@ type TitlebarV2RightState = {
 }
 
 function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
+  const language = useLanguage()
+  const showSettings = useSettingsDialog()
   return (
     <div class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible">
       <Show when={props.state.update.visible}>
         <TitlebarUpdateIconButton state={props.state.update} />
       </Show>
+      <TooltipV2 placement="bottom" value={language.t("command.settings.open")}>
+        <IconButtonV2
+          variant="ghost-muted"
+          size="small"
+          onClick={() => showSettings()}
+          aria-label={language.t("command.settings.open")}
+          icon={<IconV2 name="settings-gear" />}
+        />
+      </TooltipV2>
       <div id="opencode-titlebar-right" class="flex shrink-0 items-center justify-end gap-0" />
     </div>
   )

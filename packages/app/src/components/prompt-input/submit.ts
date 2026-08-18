@@ -49,6 +49,19 @@ type FollowupSendInput = {
   messageID?: string
   optimisticBusy?: boolean
   before?: () => Promise<boolean> | boolean
+  system?: string
+}
+
+// The model has no notion of the user's UI language preference on its own —
+// this is the one place that translates it into an instruction sent with
+// every message, so responses (and anything the model reports back) match
+// what the user chose in Settings > General > Idioma.
+const LOCALE_RESPONSE_INSTRUCTIONS: Partial<Record<string, string>> = {
+  br: "Responda sempre em português do Brasil (pt-BR). Toda informação exibida ao usuário deve estar em português do Brasil.",
+}
+
+export function languageResponseInstruction(locale: string) {
+  return LOCALE_RESPONSE_INSTRUCTIONS[locale]
 }
 
 const draftText = (prompt: Prompt) => prompt.map((part) => ("content" in part ? part.content : "")).join("")
@@ -171,6 +184,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
       agent: input.draft.agent,
       model: input.draft.model,
       variant: input.draft.variant,
+      system: input.system,
       legacyParts: requestParts,
       text: requestParts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n"),
       files: requestParts.flatMap((part) => {
@@ -624,6 +638,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       messageID,
       optimisticBusy: sessionDirectory === projectDirectory,
       before: waitForWorktree,
+      system: languageResponseInstruction(language.locale()),
     }).catch((err) => {
       pending.delete(pendingKey(session.id))
       if (sessionDirectory === projectDirectory) {

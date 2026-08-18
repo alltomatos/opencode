@@ -19,6 +19,7 @@ import { isRecord } from "@/util/record"
 import { escapeHtml } from "@/util/html"
 
 const CLAUDE_EXTERNAL_DIR = ".claude"
+const CODEX_EXTERNAL_DIR = ".codex"
 const AGENTS_EXTERNAL_DIR = ".agents"
 const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"
 const OPENCODE_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
@@ -181,10 +182,12 @@ const discoverSkills = Effect.fnUntraced(function* (
   worktree: string,
 ) {
   const state: ScanState = { matches: new Set(), dirs: new Set() }
+  const cfg = yield* config.get()
 
   const externalDirs: string[] = []
   if (!disableExternalSkills) {
-    if (!disableClaudeCodeSkills) externalDirs.push(CLAUDE_EXTERNAL_DIR)
+    if (!disableClaudeCodeSkills && cfg.skills?.claude !== false) externalDirs.push(CLAUDE_EXTERNAL_DIR)
+    if (cfg.skills?.codex === true) externalDirs.push(CODEX_EXTERNAL_DIR)
     externalDirs.push(AGENTS_EXTERNAL_DIR)
 
     for (const dir of externalDirs) {
@@ -207,7 +210,6 @@ const discoverSkills = Effect.fnUntraced(function* (
     yield* scan(state, dir, OPENCODE_SKILL_PATTERN)
   }
 
-  const cfg = yield* config.get()
   for (const item of cfg.skills?.paths ?? []) {
     const expanded = item.startsWith("~/") ? path.join(global.home, item.slice(2)) : item
     const dir = path.isAbsolute(expanded) ? expanded : path.join(directory, expanded)

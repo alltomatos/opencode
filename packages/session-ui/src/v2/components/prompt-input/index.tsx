@@ -40,6 +40,7 @@ export type PromptInputV2Props = {
   readOnly?: boolean
   borderUnderlay?: boolean
   class?: string
+  modeControl?: JSX.Element
   modelControl?: JSX.Element
   variantControlVisible?: boolean
   attachKeybind?: string[]
@@ -195,7 +196,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
           </Show>
         </div>
 
-        <div class="flex h-11 items-center px-2">
+        <div class="flex h-11 items-center gap-1 px-2">
           <div
             class="flex min-w-0 flex-1 items-center gap-1"
             aria-hidden={state.mode === "shell"}
@@ -216,6 +217,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
               onContext={props.controller.openContext}
               onShell={props.controller.openShell}
             />
+            {props.modeControl}
             <Show when={view.agent} keyed>
               {(control) => (
                 <PromptInputV2ConfiguredSelect
@@ -225,6 +227,13 @@ export function PromptInputV2(props: PromptInputV2Props) {
                 />
               )}
             </Show>
+          </div>
+          <div
+            class="flex shrink-0 items-center gap-1"
+            aria-hidden={state.mode === "shell"}
+            inert={state.mode === "shell" ? true : undefined}
+            style={buttons()}
+          >
             <Show
               when={props.modelControl}
               fallback={

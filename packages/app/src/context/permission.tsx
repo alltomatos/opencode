@@ -18,8 +18,11 @@ import {
   acceptKey,
   directoryAcceptKey,
   isDirectoryAutoAccepting,
+  directoryAutoAcceptLevel,
   autoRespondsPermission,
   sessionAutoAccept,
+  sessionAutoAcceptLevel,
+  type AutoAcceptLevel,
 } from "./permission-auto-respond"
 
 type PermissionRespondFn = (input: {
@@ -176,6 +179,24 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
       disableAutoAccept(sessionID: string, directory?: string) {
         selected().disableAutoAccept(sessionID, directory)
       },
+      autoAcceptLevel(sessionID: string, directory: string) {
+        return selected().autoAcceptLevel(sessionID, directory)
+      },
+      sessionOnlyAutoAcceptLevel(sessionID: string, directory: string) {
+        return selected().sessionOnlyAutoAcceptLevel(sessionID, directory)
+      },
+      directoryAutoAcceptLevel(directory: string) {
+        return selected().directoryAutoAcceptLevel(directory)
+      },
+      setAutoAccept(sessionID: string, directory: string, level: AutoAcceptLevel) {
+        selected().setAutoAccept(sessionID, directory, level)
+      },
+      setAutoAcceptDirectory(directory: string, level: AutoAcceptLevel) {
+        selected().setAutoAcceptDirectory(directory, level)
+      },
+      clearAutoAccept(sessionID: string, directory: string) {
+        selected().clearAutoAccept(sessionID, directory)
+      },
       permissionsEnabled,
       isPermissionAllowAll(directory: string) {
         return selected().isPermissionAllowAll(directory)
@@ -207,7 +228,7 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
       },
     },
     createStore({
-      autoAccept: {} as Record<string, boolean>,
+      autoAccept: {} as Record<string, AutoAcceptLevel>,
     }),
   )
 
@@ -352,21 +373,25 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     unsubscribe()
   })
 
-  function enableDirectory(directory: string) {
+  function enableDirectory(directory: string, level: AutoAcceptLevel = true) {
     if (meta.disposed) return
     const key = directoryAcceptKey(directory)
     setStore(
       produce((draft) => {
-        draft.autoAccept[key] = true
+        draft.autoAccept[key] = level
       }),
     )
 
     list(directory)
       .then((permissions) => {
         if (meta.disposed) return
-        if (!isAutoAcceptingDirectory(directory)) return
+        if (directoryAutoAcceptLevel(store.autoAccept, directory) !== level) return
         for (const permission of permissions) {
-          void respondPending(permission, directory, () => isAutoAcceptingDirectory(directory))
+          void respondPending(
+            permission,
+            directory,
+            () => directoryAutoAcceptLevel(store.autoAccept, directory) === level,
+          )
         }
       })
       .catch(() => undefined)
@@ -382,13 +407,13 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     )
   }
 
-  function enable(sessionID: string, directory: string) {
+  function enable(sessionID: string, directory: string, level: AutoAcceptLevel = true) {
     if (meta.disposed) return
     const key = acceptKey(sessionID, directory)
     const version = bumpEnableVersion(sessionID, directory)
     setStore(
       produce((draft) => {
-        draft.autoAccept[key] = true
+        draft.autoAccept[key] = level
         delete draft.autoAccept[sessionID]
       }),
     )
@@ -397,16 +422,19 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
       .then((permissions) => {
         if (meta.disposed) return
         if (enableVersion.get(key) !== version) return
-        if (!isAutoAccepting(sessionID, directory)) return
         for (const permission of permissions) {
           void respondPending(
             permission,
             directory,
-            () => enableVersion.get(key) === version && isAutoAccepting(sessionID, directory),
+            () => enableVersion.get(key) === version && accepted(sessionID, directory) === level,
           )
         }
       })
       .catch(() => undefined)
+  }
+
+  function accepted(sessionID: string, directory?: string) {
+    return sessionAutoAcceptLevel(store.autoAccept, sessions(directory), { sessionID }, directory)
   }
 
   function disable(sessionID: string, directory?: string) {
@@ -416,6 +444,19 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     setStore(
       produce((draft) => {
         draft.autoAccept[key] = false
+        if (!directory) return
+        delete draft.autoAccept[sessionID]
+      }),
+    )
+  }
+
+  function clear(sessionID: string, directory?: string) {
+    if (meta.disposed) return
+    bumpEnableVersion(sessionID, directory)
+    const key = directory ? acceptKey(sessionID, directory) : sessionID
+    setStore(
+      produce((draft) => {
+        delete draft.autoAccept[key]
         if (!directory) return
         delete draft.autoAccept[sessionID]
       }),
@@ -462,6 +503,38 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     disableAutoAccept(sessionID: string, directory?: string) {
       if (meta.disposed) return
       disable(sessionID, directory)
+    },
+    autoAcceptLevel(sessionID: string, directory: string) {
+      if (meta.disposed) return false
+      return accepted(sessionID, directory) ?? directoryAutoAcceptLevel(store.autoAccept, directory) ?? false
+    },
+    sessionOnlyAutoAcceptLevel(sessionID: string, directory: string) {
+      if (meta.disposed) return undefined
+      return accepted(sessionID, directory)
+    },
+    directoryAutoAcceptLevel(directory: string) {
+      if (meta.disposed) return false
+      return directoryAutoAcceptLevel(store.autoAccept, directory) ?? false
+    },
+    setAutoAccept(sessionID: string, directory: string, level: AutoAcceptLevel) {
+      if (meta.disposed) return
+      if (level === false) {
+        disable(sessionID, directory)
+        return
+      }
+      enable(sessionID, directory, level)
+    },
+    setAutoAcceptDirectory(directory: string, level: AutoAcceptLevel) {
+      if (meta.disposed) return
+      if (level === false) {
+        disableDirectory(directory)
+        return
+      }
+      enableDirectory(directory, level)
+    },
+    clearAutoAccept(sessionID: string, directory: string) {
+      if (meta.disposed) return
+      clear(sessionID, directory)
     },
     isPermissionAllowAll(directory: string) {
       if (meta.disposed) return false

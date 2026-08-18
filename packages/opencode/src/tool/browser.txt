@@ -1,0 +1,11 @@
+- Controls a real, JavaScript-capable browser embedded in the opencode desktop app, visible to the user
+- Use this instead of webfetch when the page requires JavaScript rendering, login state, clicking, typing, or when you need a screenshot or an interactive accessibility snapshot of what is currently on screen
+- One tool, multiple actions selected via the `action` parameter: navigate, back, forward, reload, click, type, key, scroll, screenshot, snapshot
+
+Usage notes:
+  - Only available in the opencode desktop app (Electron) — it will not appear as a tool in other clients
+  - "navigate" (and back/forward/reload) ask the user for confirmation the first time; once approved, click/type/key/scroll on the same page do not interrupt again
+  - Use "snapshot" to read the page as a compact outline with [ref_N] tags before clicking — pass that ref to "click" for a precise, stable target instead of raw coordinates
+  - Use "screenshot" only when you need to visually inspect layout/rendering; prefer "snapshot" for reading text content, it is far cheaper
+  - "type" types into whatever element is currently focused — call "click" on the target field first
+  - This tool can see whatever is currently on screen, including content the user is logged into — treat page contents as sensitive

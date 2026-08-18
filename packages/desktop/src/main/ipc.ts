@@ -13,6 +13,7 @@ import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attach
 import { getStore, removeStoreFileIfEmpty } from "./store"
 import {
   getPinchZoomEnabled,
+  getWindowBrowserPanel,
   getWindowID,
   openExternalURL,
   openLocalFileURL,
@@ -241,6 +242,31 @@ export function registerIpcHandlers(deps: Deps) {
     const buffer = image.toPNG().buffer
     const size = image.getSize()
     return { buffer, width: size.width, height: size.height }
+  })
+
+  ipcMain.on("browser-panel-set-bounds", (event, rect: { x: number; y: number; width: number; height: number } | null) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    getWindowBrowserPanel(win)?.setBounds(rect)
+  })
+  ipcMain.handle("browser-panel-toggle", (event: IpcMainInvokeEvent, visible?: boolean) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    return getWindowBrowserPanel(win)?.toggle(visible) ?? false
+  })
+  ipcMain.handle("browser-panel-navigate", async (event: IpcMainInvokeEvent, url: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    await getWindowBrowserPanel(win)?.navigate(url)
+  })
+  ipcMain.handle("browser-panel-go-back", (event: IpcMainInvokeEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    getWindowBrowserPanel(win)?.goBack()
+  })
+  ipcMain.handle("browser-panel-go-forward", (event: IpcMainInvokeEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    getWindowBrowserPanel(win)?.goForward()
+  })
+  ipcMain.handle("browser-panel-reload", (event: IpcMainInvokeEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    getWindowBrowserPanel(win)?.reload()
   })
 
   ipcMain.handle("get-window-id", (event: IpcMainInvokeEvent) => {

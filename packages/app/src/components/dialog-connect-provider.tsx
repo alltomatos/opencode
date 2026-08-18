@@ -36,6 +36,7 @@ import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
 import { CustomProviderForm } from "./dialog-custom-provider"
+import { DialogConnectOmniroute, OMNIROUTE_PROVIDER_ID } from "./dialog-connect-omniroute"
 import { decode64 } from "@/utils/base64"
 
 const CUSTOM_ID = "_custom"
@@ -76,7 +77,16 @@ export const DialogConnectProvider: Component<{
         <Match when={controller.selected() === CUSTOM_ID}>
           <CustomProviderForm autofocus={!newLayout()} />
         </Match>
-        <Match when={controller.selected() && controller.selected() !== CUSTOM_ID ? controller.selected() : undefined}>
+        <Match when={controller.selected() === OMNIROUTE_PROVIDER_ID}>
+          <DialogConnectOmniroute autofocus={!newLayout()} />
+        </Match>
+        <Match
+          when={
+            controller.selected() && ![CUSTOM_ID, OMNIROUTE_PROVIDER_ID].includes(controller.selected()!)
+              ? controller.selected()
+              : undefined
+          }
+        >
           {(provider) => (
             <ProviderConnection
               provider={provider()}
@@ -179,7 +189,12 @@ function ProviderPicker(props: {
       key={(x) => x?.id}
       items={() => {
         language.locale()
-        return [{ id: CUSTOM_ID, name: customLabel() }, ...providers.all().values()]
+        const connected = providers.all()
+        return [
+          { id: CUSTOM_ID, name: customLabel() },
+          ...(connected.has(OMNIROUTE_PROVIDER_ID) ? [] : [{ id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" }]),
+          ...connected.values(),
+        ]
       }}
       filterKeys={["id", "name"]}
       groupBy={(x) => (popularProviders.includes(x.id) ? popularGroup() : otherGroup())}
@@ -236,12 +251,18 @@ function ProviderPickerV2(props: {
     active: undefined as string | undefined,
     connecting: undefined as string | undefined,
   })
-  const featured = ["opencode", "opencode-go", "anthropic", "openai", "google", "openrouter", "vercel"]
+  const featured = [OMNIROUTE_PROVIDER_ID, "opencode", "opencode-go", "anthropic", "openai", "google", "openrouter", "vercel"]
   const custom = () => ({ id: CUSTOM_ID, name: language.t("dialog.provider.custom.label") })
+  const omniroutePlaceholder = () => ({ id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" })
   const all = createMemo(() => {
     language.locale()
     const query = store.filter.trim().toLowerCase()
-    const values = [custom(), ...providers.all().values()]
+    const connected = providers.all()
+    const values = [
+      custom(),
+      ...(connected.has(OMNIROUTE_PROVIDER_ID) ? [] : [omniroutePlaceholder()]),
+      ...connected.values(),
+    ]
     if (!query) return values
     return values.filter((provider) => `${provider.id} ${provider.name}`.toLowerCase().includes(query))
   })
@@ -333,12 +354,20 @@ function ProviderPickerV2(props: {
                       >
                         <ProviderIcon id={provider.id} class="size-4 shrink-0 text-v2-icon-icon-base" />
                         <span class="min-w-0 truncate font-[530] text-v2-text-text-base">{provider.name}</span>
-                        <Show when={provider.id === "opencode" || provider.id === "opencode-go"}>
+                        <Show
+                          when={
+                            provider.id === "opencode" ||
+                            provider.id === "opencode-go" ||
+                            provider.id === OMNIROUTE_PROVIDER_ID
+                          }
+                        >
                           <span class="min-w-0 truncate font-[440] text-v2-text-text-muted">
                             {language.t(
                               provider.id === "opencode"
                                 ? "dialog.provider.opencode.tagline"
-                                : "dialog.provider.opencodeGo.tagline",
+                                : provider.id === "opencode-go"
+                                  ? "dialog.provider.opencodeGo.tagline"
+                                  : "dialog.provider.omniroute.note",
                             )}
                           </span>
                           <span class="flex h-4 shrink-0 items-center rounded-xs border-[0.5px] border-v2-border-border-base bg-v2-background-bg-layer-03 px-1 text-[11px] font-[530] leading-none tracking-[0.05px] text-v2-text-text-muted">

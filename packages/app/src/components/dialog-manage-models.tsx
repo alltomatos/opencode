@@ -125,11 +125,14 @@ export const DialogManageModelsV2: Component = () => {
   const handleConnectProvider = () => {
     void dialog.show(() => <DialogConnectProvider directory={directory} />)
   }
-  const providerList = (providerID: string) => local.model.list().filter((x) => x.provider.id === providerID)
-  const providerVisible = (providerID: string) =>
-    providerList(providerID).every((x) => local.model.visible({ modelID: x.id, providerID: x.provider.id }))
-  const setProviderVisibility = (providerID: string, checked: boolean) => {
-    providerList(providerID).forEach((x) => {
+  const GROUP_SEP = "␟"
+  const CATEGORY_ORDER = ["combo"]
+  const modelCategory = (item: Pick<ModelItem, "id" | "provider">) =>
+    local.model.category({ modelID: item.id, providerID: item.provider.id })
+  const groupVisible = (items: ModelItem[]) =>
+    items.every((x) => local.model.visible({ modelID: x.id, providerID: x.provider.id }))
+  const setGroupVisibility = (items: ModelItem[], checked: boolean) => {
+    items.forEach((x) => {
       local.model.setVisibility({ modelID: x.id, providerID: x.provider.id }, checked)
     })
   }
@@ -141,15 +144,31 @@ export const DialogManageModelsV2: Component = () => {
     key: (x) => `${x.provider.id}:${x.id}`,
     filterKeys: ["provider.name", "name", "id"],
     sortBy: (a, b) => a.name.localeCompare(b.name),
-    groupBy: (x) => x.provider.id,
+    groupBy: (x) => {
+      const category = modelCategory(x)
+      return category ? `${x.provider.id}${GROUP_SEP}${category}` : x.provider.id
+    },
     sortGroupsBy: (a, b) => {
-      const aRank = popularProviders.indexOf(a.category)
-      const bRank = popularProviders.indexOf(b.category)
+      const [aProvider, aCategory] = a.category.split(GROUP_SEP)
+      const [bProvider, bCategory] = b.category.split(GROUP_SEP)
+      const aRank = popularProviders.indexOf(aProvider)
+      const bRank = popularProviders.indexOf(bProvider)
       const aPopular = aRank >= 0
       const bPopular = bRank >= 0
-      if (aPopular && !bPopular) return -1
-      if (!aPopular && bPopular) return 1
-      return aRank - bRank
+      if (aProvider !== bProvider) {
+        if (aPopular && !bPopular) return -1
+        if (!aPopular && bPopular) return 1
+        return aRank - bRank
+      }
+      if (!aCategory && !bCategory) return 0
+      if (!aCategory) return -1
+      if (!bCategory) return 1
+      const aCategoryRank = CATEGORY_ORDER.indexOf(aCategory)
+      const bCategoryRank = CATEGORY_ORDER.indexOf(bCategory)
+      if (aCategoryRank >= 0 && bCategoryRank < 0) return -1
+      if (aCategoryRank < 0 && bCategoryRank >= 0) return 1
+      if (aCategoryRank >= 0 && bCategoryRank >= 0) return aCategoryRank - bCategoryRank
+      return aCategory.localeCompare(bCategory)
     },
   })
 
@@ -221,14 +240,19 @@ export const DialogManageModelsV2: Component = () => {
                     <div class="settings-v2-section" data-component="settings-models-provider">
                       <div class="settings-v2-models-group-header justify-between">
                         <div class="flex min-w-0 items-center gap-2">
-                          <ProviderIcon id={group.category} width={16} height={16} class="ml-4 shrink-0" />
-                          <h3 class="settings-v2-section-title">{group.items[0].provider.name}</h3>
+                          <ProviderIcon id={group.items[0].provider.id} width={16} height={16} class="ml-4 shrink-0" />
+                          <h3 class="settings-v2-section-title">
+                            {group.items[0].provider.name}
+                            <Show when={modelCategory(group.items[0])}>
+                              {(category) => <span class="text-v2-text-text-muted"> · {category()}</span>}
+                            </Show>
+                          </h3>
                         </div>
                         <div>
                           <SwitchV2
                             class="mr-6"
-                            checked={providerVisible(group.category)}
-                            onChange={(checked) => setProviderVisibility(group.category, checked)}
+                            checked={groupVisible(group.items)}
+                            onChange={(checked) => setGroupVisibility(group.items, checked)}
                             hideLabel
                           >
                             {group.items[0].provider.name}

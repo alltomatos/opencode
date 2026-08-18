@@ -53,6 +53,9 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   bashDefaultTimeoutMs: positiveInteger("OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
   experimentalNativeLlm: bool("OPENCODE_EXPERIMENTAL_NATIVE_LLM"),
   experimentalWebSockets: bool("OPENCODE_EXPERIMENTAL_WEBSOCKETS"),
+  experimentalBrowserTool: enabledByExperimental("OPENCODE_EXPERIMENTAL_BROWSER_TOOL"),
+  browserBridgePort: Config.string("OPENCODE_BROWSER_BRIDGE_PORT").pipe(Config.option),
+  browserBridgeToken: Config.redacted("OPENCODE_BROWSER_BRIDGE_TOKEN").pipe(Config.option),
   client: Config.string("OPENCODE_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
 

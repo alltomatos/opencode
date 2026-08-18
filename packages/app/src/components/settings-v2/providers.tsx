@@ -10,6 +10,7 @@ import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
 import { DialogConnectProvider, useProviderConnectController } from "../dialog-connect-provider"
 import { DialogCustomProvider } from "../dialog-custom-provider"
+import { OMNIROUTE_PROVIDER_ID } from "../dialog-connect-omniroute"
 import { SettingsListV2 } from "./parts/list"
 import "./settings-v2.css"
 
@@ -25,6 +26,7 @@ const PROVIDER_NOTES = [
   { match: (id: string) => id === "google", key: "dialog.provider.google.note" },
   { match: (id: string) => id === "openrouter", key: "dialog.provider.openrouter.note" },
   { match: (id: string) => id === "vercel", key: "dialog.provider.vercel.note" },
+  { match: (id: string) => id === OMNIROUTE_PROVIDER_ID, key: "dialog.provider.omniroute.note" },
 ] as const
 
 const PROVIDER_ICON_SIZE = 16
@@ -58,6 +60,9 @@ export const SettingsProvidersV2: Component<{
       .popular()
       .filter((p) => !connectedIDs.has(p.id))
       .slice()
+    if (!connectedIDs.has(OMNIROUTE_PROVIDER_ID) && !items.some((p) => p.id === OMNIROUTE_PROVIDER_ID)) {
+      items.push({ id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" } as ProviderItem)
+    }
     items.sort((a, b) => popularProviders.indexOf(a.id) - popularProviders.indexOf(b.id))
     return items
   })
@@ -208,7 +213,11 @@ export const SettingsProvidersV2: Component<{
                     <div class="settings-v2-provider-copy">
                       <div class="settings-v2-provider-main">
                         <span class="settings-v2-provider-name">{item.name}</span>
-                        <Show when={item.id === "opencode" || item.id === "opencode-go"}>
+                        <Show
+                          when={
+                            item.id === OMNIROUTE_PROVIDER_ID || item.id === "opencode" || item.id === "opencode-go"
+                          }
+                        >
                           <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>
                         </Show>
                       </div>

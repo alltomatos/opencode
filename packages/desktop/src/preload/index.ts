@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, WslServersEvent } from "./types"
+import type { BrowserPanelBounds, BrowserPanelState, ElectronAPI, WslServersEvent } from "./types"
 import type { UpdaterState } from "@opencode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -133,6 +133,19 @@ const api: ElectronAPI = {
   setForceFocus: (enabled) => ipcRenderer.invoke("set-force-focus", enabled),
   recordFatalRendererError: (error) => ipcRenderer.invoke("record-fatal-renderer-error", error),
   setNativeTranslations: (bundle) => ipcRenderer.invoke("set-native-translations", bundle),
+  browserPanel: {
+    setBounds: (rect: BrowserPanelBounds | null) => ipcRenderer.send("browser-panel-set-bounds", rect),
+    toggle: (visible?: boolean) => ipcRenderer.invoke("browser-panel-toggle", visible),
+    navigate: (url: string) => ipcRenderer.invoke("browser-panel-navigate", url),
+    goBack: () => ipcRenderer.invoke("browser-panel-go-back"),
+    goForward: () => ipcRenderer.invoke("browser-panel-go-forward"),
+    reload: () => ipcRenderer.invoke("browser-panel-reload"),
+    onStateChanged: (cb: (state: BrowserPanelState) => void) => {
+      const handler = (_: unknown, state: BrowserPanelState) => cb(state)
+      ipcRenderer.on("browser-panel-state-changed", handler)
+      return () => ipcRenderer.removeListener("browser-panel-state-changed", handler)
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

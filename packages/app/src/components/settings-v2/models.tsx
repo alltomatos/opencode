@@ -28,25 +28,47 @@ export const SettingsModelsV2: Component = () => {
     createStore({ collapsed: {} as Record<string, boolean> }),
   )
 
+  const GROUP_SEP = "␟"
+  const CATEGORY_ORDER = ["combo"]
+  const modelCategory = (item: Pick<ModelItem, "id" | "provider">) =>
+    models.category({ modelID: item.id, providerID: item.provider.id })
+
   const list = useFilteredList<ModelItem>({
     items: (_filter) => models.list(),
     key: (x) => `${x.provider.id}:${x.id}`,
     filterKeys: ["provider.name", "name", "id"],
     sortBy: (a, b) => a.name.localeCompare(b.name),
-    groupBy: (x) => x.provider.id,
+    groupBy: (x) => {
+      const category = modelCategory(x)
+      return category ? `${x.provider.id}${GROUP_SEP}${category}` : x.provider.id
+    },
     sortGroupsBy: (a, b) => {
-      const aIndex = popularProviders.indexOf(a.category)
-      const bIndex = popularProviders.indexOf(b.category)
+      const [aProvider, aCategory] = a.category.split(GROUP_SEP)
+      const [bProvider, bCategory] = b.category.split(GROUP_SEP)
+      const aIndex = popularProviders.indexOf(aProvider)
+      const bIndex = popularProviders.indexOf(bProvider)
       const aPopular = aIndex >= 0
       const bPopular = bIndex >= 0
 
-      if (aPopular && !bPopular) return -1
-      if (!aPopular && bPopular) return 1
-      if (aPopular && bPopular) return aIndex - bIndex
+      if (aProvider !== bProvider) {
+        if (aPopular && !bPopular) return -1
+        if (!aPopular && bPopular) return 1
+        if (aPopular && bPopular) return aIndex - bIndex
 
-      const aName = a.items[0].provider.name
-      const bName = b.items[0].provider.name
-      return aName.localeCompare(bName)
+        const aName = a.items[0].provider.name
+        const bName = b.items[0].provider.name
+        return aName.localeCompare(bName)
+      }
+
+      if (!aCategory && !bCategory) return 0
+      if (!aCategory) return -1
+      if (!bCategory) return 1
+      const aCategoryIndex = CATEGORY_ORDER.indexOf(aCategory)
+      const bCategoryIndex = CATEGORY_ORDER.indexOf(bCategory)
+      if (aCategoryIndex >= 0 && bCategoryIndex < 0) return -1
+      if (aCategoryIndex < 0 && bCategoryIndex >= 0) return 1
+      if (aCategoryIndex >= 0 && bCategoryIndex >= 0) return aCategoryIndex - bCategoryIndex
+      return aCategory.localeCompare(bCategory)
     },
   })
 
@@ -104,7 +126,7 @@ export const SettingsModelsV2: Component = () => {
             <For each={list.grouped.latest}>
               {(group) => {
                 const searching = () => list.filter().length > 0
-                const expanded = () => searching() || !store.collapsed[group.category]
+                const expanded = () => searching() || store.collapsed[group.category] === false
 
                 return (
                   <div
@@ -142,12 +164,17 @@ export const SettingsModelsV2: Component = () => {
                         </span>
                         <span class="settings-v2-models-group-label">
                           <ProviderIcon
-                            id={group.category}
+                            id={group.items[0].provider.id}
                             width={PROVIDER_ICON_SIZE}
                             height={PROVIDER_ICON_SIZE}
                             class="settings-v2-models-provider-icon shrink-0"
                           />
-                          <span class="settings-v2-section-title">{group.items[0].provider.name}</span>
+                          <span class="settings-v2-section-title">
+                            {group.items[0].provider.name}
+                            <Show when={modelCategory(group.items[0])}>
+                              {(category) => <span class="text-v2-text-text-muted"> · {category()}</span>}
+                            </Show>
+                          </span>
                         </span>
                       </button>
                     </h3>
