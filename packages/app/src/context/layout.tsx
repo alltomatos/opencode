@@ -28,6 +28,7 @@ export type { ProjectAvatarVariant }
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
 const DEFAULT_SIDEBAR_WIDTH = 344
+const DEFAULT_PROJECT_SIDEBAR_WIDTH = 280
 const DEFAULT_FILE_TREE_WIDTH = 200
 const DEFAULT_SESSION_WIDTH = 600
 const DEFAULT_TERMINAL_HEIGHT = 280
@@ -276,6 +277,10 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           width: DEFAULT_SIDEBAR_WIDTH,
           workspaces: {} as Record<string, boolean>,
           workspacesDefault: false,
+        },
+        projectSidebar: {
+          opened: true,
+          width: DEFAULT_PROJECT_SIDEBAR_WIDTH,
         },
         terminal: {
           height: DEFAULT_TERMINAL_HEIGHT,
@@ -683,6 +688,22 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         toggleWorkspaces(directory: string) {
           const current = store.sidebar.workspaces[directory] ?? store.sidebar.workspacesDefault ?? false
           setStore("sidebar", "workspaces", directory, !current)
+        },
+      },
+      projectSidebar: {
+        opened: createMemo(() => store.projectSidebar.opened),
+        open() {
+          setStore("projectSidebar", "opened", true)
+        },
+        close() {
+          setStore("projectSidebar", "opened", false)
+        },
+        toggle() {
+          setStore("projectSidebar", "opened", (x) => !x)
+        },
+        width: createMemo(() => store.projectSidebar.width),
+        resize(width: number) {
+          setStore("projectSidebar", "width", width)
         },
       },
       terminal: {

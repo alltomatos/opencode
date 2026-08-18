@@ -60,9 +60,10 @@ import { normalize } from "@opencode-ai/session-ui/session-diff"
 import { useFileComponent } from "@opencode-ai/ui/context/file"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { SessionContextUsage } from "@/components/session-context-usage"
+import { isBrowserPanelAvailable, isBrowserPanelOpen, toggleBrowserPanel } from "@/components/browser-panel"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
-import { useSessionKey } from "@/pages/session/session-layout"
+import { useSessionLayout } from "@/pages/session/session-layout"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
@@ -266,7 +267,7 @@ export function MessageTimeline(props: {
   const tabs = useTabs()
   const dialog = useDialog()
   const language = useLanguage()
-  const { params, sessionKey } = useSessionKey()
+  const { params, sessionKey, view } = useSessionLayout()
   const ownerSessionKey = sessionKey()
   const cached = timelineCache.get(ownerSessionKey)
   const initialMeasurements = cached?.measurements
@@ -1521,6 +1522,30 @@ export function MessageTimeline(props: {
                       "gap-3": !settings.general.newLayoutDesigns(),
                     }}
                   >
+                    <Show when={platform.platform === "desktop"}>
+                      <IconButtonV2
+                        type="button"
+                        variant="ghost-muted"
+                        size="large"
+                        state={view().terminal.opened() ? "pressed" : undefined}
+                        aria-label={language.t("session.header.open.app.terminal")}
+                        aria-pressed={view().terminal.opened()}
+                        icon={<Icon name="terminal" />}
+                        onClick={() => view().terminal.toggle()}
+                      />
+                    </Show>
+                    <Show when={isBrowserPanelAvailable()}>
+                      <IconButtonV2
+                        type="button"
+                        variant="ghost-muted"
+                        size="large"
+                        state={isBrowserPanelOpen() ? "pressed" : undefined}
+                        aria-label={language.t("browser.panel.toggle")}
+                        aria-pressed={isBrowserPanelOpen()}
+                        icon={<Icon name="square-arrow-top-right" />}
+                        onClick={toggleBrowserPanel}
+                      />
+                    </Show>
                     <SessionContextUsage
                       placement="bottom"
                       buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}

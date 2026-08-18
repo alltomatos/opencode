@@ -37,7 +37,15 @@ export function isBrowserPanelAvailable() {
   return typeof window !== "undefined" && !!browserPanelAPI()
 }
 
-export const BrowserPanelOverlay: Component = () => {
+export function isBrowserPanelOpen() {
+  return open()
+}
+
+export function toggleBrowserPanel() {
+  setOpen((value) => !value)
+}
+
+export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => {
   const language = useLanguage()
   let placeholder: HTMLDivElement | undefined
   const [addressInput, setAddressInput] = createSignal("")
@@ -83,22 +91,14 @@ export const BrowserPanelOverlay: Component = () => {
   })
 
   return (
-    <Show when={isBrowserPanelAvailable()}>
-      <Show
-        when={open()}
-        fallback={
-          <IconButtonV2
-            type="button"
-            variant="ghost-muted"
-            size="small"
-            class="absolute bottom-3 right-3 z-40 shadow-[var(--v2-elevation-raised)]"
-            aria-label={language.t("browser.panel.toggle")}
-            icon={<Icon name="sliders" />}
-            onClick={() => setOpen(true)}
-          />
-        }
+    <Show when={isBrowserPanelAvailable() && open()}>
+      <div
+        classList={{
+          "relative flex flex-col bg-v2-background-bg-base": true,
+          "w-full h-[45%] min-h-[220px] shrink-0 border-b border-v2-border-border-base": !!props.stacked,
+          "w-[420px] shrink-0 h-full border-l border-v2-border-border-base": !props.stacked,
+        }}
       >
-        <div class="absolute inset-0 z-40 flex flex-col bg-v2-background-bg-base">
           <div class="flex items-center gap-2 border-b border-v2-border-base p-2">
             <IconButtonV2
               type="button"
@@ -151,7 +151,6 @@ export const BrowserPanelOverlay: Component = () => {
           </div>
           <div ref={placeholder} class="flex-1 min-h-0" />
         </div>
-      </Show>
     </Show>
   )
 }

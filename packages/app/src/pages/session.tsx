@@ -40,7 +40,7 @@ import { showToast } from "@/utils/toast"
 import { base64Encode, checksum } from "@opencode-ai/core/util/encode"
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
-import { BrowserPanelOverlay } from "@/components/browser-panel"
+import { BrowserPanelOverlay, isBrowserPanelAvailable, isBrowserPanelOpen } from "@/components/browser-panel"
 import { ErrorPage } from "@/pages/error"
 import { CommentsProvider, useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
@@ -510,6 +510,11 @@ export default function Page() {
       files: desktopFileTreeOpen(),
     }),
   )
+  const browserPanelOpen = createMemo(() => isBrowserPanelAvailable() && isBrowserPanelOpen())
+  const terminalRegionOpen = createMemo(
+    () => newSessionDesign() && (isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()),
+  )
+  const browserPanelStacked = createMemo(() => browserPanelOpen() && terminalRegionOpen())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
@@ -2250,7 +2255,6 @@ export default function Page() {
   return (
     <SessionRouteFrame>
       <SessionHeader />
-      <BrowserPanelOverlay />
       <div
         ref={panelRow}
         class="flex-1 min-h-0 flex flex-col md:flex-row"
@@ -2303,6 +2307,10 @@ export default function Page() {
           </Show>
         </div>
 
+        <Show when={!browserPanelStacked()}>
+          <BrowserPanelOverlay />
+        </Show>
+
         <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
           <Suspense>
             <SessionSidePanel
@@ -2322,8 +2330,11 @@ export default function Page() {
           </Suspense>
         </Show>
         <Show when={newSessionDesign()}>
-          <Show when={isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()}>
+          <Show when={terminalRegionOpen()}>
             <div class="min-w-0 h-full flex flex-1 flex-col">
+              <Show when={browserPanelStacked()}>
+                <BrowserPanelOverlay stacked />
+              </Show>
               <Show when={isDesktop() && (desktopV2ReviewOpen() || desktopFileTreeOpen())}>
                 <div class="min-h-0 flex-1">
                   <Suspense>

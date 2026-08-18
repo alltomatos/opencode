@@ -221,7 +221,11 @@ export function registerIpcHandlers(deps: Deps) {
     if (!app) return shell.openPath(path)
     await new Promise<void>((resolve, reject) => {
       const [cmd, args] =
-        process.platform === "darwin" ? (["open", ["-a", app, path]] as const) : ([app, [path]] as const)
+        process.platform === "darwin"
+          ? (["open", ["-a", app, path]] as const)
+          : app === "wt"
+            ? (["wt", ["-d", path]] as const)
+            : ([app, [path]] as const)
       execFile(cmd, args, (err) => (err ? reject(err) : resolve()))
     })
   })

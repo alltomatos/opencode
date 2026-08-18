@@ -72,6 +72,12 @@ export const WINDOWS_OPEN_APPS = [
     openWith: "powershell",
   },
   {
+    id: "terminal",
+    label: "session.header.open.app.terminal",
+    icon: "terminal",
+    openWith: "wt",
+  },
+  {
     id: "sublime-text",
     label: "session.header.open.app.sublimeText",
     icon: "sublime-text",
