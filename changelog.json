@@ -1,0 +1,86 @@
+{
+  "releases": [
+    {
+      "tag": "v1.20.4",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Botão de atualização na sidebar",
+              "description": "Quando há uma nova versão pronta, um botão amarelo aparece no rodapé da sidebar de projetos para instalar e reiniciar."
+            },
+            {
+              "title": "Skills padrão da Alltomatos",
+              "description": "Instalações novas já vêm com as skills de github.com/alltomatos/skills disponíveis em ~/.claude/skills."
+            },
+            {
+              "title": "Correção do aviso de novidades",
+              "description": "O changelog agora aponta para o nosso fork, então o pop-up de novidades volta a aparecer após uma atualização."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.20.3",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Aviso de atualização mais visível",
+              "description": "O aviso de nova versão disponível agora aparece também no layout novo, com botão para instalar e reiniciar."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.20.2",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Sidebar de Projetos persistente",
+              "description": "A lista de projetos agora fica sempre visível, dentro ou fora de uma sessão, e pode ser recolhida."
+            },
+            {
+              "title": "Terminal e Browser no cabeçalho",
+              "description": "Abra o terminal embutido e o painel de navegação direto pelo cabeçalho da sessão; quando os dois estão abertos, ficam empilhados um acima do outro."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.20.1",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "OpenCode by Alltomatos",
+              "description": "Novo nome e identidade do app, com atalho de Configurações direto na barra de título."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.20.0",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Atualização automática pelo fork",
+              "description": "O app agora verifica e instala atualizações a partir dos releases do nosso fork, não mais do projeto original."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

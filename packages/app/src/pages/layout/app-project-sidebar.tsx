@@ -1,10 +1,12 @@
-import { Show, type Component } from "solid-js"
+import { createMemo, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLayout } from "@/context/layout"
 import { useLanguage } from "@/context/language"
+import { usePlatform } from "@/context/platform"
 import type { ServerConnection } from "@/context/server"
 import { createHomeController } from "@/pages/home/home-controller"
 import { createHomeProjectsController } from "@/pages/home/home-projects-controller"
@@ -17,10 +19,19 @@ import { HomeProjects } from "@/pages/home/home-projects"
 export const AppProjectSidebar: Component = () => {
   const layout = useLayout()
   const language = useLanguage()
+  const platform = usePlatform()
   const navigate = useNavigate()
   const home = createHomeController()
   const projectsController = createHomeProjectsController(home)
   const scroll = createHomeScrollController(() => [])
+
+  const updateVersion = createMemo(() => {
+    const state = platform.updater?.state()
+    if (state?.status !== "ready") return
+    return state.version
+  })
+  const installing = createMemo(() => platform.updater?.state().status === "installing")
+  const installUpdate = () => void platform.updater?.install()
 
   const selectProject = (conn: ServerConnection.Any, directory: string) => {
     home.project.select(conn, directory)
@@ -36,7 +47,7 @@ export const AppProjectSidebar: Component = () => {
     <Show
       when={layout.projectSidebar.opened()}
       fallback={
-        <div class="flex w-9 shrink-0 flex-col items-center border-r border-v2-border-border-base pt-2">
+        <div class="flex w-9 shrink-0 flex-col items-center border-r border-v2-border-border-base pt-2 pb-2">
           <TooltipV2 placement="right" value={language.t("home.projects")}>
             <IconButtonV2
               variant="ghost-muted"
@@ -46,6 +57,21 @@ export const AppProjectSidebar: Component = () => {
               onClick={() => layout.projectSidebar.open()}
             />
           </TooltipV2>
+          <Show when={updateVersion()}>
+            {(version) => (
+              <TooltipV2 placement="right" value={language.t("sidebar.update.available", { version: version() })}>
+                <button
+                  type="button"
+                  class="mt-auto flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f5c518] text-black disabled:opacity-70"
+                  aria-label={language.t("sidebar.update.available", { version: version() })}
+                  disabled={installing()}
+                  onClick={installUpdate}
+                >
+                  <Icon name="download" class="size-3.5" />
+                </button>
+              </TooltipV2>
+            )}
+          </Show>
         </div>
       }
     >
@@ -65,6 +91,23 @@ export const AppProjectSidebar: Component = () => {
           </TooltipV2>
         </div>
         <HomeProjects projects={projects} scroll={scroll} />
+        <Show when={updateVersion()}>
+          {(version) => (
+            <button
+              type="button"
+              class="mt-2 flex shrink-0 items-center gap-2 rounded-[8px] bg-[#f5c518] px-3 py-2 text-13-medium text-black transition-opacity disabled:opacity-70"
+              disabled={installing()}
+              onClick={installUpdate}
+            >
+              <Icon name="download" class="size-3.5 shrink-0" />
+              <span class="truncate">
+                {installing()
+                  ? language.t("sidebar.update.installing")
+                  : language.t("sidebar.update.available", { version: version() })}
+              </span>
+            </button>
+          )}
+        </Show>
       </div>
     </Show>
   )
