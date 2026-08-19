@@ -7,6 +7,8 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode-ai/ui/v2/dialog-v2"
+import { DividerV2 } from "@opencode-ai/ui/v2/divider-v2"
+import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import type { BatutaActivity } from "@opencode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
@@ -29,6 +31,22 @@ function loadRunningSessions(): Record<string, string> {
   } catch {
     return {}
   }
+}
+
+function splitModel(value: string) {
+  const index = value.indexOf("/")
+  if (index === -1) return { providerID: undefined, modelID: value }
+  return { providerID: value.slice(0, index), modelID: value.slice(index + 1) }
+}
+
+function ModelTag(props: { value: string }) {
+  const parts = () => splitModel(props.value)
+  return (
+    <Tag title={props.value}>
+      <Show when={parts().providerID}>{(providerID) => <ProviderIcon id={providerID()} class="size-3 shrink-0" />}</Show>
+      <span class="truncate">{parts().modelID}</span>
+    </Tag>
+  )
 }
 
 export function BatutaPage() {
@@ -158,6 +176,8 @@ export function BatutaPage() {
             </div>
           </div>
 
+          <DividerV2 />
+
           <div class="flex items-center justify-between gap-2">
             <h2 class="text-sm font-medium text-v2-text-text-base">{language.t("batuta.list.title")}</h2>
             <ButtonV2 variant="neutral" onClick={openCreate}>
@@ -168,11 +188,37 @@ export function BatutaPage() {
 
           <Show
             when={!activities.loading}
-            fallback={<div class="text-sm text-v2-text-text-muted">{language.t("common.loading")}</div>}
+            fallback={
+              <div class="flex items-center gap-2 py-6 text-sm text-v2-text-text-muted">
+                <span
+                  class={`
+                    size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-v2-border-border-base
+                    border-t-v2-icon-icon-base
+                  `}
+                />
+                {language.t("common.loading")}
+              </div>
+            }
           >
             <Show
               when={(activities() ?? []).length > 0}
-              fallback={<div class="text-sm text-v2-text-text-muted">{language.t("batuta.list.empty")}</div>}
+              fallback={
+                <div
+                  class={`
+                    flex flex-col items-center gap-3 rounded-[10px] border border-dashed border-v2-border-border-base
+                    px-6 py-10 text-center
+                  `}
+                >
+                  <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-v2-background-bg-raised text-v2-icon-icon-muted">
+                    <IconV2 name="batuta" size="normal" />
+                  </div>
+                  <p class="text-sm text-v2-text-text-muted">{language.t("batuta.list.empty")}</p>
+                  <ButtonV2 variant="neutral" onClick={openCreate}>
+                    <IconV2 name="plus" size="small" />
+                    {language.t("batuta.list.create")}
+                  </ButtonV2>
+                </div>
+              }
             >
               <SettingsListV2>
                 <For each={activities()}>
@@ -185,10 +231,17 @@ export function BatutaPage() {
                           <div class="flex min-w-0 flex-col gap-1.5">
                             <span class="truncate text-v2-text-text-muted">{activity.goal}</span>
                             <div class="flex flex-wrap items-center gap-1.5">
-                              <Tag>{activity.orchestratorModel}</Tag>
-                              <For each={activity.workers}>{(worker) => <Tag>{worker.label}</Tag>}</For>
+                              <ModelTag value={activity.orchestratorModel} />
+                              <For each={activity.workers}>
+                                {(worker) => (
+                                  <Tag title={worker.model}>
+                                    <IconV2 name="subagent" size="small" class="text-v2-icon-icon-muted" />
+                                    <span class="truncate">{worker.label}</span>
+                                  </Tag>
+                                )}
+                              </For>
                               <Show when={activity.useWorktree}>
-                                <Tag>{language.t("batuta.form.field.worktree.label")}</Tag>
+                                <Tag variant="accent">{language.t("batuta.form.field.worktree.label")}</Tag>
                               </Show>
                             </div>
                           </div>

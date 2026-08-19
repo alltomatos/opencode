@@ -898,6 +898,7 @@ export const dict = {
   "batuta.form.field.workers.add": "Add worker",
   "batuta.form.field.workers.error.required": "Add at least one worker with a label and a model",
   "batuta.form.field.worktree.label": "Use isolated worktree",
+  "batuta.form.field.worktree.description": "Each worker gets its own git worktree, isolated from your main checkout.",
   "batuta.form.submit.create": "Create",
   "batuta.form.toast.created": "Activity \"{{name}}\" created",
   "batuta.form.toast.updated": "Activity \"{{name}}\" updated",

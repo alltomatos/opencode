@@ -15,9 +15,12 @@ function splitModel(value: string) {
 }
 
 const selectClass = `
-  h-8 min-w-0 flex-1 truncate rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2
-  text-13-regular text-v2-text-text-base outline-none
-  focus-visible:border-v2-border-border-focus
+  h-8 min-w-0 flex-1 cursor-pointer appearance-none truncate rounded-md border border-v2-border-border-base
+  bg-v2-background-bg-base bg-[image:var(--batuta-select-chevron)] bg-[position:right_8px_center] bg-no-repeat
+  py-0 pl-2.5 pr-7 text-13-regular text-v2-text-text-base outline-none transition-colors duration-150
+  hover:border-v2-border-border-strong hover:bg-v2-background-bg-layer-01
+  focus-visible:border-v2-border-border-focus focus-visible:outline-none
+  disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-v2-background-bg-base
 `
 
 export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
@@ -37,7 +40,14 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   })
 
   return (
-    <div class="flex min-w-0 flex-1 items-center gap-2">
+    <div
+      class="flex min-w-0 flex-1 items-center gap-2"
+      style={{
+        "--batuta-select-chevron": `url("data:image/svg+xml,${encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 6.5L8 9.5L11 6.5" stroke="%239299A6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        )}")`,
+      }}
+    >
       <select
         class={selectClass}
         value={selectedProviderID()}

@@ -871,6 +871,7 @@ export const dict = {
   "batuta.form.field.workers.add": "Adicionar worker",
   "batuta.form.field.workers.error.required": "Adicione ao menos um worker com nome e modelo",
   "batuta.form.field.worktree.label": "Usar worktree isolado",
+  "batuta.form.field.worktree.description": "Cada worker recebe seu próprio worktree git, isolado do seu checkout principal.",
   "batuta.form.submit.create": "Criar",
   "batuta.form.toast.created": "Atividade \"{{name}}\" criada",
   "batuta.form.toast.updated": "Atividade \"{{name}}\" atualizada",

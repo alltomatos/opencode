@@ -162,7 +162,7 @@ export const DialogBatutaActivityV2: Component<{
             <div class="flex flex-col gap-2">
               <For each={form.workers}>
                 {(worker, index) => (
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1.5 rounded-md border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-1.5">
                     <TextInputV2
                       type="text"
                       class="!w-[140px] shrink-0"
@@ -193,8 +193,11 @@ export const DialogBatutaActivityV2: Component<{
             </Show>
           </div>
 
-          <div class="flex w-full min-w-0 items-center justify-between gap-2">
-            <label class="settings-v2-server-dialog-label">{language.t("batuta.form.field.worktree.label")}</label>
+          <div class="flex w-full min-w-0 items-center justify-between gap-2 rounded-md border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-2.5">
+            <div class="flex min-w-0 flex-col gap-0.5">
+              <label class="settings-v2-server-dialog-label">{language.t("batuta.form.field.worktree.label")}</label>
+              <span class="text-12-regular text-v2-text-text-muted">{language.t("batuta.form.field.worktree.description")}</span>
+            </div>
             <SwitchV2 checked={form.useWorktree} onChange={(checked) => setForm("useWorktree", checked)} hideLabel>
               {language.t("batuta.form.field.worktree.label")}
             </SwitchV2>
