@@ -1,4 +1,5 @@
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { type Component, Show } from "solid-js"
@@ -76,16 +77,24 @@ export const ServerRowMenuView: Component<{
                 if (server) props.onEdit(server)
               }}
             >
+              <IconV2 name="edit" size="small" />
               {props.labels.edit}
             </MenuV2.Item>
             <Show when={props.canDefault && !props.isDefault}>
-              <MenuV2.Item onSelect={props.onSetDefault}>{props.labels.default}</MenuV2.Item>
+              <MenuV2.Item onSelect={props.onSetDefault}>
+                <IconV2 name="check" size="small" />
+                {props.labels.default}
+              </MenuV2.Item>
             </Show>
             <Show when={props.canDefault && props.isDefault}>
-              <MenuV2.Item onSelect={props.onRemoveDefault}>{props.labels.defaultRemove}</MenuV2.Item>
+              <MenuV2.Item onSelect={props.onRemoveDefault}>
+                <IconV2 name="close" size="small" />
+                {props.labels.defaultRemove}
+              </MenuV2.Item>
             </Show>
             <MenuV2.Separator />
-            <MenuV2.Item disabled={builtin()} onSelect={props.onRemove}>
+            <MenuV2.Item disabled={builtin()} class="text-v2-state-fg-danger" onSelect={props.onRemove}>
+              <Icon name="trash" size="small" />
               {props.labels.delete}
             </MenuV2.Item>
           </MenuV2.Group>

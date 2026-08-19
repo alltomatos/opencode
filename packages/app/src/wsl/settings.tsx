@@ -2,6 +2,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { useMutation } from "@tanstack/solid-query"
@@ -142,21 +143,25 @@ export function WslServerSettings(props: {
                         <MenuV2.GroupLabel>{language.t("wsl.server.menu.label")}</MenuV2.GroupLabel>
                         <Show when={wslRuntimeRetryable(item.runtime)}>
                           <MenuV2.Item onSelect={() => api && request.mutate(() => api.startServer(key))}>
+                            <IconV2 name="reset" size="small" />
                             {language.t("wsl.server.retryStart")}
                           </MenuV2.Item>
                         </Show>
                         <Show when={props.controller.canDefault() && props.controller.defaultKey() !== key}>
                           <MenuV2.Item onSelect={() => props.controller.setDefault(key)}>
+                            <IconV2 name="check" size="small" />
                             {language.t("dialog.server.menu.default")}
                           </MenuV2.Item>
                         </Show>
                         <Show when={props.controller.canDefault() && props.controller.defaultKey() === key}>
                           <MenuV2.Item onSelect={() => props.controller.setDefault(null)}>
+                            <IconV2 name="close" size="small" />
                             {language.t("dialog.server.menu.defaultRemove")}
                           </MenuV2.Item>
                         </Show>
                         <MenuV2.Separator />
-                        <MenuV2.Item onSelect={() => remove(key)}>
+                        <MenuV2.Item onSelect={() => remove(key)} class="text-v2-state-fg-danger">
+                          <Icon name="trash" size="small" />
                           {language.t("dialog.server.menu.delete")}
                         </MenuV2.Item>
                       </MenuV2.Group>

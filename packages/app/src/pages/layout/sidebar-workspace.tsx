@@ -197,18 +197,23 @@ const WorkspaceActions = (props: {
               props.setMenuOpen(false)
             }}
           >
+            <IconV2 name="edit" size="small" />
             <DropdownMenu.ItemLabel>{props.language.t("common.rename")}</DropdownMenu.ItemLabel>
           </DropdownMenu.Item>
           <DropdownMenu.Item
             disabled={props.local() || props.busy()}
             onSelect={() => props.showResetWorkspaceDialog(props.root, props.directory)}
           >
+            <IconV2 name="reset" size="small" />
             <DropdownMenu.ItemLabel>{props.language.t("common.reset")}</DropdownMenu.ItemLabel>
           </DropdownMenu.Item>
+          <DropdownMenu.Separator />
           <DropdownMenu.Item
             disabled={props.local() || props.busy()}
+            class="text-text-on-critical-base hover:bg-surface-critical-weak"
             onSelect={() => props.showDeleteWorkspaceDialog(props.root, props.directory)}
           >
+            <Icon name="trash" size="small" />
             <DropdownMenu.ItemLabel>{props.language.t("common.delete")}</DropdownMenu.ItemLabel>
           </DropdownMenu.Item>
         </DropdownMenu.Content>

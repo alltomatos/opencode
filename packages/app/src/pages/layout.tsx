@@ -2064,6 +2064,7 @@ export default function LegacyLayout(props: ParentProps) {
                             showEditProjectDialog(server.current!, project)
                           }}
                         >
+                          <IconV2 name="edit" size="small" />
                           <DropdownMenu.ItemLabel>{language.t("common.edit")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
@@ -2074,6 +2075,7 @@ export default function LegacyLayout(props: ParentProps) {
                             toggleProjectWorkspaces(project)
                           }}
                         >
+                          <IconV2 name="workspace" size="small" />
                           <DropdownMenu.ItemLabel>
                             {workspacesEnabled()
                               ? language.t("sidebar.workspaces.disable")
@@ -2086,6 +2088,7 @@ export default function LegacyLayout(props: ParentProps) {
                           disabled={unseenCount() === 0}
                           onSelect={clearNotifications}
                         >
+                          <IconV2 name="check" size="small" />
                           <DropdownMenu.ItemLabel>
                             {language.t("sidebar.project.clearNotifications")}
                           </DropdownMenu.ItemLabel>
@@ -2100,6 +2103,7 @@ export default function LegacyLayout(props: ParentProps) {
                             closeProject(dir)
                           }}
                         >
+                          <IconV2 name="close" size="small" />
                           <DropdownMenu.ItemLabel>{language.t("common.close")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>

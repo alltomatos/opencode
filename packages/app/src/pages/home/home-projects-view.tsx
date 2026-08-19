@@ -546,13 +546,16 @@ function HomeProjectRow(
           <MenuV2.Portal>
             <MenuV2.Content>
               <MenuV2.Item onSelect={() => props.onOpenProjectNewSession(props.server, props.project.worktree)}>
+                <IconV2 name="plus" size="small" />
                 {props.language.t("command.session.new")}
               </MenuV2.Item>
               <MenuV2.Item onSelect={() => props.onEditProject(props.server, props.project)}>
+                <IconV2 name="edit" size="small" />
                 {props.language.t("dialog.project.edit.title")}
               </MenuV2.Item>
               <Show when={props.canRevealProject(props.server)}>
                 <MenuV2.Item onSelect={() => props.onRevealProject(props.server, props.project)}>
+                  <IconV2 name="folder" size="small" />
                   {props.language.t(
                     fileManagerApp(platform.platform === "desktop" ? (platform.os ?? "unknown") : "unknown")
                       .actionLabel,
@@ -563,10 +566,12 @@ function HomeProjectRow(
                 disabled={props.unseen === 0}
                 onSelect={() => props.onClearNotifications(props.server, props.project)}
               >
+                <IconV2 name="check" size="small" />
                 {props.language.t("sidebar.project.clearNotifications")}
               </MenuV2.Item>
               <MenuV2.Separator />
               <MenuV2.Item onSelect={() => props.onCloseProject(props.server, props.project.worktree)}>
+                <IconV2 name="close" size="small" />
                 {props.language.t("common.close")}
               </MenuV2.Item>
             </MenuV2.Content>

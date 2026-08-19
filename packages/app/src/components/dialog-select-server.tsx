@@ -664,15 +664,18 @@ export function ServerConnectionList(props: { controller: ReturnType<typeof useS
                             props.controller.startEdit(i)
                           }}
                         >
+                          <Icon name="edit" size="small" />
                           <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.edit")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                         <Show when={props.controller.canDefault() && props.controller.defaultKey() !== key}>
                           <DropdownMenu.Item onSelect={() => props.controller.setDefault(key)}>
+                            <Icon name="check" size="small" />
                             <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.default")}</DropdownMenu.ItemLabel>
                           </DropdownMenu.Item>
                         </Show>
                         <Show when={props.controller.canDefault() && props.controller.defaultKey() === key}>
                           <DropdownMenu.Item onSelect={() => props.controller.setDefault(null)}>
+                            <Icon name="close" size="small" />
                             <DropdownMenu.ItemLabel>
                               {language.t("dialog.server.menu.defaultRemove")}
                             </DropdownMenu.ItemLabel>
@@ -683,6 +686,7 @@ export function ServerConnectionList(props: { controller: ReturnType<typeof useS
                           onSelect={() => props.controller.handleRemove(ServerConnection.key(i), i)}
                           class="text-text-on-critical-base hover:bg-surface-critical-weak"
                         >
+                          <Icon name="trash" size="small" />
                           <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.delete")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>

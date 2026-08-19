@@ -1602,6 +1602,7 @@ export function MessageTimeline(props: {
                                     setTitle("menuOpen", false)
                                   }}
                                 >
+                                  <IconV2 name="edit" size="small" />
                                   <DropdownMenu.ItemLabel>{language.t("common.rename")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                                 <Show when={shareEnabled()}>
@@ -1610,21 +1611,26 @@ export function MessageTimeline(props: {
                                       setTitle({ pendingShare: true, menuOpen: false })
                                     }}
                                   >
+                                    <IconV2 name="outline-share" size="small" />
                                     <DropdownMenu.ItemLabel>
                                       {language.t("session.share.action.share")}
                                     </DropdownMenu.ItemLabel>
                                   </DropdownMenu.Item>
                                 </Show>
                                 <DropdownMenu.Item onSelect={() => exportSession(id)}>
+                                  <Icon name="download" size="small" />
                                   <DropdownMenu.ItemLabel>{language.t("common.export")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Item onSelect={() => void archiveSession(id)}>
+                                  <IconV2 name="archive" size="small" />
                                   <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item
+                                  class="text-text-on-critical-base hover:bg-surface-critical-weak"
                                   onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}
                                 >
+                                  <Icon name="trash" size="small" />
                                   <DropdownMenu.ItemLabel>{language.t("common.delete")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                               </DropdownMenu.Content>
@@ -1655,7 +1661,7 @@ export function MessageTimeline(props: {
                           />
                           <MenuV2.Portal>
                             <MenuV2.Content
-                              style={{ width: "120px", "min-width": "120px" }}
+                              style={{ width: "180px", "min-width": "180px" }}
                               onCloseAutoFocus={(event) => {
                                 if (title.pendingRename) {
                                   event.preventDefault()
@@ -1678,6 +1684,7 @@ export function MessageTimeline(props: {
                                   setTitle("menuOpen", false)
                                 }}
                               >
+                                <IconV2 name="edit" size="small" />
                                 {language.t("common.rename")}
                               </MenuV2.Item>
                               <Show when={shareEnabled()}>
@@ -1686,17 +1693,24 @@ export function MessageTimeline(props: {
                                     setTitle({ pendingShare: true, menuOpen: false })
                                   }}
                                 >
+                                  <IconV2 name="outline-share" size="small" />
                                   {language.t("session.share.action.share")}...
                                 </MenuV2.Item>
                               </Show>
                               <MenuV2.Item onSelect={() => exportSession(id)}>
+                                <IconV2 name="outline-square-arrow" size="small" />
                                 {language.t("common.export")}...
                               </MenuV2.Item>
                               <MenuV2.Item onSelect={() => void archiveSession(id)}>
+                                <IconV2 name="archive" size="small" />
                                 {language.t("common.archive")}
                               </MenuV2.Item>
                               <MenuV2.Separator />
-                              <MenuV2.Item onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}>
+                              <MenuV2.Item
+                                class="text-v2-state-fg-danger"
+                                onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}
+                              >
+                                <Icon name="trash" size="small" />
                                 {language.t("common.delete")}...
                               </MenuV2.Item>
                             </MenuV2.Content>
