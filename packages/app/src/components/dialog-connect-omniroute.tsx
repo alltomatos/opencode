@@ -86,7 +86,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   const existing = () => providers.all().get(OMNIROUTE_PROVIDER_ID)
 
   const [form, setForm] = createStore({
-    baseURL: (existing()?.options?.baseURL as string | undefined) ?? "https://gateway.packvibecoding.com/v1",
+    baseURL: (existing()?.options?.baseURL as string | undefined) ?? "",
     apiKey: existing()?.key ?? "",
     combosOnly: true,
     err: {} as { baseURL?: string; apiKey?: string },

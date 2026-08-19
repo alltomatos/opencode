@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.20.10",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Skills do Claude desativadas por padrão",
+              "description": "O toggle \"Enxergar skills do Claude\" agora vem desligado por padrão nas Configurações."
+            },
+            {
+              "title": "URL do Omniroute em branco por padrão",
+              "description": "O campo de URL ao conectar o Omniroute não vem mais preenchido com uma URL específica."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.9",
       "highlights": [
         {

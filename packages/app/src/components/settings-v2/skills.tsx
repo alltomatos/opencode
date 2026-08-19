@@ -29,7 +29,7 @@ export const SettingsSkillsV2: Component<{ directory?: Accessor<string | undefin
 
   type SkillsConfig = { paths?: string[]; urls?: string[]; claude?: boolean; codex?: boolean }
   const skillsConfig = () => serverSync().data.config.skills as SkillsConfig | undefined
-  const claudeEnabled = () => skillsConfig()?.claude !== false
+  const claudeEnabled = () => skillsConfig()?.claude === true
   const codexEnabled = () => skillsConfig()?.codex === true
 
   const toggleMutation = useMutation(() => ({
