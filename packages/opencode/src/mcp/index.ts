@@ -641,6 +641,10 @@ const layer = Layer.effect(
     const add = Effect.fn("MCP.add")(function* (name: string, mcp: ConfigMCPV1.Info) {
       const s = yield* InstanceState.get(state)
       s.config[name] = mcp
+      // Persist to the global config file, mirroring what `opencode mcp add`
+      // does from the CLI — without this, a server added from the UI/API
+      // only lives in memory and disappears on the next restart.
+      yield* cfgSvc.updateGlobal({ mcp: { [name]: mcp } } as ConfigV1.Info)
       yield* createAndStore(name, mcp)
       return { status: s.status }
     })
