@@ -58,6 +58,7 @@ export type HomeProjectsViewProps = {
   onCloseProject: (server: ServerConnection.Any, directory: string) => void
   onOpenSettings: () => void
   onOpenHelp: () => void
+  onOpenBatuta?: () => void
 }
 
 export function HomeProjectsView(props: HomeProjectsViewProps) {
@@ -148,6 +149,7 @@ export function HomeProjectsView(props: HomeProjectsViewProps) {
         class="mb-8 mt-4 hidden shrink-0 lg:flex"
         onOpenSettings={props.onOpenSettings}
         onOpenHelp={props.onOpenHelp}
+        onOpenBatuta={props.onOpenBatuta}
         language={props.language}
       />
     </aside>
@@ -158,10 +160,23 @@ export function HomeUtilityNav(props: {
   class?: string
   onOpenSettings: () => void
   onOpenHelp: () => void
+  onOpenBatuta?: () => void
   language: ReturnType<typeof useLanguage>
 }) {
   return (
     <div class={`${props.class ?? ""} min-w-0 flex-col gap-1 pr-3`}>
+      <Show when={props.onOpenBatuta}>
+        {(onOpenBatuta) => (
+          <HomeProjectNavButton
+            type="button"
+            class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
+            onClick={onOpenBatuta()}
+          >
+            <IconV2 name="batuta" size="small" />
+            <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.batuta")}</span>
+          </HomeProjectNavButton>
+        )}
+      </Show>
       <HomeProjectNavButton
         type="button"
         class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"

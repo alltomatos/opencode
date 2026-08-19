@@ -876,6 +876,10 @@ export const dict = {
   "sidebar.nav.projectsAndSessions": "Projects and sessions",
   "sidebar.settings": "Settings",
   "sidebar.help": "Help",
+  "sidebar.batuta": "Batuta",
+  "batuta.title": "What is a Batuta?",
+  "batuta.intro":
+    "A batuta is the famous, slender wand a conductor uses to lead an orchestra. Here you can set up an orchestrated activity: pick one model to act as the orchestrator, and other models to act as workers it can delegate tasks to.",
   "sidebar.workspaces.enable": "Enable workspaces",
   "sidebar.workspaces.disable": "Disable workspaces",
   "sidebar.gettingStarted.title": "Getting started",

@@ -849,6 +849,10 @@ export const dict = {
   "sidebar.nav.projectsAndSessions": "Projetos e sessões",
   "sidebar.settings": "Configurações",
   "sidebar.help": "Ajuda",
+  "sidebar.batuta": "Batuta",
+  "batuta.title": "O que é uma Batuta?",
+  "batuta.intro":
+    "A batuta é a famosa e fina varinha usada pelo maestro para conduzir a orquestra. Aqui você define uma atividade orquestrada: escolhe um modelo para ser o orquestrador e outros modelos para serem workers aos quais ele pode delegar tarefas.",
   "sidebar.workspaces.enable": "Habilitar espaços de trabalho",
   "sidebar.workspaces.disable": "Desabilitar espaços de trabalho",
   "sidebar.gettingStarted.title": "Começando",
