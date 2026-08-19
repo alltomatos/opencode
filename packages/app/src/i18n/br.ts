@@ -1144,6 +1144,7 @@ export const dict = {
   "workspace.reset.note": "Isso redefinirá o espaço de trabalho para corresponder ao branch padrão.",
   "common.open": "Abrir",
   "dialog.releaseNotes.action.getStarted": "Começar",
+  "dialog.releaseNotes.title": "Novidades",
   "dialog.releaseNotes.action.next": "Próximo",
   "dialog.releaseNotes.action.hideFuture": "Não mostrar isso no futuro",
   "dialog.releaseNotes.media.alt": "Prévia do lançamento",

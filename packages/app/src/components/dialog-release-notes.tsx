@@ -1,6 +1,7 @@
-import { createSignal } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Button } from "@opencode-ai/ui/button"
+import { Icon } from "@opencode-ai/ui/icon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
@@ -16,6 +17,71 @@ export type Highlight = {
 }
 
 export function DialogReleaseNotes(props: { highlights: Highlight[] }) {
+  const dialog = useDialog()
+  const language = useLanguage()
+  const settings = useSettings()
+  const hasMedia = () => props.highlights.some((highlight) => highlight.media)
+
+  function handleClose() {
+    dialog.close()
+  }
+
+  function handleDisable() {
+    settings.general.setReleaseNotes(false)
+    handleClose()
+  }
+
+  return (
+    <Show when={hasMedia()} fallback={<CompactReleaseNotes {...props} onClose={handleClose} onDisable={handleDisable} />}>
+      <MediaReleaseNotes {...props} />
+    </Show>
+  )
+}
+
+function CompactReleaseNotes(props: { highlights: Highlight[]; onClose: () => void; onDisable: () => void }) {
+  const language = useLanguage()
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key !== "Escape") return
+    e.preventDefault()
+    props.onClose()
+  }
+
+  return (
+    <Dialog size="normal" fit class="w-[min(calc(100vw-40px),440px)] min-h-0 overflow-hidden">
+      <div class="flex flex-col gap-4 p-6" tabIndex={0} autofocus onKeyDown={handleKeyDown}>
+        <h1 class="text-16-medium text-text-strong">{language.t("dialog.releaseNotes.title")}</h1>
+
+        <div class="flex flex-col gap-4 max-h-[min(calc(100vh-220px),480px)] overflow-y-auto -mr-1 pr-1">
+          <For each={props.highlights}>
+            {(highlight) => (
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-icon-weak-base text-text-base">
+                  <Icon name="models" class="size-3.5" />
+                </div>
+                <div class="flex flex-col gap-0.5 min-w-0">
+                  <h2 class="text-14-medium text-text-strong">{highlight.title}</h2>
+                  <p class="text-13-regular text-text-weak">{highlight.description}</p>
+                </div>
+              </div>
+            )}
+          </For>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 pt-1">
+          <Button variant="ghost" size="small" onClick={props.onDisable}>
+            {language.t("dialog.releaseNotes.action.hideFuture")}
+          </Button>
+          <Button variant="primary" size="normal" onClick={props.onClose}>
+            {language.t("dialog.releaseNotes.action.getStarted")}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
+
+function MediaReleaseNotes(props: { highlights: Highlight[] }) {
   const dialog = useDialog()
   const language = useLanguage()
   const settings = useSettings()

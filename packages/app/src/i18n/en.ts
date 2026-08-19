@@ -498,6 +498,7 @@ export const dict = {
   "dialog.project.edit.worktree.startup.placeholder": "e.g. bun install",
 
   "dialog.releaseNotes.action.getStarted": "Get started",
+  "dialog.releaseNotes.title": "What's new",
   "dialog.releaseNotes.action.next": "Next",
   "dialog.releaseNotes.action.hideFuture": "Don't show these in the future",
   "dialog.releaseNotes.media.alt": "Release preview",
