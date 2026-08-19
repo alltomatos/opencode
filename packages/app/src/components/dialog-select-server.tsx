@@ -1,11 +1,13 @@
-import { Button } from "@opencode-ai/ui/button"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
-import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
-import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { List } from "@opencode-ai/ui/list"
-import { TextField } from "@opencode-ai/ui/text-field"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { Field } from "@opencode-ai/ui/v2/field-v2"
+import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { useMutation } from "@tanstack/solid-query"
 import { showToast } from "@/utils/toast"
 import { useNavigate } from "@solidjs/router"
@@ -127,48 +129,67 @@ function ServerForm(props: ServerFormProps) {
   return (
     <div>
       <div class="bg-surface-base rounded-md p-5 flex flex-col gap-3">
-        <div class="flex-1 min-w-0 [&_[data-slot=input-wrapper]]:relative">
-          <TextField
-            type="text"
-            label={language.t("dialog.server.add.url")}
-            placeholder={props.placeholder}
-            value={props.value}
-            autofocus
-            validationState={props.error ? "invalid" : "valid"}
-            error={props.error}
-            disabled={props.busy}
-            onChange={props.onChange}
-            onKeyDown={keyDown}
-          />
-        </div>
-        <TextField
-          type="text"
-          label={language.t("dialog.server.add.name")}
-          placeholder={language.t("dialog.server.add.namePlaceholder")}
-          value={props.name}
-          disabled={props.busy}
-          onChange={props.onNameChange}
-          onKeyDown={keyDown}
-        />
+        <Field invalid={!!props.error}>
+          <Field.Label>{language.t("dialog.server.add.url")}</Field.Label>
+          <Field.Control>
+            <TextInputV2
+              class="!w-full"
+              type="text"
+              placeholder={props.placeholder}
+              value={props.value}
+              autofocus
+              disabled={props.busy}
+              onInput={(e) => props.onChange(e.currentTarget.value)}
+              onKeyDown={keyDown}
+            />
+          </Field.Control>
+          <Show when={props.error}>
+            <Field.Suffix class="text-v2-state-fg-danger">{props.error}</Field.Suffix>
+          </Show>
+        </Field>
+        <Field>
+          <Field.Label>{language.t("dialog.server.add.name")}</Field.Label>
+          <Field.Control>
+            <TextInputV2
+              class="!w-full"
+              type="text"
+              placeholder={language.t("dialog.server.add.namePlaceholder")}
+              value={props.name}
+              disabled={props.busy}
+              onInput={(e) => props.onNameChange(e.currentTarget.value)}
+              onKeyDown={keyDown}
+            />
+          </Field.Control>
+        </Field>
         <div class="grid grid-cols-2 gap-2 min-w-0">
-          <TextField
-            type="text"
-            label={language.t("dialog.server.add.username")}
-            placeholder={language.t("dialog.server.add.usernamePlaceholder")}
-            value={props.username}
-            disabled={props.busy}
-            onChange={props.onUsernameChange}
-            onKeyDown={keyDown}
-          />
-          <TextField
-            type="password"
-            label={language.t("dialog.server.add.password")}
-            placeholder={language.t("dialog.server.add.passwordPlaceholder")}
-            value={props.password}
-            disabled={props.busy}
-            onChange={props.onPasswordChange}
-            onKeyDown={keyDown}
-          />
+          <Field>
+            <Field.Label>{language.t("dialog.server.add.username")}</Field.Label>
+            <Field.Control>
+              <TextInputV2
+                class="!w-full"
+                type="text"
+                placeholder={language.t("dialog.server.add.usernamePlaceholder")}
+                value={props.username}
+                disabled={props.busy}
+                onInput={(e) => props.onUsernameChange(e.currentTarget.value)}
+                onKeyDown={keyDown}
+              />
+            </Field.Control>
+          </Field>
+          <Field>
+            <Field.Label>{language.t("dialog.server.add.password")}</Field.Label>
+            <Field.Control>
+              <TextInputV2
+                class="!w-full"
+                type="password"
+                placeholder={language.t("dialog.server.add.passwordPlaceholder")}
+                value={props.password}
+                disabled={props.busy}
+                onInput={(e) => props.onPasswordChange(e.currentTarget.value)}
+                onKeyDown={keyDown}
+              />
+            </Field.Control>
+          </Field>
         </div>
       </div>
     </div>
@@ -516,7 +537,12 @@ export function useServerManagementController(options: { onSelect?: () => void; 
     if (!isFormMode()) return language.t("dialog.server.title")
     return (
       <div class="flex items-center gap-2 -ml-2">
-        <IconButton icon="arrow-left" variant="ghost" onClick={resetForm} aria-label={language.t("common.goBack")} />
+        <IconButtonV2
+          variant="ghost"
+          onClick={resetForm}
+          aria-label={language.t("common.goBack")}
+          icon={<Icon name="arrow-left" size="small" />}
+        />
         <span>{isAddMode() ? language.t("dialog.server.add.title") : language.t("dialog.server.edit.title")}</span>
       </div>
     )
@@ -550,11 +576,11 @@ export function useServerManagementController(options: { onSelect?: () => void; 
             <span class="text-14-regular text-text-strong">{language.t("server.remove.confirm", { name })}</span>
           </div>
           <div class="flex justify-end gap-2">
-            <Button variant="ghost" size="large" onClick={() => dialog.close()}>
+            <ButtonV2 variant="ghost-muted" size="large" onClick={() => dialog.close()}>
               {language.t("common.cancel")}
-            </Button>
-            <Button
-              variant="primary"
+            </ButtonV2>
+            <ButtonV2
+              variant="danger"
               size="large"
               onClick={() => {
                 dialog.close()
@@ -562,7 +588,7 @@ export function useServerManagementController(options: { onSelect?: () => void; 
               }}
             >
               {language.t("server.remove.button")}
-            </Button>
+            </ButtonV2>
           </div>
         </div>
       </Dialog>
@@ -643,55 +669,53 @@ export function ServerConnectionList(props: { controller: ReturnType<typeof useS
               />
               <div class="flex items-center justify-center gap-4 pl-4">
                 <Show when={props.controller.current() && ServerConnection.key(props.controller.current()!) === key}>
-                  <Icon name="check" class="h-6" />
+                  <IconV2 name="check" class="h-6" />
                 </Show>
 
                 <Show when={i.type === "http"}>
-                  <DropdownMenu>
-                    <DropdownMenu.Trigger
-                      as={IconButton}
-                      icon="dot-grid"
+                  <MenuV2>
+                    <MenuV2.Trigger
+                      as={IconButtonV2}
                       variant="ghost"
                       class="shrink-0 size-8 hover:bg-surface-base-hover data-[expanded]:bg-surface-base-active"
                       onClick={(e: MouseEvent) => e.stopPropagation()}
                       onPointerDown={(e: PointerEvent) => e.stopPropagation()}
+                      icon={<IconV2 name="outline-dots" size="small" />}
                     />
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Content class="mt-1">
-                        <DropdownMenu.Item
+                    <MenuV2.Portal>
+                      <MenuV2.Content class="mt-1">
+                        <MenuV2.Item
                           onSelect={() => {
                             if (i.type !== "http") return
                             props.controller.startEdit(i)
                           }}
                         >
-                          <Icon name="edit" size="small" />
-                          <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.edit")}</DropdownMenu.ItemLabel>
-                        </DropdownMenu.Item>
+                          <IconV2 name="edit" size="small" />
+                          {language.t("dialog.server.menu.edit")}
+                        </MenuV2.Item>
                         <Show when={props.controller.canDefault() && props.controller.defaultKey() !== key}>
-                          <DropdownMenu.Item onSelect={() => props.controller.setDefault(key)}>
-                            <Icon name="check" size="small" />
-                            <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.default")}</DropdownMenu.ItemLabel>
-                          </DropdownMenu.Item>
+                          <MenuV2.Item onSelect={() => props.controller.setDefault(key)}>
+                            <IconV2 name="check" size="small" />
+                            {language.t("dialog.server.menu.default")}
+                          </MenuV2.Item>
                         </Show>
                         <Show when={props.controller.canDefault() && props.controller.defaultKey() === key}>
-                          <DropdownMenu.Item onSelect={() => props.controller.setDefault(null)}>
-                            <Icon name="close" size="small" />
-                            <DropdownMenu.ItemLabel>
-                              {language.t("dialog.server.menu.defaultRemove")}
-                            </DropdownMenu.ItemLabel>
-                          </DropdownMenu.Item>
+                          <MenuV2.Item onSelect={() => props.controller.setDefault(null)}>
+                            <IconV2 name="close" size="small" />
+                            {language.t("dialog.server.menu.defaultRemove")}
+                          </MenuV2.Item>
                         </Show>
-                        <DropdownMenu.Separator />
-                        <DropdownMenu.Item
+                        <MenuV2.Separator />
+                        <MenuV2.Item
                           onSelect={() => props.controller.handleRemove(ServerConnection.key(i), i)}
-                          class="text-text-on-critical-base hover:bg-surface-critical-weak"
+                          class="text-v2-state-fg-danger"
                         >
                           <Icon name="trash" size="small" />
-                          <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.delete")}</DropdownMenu.ItemLabel>
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu>
+                          {language.t("dialog.server.menu.delete")}
+                        </MenuV2.Item>
+                      </MenuV2.Content>
+                    </MenuV2.Portal>
+                  </MenuV2>
                 </Show>
               </div>
             </div>
@@ -700,15 +724,15 @@ export function ServerConnectionList(props: { controller: ReturnType<typeof useS
       </List>
 
       <div class="shrink-0 pb-5">
-        <Button
-          variant="secondary"
-          icon="plus-small"
+        <ButtonV2
+          variant="neutral"
+          icon="plus"
           size="large"
           onClick={props.controller.startAdd}
           class="py-1.5 pl-1.5 pr-3 flex items-center gap-1.5"
         >
           {language.t("dialog.server.add.button")}
-        </Button>
+        </ButtonV2>
       </div>
     </div>
   )
@@ -736,8 +760,8 @@ export function ServerConnectionForm(props: { controller: ReturnType<typeof useS
         onBack={props.controller.resetForm}
       />
       <div class="shrink-0 pb-5">
-        <Button
-          variant="primary"
+        <ButtonV2
+          variant="contrast"
           size="large"
           onClick={props.controller.submitForm}
           disabled={props.controller.formBusy()}
@@ -748,7 +772,7 @@ export function ServerConnectionForm(props: { controller: ReturnType<typeof useS
             : props.controller.isAddMode()
               ? language.t("dialog.server.add.button")
               : language.t("common.save")}
-        </Button>
+        </ButtonV2>
       </div>
     </div>
   )
