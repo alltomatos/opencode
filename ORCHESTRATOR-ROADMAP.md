@@ -112,6 +112,15 @@ Demais lacunas mapeadas em issues (nenhum TODO/gambiarra no código — é falta
 
 Decisão de produto sobre servidores pessoais/privados do usuário (`~/.claude.json` tem 12 configurados, incluindo endpoints internos e chaves): **não vão ser embutidos no fork**. Só os 5 públicos/conhecidos do #24 viram catálogo pré-configurado (sem segredo nenhum, só a URL pública); os privados continuam só via formulário manual.
 
+## Epic: Descontinuar o layout legado
+
+**Status:** Decisão tomada em 2026-08-19 (issue #25), execução não iniciada.
+**Origem:** a issue #7 (migrar `dialog-connect-provider.tsx` pra v2) foi investigada e descoberta como um split deliberado por layout, não uma mistura acidental — decisão do usuário: em vez de manter os dois branches, descontinuar o layout antigo (`newLayoutDesigns() === false`) de vez.
+
+Escopo real levantado por grep: **32 arquivos** referenciam `settings.general.newLayoutDesigns()`, incluindo `pages/layout.tsx` (o shell legado inteiro, ~2300 linhas) e o switch raiz em `app.tsx` (`LegacyLayout` vs `NewLayout`). Vários componentes também existem em pares legado/v2 só por convenção de nome (`settings-general.tsx` vs `settings-v2/general.tsx`, etc.), não só pela flag.
+
+Ver [issue #25](https://github.com/alltomatos/opencode/issues/25) pra lista completa dos 32 arquivos e a abordagem recomendada (fatias pequenas e verificadas, `layout.tsx`/`app.tsx` por último, toggle de Configurações removido só no final). Não deve ser feito numa PR só — trabalho de várias sessões.
+
 ## Epic: Build multi-plataforma na promoção `dev` → `prod`
 
 **Status:** Concluído em 2026-08-19.
