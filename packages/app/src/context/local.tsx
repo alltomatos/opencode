@@ -183,7 +183,12 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       list,
       visible: agentsVisible,
       current() {
-        return pickAgent(agentsVisible() ? (scope()?.agent ?? store.current) : "build")
+        const preferred = scope()?.agent ?? store.current
+        // The custom-agent switcher being hidden shouldn't strand the
+        // built-in "plan" mode (offered from the permission-mode menu
+        // regardless of switcher visibility) back on "build".
+        if (agentsVisible() || preferred === "plan") return pickAgent(preferred)
+        return pickAgent("build")
       },
       set(name: string | undefined) {
         const item = pickAgent(name)

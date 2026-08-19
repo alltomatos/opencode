@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.14",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Modo Planejar realmente muda de agente agora",
+              "description": "Selecionar \"Planejar\" no menu de modos ficava sem efeito quando o seletor de agentes customizados estava escondido (o agente ativo sempre voltava para \"build\"). Corrigido."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.13",
       "highlights": [
         {
