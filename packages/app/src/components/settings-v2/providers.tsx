@@ -186,7 +186,12 @@ export const SettingsProvidersV2: Component<{
                         </span>
                       }
                     >
-                      <ButtonV2 size="normal" variant="ghost-muted" onClick={() => void disconnect(item.id, item.name)}>
+                      <ButtonV2
+                        size="normal"
+                        variant="ghost-muted"
+                        class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                        onClick={() => void disconnect(item.id, item.name)}
+                      >
                         {language.t("common.disconnect")}
                       </ButtonV2>
                     </Show>

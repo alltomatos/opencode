@@ -1,5 +1,6 @@
 import { createMemo, createResource, For, Show, type Accessor, type Component } from "solid-js"
 import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
+import { Icon } from "@opencode-ai/ui/icon"
 import { useMutation } from "@tanstack/solid-query"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
@@ -137,7 +138,15 @@ export const SettingsSkillsV2: Component<{ directory?: Accessor<string | undefin
               <SettingsListV2>
                 <For each={skills()}>
                   {(skill) => (
-                    <SettingsRowV2 title={skill.name} description={skill.description ?? ""}>
+                    <SettingsRowV2
+                      title={
+                        <span class="flex items-center gap-2">
+                          <Icon name="models" class="size-3.5 shrink-0 text-text-weak" />
+                          {skill.name}
+                        </span>
+                      }
+                      description={skill.description ?? ""}
+                    >
                       <div class="flex items-center gap-3">
                         <span
                           class="settings-v2-provider-env-hint truncate"

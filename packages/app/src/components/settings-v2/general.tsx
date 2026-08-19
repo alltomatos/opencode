@@ -1,6 +1,7 @@
 import { Component, Show, createMemo, createResource } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { Icon } from "@opencode-ai/ui/icon"
 import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
@@ -73,7 +74,12 @@ const PermissionScopeSetting: Component<{ controller: PermissionScopeController 
   const language = useLanguage()
   return (
     <SettingsRowV2
-      title={language.t("command.permissions.autoaccept.enable")}
+      title={
+        <span class="flex items-center gap-2">
+          <Icon name="shield" class="size-3.5 shrink-0 text-text-weak" />
+          {language.t("command.permissions.autoaccept.enable")}
+        </span>
+      }
       description={language.t("toast.permissions.autoaccept.on.description")}
     >
       <div data-action="settings-auto-accept-permissions">
@@ -97,7 +103,12 @@ const ShellSetting: Component<{ controller: ShellSettingsController }> = (props)
   )
   return (
     <SettingsRowV2
-      title={language.t("settings.general.row.shell.title")}
+      title={
+        <span class="flex items-center gap-2">
+          <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
+          {language.t("settings.general.row.shell.title")}
+        </span>
+      }
       description={language.t("settings.general.row.shell.description")}
     >
       <SelectV2
@@ -326,6 +337,7 @@ export const SettingsGeneralV2: Component<{
 
   const GeneralSection = () => (
     <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.general")}</h3>
       <SettingsListV2>
         <LanguageSetting />
 
@@ -334,7 +346,12 @@ export const SettingsGeneralV2: Component<{
         <ShellSetting controller={shell} />
 
         <SettingsRowV2
-          title={language.t("settings.general.row.reasoningSummaries.title")}
+          title={
+            <span class="flex items-center gap-2">
+              <Icon name="help" class="size-3.5 shrink-0 text-text-weak" />
+              {language.t("settings.general.row.reasoningSummaries.title")}
+            </span>
+          }
           description={language.t("settings.general.row.reasoningSummaries.description")}
         >
           <div data-action="settings-feed-reasoning-summaries">
@@ -346,7 +363,12 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
-          title={language.t("settings.general.row.shellToolPartsExpanded.title")}
+          title={
+            <span class="flex items-center gap-2">
+              <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
+              {language.t("settings.general.row.shellToolPartsExpanded.title")}
+            </span>
+          }
           description={language.t("settings.general.row.shellToolPartsExpanded.description")}
         >
           <div data-action="settings-feed-shell-tool-parts-expanded">
@@ -358,7 +380,12 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
-          title={language.t("settings.general.row.editToolPartsExpanded.title")}
+          title={
+            <span class="flex items-center gap-2">
+              <Icon name="edit" class="size-3.5 shrink-0 text-text-weak" />
+              {language.t("settings.general.row.editToolPartsExpanded.title")}
+            </span>
+          }
           description={language.t("settings.general.row.editToolPartsExpanded.description")}
         >
           <div data-action="settings-feed-edit-tool-parts-expanded">

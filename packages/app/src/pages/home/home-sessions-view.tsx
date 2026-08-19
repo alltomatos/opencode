@@ -4,6 +4,7 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
@@ -509,6 +510,9 @@ function HomeSessionProjectName(props: { name: string; search?: boolean }) {
 function HomeSessionsEmpty(props: { onNewSession?: () => void; language: ReturnType<typeof useLanguage> }) {
   return (
     <div class="flex min-h-full flex-col items-center gap-4 px-6 pt-[52px] text-center">
+      <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-v2-background-bg-layer-02 text-v2-icon-icon-muted">
+        <Icon name="comment" class="size-4" />
+      </div>
       <div
         class={`
           shrink-0 text-[13px] leading-[13px] tracking-[-0.04px]

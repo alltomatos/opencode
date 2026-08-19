@@ -1,5 +1,6 @@
 import { createResource, For, Show, type Component } from "solid-js"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { Icon } from "@opencode-ai/ui/icon"
 import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
@@ -81,7 +82,12 @@ export const SettingsMcpV2: Component = () => {
                   const pending = () => toggleMutation.isPending && toggleMutation.variables?.name === item.name
                   return (
                     <SettingsRowV2
-                      title={item.name}
+                      title={
+                        <span class="flex items-center gap-2">
+                          <Icon name="link" class="size-3.5 shrink-0 text-text-weak" />
+                          {item.name}
+                        </span>
+                      }
                       description={
                         <div class="flex min-w-0 items-center gap-2">
                           <Show when={statusKey()}>
