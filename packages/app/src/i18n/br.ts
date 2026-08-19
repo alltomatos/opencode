@@ -232,6 +232,7 @@ export const dict = {
   "prompt.mode.plan.description": "Criar um plano antes de fazer alterações",
   "prompt.mode.bypass.label": "Ignorar permissões",
   "prompt.mode.bypass.description": "Aceita todas as permissões para este diretório",
+  "prompt.mode.group.directory": "Neste diretório",
   "provider.connect.title": "Conectar {{provider}}",
   "provider.connect.title.anthropicProMax": "Entrar com Claude Pro/Max",
   "provider.connect.selectMethod": "Selecionar método de login para {{provider}}.",

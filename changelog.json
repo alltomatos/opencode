@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.13",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Menu de modos redesenhado",
+              "description": "Cada modo agora tem um ícone próprio, o botão mostra o ícone do modo atual, e \"Ignorar permissões\" (o mais arriscado) ganhou destaque em amarelo e ficou separado dos modos da sessão."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.12",
       "highlights": [
         {

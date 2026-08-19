@@ -147,6 +147,7 @@ export const dict = {
   "prompt.mode.plan.description": "Create a plan before making changes",
   "prompt.mode.bypass.label": "Bypass permissions",
   "prompt.mode.bypass.description": "Accept all permissions for this directory",
+  "prompt.mode.group.directory": "This directory",
 
   "provider.connect.title": "Connect {{provider}}",
   "provider.connect.title.anthropicProMax": "Login with Claude Pro/Max",
