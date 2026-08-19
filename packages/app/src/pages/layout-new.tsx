@@ -1,8 +1,9 @@
-import { createEffect, Suspense, type ParentProps } from "solid-js"
+import { createEffect, createMemo, Show, Suspense, type ParentProps } from "solid-js"
 import { createStore } from "solid-js/store"
 import { DebugBar } from "@/components/debug-bar"
 import { TabsInfoPopup } from "@/components/help-button"
 import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
+import { UpdateAvailableToast } from "@/components/update-available-toast"
 import { usePlatform } from "@/context/platform"
 import { setV2Toast, ToastRegion } from "@/utils/toast"
 import { AppProjectSidebar } from "@/pages/layout/app-project-sidebar"
@@ -13,14 +14,16 @@ export default function NewLayout(props: ParentProps) {
 
   createEffect(() => setV2Toast(true))
 
+  const updateVersion = createMemo(() => {
+    const state = platform.updater?.state()
+    if (state?.status !== "ready") return
+    return state.version
+  })
+  const installUpdate = () => void platform.updater?.install()
   const update: TitlebarUpdate = {
-    version: () => {
-      const state = platform.updater?.state()
-      if (state?.status !== "ready") return
-      return state.version
-    },
+    version: updateVersion,
     installing: () => platform.updater?.state().status === "installing",
-    install: () => void platform.updater?.install(),
+    install: installUpdate,
   }
 
   return (
@@ -39,6 +42,9 @@ export default function NewLayout(props: ParentProps) {
             : undefined
         }
       />
+      <Show when={updateVersion() !== undefined}>
+        <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} />
+      </Show>
       <div class="flex-1 min-h-0 min-w-0 flex flex-row items-stretch">
         <AppProjectSidebar />
         <main class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start contain-strict">
