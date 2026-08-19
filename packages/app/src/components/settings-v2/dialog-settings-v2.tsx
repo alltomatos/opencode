@@ -12,7 +12,6 @@ import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsMcpV2 } from "./mcp"
-import { SettingsMarketplaceV2 } from "./marketplace"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -100,10 +99,6 @@ export const DialogSettings: Component<{
                       <Icon name="link" />
                       {language.t("settings.mcp.title")}
                     </TabsV2.Trigger>
-                    <TabsV2.Trigger value="marketplace">
-                      <Icon name="providers" />
-                      {language.t("settings.marketplace.title")}
-                    </TabsV2.Trigger>
                   </div>
                 </div>
               </div>
@@ -142,9 +137,6 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="mcp" class="settings-v2-panel">
           <SettingsMcpV2 />
-        </TabsV2.Content>
-        <TabsV2.Content value="marketplace" class="settings-v2-panel">
-          <SettingsMarketplaceV2 onNavigate={(value) => void startTransition(() => setTab(value))} />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

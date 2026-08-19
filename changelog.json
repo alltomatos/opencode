@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.9",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Item Marketplace removido das Configurações",
+              "description": "Retirado o item \"Marketplace\" do menu de Configurações."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.8",
       "highlights": [
         {
