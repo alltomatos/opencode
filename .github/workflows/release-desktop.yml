@@ -1,0 +1,45 @@
+name: release-desktop
+
+# Builds and publishes the desktop app for Windows, macOS, and Linux whenever
+# the prod branch is promoted (or manually, as a retry/backfill). The version
+# comes from packages/desktop/package.json as committed on prod — bump it
+# there before promoting, the same way this fork already does locally.
+on:
+  push:
+    branches:
+      - prod
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.repository == 'alltomatos/opencode'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: package:win
+          - os: macos-latest
+            script: package:mac
+          - os: ubuntu-latest
+            script: package:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install rpm (linux only, needed by electron-builder's fpm packaging)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends rpm
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Build and publish
+        working-directory: packages/desktop
+        run: bun run build && bun run ${{ matrix.script }} -- --publish always
+        env:
+          OPENCODE_CHANNEL: prod
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false

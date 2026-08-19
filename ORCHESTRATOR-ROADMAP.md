@@ -44,11 +44,12 @@ A partir de agora, mudanças de UI/UX se acumulam em `dev` e são publicadas em 
 
 **Fluxo de promoção (dev → prod):**
 1. Trabalhar e validar na `dev` (o app roda em modo dev com `OPENCODE_CHANNEL=dev`, sem afetar usuários).
-2. Quando o conjunto de mudanças estiver maduro e testado, promover: `git checkout prod && git merge dev` (fast-forward, já que `prod` nunca diverge por conta própria) `&& git push origin prod`.
-3. Buildar e publicar o release **a partir da branch `prod`** (`OPENCODE_CHANNEL=prod`), não da `dev`.
-4. Isso garante que ninguém recebe update com trabalho pela metade — o auto-updater do app aponta pros releases do GitHub, que só devem ser criados depois da promoção.
+2. Antes de promover, bumpar a versão em `packages/desktop/package.json` (e `packages/app/package.json`) e commitar na `dev`.
+3. Quando o conjunto de mudanças estiver maduro e testado, promover: `git checkout prod && git merge dev` (fast-forward, já que `prod` nunca diverge por conta própria) `&& git push origin prod`.
+4. **O push pra `prod` dispara sozinho** o workflow [`release-desktop.yml`](./.github/workflows/release-desktop.yml), que builda Windows/macOS/Linux em paralelo e publica os três num único release do GitHub — não precisa mais buildar nada manualmente.
+5. Isso garante que ninguém recebe update com trabalho pela metade — o auto-updater do app aponta pros releases do GitHub, que só devem ser criados depois da promoção.
 
-Nota: o workflow de CI em `.github/workflows/publish.yml` é herdado do projeto original e só roda quando `github.repository == 'anomalyco/opencode'` — no nosso fork ele nunca dispara. Todo o processo de build/release atual é manual, feito localmente (`bun run build` + `bun run package:win -- --publish always` em `packages/desktop`), então esse gate de branch é uma disciplina nossa, não uma automação de CI.
+Nota: o workflow de CI em `.github/workflows/publish.yml` é herdado do projeto original e só roda quando `github.repository == 'anomalyco/opencode'` — no nosso fork ele nunca dispara (é diferente do nosso `release-desktop.yml`, que é próprio deste fork e não tem esse gate).
 
 ### Rastreamento
 
@@ -113,6 +114,6 @@ Decisão de produto sobre servidores pessoais/privados do usuário (`~/.claude.j
 
 ## Epic: Build multi-plataforma na promoção `dev` → `prod`
 
-**Status:** Solicitado em 2026-08-19, a ser implementado.
+**Status:** Concluído em 2026-08-19.
 
-Hoje o processo de release só builda Windows (`bun run package:win`) manualmente. Objetivo: ao promover `dev` → `prod`, gerar também os artefatos de Mac (`.dmg`) e Linux (`.deb`, `.rpm`, ou outro formato universal) via electron-builder, para que o script de instalação cubra as três plataformas.
+`electron-builder.config.ts` já builda `.dmg`/`.zip` (mac) e `AppImage`/`.deb`/`.rpm` (linux), além do `.exe` (win) — só faltava disparar automaticamente. Implementado como `.github/workflows/release-desktop.yml`: dispara em todo push na branch `prod`, builda as três plataformas em paralelo (`windows-latest`/`macos-latest`/`ubuntu-latest`) e publica tudo no mesmo release do GitHub, usando a versão de `packages/desktop/package.json` commitada no momento do push. Builds mac/linux saem sem assinatura/notarização (sem credenciais Apple/Azure configuradas neste fork) — funcionam, mas o Gatekeeper avisa na primeira abertura no mac.

@@ -73,9 +73,9 @@ bun run package:mac     # macOS — precisa rodar num Mac
 bun run package:linux   # Linux — precisa de dpkg/rpm/fpm disponíveis
 ```
 
-O instalador gerado fica em `packages/desktop/dist/`. Publicar de verdade (upload pro GitHub Releases) só deve acontecer a partir da branch `prod`, depois de promover `dev` — ver [`ORCHESTRATOR-ROADMAP.md`](./ORCHESTRATOR-ROADMAP.md) para o fluxo completo.
+O instalador gerado fica em `packages/desktop/dist/`.
 
-Como esta máquina de desenvolvimento é Windows, os builds de **macOS e Linux são gerados via GitHub Actions** (workflow [`release-desktop-mac-linux.yml`](./.github/workflows/release-desktop-mac-linux.yml)), disparado manualmente (`gh workflow run release-desktop-mac-linux.yml -f version=X.Y.Z`) depois que a versão já foi publicada no Windows — ele builda em runners `macos-latest`/`ubuntu-latest` e sobe os artefatos pro mesmo release já criado.
+**Publicação real é automática**: assim que a branch `prod` recebe um push (a promoção `dev` → `prod`), o workflow [`release-desktop.yml`](./.github/workflows/release-desktop.yml) dispara sozinho e builda Windows/macOS/Linux em paralelo (`windows-latest`/`macos-latest`/`ubuntu-latest`), publicando os três num único release do GitHub com a versão que estiver em `packages/desktop/package.json` no momento do push. Não precisa mais buildar nada manualmente nesta máquina — só bumpar a versão, commitar, e promover. Pra reexecutar manualmente (ex: retry de uma plataforma que falhou), use `gh workflow run release-desktop.yml`.
 
 ### Agents
 
