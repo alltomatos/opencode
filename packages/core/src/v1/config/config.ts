@@ -6,6 +6,7 @@ import { ConfigExperimental } from "../../config/experimental"
 import { ConfigReference } from "../../config/reference"
 import { ConfigAgentV1 } from "./agent"
 import { ConfigAttachmentV1 } from "./attachment"
+import { ConfigBatutaV1 } from "./batuta"
 import { ConfigCommandV1 } from "./command"
 import { ConfigFormatterV1 } from "./formatter"
 import { ConfigLayoutV1 } from "./layout"
@@ -113,6 +114,9 @@ export const Info = Schema.Struct({
   mcp: Schema.optional(
     Schema.Record(Schema.String, Schema.Union([ConfigMCPV1.Info, Schema.Struct({ enabled: Schema.Boolean })])),
   ).annotate({ description: "MCP (Model Context Protocol) server configurations" }),
+  batuta: Schema.optional(ConfigBatutaV1.Info).annotate({
+    description: "Batuta orchestration activities (orchestrator + worker subagent delegation)",
+  }),
   formatter: Schema.optional(ConfigFormatterV1.Info).annotate({
     description:
       "Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.",
