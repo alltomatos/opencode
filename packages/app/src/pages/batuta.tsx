@@ -18,6 +18,8 @@ import { SettingsListV2 } from "@/components/settings-v2/parts/list"
 import { SettingsRowV2 } from "@/components/settings-v2/parts/row"
 import { DialogBatutaActivityV2 } from "@/components/batuta/dialog-batuta-activity-v2"
 import { BatutaActivityPanel2D } from "@/components/batuta/activity-panel-2d"
+import { BatutaActivityPanel3D } from "@/components/batuta/activity-panel-3d"
+import { detectGpuSupport } from "@/utils/gpu"
 
 const RUNNING_SESSIONS_KEY = "batuta.runningSessions.v1"
 
@@ -84,7 +86,12 @@ export function BatutaPage() {
           <DialogTitle>{language.t("batuta.panel.title")}</DialogTitle>
         </DialogHeader>
         <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2 overflow-y-auto max-h-[70vh]">
-          <BatutaActivityPanel2D orchestratorSessionID={sessionID} activity={activity} />
+          <Show
+            when={detectGpuSupport()}
+            fallback={<BatutaActivityPanel2D orchestratorSessionID={sessionID} activity={activity} />}
+          >
+            <BatutaActivityPanel3D orchestratorSessionID={sessionID} activity={activity} />
+          </Show>
         </DialogBody>
         <DialogFooter>
           <ButtonV2 variant="neutral" onClick={() => dialog.close()}>
