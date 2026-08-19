@@ -179,7 +179,7 @@ export function ScrollView(props: ScrollViewProps) {
     // clientHeight from spacer/padding drift even when nothing meaningful
     // is scrollable — tolerate that instead of drawing a near-full-height
     // thumb that reveals itself on any hover over the list.
-    const SCROLLABLE_TOLERANCE = 24
+    const SCROLLABLE_TOLERANCE = 48
     if (scrollHeight - clientHeight <= SCROLLABLE_TOLERANCE || scrollHeight === 0) {
       setState("showThumb", false)
       return
