@@ -174,7 +174,13 @@ export function ScrollView(props: ScrollViewProps) {
     if (!viewportRef) return
     const { scrollTop, scrollHeight, clientHeight } = viewportRef
 
-    if (scrollHeight <= clientHeight || scrollHeight === 0) {
+    // Layouts that force content to at least fill the viewport (e.g.
+    // min-h-[calc(...)] wrappers) can leave scrollHeight a bit above
+    // clientHeight from spacer/padding drift even when nothing meaningful
+    // is scrollable — tolerate that instead of drawing a near-full-height
+    // thumb that reveals itself on any hover over the list.
+    const SCROLLABLE_TOLERANCE = 24
+    if (scrollHeight - clientHeight <= SCROLLABLE_TOLERANCE || scrollHeight === 0) {
       setState("showThumb", false)
       return
     }
