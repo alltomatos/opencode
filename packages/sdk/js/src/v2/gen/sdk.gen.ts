@@ -20,6 +20,8 @@ import type {
   Config as Config3,
   ConfigGetErrors,
   ConfigGetResponses,
+  ConfigGlobalPathErrors,
+  ConfigGlobalPathResponses,
   ConfigProvidersErrors,
   ConfigProvidersResponses,
   ConfigUpdateErrors,
@@ -1483,6 +1485,18 @@ export class Config2 extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Get global config file path
+   *
+   * Get the filesystem path to the global opencode.json(c) config file.
+   */
+  public globalPath<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<ConfigGlobalPathResponses, ConfigGlobalPathErrors, ThrowOnError>({
+      url: "/config/globalPath",
+      ...options,
     })
   }
 

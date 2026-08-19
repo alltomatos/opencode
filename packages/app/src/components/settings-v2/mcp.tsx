@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/solid-query"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
+import { usePlatform } from "@/context/platform"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
@@ -111,8 +112,21 @@ export const SettingsMcpV2: Component = () => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
   const serverSync = useServerSync()
+  const platform = usePlatform()
   const dialog = useDialog()
   const [expanded, setExpanded] = createSignal<Set<string>>(new Set())
+
+  const openConfigFile = async () => {
+    if (!platform.openPath) return
+    try {
+      const result = await serverSDK().client.config.globalPath()
+      if (!result.data) return
+      await platform.openPath(result.data.path)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    }
+  }
   const toggleExpanded = (name: string) => {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -231,9 +245,16 @@ export const SettingsMcpV2: Component = () => {
       <div class="settings-v2-tab-header">
         <div class="settings-v2-tab-header-row">
           <h2 class="settings-v2-tab-title">{language.t("settings.mcp.title")}</h2>
-          <ButtonV2 variant="neutral" icon="plus" onClick={openAdd}>
-            {language.t("settings.mcp.add.button")}
-          </ButtonV2>
+          <div class="flex items-center gap-2">
+            <Show when={platform.openPath}>
+              <ButtonV2 variant="neutral" onClick={openConfigFile}>
+                {language.t("settings.mcp.openConfig.button")}
+              </ButtonV2>
+            </Show>
+            <ButtonV2 variant="neutral" icon="plus" onClick={openAdd}>
+              {language.t("settings.mcp.add.button")}
+            </ButtonV2>
+          </div>
         </div>
       </div>
       <div class="settings-v2-tab-body settings-v2-models">

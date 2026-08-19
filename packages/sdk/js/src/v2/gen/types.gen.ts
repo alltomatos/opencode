@@ -7463,6 +7463,33 @@ export type ConfigUpdateResponses = {
 
 export type ConfigUpdateResponse = ConfigUpdateResponses[keyof ConfigUpdateResponses]
 
+export type ConfigGlobalPathData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/config/globalPath"
+}
+
+export type ConfigGlobalPathErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ConfigGlobalPathError = ConfigGlobalPathErrors[keyof ConfigGlobalPathErrors]
+
+export type ConfigGlobalPathResponses = {
+  /**
+   * Global config file path
+   */
+  200: {
+    path: string
+  }
+}
+
+export type ConfigGlobalPathResponse = ConfigGlobalPathResponses[keyof ConfigGlobalPathResponses]
+
 export type ConfigProvidersData = {
   body?: never
   path?: never

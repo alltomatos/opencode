@@ -1,6 +1,7 @@
 import { Config } from "@/config/config"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { Provider } from "@/provider/provider"
+import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
@@ -8,6 +9,8 @@ import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware
 import { described } from "./metadata"
 
 const root = "/config"
+
+export const GlobalPathResponse = Schema.Struct({ path: Schema.String })
 
 export const ConfigApi = HttpApi.make("config")
   .add(
@@ -33,6 +36,15 @@ export const ConfigApi = HttpApi.make("config")
             identifier: "config.update",
             summary: "Update configuration",
             description: "Update OpenCode configuration settings and preferences.",
+          }),
+        ),
+        HttpApiEndpoint.get("globalPath", `${root}/globalPath`, {
+          success: described(GlobalPathResponse, "Global config file path"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "config.globalPath",
+            summary: "Get global config file path",
+            description: "Get the filesystem path to the global opencode.json(c) config file.",
           }),
         ),
         HttpApiEndpoint.get("providers", `${root}/providers`, {

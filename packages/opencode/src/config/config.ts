@@ -130,6 +130,7 @@ export interface Interface {
   readonly invalidate: () => Effect.Effect<void>
   readonly directories: () => Effect.Effect<string[]>
   readonly waitForDependencies: () => Effect.Effect<void>
+  readonly globalConfigPath: () => Effect.Effect<string>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Config") {}
@@ -668,6 +669,7 @@ const layer = Layer.effect(
       invalidate,
       directories,
       waitForDependencies,
+      globalConfigPath: () => Effect.sync(globalConfigFile),
     })
   }),
 )

@@ -29,6 +29,14 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       }
     })
 
-    return handlers.handle("get", get).handle("update", update).handle("providers", providers)
+    const globalPath = Effect.fn("ConfigHttpApi.globalPath")(function* () {
+      return { path: yield* configSvc.globalConfigPath() }
+    })
+
+    return handlers
+      .handle("get", get)
+      .handle("update", update)
+      .handle("providers", providers)
+      .handle("globalPath", globalPath)
   }),
 )
