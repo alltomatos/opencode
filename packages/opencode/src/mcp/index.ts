@@ -174,6 +174,7 @@ export interface Interface {
   readonly add: (name: string, mcp: ConfigMCPV1.Info) => Effect.Effect<{ status: Record<string, Status> | Status }>
   readonly connect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly disconnect: (name: string) => Effect.Effect<void, NotFoundError>
+  readonly remove: (name: string) => Effect.Effect<void, NotFoundError>
   readonly getPrompt: (
     clientName: string,
     name: string,
@@ -662,6 +663,19 @@ const layer = Layer.effect(
       s.status[name] = { status: "disabled" }
     })
 
+    const remove = Effect.fn("MCP.remove")(function* (name: string) {
+      yield* requireMcpConfig(name)
+      const s = yield* InstanceState.get(state)
+      yield* closeClient(s, name)
+      delete s.clients[name]
+      delete s.status[name]
+      delete s.config[name]
+      delete s.instructions[name]
+      // undefined at this path deletes the key from the JSON(C) config file
+      // rather than merging — see Config.Service.updateGlobal/patchJsonc.
+      yield* cfgSvc.updateGlobal({ mcp: { [name]: undefined } } as unknown as ConfigV1.Info)
+    })
+
     function requestTimeout(s: State, name: string, configured: McpEntry | undefined, fallback?: number) {
       const staticTimeout = configured && isMcpConfigured(configured) ? configured.timeout : undefined
       return s.config[name]?.timeout ?? staticTimeout ?? fallback
@@ -984,6 +998,7 @@ const layer = Layer.effect(
       add,
       connect,
       disconnect,
+      remove,
       getPrompt,
       readResource,
       startAuth,

@@ -1901,6 +1901,8 @@ export type Config = {
   skills?: {
     paths?: Array<string>
     urls?: Array<string>
+    claude?: boolean
+    codex?: boolean
   }
   references?: {
     [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
@@ -8701,6 +8703,42 @@ export type McpDisconnectResponses = {
 }
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
+
+export type McpRemoveData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mcp/{name}"
+}
+
+export type McpRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * McpServerNotFoundError
+   */
+  404: McpServerNotFoundError
+}
+
+export type McpRemoveError = McpRemoveErrors[keyof McpRemoveErrors]
+
+export type McpRemoveResponses = {
+  /**
+   * MCP server removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type McpRemoveResponse = McpRemoveResponses[keyof McpRemoveResponses]
 
 export type ProjectListData = {
   body?: never

@@ -98,6 +98,19 @@ export const mcpHandlers = HttpApiBuilder.group(InstanceHttpApi, "mcp", (handler
       return true
     })
 
+    const remove = Effect.fn("McpHttpApi.remove")(function* (ctx: { params: { name: string } }) {
+      yield* mcp
+        .remove(ctx.params.name)
+        .pipe(
+          Effect.catchTag("MCP.NotFoundError", (error) =>
+            Effect.fail(
+              new McpServerNotFoundError({ name: error.name, message: `MCP server not found: ${error.name}` }),
+            ),
+          ),
+        )
+      return { success: true as const }
+    })
+
     return handlers
       .handle("status", status)
       .handle("add", add)
@@ -107,5 +120,6 @@ export const mcpHandlers = HttpApiBuilder.group(InstanceHttpApi, "mcp", (handler
       .handle("authRemove", authRemove)
       .handle("connect", connect)
       .handle("disconnect", disconnect)
+      .handle("remove", remove)
   }),
 )
