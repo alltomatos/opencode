@@ -38,6 +38,18 @@ Já implementamos como **padrão de referência** o menu de "Modos" do composer 
 
 A partir de agora, mudanças de UI/UX se acumulam em `dev` e são publicadas em **lotes** (não uma versão por item). Números de versão podem pular (ex: v1.20.16 → v1.20.30) — o número em si não importa, só o conteúdo do release.
 
+**Branches:**
+- `dev` — branch de desenvolvimento. Todo o trabalho do dia a dia (features, correções, issues desta epic) é commitado aqui. Nada é publicado/lançado a partir daqui diretamente.
+- `prod` — branch de produção. Só builds e releases do app desktop saem daqui. Fica parada até `dev` estar "maduro" o suficiente pra promover.
+
+**Fluxo de promoção (dev → prod):**
+1. Trabalhar e validar na `dev` (o app roda em modo dev com `OPENCODE_CHANNEL=dev`, sem afetar usuários).
+2. Quando o conjunto de mudanças estiver maduro e testado, promover: `git checkout prod && git merge dev` (fast-forward, já que `prod` nunca diverge por conta própria) `&& git push origin prod`.
+3. Buildar e publicar o release **a partir da branch `prod`** (`OPENCODE_CHANNEL=prod`), não da `dev`.
+4. Isso garante que ninguém recebe update com trabalho pela metade — o auto-updater do app aponta pros releases do GitHub, que só devem ser criados depois da promoção.
+
+Nota: o workflow de CI em `.github/workflows/publish.yml` é herdado do projeto original e só roda quando `github.repository == 'anomalyco/opencode'` — no nosso fork ele nunca dispara. Todo o processo de build/release atual é manual, feito localmente (`bun run build` + `bun run package:win -- --publish always` em `packages/desktop`), então esse gate de branch é uma disciplina nossa, não uma automação de CI.
+
 ### Rastreamento
 
 Todas as issues foram publicadas em https://github.com/alltomatos/opencode/issues (labels `ui-ux`, mais `needs-decision` na #12). Nenhuma bloqueia a outra tecnicamente — podem ser trabalhadas em qualquer ordem ou em paralelo (worktrees isoladas, se for o caso).
