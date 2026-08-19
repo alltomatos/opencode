@@ -227,7 +227,9 @@ export const dict = {
   "provider.omniroute.description": "Enter your Omniroute gateway URL and API key. All available models are imported automatically and organized by category.",
   "provider.omniroute.importing": "Importing models...",
   "provider.omniroute.toast.imported": "Imported {{count}} models",
-  "provider.omniroute.toast.importedFiltered": "Imported {{count}} working models ({{skipped}} skipped from disconnected providers)",
+  "provider.omniroute.toast.importedFiltered": "Imported {{count}} models ({{skipped}} skipped)",
+  "provider.omniroute.field.combosOnly.label": "Import combos only",
+  "provider.omniroute.field.combosOnly.description": "Skip plain provider/model entries and only import combo models",
 
   "provider.disconnect.toast.disconnected.title": "{{provider}} disconnected",
   "provider.disconnect.toast.disconnected.description": "{{provider}} models are no longer available.",

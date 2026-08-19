@@ -3,6 +3,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { useMutation } from "@tanstack/solid-query"
 import { TextField } from "@opencode-ai/ui/text-field"
+import { Switch } from "@opencode-ai/ui/switch"
 import { showToast } from "@/utils/toast"
 import { createStore } from "solid-js/store"
 import { useModels } from "@/context/models"
@@ -87,6 +88,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   const [form, setForm] = createStore({
     baseURL: (existing()?.options?.baseURL as string | undefined) ?? "https://gateway.packvibecoding.com/v1",
     apiKey: existing()?.key ?? "",
+    combosOnly: true,
     err: {} as { baseURL?: string; apiKey?: string },
   })
 
@@ -112,10 +114,11 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   }
 
   const connectMutation = useMutation(() => ({
-    mutationFn: async (input: { baseURL: string; apiKey: string }) => {
+    mutationFn: async (input: { baseURL: string; apiKey: string; combosOnly: boolean }) => {
       const all = await fetchOmnirouteModels(input.baseURL, input.apiKey)
       const unhealthy = await fetchUnhealthyProviders(input.baseURL, input.apiKey)
-      const fetched = unhealthy ? all.filter((m) => !unhealthy.has(m.owned_by ?? "")) : all
+      const healthy = unhealthy ? all.filter((m) => !unhealthy.has(m.owned_by ?? "")) : all
+      const fetched = input.combosOnly ? healthy.filter((m) => m.owned_by === COMBO_CATEGORY) : healthy
       const skipped = all.length - fetched.length
       const modelConfig = Object.fromEntries(fetched.map((m) => [m.id, modelConfigEntry(m)]))
 
@@ -178,7 +181,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
     if (connectMutation.isPending) return
     const result = validate()
     if (!result) return
-    connectMutation.mutate(result)
+    connectMutation.mutate({ ...result, combosOnly: form.combosOnly })
   }
 
   return (
@@ -209,6 +212,16 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
             validationState={form.err.apiKey ? "invalid" : undefined}
             error={form.err.apiKey}
           />
+        </div>
+
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-14-medium text-text-strong">{language.t("provider.omniroute.field.combosOnly.label")}</span>
+            <span class="text-13-regular text-text-weak">
+              {language.t("provider.omniroute.field.combosOnly.description")}
+            </span>
+          </div>
+          <Switch checked={form.combosOnly} onChange={(checked) => setForm("combosOnly", checked)} />
         </div>
 
         <Button

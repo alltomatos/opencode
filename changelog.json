@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.6",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Importar apenas combos no Omniroute",
+              "description": "Nova opção ao conectar o Omniroute para trazer só os modelos combo, ignorando as entradas simples de provedor/modelo."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.5",
       "highlights": [
         {
