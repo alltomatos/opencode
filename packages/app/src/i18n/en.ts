@@ -1137,6 +1137,11 @@ export const dict = {
   "settings.mcp.remove.confirm.description": "Remove \"{{name}}\" from your MCP servers? This deletes it from your config, not just disconnects it.",
   "settings.mcp.remove.button": "Remove",
   "settings.mcp.remove.toast.title": "Connector \"{{name}}\" removed",
+  "settings.mcp.auth.connect.button": "Connect",
+  "settings.mcp.auth.needsClientRegistration.hint":
+    "This server needs a pre-registered OAuth client. Edit this connector and fill in the OAuth client ID/secret.",
+  "settings.mcp.add.field.oauthClientId.label": "OAuth client ID (optional)",
+  "settings.mcp.add.field.oauthClientSecret.label": "OAuth client secret (optional)",
 
   "settings.skills.title": "Skill",
   "settings.skills.empty": "No skills found",

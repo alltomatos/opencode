@@ -25,6 +25,7 @@ export type McpExistingServer = {
     url?: string
     headers?: Record<string, string>
     timeout?: number
+    oauth?: { clientId?: string; clientSecret?: string } | false
   }
 }
 
@@ -36,6 +37,12 @@ function toRows(record?: Record<string, string>): KeyValueRow[] {
 function fromRows(rows: KeyValueRow[]): Record<string, string> | undefined {
   const entries = rows.filter((row) => row.key.trim()).map((row) => [row.key.trim(), row.value] as const)
   return entries.length ? Object.fromEntries(entries) : undefined
+}
+
+function existingOAuth(props: { existing?: McpExistingServer }) {
+  const oauth = props.existing?.config.oauth
+  if (!oauth) return undefined
+  return oauth
 }
 
 function KeyValueEditor(props: { label: string; rows: KeyValueRow[]; onChange: (rows: KeyValueRow[]) => void }) {
@@ -104,6 +111,8 @@ export const DialogMcpAddV2: Component<{
     url: props.existing?.config.url ?? props.prefillUrl ?? "",
     headers: toRows(props.existing?.config.headers),
     timeout: props.existing?.config.timeout ? String(props.existing.config.timeout) : "",
+    oauthClientId: existingOAuth(props)?.clientId ?? "",
+    oauthClientSecret: existingOAuth(props)?.clientSecret ?? "",
     err: {} as { name?: string; command?: string; url?: string },
   })
 
@@ -140,6 +149,10 @@ export const DialogMcpAddV2: Component<{
               url,
               headers: fromRows(form.headers),
               timeout,
+              oauth:
+                form.oauthClientId.trim() || form.oauthClientSecret.trim()
+                  ? { clientId: form.oauthClientId.trim() || undefined, clientSecret: form.oauthClientSecret.trim() || undefined }
+                  : undefined,
             } as const),
     }
   }
@@ -292,6 +305,32 @@ export const DialogMcpAddV2: Component<{
               rows={form.headers}
               onChange={(rows) => setForm("headers", rows)}
             />
+            <div class="flex w-full min-w-0 flex-col gap-2">
+              <label class="settings-v2-server-dialog-label">
+                {language.t("settings.mcp.add.field.oauthClientId.label")}
+              </label>
+              <TextInputV2
+                type="text"
+                appearance="large"
+                class="!w-full self-stretch"
+                value={form.oauthClientId}
+                onInput={(event) => setForm("oauthClientId", event.currentTarget.value)}
+                onKeyDown={keyDown}
+              />
+            </div>
+            <div class="flex w-full min-w-0 flex-col gap-2">
+              <label class="settings-v2-server-dialog-label">
+                {language.t("settings.mcp.add.field.oauthClientSecret.label")}
+              </label>
+              <TextInputV2
+                type="password"
+                appearance="large"
+                class="!w-full self-stretch"
+                value={form.oauthClientSecret}
+                onInput={(event) => setForm("oauthClientSecret", event.currentTarget.value)}
+                onKeyDown={keyDown}
+              />
+            </div>
           </Show>
 
           <div class="flex w-full min-w-0 flex-col gap-2">

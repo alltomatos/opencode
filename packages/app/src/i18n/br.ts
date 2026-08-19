@@ -1070,6 +1070,11 @@ export const dict = {
   "settings.mcp.remove.confirm.description": "Remover \"{{name}}\" dos seus servidores MCP? Isso apaga do seu config, não é só desconectar.",
   "settings.mcp.remove.button": "Remover",
   "settings.mcp.remove.toast.title": "Conector \"{{name}}\" removido",
+  "settings.mcp.auth.connect.button": "Conectar",
+  "settings.mcp.auth.needsClientRegistration.hint":
+    "Esse servidor precisa de um client OAuth pré-registrado. Edite esse conector e preencha o client ID/secret.",
+  "settings.mcp.add.field.oauthClientId.label": "Client ID OAuth (opcional)",
+  "settings.mcp.add.field.oauthClientSecret.label": "Client secret OAuth (opcional)",
 
   "settings.skills.title": "Skill",
   "settings.skills.empty": "Nenhuma skill encontrada",

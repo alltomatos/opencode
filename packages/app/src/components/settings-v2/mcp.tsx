@@ -52,6 +52,18 @@ export const SettingsMcpV2: Component = () => {
     },
   }))
 
+  const authMutation = useMutation(() => ({
+    mutationFn: async (name: string) => {
+      await serverSDK().client.mcp.auth.authenticate({ name })
+      return name
+    },
+    onSuccess: () => void refetch(),
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    },
+  }))
+
   const removeMutation = useMutation(() => ({
     mutationFn: async (name: string) => {
       await serverSDK().client.mcp.remove({ name })
@@ -88,6 +100,7 @@ export const SettingsMcpV2: Component = () => {
         url: config.type === "remote" ? config.url : undefined,
         headers: config.type === "remote" ? config.headers : undefined,
         timeout: config.timeout,
+        oauth: config.type === "remote" ? config.oauth : undefined,
       },
     }
     dialog.push(() => <DialogMcpAddV2 existing={existing} onAdded={() => void refetch()} />)
@@ -153,6 +166,9 @@ export const SettingsMcpV2: Component = () => {
                   const error = () => ("error" in item ? item.error : undefined)
                   const connected = () => item.status === "connected"
                   const pending = () => toggleMutation.isPending && toggleMutation.variables?.name === item.name
+                  const authPending = () => authMutation.isPending && authMutation.variables === item.name
+                  const needsAuth = () => item.status === "needs_auth"
+                  const needsClientRegistration = () => item.status === "needs_client_registration"
                   return (
                     <SettingsRowV2
                       title={
@@ -162,12 +178,19 @@ export const SettingsMcpV2: Component = () => {
                         </span>
                       }
                       description={
-                        <div class="flex min-w-0 items-center gap-2">
-                          <Show when={statusKey()}>
-                            <Tag>{language.t(statusKey()!)}</Tag>
-                          </Show>
-                          <Show when={error()}>
-                            <span class="truncate">{error()}</span>
+                        <div class="flex min-w-0 flex-col gap-1">
+                          <div class="flex min-w-0 items-center gap-2">
+                            <Show when={statusKey()}>
+                              <Tag>{language.t(statusKey()!)}</Tag>
+                            </Show>
+                            <Show when={error()}>
+                              <span class="truncate">{error()}</span>
+                            </Show>
+                          </div>
+                          <Show when={needsClientRegistration()}>
+                            <span class="text-12-regular text-text-weak">
+                              {language.t("settings.mcp.auth.needsClientRegistration.hint")}
+                            </span>
                           </Show>
                         </div>
                       }
@@ -186,16 +209,30 @@ export const SettingsMcpV2: Component = () => {
                           onClick={() => confirmRemove(item.name)}
                           icon={<Icon name="trash" size="small" />}
                         />
-                        <SwitchV2
-                          checked={connected()}
-                          disabled={
-                            pending() || item.status === "needs_auth" || item.status === "needs_client_registration"
+                        <Show
+                          when={needsAuth()}
+                          fallback={
+                            <SwitchV2
+                              checked={connected()}
+                              disabled={pending() || needsClientRegistration()}
+                              onChange={(checked) => toggleMutation.mutate({ name: item.name, connect: checked })}
+                              hideLabel
+                            >
+                              {item.name}
+                            </SwitchV2>
                           }
-                          onChange={(checked) => toggleMutation.mutate({ name: item.name, connect: checked })}
-                          hideLabel
                         >
-                          {item.name}
-                        </SwitchV2>
+                          <ButtonV2
+                            variant="neutral"
+                            size="normal"
+                            disabled={authPending()}
+                            onClick={() => authMutation.mutate(item.name)}
+                          >
+                            {authPending()
+                              ? language.t("common.loading")
+                              : language.t("settings.mcp.auth.connect.button")}
+                          </ButtonV2>
+                        </Show>
                       </div>
                     </SettingsRowV2>
                   )
