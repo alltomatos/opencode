@@ -299,7 +299,7 @@ export function PromptProjectSelector(props: {
           onCloseAutoFocus={dismiss.onCloseAutoFocus}
         >
           <div class="flex flex-col p-0.5">
-            <div class="flex h-7 items-center gap-2 rounded-sm pl-3 pr-2.5 text-v2-icon-icon-muted">
+            <div class="flex h-7 items-center gap-2 rounded-sm pl-3 pr-2.5 text-v2-icon-icon-muted outline outline-1 outline-transparent transition-[outline-color] duration-[85ms] ease-out focus-within:outline-[var(--v2-border-border-focus)]">
               <Icon name="magnifying-glass" size="small" class="shrink-0" />
               <input
                 ref={(el) => props.controller.setSearchRef(el)}

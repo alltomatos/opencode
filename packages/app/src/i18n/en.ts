@@ -263,6 +263,7 @@ export const dict = {
   "common.loading.ellipsis": "...",
   "common.cancel": "Cancel",
   "common.clear": "Clear",
+  "common.clearSearch": "Clear search",
   "common.open": "Open",
   "common.connect": "Connect",
   "common.disconnect": "Disconnect",
@@ -1190,6 +1191,9 @@ export const dict = {
   "session.delete.title": "Delete session",
   "session.delete.confirm": 'Delete session "{{name}}"?',
   "session.delete.button": "Delete session",
+  "server.remove.title": "Remove server",
+  "server.remove.confirm": 'Remove server "{{name}}"? Projects and sessions on it will no longer show here.',
+  "server.remove.button": "Remove server",
 
   "workspace.new": "New workspace",
   "workspace.type.local": "local",

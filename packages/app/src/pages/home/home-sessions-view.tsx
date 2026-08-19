@@ -325,7 +325,7 @@ function HomeSessionSearch(props: HomeSessionsViewProps) {
               size="small"
               class="relative z-20 shrink-0"
               icon={<IconV2 name="close" size="large" class="text-v2-icon-icon-muted" />}
-              aria-label={props.searchPlaceholder()}
+              aria-label={props.language.t("common.clearSearch")}
               onClick={() => {
                 props.onSearchClose()
                 props.onSearchFocus()

@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.7",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Melhorias de acessibilidade",
+              "description": "Confirmação antes de remover um servidor, foco de teclado visível nas buscas de modelo/projeto e no chat, e rótulo correto no botão de limpar busca."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.6",
       "highlights": [
         {

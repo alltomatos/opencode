@@ -15,7 +15,7 @@ import { ServerHealthIndicator, ServerRow } from "@/components/server/server-row
 import { useGlobal } from "@/context/global"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
-import { normalizeServerUrl, ServerConnection, useServer } from "@/context/server"
+import { normalizeServerUrl, ServerConnection, serverName, useServer } from "@/context/server"
 import { detectServerProtocol } from "@/utils/server-protocol"
 import { type ServerHealth, useCheckServerHealth } from "@/utils/server-health"
 import { useSettings } from "@/context/settings"
@@ -192,6 +192,7 @@ export function DialogSelectServer() {
 
 export function useServerManagementController(options: { onSelect?: () => void; navigateOnAdd?: boolean } = {}) {
   const navigate = useNavigate()
+  const dialog = useDialog()
   const server = useServer()
   const tabs = useTabs()
   const global = useGlobal()
@@ -527,7 +528,7 @@ export function useServerManagementController(options: { onSelect?: () => void; 
     resetEdit()
   })
 
-  async function handleRemove(key: ServerConnection.Key) {
+  async function removeNow(key: ServerConnection.Key) {
     try {
       if (key.startsWith("wsl:")) await platform.wslServers?.removeServer(key)
       tabs.removeServer(key)
@@ -538,6 +539,34 @@ export function useServerManagementController(options: { onSelect?: () => void; 
     } catch (err) {
       showRequestError(language, err)
     }
+  }
+
+  function handleRemove(key: ServerConnection.Key, conn?: ServerConnection.Any) {
+    const name = conn ? serverName(conn) : key
+    dialog.show(() => (
+      <Dialog title={language.t("server.remove.title")} fit>
+        <div class="flex flex-col gap-4 pl-6 pr-2.5 pb-3">
+          <div class="flex flex-col gap-1">
+            <span class="text-14-regular text-text-strong">{language.t("server.remove.confirm", { name })}</span>
+          </div>
+          <div class="flex justify-end gap-2">
+            <Button variant="ghost" size="large" onClick={() => dialog.close()}>
+              {language.t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              size="large"
+              onClick={() => {
+                dialog.close()
+                void removeNow(key)
+              }}
+            >
+              {language.t("server.remove.button")}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    ))
   }
 
   return {
@@ -651,7 +680,7 @@ export function ServerConnectionList(props: { controller: ReturnType<typeof useS
                         </Show>
                         <DropdownMenu.Separator />
                         <DropdownMenu.Item
-                          onSelect={() => props.controller.handleRemove(ServerConnection.key(i))}
+                          onSelect={() => props.controller.handleRemove(ServerConnection.key(i), i)}
                           class="text-text-on-critical-base hover:bg-surface-critical-weak"
                         >
                           <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.delete")}</DropdownMenu.ItemLabel>

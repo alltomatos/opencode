@@ -86,7 +86,7 @@ export function WslServerSettings(props: {
   }))
 
   const remove = (key: ServerConnection.Key) => {
-    request.mutate(() => props.controller.handleRemove(key))
+    props.controller.handleRemove(key)
   }
 
   return (
