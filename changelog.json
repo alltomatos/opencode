@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.11",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Botão amarelo removido da sidebar",
+              "description": "O botão de atualização no rodapé da sidebar de projetos foi removido — o toast de \"Atualização disponível\" já cobre isso."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.10",
       "highlights": [
         {
