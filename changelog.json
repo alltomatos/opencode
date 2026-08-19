@@ -1,6 +1,32 @@
 {
   "releases": [
     {
+      "tag": "v1.21.0",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "MCP: editar, remover e conectar via OAuth",
+              "description": "A tela de Configurações > MCP agora permite editar (env, headers, cwd, timeout) e remover servidores configurados, autenticar via OAuth direto na UI, ver as tools/prompts/resources de um servidor conectado, e adicionar servidores conhecidos (Cloudflare, Gmail, Mercado Pago, Context7, GitHub Copilot) com um clique. Também corrigido um bug onde servidores adicionados pela UI sumiam ao reiniciar o app."
+            },
+            {
+              "title": "Botão \"Config raw\" no MCP",
+              "description": "Abre o arquivo de configuração global (opencode.jsonc) direto no editor padrão do sistema, em qualquer plataforma."
+            },
+            {
+              "title": "Polish de UI/UX",
+              "description": "Ícones e destaque de risco em vários menus, migração de diálogos legados para o visual v2, e correção de um bug visual na barra de rolagem da lista de sessões."
+            },
+            {
+              "title": "Builds automáticos para macOS e Linux",
+              "description": "A partir de agora, promover uma versão para produção já builda e publica os instaladores de Windows, macOS e Linux automaticamente."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.16",
       "highlights": [
         {
