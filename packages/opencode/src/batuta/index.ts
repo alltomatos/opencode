@@ -3,6 +3,7 @@ import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { ConfigBatutaV1 } from "@opencode-ai/core/v1/config/batuta"
 import { Config } from "@/config/config"
 import { Session } from "@/session/session"
+import type { SessionID } from "@/session/schema"
 import { Worktree } from "@/worktree"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
@@ -12,10 +13,10 @@ export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Bat
   id: Schema.String,
 }) {}
 
-function parseModel(model: string) {
+export function parseModel(model: string) {
   const index = model.indexOf("/")
-  if (index === -1) return { id: ModelV2.ID.make(model), providerID: ProviderV2.ID.make(model) }
-  return { providerID: ProviderV2.ID.make(model.slice(0, index)), id: ModelV2.ID.make(model.slice(index + 1)) }
+  if (index === -1) return { modelID: ModelV2.ID.make(model), providerID: ProviderV2.ID.make(model) }
+  return { providerID: ProviderV2.ID.make(model.slice(0, index)), modelID: ModelV2.ID.make(model.slice(index + 1)) }
 }
 
 export interface RunningActivity {
@@ -28,7 +29,7 @@ export interface Interface {
   readonly list: () => Effect.Effect<ConfigBatutaV1.Activity[]>
   readonly add: (activity: ConfigBatutaV1.Activity) => Effect.Effect<ConfigBatutaV1.Activity>
   readonly remove: (id: string) => Effect.Effect<void>
-  readonly start: (id: string) => Effect.Effect<{ sessionID: string }, NotFoundError>
+  readonly start: (id: string) => Effect.Effect<{ sessionID: SessionID }, NotFoundError>
   /** Looked up by task.ts: is `label` a worker of a Batuta activity the given session (or one of its ancestors) is running? */
   readonly resolveWorker: (
     orchestratorSessionID: string,
@@ -49,17 +50,31 @@ const layer: Layer.Layer<Service, never, Config.Service | Session.Service | Work
     // globally unique, so this doesn't need per-project isolation.
     const running = new Map<string, RunningActivity>()
 
+    // In-memory overlay on top of disk config. Config.Service.updateGlobal
+    // only invalidates its own global cache, not the per-instance merged
+    // view Config.Service.get() reads — so a freshly added/removed activity
+    // wouldn't be visible via get() alone until some later reload. Mirrors
+    // the same overlay pattern used by MCP.Service.add for the same reason.
+    const overlay = new Map<string, ConfigBatutaV1.Activity | undefined>()
+
     const list = Effect.fn("Batuta.list")(function* () {
       const cfg = yield* cfgSvc.get()
-      return Object.values(cfg.batuta ?? {})
+      const merged = new Map<string, ConfigBatutaV1.Activity>(Object.entries(cfg.batuta ?? {}))
+      for (const [id, activity] of overlay) {
+        if (activity) merged.set(id, activity)
+        else merged.delete(id)
+      }
+      return Array.from(merged.values())
     })
 
     const add = Effect.fn("Batuta.add")(function* (activity: ConfigBatutaV1.Activity) {
+      overlay.set(activity.id, activity)
       yield* cfgSvc.updateGlobal({ batuta: { [activity.id]: activity } } as unknown as ConfigV1.Info)
       return activity
     })
 
     const remove = Effect.fn("Batuta.remove")(function* (id: string) {
+      overlay.set(id, undefined)
       yield* cfgSvc.updateGlobal({ batuta: { [id]: undefined } } as unknown as ConfigV1.Info)
     })
 
@@ -90,7 +105,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Session.Service | Work
       const orchestratorModel = parseModel(activity.orchestratorModel)
       const session = yield* sessions.create({
         title: activity.name,
-        model: orchestratorModel,
+        model: { id: orchestratorModel.modelID, providerID: orchestratorModel.providerID },
       })
 
       running.set(session.id, { activity, workerDirectories })

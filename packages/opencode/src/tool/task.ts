@@ -7,6 +7,7 @@ import { Session } from "@/session/session"
 import { SessionID, MessageID } from "../session/schema"
 import { MessageV2 } from "../session/message-v2"
 import { Agent } from "../agent/agent"
+import { Batuta, parseModel as parseBatutaModel } from "@/batuta"
 import { deriveSubagentSessionPermission } from "../agent/subagent-permissions"
 import type { SessionPrompt } from "../session/prompt"
 import { Config } from "@/config/config"
@@ -82,6 +83,7 @@ export const TaskTool = Tool.define(
   id,
   Effect.gen(function* () {
     const agent = yield* Agent.Service
+    const batuta = yield* Batuta.Service
     const background = yield* BackgroundJob.Service
     const config = yield* Config.Service
     const sessions = yield* Session.Service
@@ -128,7 +130,29 @@ export const TaskTool = Tool.define(
         })
       }
 
-      const next = yield* agent.get(params.subagent_type)
+      // Batuta activities register their workers against the orchestrator
+      // session; a worker label resolves before falling back to a
+      // config-defined agent, so it doesn't collide with build/plan/general
+      // or custom agent names.
+      const batutaWorker = yield* batuta.resolveWorker(ctx.sessionID, params.subagent_type)
+      const next = batutaWorker
+        ? {
+            name: batutaWorker.worker.label,
+            description: undefined,
+            mode: "subagent" as const,
+            native: undefined,
+            hidden: undefined,
+            topP: undefined,
+            temperature: undefined,
+            color: undefined,
+            permission: parent.permission ?? [],
+            model: parseBatutaModel(batutaWorker.worker.model),
+            variant: undefined,
+            prompt: undefined,
+            options: {},
+            steps: undefined,
+          }
+        : yield* agent.get(params.subagent_type)
       if (!next) {
         return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
       }
@@ -159,6 +183,7 @@ export const TaskTool = Tool.define(
           parentID: ctx.sessionID,
           title: params.description + ` (@${next.name} subagent)`,
           agent: next.name,
+          directory: batutaWorker?.directory,
           permission: [
             ...childPermission,
             ...childToolDenies.filter(
