@@ -112,6 +112,29 @@ Demais lacunas mapeadas em issues (nenhum TODO/gambiarra no código — é falta
 
 Decisão de produto sobre servidores pessoais/privados do usuário (`~/.claude.json` tem 12 configurados, incluindo endpoints internos e chaves): **não vão ser embutidos no fork**. Só os 5 públicos/conhecidos do #24 viram catálogo pré-configurado (sem segredo nenhum, só a URL pública); os privados continuam só via formulário manual.
 
+## Epic: Batuta (orquestração de subagentes)
+
+**Status:** Planejado em 2026-08-19, execução iniciando. Branch dedicada: `batuta` (criada a partir de `dev`).
+**Origem:** pedido do usuário — tela pra definir um provider/model "orquestrador" e N provider/models "workers", disparando delegação real via o mecanismo de subagente já existente (`task` tool), com isolamento opcional por git worktree e um painel visual ao vivo (3D via three.js com GPU, fallback 2D profissional sem GPU).
+
+V1 usa só providers já configurados no app. V2 (orquestrar CLIs externos como `claude`/`codex` via PTY, ao estilo Orca) está documentado em `docs/research/external-agent-orchestration.md` e fica fora de escopo por ora — a arquitetura do V1 reaproveita a infra de worktree já existente (`Git.Service.worktree`, `Worktree.Service`) de propósito, para não fechar portas pro V2.
+
+9 issues em 3 fases, com `Blocked by` entre elas:
+
+| Issue | Fase | O quê |
+|---|---|---|
+| [#26](https://github.com/alltomatos/opencode/issues/26) | 1 (backend) | Schema de config Worker/Activity |
+| [#27](https://github.com/alltomatos/opencode/issues/27) | 1 (backend) | `directory` opcional em `Session.Service.create` |
+| [#28](https://github.com/alltomatos/opencode/issues/28) | 1 (backend) | `Batuta.Service` (CRUD + start, cria worktrees + sessão orquestradora) |
+| [#29](https://github.com/alltomatos/opencode/issues/29) | 1 (backend) | `task.ts` resolve worker de activity Batuta antes do fallback pra agente de config |
+| [#30](https://github.com/alltomatos/opencode/issues/30) | 1 (backend) | Rotas HTTP + regenerar SDK |
+| [#31](https://github.com/alltomatos/opencode/issues/31) | 2 (frontend) | Ícone na sidebar + rota `/batuta` |
+| [#32](https://github.com/alltomatos/opencode/issues/32) | 2 (frontend) | Página completa (intro, lista, form, iniciar) |
+| [#33](https://github.com/alltomatos/opencode/issues/33) | 3 (painel) | Dependência three.js + detecção de GPU + fallback 2D |
+| [#34](https://github.com/alltomatos/opencode/issues/34) | 3 (painel) | Cena 3D ao vivo (nós, pulsos, ícone por atividade) |
+
+Executando em fila, sem paralelismo, um commit por issue, verificado antes de seguir pra próxima. Merge pra `dev` só depois das 3 fases funcionando de ponta a ponta.
+
 ## Epic: Descontinuar o layout legado
 
 **Status:** Decisão tomada em 2026-08-19 (issue #25), execução não iniciada.
