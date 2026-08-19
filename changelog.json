@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.12",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Modo \"Planejar\" de volta no seletor",
+              "description": "O modo Planejar estava escondido no seletor de permissões (embaixo do composer) porque dependia do seletor de agentes customizados estar visível. Agora aparece sempre que o agente \"plan\" existir."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.11",
       "highlights": [
         {

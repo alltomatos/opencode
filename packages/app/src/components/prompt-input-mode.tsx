@@ -25,8 +25,10 @@ export function PromptInputV2ModeControl(props: {
 }) {
   const language = useLanguage()
 
+  // "plan" is a built-in mode, not a custom agent — it should stay offered
+  // here even when the (custom-agent-only) agent switcher itself is hidden.
   const available = createMemo(() =>
-    MODES.filter((mode) => mode.agent === "build" || (props.agent.visible && props.agent.options.includes(mode.agent))),
+    MODES.filter((mode) => mode.agent === "build" || props.agent.options.includes(mode.agent)),
   )
 
   const currentModeID = createMemo<ModeID>(() => {
@@ -43,7 +45,7 @@ export function PromptInputV2ModeControl(props: {
   const selectMode = (id: ModeID) => {
     const mode = MODES.find((item) => item.id === id)
     if (!mode) return
-    if (props.agent.current !== mode.agent && props.agent.visible && props.agent.options.includes(mode.agent)) {
+    if (props.agent.current !== mode.agent && props.agent.options.includes(mode.agent)) {
       props.agent.select(mode.agent)
     }
     if (!props.sessionID) {
