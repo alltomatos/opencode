@@ -1,4 +1,4 @@
-import { createResource, For, Show } from "solid-js"
+import { createResource, createSignal, For, Show } from "solid-js"
 import { useMutation } from "@tanstack/solid-query"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
@@ -17,6 +17,17 @@ import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "@/components/settings-v2/parts/list"
 import { SettingsRowV2 } from "@/components/settings-v2/parts/row"
 import { DialogBatutaActivityV2 } from "@/components/batuta/dialog-batuta-activity-v2"
+import { BatutaActivityPanel2D } from "@/components/batuta/activity-panel-2d"
+
+const RUNNING_SESSIONS_KEY = "batuta.runningSessions.v1"
+
+function loadRunningSessions(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(RUNNING_SESSIONS_KEY) ?? "{}")
+  } catch {
+    return {}
+  }
+}
 
 export function BatutaPage() {
   const language = useLanguage()
@@ -24,6 +35,14 @@ export function BatutaPage() {
   const serverSDK = useServerSDK()
   const dialog = useDialog()
   const navigate = useNavigate()
+  const [runningSessions, setRunningSessionsSignal] = createSignal<Record<string, string>>(loadRunningSessions())
+  const setRunningSessions = (updater: (prev: Record<string, string>) => Record<string, string>) => {
+    setRunningSessionsSignal((prev) => {
+      const next = updater(prev)
+      localStorage.setItem(RUNNING_SESSIONS_KEY, JSON.stringify(next))
+      return next
+    })
+  }
 
   const [activities, { refetch }] = createResource(async () => {
     const result = await serverSDK().client.batuta.list()
@@ -45,17 +64,36 @@ export function BatutaPage() {
   const startMutation = useMutation(() => ({
     mutationFn: async (id: string) => {
       const result = await serverSDK().client.batuta.start({ id })
-      return result.data
+      return { id, sessionID: result.data?.sessionID }
     },
-    onSuccess: (result) => {
-      if (!result) return
-      navigate(sessionHref(server.key, result.sessionID))
+    onSuccess: ({ id, sessionID }) => {
+      if (!sessionID) return
+      setRunningSessions((prev) => ({ ...prev, [id]: sessionID }))
+      navigate(sessionHref(server.key, sessionID))
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
       showToast({ title: language.t("common.requestFailed"), description: message })
     },
   }))
+
+  const openLivePanel = (activity: BatutaActivity, sessionID: string) => {
+    dialog.push(() => (
+      <Dialog fit class="settings-v2-server-dialog">
+        <DialogHeader hideClose={true}>
+          <DialogTitle>{language.t("batuta.panel.title")}</DialogTitle>
+        </DialogHeader>
+        <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2 overflow-y-auto max-h-[70vh]">
+          <BatutaActivityPanel2D orchestratorSessionID={sessionID} activity={activity} />
+        </DialogBody>
+        <DialogFooter>
+          <ButtonV2 variant="neutral" onClick={() => dialog.close()}>
+            {language.t("common.close")}
+          </ButtonV2>
+        </DialogFooter>
+      </Dialog>
+    ))
+  }
 
   const openCreate = () => {
     dialog.push(() => <DialogBatutaActivityV2 onSaved={() => void refetch()} />)
@@ -150,6 +188,13 @@ export function BatutaPage() {
                         }
                       >
                         <div class="flex items-center gap-1">
+                          <Show when={runningSessions()[activity.id]}>
+                            {(sessionID) => (
+                              <ButtonV2 variant="neutral" size="normal" onClick={() => openLivePanel(activity, sessionID())}>
+                                {language.t("batuta.list.viewLive")}
+                              </ButtonV2>
+                            )}
+                          </Show>
                           <IconButtonV2
                             variant="ghost-muted"
                             aria-label={language.t("common.edit")}
