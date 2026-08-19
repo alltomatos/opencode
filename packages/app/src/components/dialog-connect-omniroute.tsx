@@ -1,9 +1,11 @@
-import { Button } from "@opencode-ai/ui/button"
+import { Show } from "solid-js"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { useMutation } from "@tanstack/solid-query"
-import { TextField } from "@opencode-ai/ui/text-field"
-import { Switch } from "@opencode-ai/ui/switch"
+import { Field } from "@opencode-ai/ui/v2/field-v2"
+import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
 import { showToast } from "@/utils/toast"
 import { createStore } from "solid-js/store"
 import { useModels } from "@/context/models"
@@ -195,23 +197,35 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
         <p class="text-14-regular text-text-base">{language.t("provider.omniroute.description")}</p>
 
         <div class="flex flex-col gap-4">
-          <TextField
-            autofocus={props.autofocus ?? true}
-            label={language.t("provider.custom.field.baseURL.label")}
-            placeholder={language.t("provider.custom.field.baseURL.placeholder")}
-            value={form.baseURL}
-            onChange={(v) => setField("baseURL", v)}
-            validationState={form.err.baseURL ? "invalid" : undefined}
-            error={form.err.baseURL}
-          />
-          <TextField
-            label={language.t("provider.custom.field.apiKey.label")}
-            placeholder={language.t("provider.custom.field.apiKey.placeholder")}
-            value={form.apiKey}
-            onChange={(v) => setField("apiKey", v)}
-            validationState={form.err.apiKey ? "invalid" : undefined}
-            error={form.err.apiKey}
-          />
+          <Field invalid={!!form.err.baseURL}>
+            <Field.Label>{language.t("provider.custom.field.baseURL.label")}</Field.Label>
+            <Field.Control>
+              <TextInputV2
+                autofocus={props.autofocus ?? true}
+                class="!w-full"
+                placeholder={language.t("provider.custom.field.baseURL.placeholder")}
+                value={form.baseURL}
+                onInput={(e) => setField("baseURL", e.currentTarget.value)}
+              />
+            </Field.Control>
+            <Show when={form.err.baseURL}>
+              <Field.Suffix class="text-v2-state-fg-danger">{form.err.baseURL}</Field.Suffix>
+            </Show>
+          </Field>
+          <Field invalid={!!form.err.apiKey}>
+            <Field.Label>{language.t("provider.custom.field.apiKey.label")}</Field.Label>
+            <Field.Control>
+              <TextInputV2
+                class="!w-full"
+                placeholder={language.t("provider.custom.field.apiKey.placeholder")}
+                value={form.apiKey}
+                onInput={(e) => setField("apiKey", e.currentTarget.value)}
+              />
+            </Field.Control>
+            <Show when={form.err.apiKey}>
+              <Field.Suffix class="text-v2-state-fg-danger">{form.err.apiKey}</Field.Suffix>
+            </Show>
+          </Field>
         </div>
 
         <div class="flex items-center justify-between gap-4">
@@ -221,18 +235,20 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
               {language.t("provider.omniroute.field.combosOnly.description")}
             </span>
           </div>
-          <Switch checked={form.combosOnly} onChange={(checked) => setForm("combosOnly", checked)} />
+          <SwitchV2 hideLabel checked={form.combosOnly} onChange={(checked) => setForm("combosOnly", checked)}>
+            {language.t("provider.omniroute.field.combosOnly.label")}
+          </SwitchV2>
         </div>
 
-        <Button
+        <ButtonV2
           class="w-auto self-start"
           type="submit"
           size="large"
-          variant="primary"
+          variant="contrast"
           disabled={connectMutation.isPending}
         >
           {connectMutation.isPending ? language.t("provider.omniroute.importing") : language.t("common.submit")}
-        </Button>
+        </ButtonV2>
       </form>
     </div>
   )

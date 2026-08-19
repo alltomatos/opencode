@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.16",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Dialog do Omniroute migrado pro visual novo",
+              "description": "Campos, botão e switch da tela \"Conectar Omniroute\" agora usam os componentes v2, consistentes com o resto do app."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.15",
       "highlights": [
         {
