@@ -7,7 +7,7 @@
   Downloads the latest release installer from GitHub and runs it silently.
 
 .EXAMPLE
-  irm https://raw.githubusercontent.com/alltomatos/opencode/dev/install.ps1 | iex
+  irm https://raw.githubusercontent.com/alltomatos/opencode/prod/install.ps1 | iex
 #>
 
 $ErrorActionPreference = "Stop"

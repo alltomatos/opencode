@@ -19,9 +19,16 @@
 
 Este é um fork pessoal do [OpenCode](https://github.com/anomalyco/opencode), mantido por [Alltomatos](https://github.com/alltomatos), com o foco no app desktop para Windows e ajustes de UI/UX específicos deste fork (sidebar de projetos, terminal e browser embutidos no cabeçalho da sessão, seed de skills padrão, entre outros — veja o [changelog](./changelog.json) e as [releases](https://github.com/alltomatos/opencode/releases) para o histórico completo).
 
-### App Desktop
+### Branches
 
-Baixe o instalador direto na [página de releases](https://github.com/alltomatos/opencode/releases/latest).
+Este fork trabalha com duas branches:
+
+- **`prod`** — branch de produção. Só ela gera releases publicados (o app instalado e o auto-updater apontam pra cá). É pra onde `dev` é promovida quando um lote de mudanças está maduro.
+- **`dev`** — branch de desenvolvimento. Todo o trabalho novo (features, correções, UI/UX) acontece aqui primeiro, roda em modo dev localmente pra validar, e só depois é promovida pra `prod`.
+
+### App Desktop (produção)
+
+Baixe o instalador direto na [página de releases](https://github.com/alltomatos/opencode/releases/latest) — sempre gerado a partir da branch `prod`.
 
 | Plataforma | Download                       |
 | ---------- | ------------------------------- |
@@ -30,10 +37,33 @@ Baixe o instalador direto na [página de releases](https://github.com/alltomatos
 Instalação via PowerShell (sempre baixa a última versão publicada):
 
 ```powershell
-irm https://raw.githubusercontent.com/alltomatos/opencode/dev/install.ps1 | iex
+irm https://raw.githubusercontent.com/alltomatos/opencode/prod/install.ps1 | iex
 ```
 
 O app verifica atualizações automaticamente contra este repositório (`alltomatos/opencode`), não contra o projeto original.
+
+### Rodando em desenvolvimento
+
+Pra validar mudanças antes de promover `dev` pra `prod`, rode o app desktop localmente a partir da branch `dev`:
+
+```bash
+git clone https://github.com/alltomatos/opencode.git
+cd opencode
+git checkout dev
+bun install
+cd packages/desktop
+bun run dev
+```
+
+Isso abre o Electron em modo desenvolvimento (canal `dev`, auto-update desativado, ícone de dev). Pra buildar um instalador local sem publicar:
+
+```bash
+cd packages/desktop
+OPENCODE_CHANNEL=prod bun run build
+bun run package:win
+```
+
+O instalador gerado fica em `packages/desktop/dist/opencode-desktop-win-x64.exe`. Publicar de verdade (upload pro GitHub Releases) só deve acontecer a partir da branch `prod`, depois de promover `dev` — ver [`ORCHESTRATOR-ROADMAP.md`](./ORCHESTRATOR-ROADMAP.md) para o fluxo completo.
 
 ### Agents
 
