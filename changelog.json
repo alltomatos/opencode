@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.15",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Ícone certo no botão da sidebar de projetos",
+              "description": "O botão de recolher/expandir a sidebar de projetos usava um nome de ícone que não existe no set novo e caía num \"+\" por engano. Corrigido para o ícone correto, agora refletindo o estado aberto/fechado."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.14",
       "highlights": [
         {

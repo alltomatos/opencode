@@ -1,7 +1,7 @@
 import { Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
-import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLayout } from "@/context/layout"
 import { useLanguage } from "@/context/language"
@@ -41,7 +41,7 @@ export const AppProjectSidebar: Component = () => {
             <IconButtonV2
               variant="ghost-muted"
               size="small"
-              icon={<IconV2 name="sidebar" />}
+              icon={<Icon name={layout.projectSidebar.opened() ? "sidebar-active" : "sidebar"} />}
               aria-label={language.t("home.projects")}
               onClick={() => layout.projectSidebar.open()}
             />
@@ -58,7 +58,7 @@ export const AppProjectSidebar: Component = () => {
             <IconButtonV2
               variant="ghost-muted"
               size="small"
-              icon={<IconV2 name="sidebar" />}
+              icon={<Icon name={layout.projectSidebar.opened() ? "sidebar-active" : "sidebar"} />}
               aria-label={language.t("home.projects")}
               onClick={() => layout.projectSidebar.close()}
             />
