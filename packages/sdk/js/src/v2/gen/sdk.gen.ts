@@ -15,6 +15,15 @@ import type {
   AuthRemoveResponses,
   AuthSetErrors,
   AuthSetResponses,
+  BatutaActivity,
+  BatutaAddErrors,
+  BatutaAddResponses,
+  BatutaListErrors,
+  BatutaListResponses,
+  BatutaRemoveErrors,
+  BatutaRemoveResponses,
+  BatutaStartErrors,
+  BatutaStartResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -1414,6 +1423,139 @@ export class Event extends HeyApiClient {
     )
     return (options?.client ?? this.client).sse.get<EventSubscribeResponses, unknown, ThrowOnError>({
       url: "/event",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Batuta extends HeyApiClient {
+  /**
+   * List Batuta activities
+   *
+   * List all configured Batuta orchestration activities.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<BatutaListResponses, BatutaListErrors, ThrowOnError>({
+      url: "/batuta",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update a Batuta activity
+   *
+   * Create or replace a Batuta orchestration activity (orchestrator + workers).
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      batutaActivity?: BatutaActivity
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "batutaActivity", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BatutaAddResponses, BatutaAddErrors, ThrowOnError>({
+      url: "/batuta",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a Batuta activity
+   *
+   * Delete a Batuta orchestration activity.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<BatutaRemoveResponses, BatutaRemoveErrors, ThrowOnError>({
+      url: "/batuta/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Start a Batuta activity
+   *
+   * Start a Batuta orchestration activity: creates the orchestrator session (and worker worktrees, if enabled) and returns its session ID.
+   */
+  public start<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BatutaStartResponses, BatutaStartErrors, ThrowOnError>({
+      url: "/batuta/{id}/start",
       ...options,
       ...params,
     })
@@ -7187,6 +7329,11 @@ export class OpencodeClient extends HeyApiClient {
   private _event?: Event
   get event(): Event {
     return (this._event ??= new Event({ client: this.client }))
+  }
+
+  private _batuta?: Batuta
+  get batuta(): Batuta {
+    return (this._batuta ??= new Batuta({ client: this.client }))
   }
 
   private _config?: Config2
