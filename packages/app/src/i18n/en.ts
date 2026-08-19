@@ -1115,6 +1115,7 @@ export const dict = {
   "settings.mcp.description": "MCP settings will be configurable here.",
   "settings.mcp.add.button": "Add connector",
   "settings.mcp.add.title": "Add MCP connector",
+  "settings.mcp.add.known.label": "Known connectors",
   "settings.mcp.add.field.name.label": "Name",
   "settings.mcp.add.field.name.placeholder": "my-server",
   "settings.mcp.add.field.type.label": "Connection type",

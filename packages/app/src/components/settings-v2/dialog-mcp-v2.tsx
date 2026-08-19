@@ -15,6 +15,14 @@ import "./settings-v2.css"
 type ConnectionType = "local" | "remote"
 type KeyValueRow = { key: string; value: string }
 
+const KNOWN_SERVERS = [
+  { id: "cloudflare", name: "Cloudflare", url: "https://bindings.mcp.cloudflare.com/mcp" },
+  { id: "gmail", name: "Gmail", url: "https://gmailmcp.googleapis.com/mcp/v1" },
+  { id: "mercadopago", name: "Mercado Pago", url: "https://mcp.mercadopago.com/mcp" },
+  { id: "context7", name: "Context7", url: "https://mcp.context7.com/mcp" },
+  { id: "github-copilot", name: "GitHub Copilot", url: "https://api.githubcopilot.com/mcp" },
+] as const
+
 export type McpExistingServer = {
   name: string
   config: {
@@ -204,6 +212,31 @@ export const DialogMcpAddV2: Component<{
       <DividerV2 />
       <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2 overflow-y-auto max-h-[60vh]">
         <div class="flex w-full min-w-0 flex-col gap-6">
+          <Show when={!isEdit}>
+            <div class="flex w-full min-w-0 flex-col gap-2">
+              <label class="settings-v2-server-dialog-label">{language.t("settings.mcp.add.known.label")}</label>
+              <div class="flex flex-wrap gap-2">
+                <For each={KNOWN_SERVERS}>
+                  {(server) => (
+                    <ButtonV2
+                      type="button"
+                      variant="neutral"
+                      size="normal"
+                      onClick={() => {
+                        setForm("name", server.name)
+                        setForm("type", "remote")
+                        setForm("url", server.url)
+                        setForm("err", {})
+                      }}
+                    >
+                      {server.name}
+                    </ButtonV2>
+                  )}
+                </For>
+              </div>
+            </div>
+          </Show>
+
           <div class="flex w-full min-w-0 flex-col gap-2">
             <label class="settings-v2-server-dialog-label">{language.t("settings.mcp.add.field.name.label")}</label>
             <TextInputV2
