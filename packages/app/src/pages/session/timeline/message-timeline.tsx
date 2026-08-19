@@ -73,6 +73,7 @@ import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
 import { sessionTitle } from "@/utils/session-title"
+import { DialogDeleteSession } from "./dialog-delete-session"
 import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
@@ -935,56 +936,6 @@ export function MessageTimeline(props: {
     )
   }
 
-  function DialogDeleteSession(props: { sessionID: string }) {
-    const name = createMemo(
-      () => sessionTitle(sync().session.get(props.sessionID)?.title) ?? language.t("command.session.new"),
-    )
-    const handleDelete = async () => {
-      await deleteSession(props.sessionID)
-      dialog.close()
-    }
-
-    if (settings.general.newLayoutDesigns())
-      return (
-        <DialogV2 fit>
-          <DialogHeader hideClose>
-            <DialogTitleGroup
-              title={language.t("session.delete.title")}
-              description={language.t("session.delete.confirm", { name: name() })}
-            />
-          </DialogHeader>
-          <DialogFooter>
-            <ButtonV2 variant="ghost" onClick={() => dialog.close()}>
-              {language.t("common.cancel")}
-            </ButtonV2>
-            <ButtonV2 variant="danger" onClick={handleDelete}>
-              {language.t("session.delete.button")}
-            </ButtonV2>
-          </DialogFooter>
-        </DialogV2>
-      )
-
-    return (
-      <Dialog title={language.t("session.delete.title")} fit>
-        <div class="flex flex-col gap-4 pl-6 pr-2.5 pb-3">
-          <div class="flex flex-col gap-1">
-            <span class="text-14-regular text-text-strong">
-              {language.t("session.delete.confirm", { name: name() })}
-            </span>
-          </div>
-          <div class="flex justify-end gap-2">
-            <Button variant="ghost" size="large" onClick={() => dialog.close()}>
-              {language.t("common.cancel")}
-            </Button>
-            <Button variant="primary" size="large" onClick={handleDelete}>
-              {language.t("session.delete.button")}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-    )
-  }
-
   const workingTurn = (userMessageID: string) => sessionStatus().type !== "idle" && activeMessageID() === userMessageID
 
   const turnDurationMs = (userMessageID: string) => {
@@ -1628,7 +1579,7 @@ export function MessageTimeline(props: {
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item
                                   class="text-text-on-critical-base hover:bg-surface-critical-weak"
-                                  onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}
+                                  onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} onDelete={deleteSession} />)}
                                 >
                                   <Icon name="trash" size="small" />
                                   <DropdownMenu.ItemLabel>{language.t("common.delete")}</DropdownMenu.ItemLabel>
@@ -1708,7 +1659,7 @@ export function MessageTimeline(props: {
                               <MenuV2.Separator />
                               <MenuV2.Item
                                 class="text-v2-state-fg-danger"
-                                onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}
+                                onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} onDelete={deleteSession} />)}
                               >
                                 <Icon name="trash" size="small" />
                                 {language.t("common.delete")}...
