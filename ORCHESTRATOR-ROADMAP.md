@@ -70,3 +70,31 @@ Todas as issues foram publicadas em https://github.com/alltomatos/opencode/issue
 | 12 | [#12](https://github.com/alltomatos/opencode/issues/12) | Débito técnico | `home-sessions-view.tsx` (`SHOW_HOME_SESSION_ARCHIVE`) — **precisa decisão antes de codar** |
 
 Recomendação de ordem, se for sequencial: 1 → 5 → 3 → 4 → 2 (menus, mais rápidos e independentes) → 11 → 9 → 8 → 10 (polish) → 6 → 7 (migrações grandes, por último, já com o padrão `Field`/`TextInputV2` maduro) → 12 (assim que a decisão de produto sair).
+
+**Status: todas as 12 issues acima implementadas e na `dev`** (commits `6f109ea10`, `703b2df62`, `dcfeb8e3d`, `952c5a552`). Aguardando promoção `dev` → `prod` quando o lote for considerado maduro.
+
+## Epic: Tamanho de arquivo / limite SRP (~250 linhas)
+
+**Status:** Issues criadas, não iniciadas
+**Origem:** discussão em 2026-08-19 sobre a técnica de manter arquivos abaixo de ~250 linhas por responsabilidade única, usada por outros projetos do orchestrator.
+
+Regra registrada em `AGENTS.md` (seção "File Size (SRP boundary)"): arquivos novos devem mirar <250 linhas; arquivos existentes só são divididos oportunisticamente quando já estão sendo editados por outro motivo — não é uma tarefa dedicada de "quebrar tudo". Dados (i18n, gerado, fixtures) são isentos.
+
+Piores ofensores do monorepo (`packages/app/src`, excluindo i18n/testes/gerado) mapeados em issues — nenhuma bloqueia a outra, trabalhar oportunisticamente:
+
+| Issue | Arquivo | Linhas |
+|---|---|---|
+| [#13](https://github.com/alltomatos/opencode/issues/13) | `pages/layout.tsx` | 2427 |
+| [#14](https://github.com/alltomatos/opencode/issues/14) | `pages/session.tsx` | 2404 |
+| [#15](https://github.com/alltomatos/opencode/issues/15) | `pages/session/timeline/message-timeline.tsx` | 1933 |
+| [#16](https://github.com/alltomatos/opencode/issues/16) | `components/prompt-input.tsx` | 1795 |
+| [#17](https://github.com/alltomatos/opencode/issues/17) | `context/server-session.ts` | 1427 |
+| [#18](https://github.com/alltomatos/opencode/issues/18) | `context/layout.tsx` | 1102 |
+| [#19](https://github.com/alltomatos/opencode/issues/19) | `pages/session/session-side-panel.tsx` | 867 |
+| [#20](https://github.com/alltomatos/opencode/issues/20) | `pages/session/file-tabs.tsx` | 800 |
+
+## Epic: Build multi-plataforma na promoção `dev` → `prod`
+
+**Status:** Solicitado em 2026-08-19, a ser implementado.
+
+Hoje o processo de release só builda Windows (`bun run package:win`) manualmente. Objetivo: ao promover `dev` → `prod`, gerar também os artefatos de Mac (`.dmg`) e Linux (`.deb`, `.rpm`, ou outro formato universal) via electron-builder, para que o script de instalação cubra as três plataformas.

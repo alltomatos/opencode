@@ -79,11 +79,15 @@ const getBase = (appId: string): Configuration => ({
     gatekeeperAssess: false,
     entitlements: "resources/entitlements.plist",
     entitlementsInherit: "resources/entitlements.plist",
-    notarize: true,
+    // Notarization needs an Apple Developer account/API key, which this fork
+    // doesn't have configured. Only notarize when those creds are present
+    // (e.g. a future CI run with secrets); unsigned builds still install
+    // fine, they just show a Gatekeeper warning the user has to click through.
+    notarize: !!process.env.APPLE_API_KEY_ID,
     target: ["dmg", "zip"],
   },
   dmg: {
-    sign: true,
+    sign: !!process.env.CSC_LINK,
   },
   protocols: {
     name: "OpenCode",

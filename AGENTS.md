@@ -118,6 +118,15 @@ function requireConfig(input: unknown) {
 - Prefer Effect schema helpers such as `Schema.UnknownFromJsonString` and `Schema.decodeUnknownOption` over manual `JSON.parse` wrapped in `Effect.try` when parsing untrusted JSON strings.
 - Add comments for non-obvious constraints and surprising behavior, not for obvious assignments or control flow.
 
+### File Size (SRP boundary)
+
+Files over ~250 lines are a signal the file is doing more than one job, not just that it's long. Prefer splitting along real responsibility boundaries — a sub-view, a form, a controller/hook — over splitting for line count alone.
+
+- New files: aim to stay under ~250 lines. If a component naturally grows past that, look for a sub-component, form, or controller hook that can move to its own file.
+- Existing files: don't do a dedicated pass just to shrink line counts. Split opportunistically when you're already editing a file for another reason and the split is low-risk (e.g. extracting a `*View`/`*Form` component that's already structurally separate, as done for `dialog-select-server.tsx`).
+- Data files (i18n dictionaries, generated code, fixtures) are exempt — their size reflects data volume, not mixed responsibilities.
+- This is a code-review signal, not a hard gate: don't block a PR on line count alone if the file is one cohesive thing (e.g. a big switch/reducer with no natural seams).
+
 ### Schema Definitions (Drizzle)
 
 Use snake_case for field names so column names don't need to be redefined as strings.
