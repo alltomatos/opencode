@@ -243,17 +243,17 @@ export const SettingsMcpV2: Component = () => {
   return (
     <>
       <div class="settings-v2-tab-header">
-        <div class="settings-v2-tab-header-row">
+        <div class="settings-v2-tab-header-row flex items-center justify-between">
           <h2 class="settings-v2-tab-title">{language.t("settings.mcp.title")}</h2>
           <div class="flex items-center gap-2">
+            <ButtonV2 variant="neutral" icon="plus" onClick={openAdd}>
+              {language.t("settings.mcp.add.button")}
+            </ButtonV2>
             <Show when={platform.openPath}>
               <ButtonV2 variant="neutral" onClick={openConfigFile}>
                 {language.t("settings.mcp.openConfig.button")}
               </ButtonV2>
             </Show>
-            <ButtonV2 variant="neutral" icon="plus" onClick={openAdd}>
-              {language.t("settings.mcp.add.button")}
-            </ButtonV2>
           </div>
         </div>
       </div>
