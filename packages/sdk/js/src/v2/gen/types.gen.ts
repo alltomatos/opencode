@@ -8740,6 +8740,54 @@ export type McpRemoveResponses = {
 
 export type McpRemoveResponse = McpRemoveResponses[keyof McpRemoveResponses]
 
+export type McpCatalogData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mcp/{name}/catalog"
+}
+
+export type McpCatalogErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * McpServerNotFoundError
+   */
+  404: McpServerNotFoundError
+}
+
+export type McpCatalogError = McpCatalogErrors[keyof McpCatalogErrors]
+
+export type McpCatalogResponses = {
+  /**
+   * MCP server tools/prompts/resources
+   */
+  200: {
+    tools: Array<{
+      name: string
+      description?: string
+    }>
+    prompts: Array<{
+      name: string
+      description?: string
+    }>
+    resources: Array<{
+      name: string
+      uri: string
+      description?: string
+    }>
+  }
+}
+
+export type McpCatalogResponse = McpCatalogResponses[keyof McpCatalogResponses]
+
 export type ProjectListData = {
   body?: never
   path?: never

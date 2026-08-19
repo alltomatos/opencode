@@ -1,4 +1,4 @@
-import { createMemo, createResource, For, Show, type Component } from "solid-js"
+import { createMemo, createResource, createSignal, For, Show, type Component } from "solid-js"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode-ai/ui/v2/dialog-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -25,11 +25,102 @@ const statusLabels = {
   disabled: "mcp.status.disabled",
 } as const
 
+function McpServerCatalog(props: { name: string }) {
+  const language = useLanguage()
+  const serverSDK = useServerSDK()
+  const [catalog] = createResource(
+    () => props.name,
+    async (name) => (await serverSDK().client.mcp.catalog({ name })).data,
+  )
+
+  return (
+    <div class="flex flex-col gap-3 rounded-md bg-v2-background-bg-layer-02 px-3 py-2.5 text-13-regular">
+      <Show
+        when={!catalog.loading}
+        fallback={<span class="text-text-weak">{language.t("common.loading")}</span>}
+      >
+        <Show
+          when={catalog()}
+          fallback={<span class="text-text-weak">{language.t("common.requestFailed")}</span>}
+        >
+          {(data) => (
+            <>
+              <Show
+                when={data().tools.length + data().prompts.length + data().resources.length > 0}
+                fallback={<span class="text-text-weak">{language.t("settings.mcp.catalog.empty")}</span>}
+              >
+                <Show when={data().tools.length > 0}>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-text-weak font-medium">
+                      {language.t("settings.mcp.catalog.tools", { count: data().tools.length })}
+                    </span>
+                    <For each={data().tools}>
+                      {(tool) => (
+                        <div class="flex flex-col gap-0.5 pl-2">
+                          <span class="font-mono text-text-base">{tool.name}</span>
+                          <Show when={tool.description}>
+                            <span class="text-text-weak">{tool.description}</span>
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+                <Show when={data().prompts.length > 0}>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-text-weak font-medium">
+                      {language.t("settings.mcp.catalog.prompts", { count: data().prompts.length })}
+                    </span>
+                    <For each={data().prompts}>
+                      {(prompt) => (
+                        <div class="flex flex-col gap-0.5 pl-2">
+                          <span class="font-mono text-text-base">{prompt.name}</span>
+                          <Show when={prompt.description}>
+                            <span class="text-text-weak">{prompt.description}</span>
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+                <Show when={data().resources.length > 0}>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-text-weak font-medium">
+                      {language.t("settings.mcp.catalog.resources", { count: data().resources.length })}
+                    </span>
+                    <For each={data().resources}>
+                      {(resource) => (
+                        <div class="flex flex-col gap-0.5 pl-2">
+                          <span class="font-mono text-text-base">{resource.name}</span>
+                          <span class="text-text-weak">{resource.uri}</span>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </Show>
+            </>
+          )}
+        </Show>
+      </Show>
+    </div>
+  )
+}
+
 export const SettingsMcpV2: Component = () => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
   const serverSync = useServerSync()
   const dialog = useDialog()
+  const [expanded, setExpanded] = createSignal<Set<string>>(new Set())
+  const toggleExpanded = (name: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
 
   const [status, { refetch }] = createResource(async () => {
     const result = await serverSDK().client.mcp.status()
@@ -170,6 +261,7 @@ export const SettingsMcpV2: Component = () => {
                   const needsAuth = () => item.status === "needs_auth"
                   const needsClientRegistration = () => item.status === "needs_client_registration"
                   return (
+                    <div class="flex flex-col gap-2">
                     <SettingsRowV2
                       title={
                         <span class="flex items-center gap-2">
@@ -196,6 +288,19 @@ export const SettingsMcpV2: Component = () => {
                       }
                     >
                       <div class="flex items-center gap-1">
+                        <Show when={connected()}>
+                          <IconButtonV2
+                            variant="ghost-muted"
+                            aria-label={language.t("settings.mcp.catalog.toggle")}
+                            onClick={() => toggleExpanded(item.name)}
+                            icon={
+                              <IconV2
+                                name={expanded().has(item.name) ? "collapse" : "expand"}
+                                size="small"
+                              />
+                            }
+                          />
+                        </Show>
                         <IconButtonV2
                           variant="ghost-muted"
                           aria-label={language.t("common.edit")}
@@ -235,6 +340,10 @@ export const SettingsMcpV2: Component = () => {
                         </Show>
                       </div>
                     </SettingsRowV2>
+                    <Show when={connected() && expanded().has(item.name)}>
+                      <McpServerCatalog name={item.name} />
+                    </Show>
+                    </div>
                   )
                 }}
               </For>

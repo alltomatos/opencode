@@ -111,6 +111,18 @@ export const mcpHandlers = HttpApiBuilder.group(InstanceHttpApi, "mcp", (handler
       return { success: true as const }
     })
 
+    const catalog = Effect.fn("McpHttpApi.catalog")(function* (ctx: { params: { name: string } }) {
+      return yield* mcp
+        .serverCatalog(ctx.params.name)
+        .pipe(
+          Effect.catchTag("MCP.NotFoundError", (error) =>
+            Effect.fail(
+              new McpServerNotFoundError({ name: error.name, message: `MCP server not found: ${error.name}` }),
+            ),
+          ),
+        )
+    })
+
     return handlers
       .handle("status", status)
       .handle("add", add)
@@ -121,5 +133,6 @@ export const mcpHandlers = HttpApiBuilder.group(InstanceHttpApi, "mcp", (handler
       .handle("connect", connect)
       .handle("disconnect", disconnect)
       .handle("remove", remove)
+      .handle("catalog", catalog)
   }),
 )

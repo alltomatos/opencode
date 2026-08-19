@@ -1075,6 +1075,11 @@ export const dict = {
     "Esse servidor precisa de um client OAuth pré-registrado. Edite esse conector e preencha o client ID/secret.",
   "settings.mcp.add.field.oauthClientId.label": "Client ID OAuth (opcional)",
   "settings.mcp.add.field.oauthClientSecret.label": "Client secret OAuth (opcional)",
+  "settings.mcp.catalog.toggle": "Ver ferramentas",
+  "settings.mcp.catalog.empty": "Esse servidor não expõe nenhuma ferramenta, prompt ou resource.",
+  "settings.mcp.catalog.tools": "Ferramentas ({{count}})",
+  "settings.mcp.catalog.prompts": "Prompts ({{count}})",
+  "settings.mcp.catalog.resources": "Resources ({{count}})",
 
   "settings.skills.title": "Skill",
   "settings.skills.empty": "Nenhuma skill encontrada",

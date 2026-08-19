@@ -161,6 +161,12 @@ export interface McpTool {
   readonly timeout?: number
 }
 
+export interface ServerCatalog {
+  tools: { name: string; description?: string }[]
+  prompts: { name: string; description?: string }[]
+  resources: { name: string; uri: string; description?: string }[]
+}
+
 export interface Interface {
   readonly status: () => Effect.Effect<Record<string, Status>>
   readonly clients: () => Effect.Effect<Record<string, MCPClient>>
@@ -171,6 +177,7 @@ export interface Interface {
   readonly resourceTemplates: (
     clientName?: string,
   ) => Effect.Effect<Record<string, ResourceTemplateInfo & { client: string }>>
+  readonly serverCatalog: (name: string) => Effect.Effect<ServerCatalog, NotFoundError>
   readonly add: (name: string, mcp: ConfigMCPV1.Info) => Effect.Effect<{ status: Record<string, Status> | Status }>
   readonly connect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly disconnect: (name: string) => Effect.Effect<void, NotFoundError>
@@ -705,6 +712,23 @@ const layer = Layer.effect(
       return result
     })
 
+    const serverCatalog = Effect.fn("MCP.serverCatalog")(function* (name: string) {
+      yield* requireMcpConfig(name)
+      const s = yield* InstanceState.get(state)
+      const empty = { tools: [], prompts: [], resources: [] } as ServerCatalog
+      if (s.status[name]?.status !== "connected") return empty
+
+      const listed = s.defs[name] ?? []
+      const promptResult = yield* collectFromConnected(s, McpCatalog.prompts, "prompts", (p) => p.name, name)
+      const resourceResult = yield* collectFromConnected(s, McpCatalog.resources, "resources", (r) => r.uri, name)
+
+      return {
+        tools: listed.map((def) => ({ name: def.name, description: def.description })),
+        prompts: Object.values(promptResult).map((p) => ({ name: p.name, description: p.description })),
+        resources: Object.values(resourceResult).map((r) => ({ name: r.name, uri: r.uri, description: r.description })),
+      } satisfies ServerCatalog
+    })
+
     function collectFromConnected<T extends { name: string }>(
       s: State,
       listFn: (c: Client, timeout?: number) => Promise<T[]>,
@@ -995,6 +1019,7 @@ const layer = Layer.effect(
       prompts,
       resources,
       resourceTemplates,
+      serverCatalog,
       add,
       connect,
       disconnect,

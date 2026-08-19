@@ -103,6 +103,8 @@ import type {
   McpAuthRemoveResponses,
   McpAuthStartErrors,
   McpAuthStartResponses,
+  McpCatalogErrors,
+  McpCatalogResponses,
   McpConnectErrors,
   McpConnectResponses,
   McpDisconnectErrors,
@@ -2550,6 +2552,38 @@ export class Mcp extends HeyApiClient {
     )
     return (options?.client ?? this.client).delete<McpRemoveResponses, McpRemoveErrors, ThrowOnError>({
       url: "/mcp/{name}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get MCP server catalog
+   *
+   * List the tools, prompts, and resources a connected MCP server exposes. Empty if not connected.
+   */
+  public catalog<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<McpCatalogResponses, McpCatalogErrors, ThrowOnError>({
+      url: "/mcp/{name}/catalog",
       ...options,
       ...params,
     })

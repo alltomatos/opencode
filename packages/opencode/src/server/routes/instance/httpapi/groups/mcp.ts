@@ -27,6 +27,13 @@ export const AuthRemoveResponse = Schema.Struct({
 export const RemoveResponse = Schema.Struct({
   success: Schema.Literal(true),
 })
+export const CatalogResponse = Schema.Struct({
+  tools: Schema.Array(Schema.Struct({ name: Schema.String, description: Schema.optional(Schema.String) })),
+  prompts: Schema.Array(Schema.Struct({ name: Schema.String, description: Schema.optional(Schema.String) })),
+  resources: Schema.Array(
+    Schema.Struct({ name: Schema.String, uri: Schema.String, description: Schema.optional(Schema.String) }),
+  ),
+})
 export class UnsupportedOAuthError extends Schema.ErrorClass<UnsupportedOAuthError>("McpUnsupportedOAuthError")(
   { error: Schema.String },
   { httpApiStatus: 400 },
@@ -40,6 +47,7 @@ export const McpPaths = {
   connect: "/mcp/:name/connect",
   disconnect: "/mcp/:name/disconnect",
   remove: "/mcp/:name",
+  catalog: "/mcp/:name/catalog",
 } as const
 
 export const McpApi = HttpApi.make("mcp")
@@ -150,6 +158,19 @@ export const McpApi = HttpApi.make("mcp")
             identifier: "mcp.remove",
             summary: "Remove MCP server",
             description: "Remove an MCP server from the configuration entirely (not just disconnect).",
+          }),
+        ),
+        HttpApiEndpoint.get("catalog", McpPaths.catalog, {
+          params: { name: Schema.String },
+          query: WorkspaceRoutingQuery,
+          success: described(CatalogResponse, "MCP server tools/prompts/resources"),
+          error: McpServerNotFoundError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "mcp.catalog",
+            summary: "Get MCP server catalog",
+            description:
+              "List the tools, prompts, and resources a connected MCP server exposes. Empty if not connected.",
           }),
         ),
       )
