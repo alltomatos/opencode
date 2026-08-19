@@ -5,14 +5,17 @@ import { dirname, join } from "node:path"
 import { ZipReader, Uint8ArrayReader, Uint8ArrayWriter } from "@zip.js/zip.js"
 import { write as writeLog } from "./logging"
 
-// OpenCode's own skill discovery already scans ~/.claude/skills/**/SKILL.md by
-// default (see packages/opencode/src/skill/index.ts, CLAUDE_EXTERNAL_DIR) — so
-// seeding that folder on first run is enough to make these skills show up,
-// no changes to the skill loader itself needed.
+// OpenCode's own skill discovery always scans ~/.opencode/skills/**/SKILL.md
+// (see packages/opencode/src/config/paths.ts's `directories()`, which walks
+// up from Global.Path.home for a ".opencode" dir, and skill/index.ts's
+// OPENCODE_SKILL_PATTERN) — so seeding that folder on first run is enough to
+// make these skills show up, no changes to the skill loader itself needed.
+// (Note: ~/.claude/skills is Claude Code's own folder — opencode also reads
+// it, but only as an optional *external* source, off by a settings toggle.)
 const SKILLS_REPO_ZIP = "https://github.com/alltomatos/skills/archive/refs/heads/main.zip"
 
 export async function ensureDefaultSkills() {
-  const target = join(homedir(), ".claude", "skills")
+  const target = join(homedir(), ".opencode", "skills")
   if (existsSync(target)) return
 
   try {

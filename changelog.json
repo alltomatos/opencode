@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.5",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Skills padrão no local certo",
+              "description": "As skills de github.com/alltomatos/skills agora são instaladas em ~/.opencode/skills, a pasta nativa de skills do OpenCode (antes iam por engano para ~/.claude/skills)."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.4",
       "highlights": [
         {
