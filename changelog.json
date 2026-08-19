@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.20.8",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Skills descobertas corrigidas",
+              "description": "A aba Configurações > Skill agora mostra as skills do projeto atual e globais, as mesmas disponíveis digitando \"/\" no chat — antes ficava sempre vazia por não usar o diretório certo."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.20.7",
       "highlights": [
         {

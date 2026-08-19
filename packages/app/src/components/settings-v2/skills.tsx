@@ -1,4 +1,4 @@
-import { createResource, For, Show, type Component } from "solid-js"
+import { createMemo, createResource, For, Show, type Accessor, type Component } from "solid-js"
 import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
 import { useMutation } from "@tanstack/solid-query"
 import { useLanguage } from "@/context/language"
@@ -9,13 +9,21 @@ import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
 
-export const SettingsSkillsV2: Component = () => {
+export const SettingsSkillsV2: Component<{ directory?: Accessor<string | undefined> }> = (props) => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
   const serverSync = useServerSync()
 
-  const [skills, { refetch }] = createResource(async () => {
-    const result = await serverSDK().api.skill.list()
+  // Scope the skill listing to the active project directory (same discovery
+  // context the "/" slash menu uses), falling back to the global instance
+  // when Settings is opened with no active project (e.g. from Home).
+  const skillApi = createMemo(() => {
+    const directory = props.directory?.()
+    return directory ? serverSDK().ensureDirSdkContext(directory).api : serverSDK().api
+  })
+
+  const [skills, { refetch }] = createResource(skillApi, async (api) => {
+    const result = await api.skill.list()
     return result.data.slice().sort((a, b) => a.name.localeCompare(b.name))
   })
 
