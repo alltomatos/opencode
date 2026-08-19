@@ -93,6 +93,24 @@ Piores ofensores do monorepo (`packages/app/src`, excluindo i18n/testes/gerado) 
 | [#19](https://github.com/alltomatos/opencode/issues/19) | `pages/session/session-side-panel.tsx` | 867 |
 | [#20](https://github.com/alltomatos/opencode/issues/20) | `pages/session/file-tabs.tsx` | 800 |
 
+## Epic: Melhorias de MCP
+
+**Status:** Em andamento — persistência corrigida, resto planejado
+**Origem:** análise de código em 2026-08-19 (agente Explore) do módulo `packages/opencode/src/mcp` + tela `settings-v2/mcp.tsx`.
+
+Achado crítico já corrigido: servidor MCP adicionado pela UI/API só existia em memória (`MCP.Service.add`), sumindo ao reiniciar — o CLI (`opencode mcp add`) era o único caminho que persistia de verdade no `opencode.jsonc`. Corrigido no commit `f56dd9e2b` (`Config.Service.updateGlobal`, mesma mecânica usada em outros lugares do app).
+
+Demais lacunas mapeadas em issues (nenhum TODO/gambiarra no código — é falta de superfície de UI/API pro que o backend já suporta):
+
+| Issue | O quê | Depende de |
+|---|---|---|
+| [#21](https://github.com/alltomatos/opencode/issues/21) | Editar/remover servidor configurado (form completo: env, headers, cwd, timeout + endpoint DELETE) | — |
+| [#22](https://github.com/alltomatos/opencode/issues/22) | Fluxo de OAuth funcional na UI (hoje trava em "beco sem saída" quando `needs_auth`) | — |
+| [#23](https://github.com/alltomatos/opencode/issues/23) | Navegador de tools/prompts/resources de um servidor conectado (backend já expõe, falta rota HTTP + UI) | Recomendado depois de #21 |
+| [#24](https://github.com/alltomatos/opencode/issues/24) | Catálogo de servidores conhecidos (Cloudflare, Gmail, Mercado Pago, Context7, GitHub Copilot) com conectar em 1 clique | #22 |
+
+Decisão de produto sobre servidores pessoais/privados do usuário (`~/.claude.json` tem 12 configurados, incluindo endpoints internos e chaves): **não vão ser embutidos no fork**. Só os 5 públicos/conhecidos do #24 viram catálogo pré-configurado (sem segredo nenhum, só a URL pública); os privados continuam só via formulário manual.
+
 ## Epic: Build multi-plataforma na promoção `dev` → `prod`
 
 **Status:** Solicitado em 2026-08-19, a ser implementado.
