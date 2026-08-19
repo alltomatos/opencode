@@ -24,6 +24,7 @@ jobs:
             script: package:win
           - os: macos-latest
             script: package:mac
+            extra_args: --universal
           - os: ubuntu-latest
             script: package:linux
     runs-on: ${{ matrix.os }}
@@ -38,7 +39,7 @@ jobs:
 
       - name: Build and publish
         working-directory: packages/desktop
-        run: bun run build && bun run ${{ matrix.script }} -- --publish always
+        run: bun run build && bun run ${{ matrix.script }} -- ${{ matrix.extra_args }} --publish always
         env:
           OPENCODE_CHANNEL: prod
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
