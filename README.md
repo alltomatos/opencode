@@ -30,15 +30,23 @@ Este fork trabalha com duas branches:
 
 Baixe o instalador direto na [página de releases](https://github.com/alltomatos/opencode/releases/latest) — sempre gerado a partir da branch `prod`.
 
-| Plataforma | Download                       |
-| ---------- | ------------------------------- |
-| Windows    | `opencode-desktop-win-x64.exe`  |
+| Plataforma       | Download                                  |
+| ---------------- | ------------------------------------------ |
+| Windows          | `opencode-desktop-win-x64.exe` (instalador NSIS) |
+| macOS (Intel/ARM) | `opencode-desktop-mac-x64.dmg` / `opencode-desktop-mac-arm64.dmg` |
+| Linux (Debian/Ubuntu) | `opencode-desktop-linux-x64.deb`      |
+| Linux (Fedora/RHEL)   | `opencode-desktop-linux-x64.rpm`      |
+| Linux (universal)     | `opencode-desktop-linux-x64.AppImage` |
 
-Instalação via PowerShell (sempre baixa a última versão publicada):
+Instalação via PowerShell no Windows (sempre baixa a última versão publicada):
 
 ```powershell
 irm https://raw.githubusercontent.com/alltomatos/opencode/prod/install.ps1 | iex
 ```
+
+No macOS e Linux, baixe o instalador correspondente direto da [página de releases](https://github.com/alltomatos/opencode/releases/latest) e instale manualmente (`.dmg`, `dpkg -i *.deb`, `rpm -i *.rpm`, ou dê permissão de execução no `.AppImage`).
+
+> **Nota (macOS):** os builds de Mac não são assinados/notarizados por este fork (não temos uma conta Apple Developer configurada). Na primeira abertura o Gatekeeper vai avisar que o app "não pode ser verificado" — clique com o botão direito no app → **Abrir** para liberar manualmente.
 
 O app verifica atualizações automaticamente contra este repositório (`alltomatos/opencode`), não contra o projeto original.
 
@@ -60,10 +68,14 @@ Isso abre o Electron em modo desenvolvimento (canal `dev`, auto-update desativad
 ```bash
 cd packages/desktop
 OPENCODE_CHANNEL=prod bun run build
-bun run package:win
+bun run package:win     # Windows (feito manualmente nesta máquina)
+bun run package:mac     # macOS — precisa rodar num Mac
+bun run package:linux   # Linux — precisa de dpkg/rpm/fpm disponíveis
 ```
 
-O instalador gerado fica em `packages/desktop/dist/opencode-desktop-win-x64.exe`. Publicar de verdade (upload pro GitHub Releases) só deve acontecer a partir da branch `prod`, depois de promover `dev` — ver [`ORCHESTRATOR-ROADMAP.md`](./ORCHESTRATOR-ROADMAP.md) para o fluxo completo.
+O instalador gerado fica em `packages/desktop/dist/`. Publicar de verdade (upload pro GitHub Releases) só deve acontecer a partir da branch `prod`, depois de promover `dev` — ver [`ORCHESTRATOR-ROADMAP.md`](./ORCHESTRATOR-ROADMAP.md) para o fluxo completo.
+
+Como esta máquina de desenvolvimento é Windows, os builds de **macOS e Linux são gerados via GitHub Actions** (workflow [`release-desktop-mac-linux.yml`](./.github/workflows/release-desktop-mac-linux.yml)), disparado manualmente (`gh workflow run release-desktop-mac-linux.yml -f version=X.Y.Z`) depois que a versão já foi publicada no Windows — ele builda em runners `macos-latest`/`ubuntu-latest` e sobe os artefatos pro mesmo release já criado.
 
 ### Agents
 
