@@ -197,13 +197,31 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
             required: ["text"],
           }),
         }),
+        answer_directly: tool({
+          description:
+            "Responder diretamente por voz, sem executar nada — use pra perguntas sobre o app/tela atual " +
+            "(ex.: 'em que tela estamos?'), conversa/brainstorm, ou qualquer coisa que não seja nem um comando " +
+            "de app nem um pedido de trabalho de código pra sessão.",
+          inputSchema: jsonSchema({
+            type: "object",
+            properties: { answer: { type: "string", description: "Resposta curta e natural, pronta pra ser falada." } },
+            required: ["answer"],
+          }),
+        }),
       }
-      for (const command of ctx.payload.commands) {
-        tools[`${APP_COMMAND_TOOL_PREFIX}${command.id}`] = tool({
+      // Nomes de tool só podem conter [a-zA-Z0-9_-] pra maioria dos provedores de
+      // function-calling — command IDs reais (ex.: "breniac.openProject:D:/dev/x")
+      // têm ":"/"/" e quebram a chamada inteira ("No output generated") se usados
+      // direto. Sanitiza e mantém um mapa de volta pro ID real.
+      const toolNameToCommandID: Record<string, string> = {}
+      ctx.payload.commands.forEach((command, index) => {
+        const toolName = `${APP_COMMAND_TOOL_PREFIX}${index}_${command.id.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40)}`
+        toolNameToCommandID[toolName] = command.id
+        tools[toolName] = tool({
           description: command.description ? `${command.title} — ${command.description}` : command.title,
           inputSchema: jsonSchema({ type: "object", properties: {} }),
         })
-      }
+      })
 
       const toolCalls = yield* Effect.tryPromise({
         try: async () => {
@@ -212,9 +230,13 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
           const stream = streamText({
             model: language,
             system:
-              "Você roteia um turno de voz do Breniac. Se o texto do usuário corresponder claramente a um dos " +
-              "comandos de app disponíveis, chame a tool desse comando. Caso contrário, ou se o texto for um pedido " +
-              "de trabalho na sessão de código, chame session_prompt com o texto original." +
+              "Você é o Breniac, o assistente de voz colaborador do opencode (um fork do editor de código com " +
+              "agentes de IA). Você roteia um turno de voz: se o texto do usuário corresponder claramente a um dos " +
+              "comandos de app disponíveis (ex.: abrir um projeto específico, criar sessão), chame a tool desse " +
+              "comando. Se for um pedido de trabalho na sessão de código (ex.: 'roda os testes', 'corrige esse bug'), " +
+              "chame session_prompt com o texto original. Caso contrário — pergunta sobre o app/tela atual, papo, " +
+              "brainstorm, ou qualquer coisa que não seja nem comando nem trabalho de código — chame answer_directly." +
+              (ctx.payload.currentScreen ? `\n\nTela atual do app: ${ctx.payload.currentScreen}` : "") +
               (ctx.payload.memoryContext
                 ? `\n\nMemória recente de conversas anteriores (use como contexto, não repita de volta):\n${ctx.payload.memoryContext}`
                 : ""),
@@ -236,10 +258,16 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
         return { kind: "sessionPrompt", prompt: input.text ?? ctx.payload.text } satisfies RouteResponse
       }
 
-      return {
-        kind: "appCommand",
-        commandID: call.toolName.slice(APP_COMMAND_TOOL_PREFIX.length),
-      } satisfies RouteResponse
+      if (call.toolName === "answer_directly") {
+        const input = call.input as { answer?: string }
+        return { kind: "answer", answer: input.answer ?? "" } satisfies RouteResponse
+      }
+
+      const commandID = toolNameToCommandID[call.toolName]
+      if (!commandID)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: comando de app não reconhecido", service: "breniac" }))
+
+      return { kind: "appCommand", commandID } satisfies RouteResponse
     })
 
     const speak = Effect.fn("BreniacHttpApi.speak")(function* (ctx: { payload: SpeakRequest }) {

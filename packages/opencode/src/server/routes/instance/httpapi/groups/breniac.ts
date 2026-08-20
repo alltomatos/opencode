@@ -39,15 +39,19 @@ export const RouteRequest = Schema.Struct({
   commands: Schema.Array(RouteCommand),
   /** Concatenated recent memory (global + project), loaded when Breniac turned on. */
   memoryContext: Schema.optional(Schema.String),
+  /** Human-readable description of what's currently on screen (project/session open, or home). */
+  currentScreen: Schema.optional(Schema.String),
 }).annotate({ identifier: "BreniacRouteRequest" })
 export type RouteRequest = Schema.Schema.Type<typeof RouteRequest>
 
 export const RouteResponse = Schema.Struct({
-  kind: Schema.Literals(["appCommand", "sessionPrompt"]),
+  kind: Schema.Literals(["appCommand", "sessionPrompt", "answer"]),
   /** Present when kind === "appCommand": the id of the command to trigger. */
   commandID: Schema.optional(Schema.String),
   /** Present when kind === "sessionPrompt": the text to send to the session. */
   prompt: Schema.optional(Schema.String),
+  /** Present when kind === "answer": a direct spoken reply — nothing is executed. */
+  answer: Schema.optional(Schema.String),
 }).annotate({ identifier: "BreniacRouteResponse" })
 export type RouteResponse = Schema.Schema.Type<typeof RouteResponse>
 

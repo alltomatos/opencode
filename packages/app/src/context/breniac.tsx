@@ -1,4 +1,5 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
+import { base64Encode } from "@opencode-ai/core/util/encode"
 import { useNavigate, useParams } from "@solidjs/router"
 import { createResource } from "solid-js"
 import { appendTurn } from "@/components/breniac/append-turn"
@@ -10,7 +11,9 @@ import { transcribeTurn } from "@/components/breniac/transcribe"
 import { createVoiceCapture, type VoiceCaptureState } from "@/components/breniac/use-voice-capture"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
+import { useLayout } from "@/context/layout"
 import { useServerSDK } from "@/context/server-sdk"
+import { displayName } from "@/pages/layout/helpers"
 import { decode64 } from "@/utils/base64"
 import { showToast } from "@/utils/toast"
 
@@ -22,7 +25,18 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     const language = useLanguage()
     const serverSDK = useServerSDK()
     const navigate = useNavigate()
-    const params = useParams<{ dir?: string }>()
+    const params = useParams<{ dir?: string; id?: string }>()
+    const layout = useLayout()
+
+    const currentScreen = () => {
+      const directory = decode64(params.dir)
+      if (!directory) return "Tela inicial (lista de projetos), nenhum projeto aberto."
+      const project = layout.projects.list().find((item) => item.worktree === directory)
+      const name = project ? displayName(project) : directory
+      return params.id
+        ? `Projeto "${name}" aberto, com uma sessão de código ativa.`
+        : `Projeto "${name}" aberto, sem sessão ativa (tela de nova sessão).`
+    }
 
     const [enabledResource, { refetch: refreshEnabled }] = createResource(async () => {
       const result = await serverSDK().client.breniac.getConfig()
@@ -40,6 +54,8 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         command.trigger(route.commandID)
         return language.t("breniac.speak.commandDone", { title })
       }
+
+      if (route.kind === "answer") return route.answer
 
       const directory = decode64(params.dir)
       if (!directory) {
@@ -63,7 +79,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       transcribeTurn(serverSDK, audio)
         .then((text) => {
           transcript = text
-          return routeTurn(serverSDK, text, command.options, memoryContext || undefined)
+          return routeTurn(serverSDK, text, command.options, memoryContext || undefined, currentScreen())
         })
         .then(execute)
         .then(async (confirmation) => {
@@ -109,6 +125,21 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         onSelect: () => void toggle(),
       },
     ])
+
+    // Expõe "abrir projeto X" pra cada projeto já adicionado ao opencode como
+    // comando de app real — sem isso o roteador (#43) não tinha como cumprir
+    // um pedido de voz pra abrir um projeto específico, só via prompt de sessão.
+    command.register("breniac.projects", () =>
+      layout.projects.list().map((project) => ({
+        id: `breniac.openProject:${project.worktree}`,
+        title: language.t("breniac.command.openProject", { name: displayName(project) }),
+        category: language.t("command.category.settings"),
+        onSelect: () => {
+          layout.projects.open(project.worktree)
+          navigate(`/${base64Encode(project.worktree)}/session`)
+        },
+      })),
+    )
 
     return {
       state: capture.state,

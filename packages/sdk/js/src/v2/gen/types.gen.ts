@@ -2066,12 +2066,14 @@ export type BreniacRouteRequest = {
   text: string
   commands: Array<BreniacRouteCommand>
   memoryContext?: string
+  currentScreen?: string
 }
 
 export type BreniacRouteResponse = {
-  kind: "appCommand" | "sessionPrompt"
+  kind: "appCommand" | "sessionPrompt" | "answer"
   commandID?: string
   prompt?: string
+  answer?: string
 }
 
 export type BreniacSpeakRequest = {

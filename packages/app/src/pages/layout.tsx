@@ -947,6 +947,54 @@ export default function LegacyLayout(props: ParentProps) {
         onSelect: () => openSettings(),
       },
       {
+        id: "settings.open.general",
+        title: language.t("command.settings.open.general"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("general"),
+      },
+      {
+        id: "settings.open.shortcuts",
+        title: language.t("command.settings.open.shortcuts"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("shortcuts"),
+      },
+      {
+        id: "settings.open.servers",
+        title: language.t("command.settings.open.servers"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("servers"),
+      },
+      {
+        id: "settings.open.providers",
+        title: language.t("command.settings.open.providers"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("providers"),
+      },
+      {
+        id: "settings.open.models",
+        title: language.t("command.settings.open.models"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("models"),
+      },
+      {
+        id: "settings.open.skills",
+        title: language.t("command.settings.open.skills"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("skills"),
+      },
+      {
+        id: "settings.open.mcp",
+        title: language.t("command.settings.open.mcp"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("mcp"),
+      },
+      {
+        id: "settings.open.breniac",
+        title: language.t("command.settings.open.breniac"),
+        category: language.t("command.category.settings"),
+        onSelect: () => openSettings("breniac"),
+      },
+      {
         id: "session.previous",
         title: language.t("command.session.previous"),
         category: language.t("command.category.session"),
@@ -1112,14 +1160,14 @@ export default function LegacyLayout(props: ParentProps) {
     })
   }
 
-  function openSettings() {
+  function openSettings(tab?: string) {
     const run = ++dialogRun
     const module = settings.general.newLayoutDesigns()
       ? import("@/components/settings-v2")
       : import("@/components/dialog-settings")
     void module.then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogSettings />)
+      dialog.show(() => <x.DialogSettings defaultValue={tab} />)
     })
   }
 
