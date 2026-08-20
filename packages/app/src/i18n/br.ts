@@ -869,6 +869,8 @@ export const dict = {
   "breniac.command.turnOn": "Ligar o Breniac",
   "breniac.command.turnOff": "Desligar o Breniac",
   "breniac.command.openProject": "Abrir projeto {{name}}",
+  "breniac.command.openSession": "Abrir sessão \"{{title}}\"",
+  "breniac.command.openSession.untitled": "sem título",
   "breniac.command.toggle.description": "Parar de ouvir, encerrar a conversa de voz (também vale: encerrar, pare, pode parar, chega, desligar o Breniac).",
   "breniac.screen.settingsTab": "Diálogo de Configurações aberto, na aba \"{{tab}}\".",
   "breniac.toast.noProject.title": "Nenhum projeto aberto",

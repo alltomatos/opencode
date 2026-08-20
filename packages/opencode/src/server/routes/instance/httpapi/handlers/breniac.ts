@@ -231,7 +231,14 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
               "chame session_prompt com o texto original. Caso contrário — pergunta sobre o app/tela atual, papo, " +
               "brainstorm, ou qualquer coisa que não seja nem comando nem trabalho de código — chame answer_directly. " +
               "IMPORTANTE: só afirme ter lido/analisado algo se essa informação estiver literalmente presente no " +
-              "contexto abaixo — nunca finja ter acesso ao que não foi fornecido." +
+              "contexto abaixo — nunca finja ter acesso ao que não foi fornecido. " +
+              "ATENÇÃO AO PROJETO/SESSÃO ERRADOS: antes de chamar session_prompt, confira a 'Tela atual do app' " +
+              "abaixo. Se o pedido do usuário mencionar claramente um projeto ou uma sessão diferente do que está " +
+              "aberto agora, NÃO mande session_prompt pra sessão errada — chame o comando de abrir o projeto/sessão " +
+              "certa (tools 'Abrir projeto ...' / 'Abrir sessão ...') se um bater claramente com o pedido. Se não " +
+              "ficar claro qual projeto/sessão o usuário quer (nome ambíguo, ou não ficou claro se ele quer uma " +
+              "sessão nova ou continuar uma existente), chame answer_directly perguntando — nunca adivinhe e " +
+              "execute um comando de app às cegas quando houver ambiguidade real." +
               (ctx.payload.currentScreen ? `\n\nTela atual do app: ${ctx.payload.currentScreen}` : "") +
               (ctx.payload.sessionContext
                 ? `\n\nÚltima resposta do agente na sessão ativa (isso é tudo que você viu dela):\n${ctx.payload.sessionContext}`

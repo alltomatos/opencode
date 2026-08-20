@@ -7,6 +7,7 @@ import { loadMemoryContext } from "@/components/breniac/load-memory"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
 import { speakText } from "@/components/breniac/speak"
 import { getLastAssistantMessage } from "@/components/breniac/session-context"
+import { listRecentSessions } from "@/components/breniac/list-sessions"
 import { promoteSummaryToGlobal, summarizeVoiceSession } from "@/components/breniac/summarize"
 import { transcribeTurn } from "@/components/breniac/transcribe"
 import { createVoiceCapture, type VoiceCaptureState } from "@/components/breniac/use-voice-capture"
@@ -240,6 +241,28 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         },
       })),
     )
+
+    // Sessões recentes do projeto atualmente aberto — sem isso o roteador só
+    // conseguia "abrir projeto" (que sempre cai numa sessão nova) e nunca
+    // "continuar a sessão X", deixando o Breniac sem opção quando o usuário
+    // queria voltar pra uma conversa existente em vez de começar outra.
+    const [recentSessions] = createResource(currentDirectory, async (directory) => {
+      if (!directory) return []
+      return listRecentSessions(serverSDK, directory)
+    })
+    command.register("breniac.sessions", () => {
+      const directory = currentDirectory()
+      if (!directory) return []
+      const dirBase64 = base64Encode(directory)
+      return (recentSessions() ?? []).map((session) => ({
+        id: `breniac.openSession:${dirBase64}:${session.id}`,
+        title: language.t("breniac.command.openSession", {
+          title: session.title.trim() || language.t("breniac.command.openSession.untitled"),
+        }),
+        category: language.t("command.category.settings"),
+        onSelect: () => navigate(`/${dirBase64}/session/${session.id}`),
+      }))
+    })
 
     return {
       state: capture.state,
