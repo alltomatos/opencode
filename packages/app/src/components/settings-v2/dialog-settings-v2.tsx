@@ -1,9 +1,10 @@
-import { Component, createMemo, createSignal, startTransition } from "solid-js"
+import { Component, createEffect, createMemo, createSignal, onCleanup, startTransition } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { Icon } from "@opencode-ai/ui/icon"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { screenFocus } from "@/context/screen-focus"
 import { SettingsGeneralV2 } from "./general"
 import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
@@ -29,6 +30,22 @@ export const DialogSettings: Component<{
   const tabs = useTabs()
   const serverSync = useServerSync()
   const [tab, setTab] = createSignal(props.defaultValue ?? "general")
+
+  const tabLabels: Record<string, () => string> = {
+    general: () => language.t("settings.tab.general"),
+    shortcuts: () => language.t("settings.tab.shortcuts"),
+    servers: () => language.t("status.popover.tab.servers"),
+    providers: () => language.t("settings.providers.title"),
+    models: () => language.t("settings.models.title"),
+    skills: () => language.t("settings.skills.title"),
+    mcp: () => language.t("settings.mcp.title"),
+    breniac: () => language.t("settings.breniac.title"),
+  }
+  createEffect(() => {
+    const label = tabLabels[tab()]?.() ?? tab()
+    screenFocus.set(language.t("breniac.screen.settingsTab", { tab: label }))
+  })
+  onCleanup(() => screenFocus.clear())
   const directory = createMemo(() => {
     const route = layout.route()
     if (route.type === "dir-new-sesssion") return route.dir

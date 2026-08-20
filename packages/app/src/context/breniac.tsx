@@ -12,6 +12,7 @@ import { createVoiceCapture, type VoiceCaptureState } from "@/components/breniac
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
+import { screenFocus } from "@/context/screen-focus"
 import { useServerSDK } from "@/context/server-sdk"
 import { displayName } from "@/pages/layout/helpers"
 import { decode64 } from "@/utils/base64"
@@ -28,7 +29,10 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     const params = useParams<{ dir?: string; id?: string }>()
     const layout = useLayout()
 
-    const currentScreen = () => {
+    // A rota (useParams) não muda quando um diálogo (ex.: Configurações) abre por
+    // cima da tela — sem screenFocus o Breniac ficaria cego pra isso e continuaria
+    // descrevendo só o que está por baixo. screenFocus tem prioridade quando setado.
+    const routeScreen = () => {
       const directory = decode64(params.dir)
       if (!directory) return "Tela inicial (lista de projetos), nenhum projeto aberto."
       const project = layout.projects.list().find((item) => item.worktree === directory)
@@ -36,6 +40,10 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       return params.id
         ? `Projeto "${name}" aberto, com uma sessão de código ativa.`
         : `Projeto "${name}" aberto, sem sessão ativa (tela de nova sessão).`
+    }
+    const currentScreen = () => {
+      const focus = screenFocus.label()
+      return focus ? `${focus} (por cima de: ${routeScreen()})` : routeScreen()
     }
 
     const [enabledResource, { refetch: refreshEnabled }] = createResource(async () => {
