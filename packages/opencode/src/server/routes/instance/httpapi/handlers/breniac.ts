@@ -12,12 +12,32 @@ import { InstanceHttpApi } from "../api"
 import type {
   AppendTurnRequest,
   AppendTurnResponse,
+  PromoteGlobalRequest,
+  PromoteGlobalResponse,
   RouteRequest,
   RouteResponse,
   SpeakRequest,
   SpeakResponse,
+  SummarizeRequest,
+  SummarizeResponse,
   TranscribeRequest,
 } from "../groups/breniac"
+
+function projectKey(directory: string) {
+  return directory.replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+/g, "_").slice(-80) || "root"
+}
+
+function todayFile() {
+  return `${new Date().toISOString().slice(0, 10)}.md`
+}
+
+async function appendMemoryEntry(file: string, entry: string) {
+  await mkdir(path.dirname(file), { recursive: true })
+  const existing = await Bun.file(file)
+    .text()
+    .catch(() => "")
+  await Bun.write(file, existing + entry)
+}
 
 // Cloudflare (fronting Omniroute) blocks requests without a browser-like User-Agent.
 const BROWSER_USER_AGENT =
@@ -297,6 +317,99 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       return { path: file } satisfies AppendTurnResponse
     })
 
+    const summarize = Effect.fn("BreniacHttpApi.summarize")(function* (ctx: { payload: SummarizeRequest }) {
+      const safeID = ctx.payload.voiceSessionID.replace(/[^a-zA-Z0-9_-]/g, "_")
+      const tmpFile = path.join(Global.Path.data, "breniac", "tmp", `${safeID}.md`)
+      const transcript = yield* Effect.tryPromise({
+        try: () => Bun.file(tmpFile).text(),
+        catch: () => new UpstreamError({ message: "", service: "breniac" }),
+      }).pipe(Effect.orElseSucceed(() => ""))
+
+      if (!transcript.trim()) return { summarized: false } satisfies SummarizeResponse
+
+      const config = yield* breniac.get()
+      if (!config.memoryModel)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: memoryModel não configurado", service: "breniac" }))
+
+      const separator = config.memoryModel.indexOf("/")
+      const providerID = config.memoryModel.slice(0, separator)
+      const modelID = config.memoryModel.slice(separator + 1)
+      const providerInfo = yield* provider.getProvider(providerID as any)
+      const modelInfo = providerInfo?.models[modelID]
+      if (!modelInfo)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: modelo de memória não encontrado", service: "breniac" }))
+      const language = yield* provider
+        .getLanguage(modelInfo)
+        .pipe(
+          Effect.catchTag("ProviderModelNotFoundError", () =>
+            Effect.fail(new UpstreamError({ message: "Breniac: modelo de memória não encontrado", service: "breniac" })),
+          ),
+        )
+
+      const saveSummary = tool({
+        description: "Salvar o resumo estruturado desta sessão de voz.",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            summary: { type: "string", description: "Resumo em markdown: decisões, fatos novos, pendências, correções feitas no Breniac." },
+            generalTopic: { type: "boolean", description: "true se o conteúdo é de interesse geral do usuário, além deste projeto." },
+            generalReason: { type: "string", description: "Por que isso poderia interessar à memória global, se generalTopic=true." },
+          },
+          required: ["summary", "generalTopic"],
+        }),
+      })
+
+      const toolCalls = yield* Effect.tryPromise({
+        try: async () => {
+          const stream = streamText({
+            model: language,
+            system:
+              "Você resume uma sessão de voz do Breniac (colaborador de voz do opencode). Foque em: decisões tomadas, " +
+              "fatos novos, pendências, e principalmente correções que o usuário fez no próprio Breniac durante a " +
+              "conversa. Chame a tool save_summary sempre.",
+            prompt: transcript,
+            tools: { save_summary: saveSummary },
+            toolChoice: "required",
+          })
+          return await stream.toolCalls
+        },
+        catch: (cause) => new UpstreamError({ message: `Breniac: falha ao resumir (${String(cause)})`, service: "breniac" }),
+      })
+
+      const call = toolCalls[0]
+      if (!call)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: resumo não gerado", service: "breniac" }))
+
+      const input = call.input as { summary: string; generalTopic?: boolean; generalReason?: string }
+      const timestamp = new Date().toISOString()
+      const entry = `## ${timestamp}\n\n${input.summary}\n\n`
+
+      const key = projectKey(ctx.payload.directory)
+      const projectFile = path.join(Global.Path.data, "breniac", "memory", "projects", key, todayFile())
+      yield* Effect.tryPromise({
+        try: () => appendMemoryEntry(projectFile, entry),
+        catch: () => new UpstreamError({ message: "Breniac: falha ao gravar a memória do projeto", service: "breniac" }),
+      })
+
+      return {
+        summarized: true,
+        summary: input.summary,
+        suggestsGlobal: input.generalTopic ?? false,
+        globalReason: input.generalReason,
+      } satisfies SummarizeResponse
+    })
+
+    const promoteGlobal = Effect.fn("BreniacHttpApi.promoteGlobal")(function* (ctx: { payload: PromoteGlobalRequest }) {
+      const timestamp = new Date().toISOString()
+      const entry = `## ${timestamp}\n\n${ctx.payload.summary}\n\n`
+      const globalFile = path.join(Global.Path.data, "breniac", "memory", "global", todayFile())
+      yield* Effect.tryPromise({
+        try: () => appendMemoryEntry(globalFile, entry),
+        catch: () => new UpstreamError({ message: "Breniac: falha ao gravar a memória global", service: "breniac" }),
+      })
+      return { path: globalFile } satisfies PromoteGlobalResponse
+    })
+
     return handlers
       .handle("getConfig", getConfig)
       .handle("setConfig", setConfig)
@@ -304,5 +417,7 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       .handle("route", route)
       .handle("speak", speak)
       .handle("appendTurn", appendTurn)
+      .handle("summarize", summarize)
+      .handle("promoteGlobal", promoteGlobal)
   }),
 )

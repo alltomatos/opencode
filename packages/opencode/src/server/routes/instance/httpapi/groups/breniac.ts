@@ -69,6 +69,33 @@ export const AppendTurnResponse = Schema.Struct({
 }).annotate({ identifier: "BreniacAppendTurnResponse" })
 export type AppendTurnResponse = Schema.Schema.Type<typeof AppendTurnResponse>
 
+export const SummarizeRequest = Schema.Struct({
+  voiceSessionID: Schema.String,
+  /** Project directory of the current session — used to key the project memory file. */
+  directory: Schema.String,
+}).annotate({ identifier: "BreniacSummarizeRequest" })
+export type SummarizeRequest = Schema.Schema.Type<typeof SummarizeRequest>
+
+export const SummarizeResponse = Schema.Struct({
+  /** False when the temp file was empty/missing — nothing to summarize. */
+  summarized: Schema.Boolean,
+  summary: Schema.optional(Schema.String),
+  /** True when the model thinks this belongs in global memory too — requires user confirmation before promoting. */
+  suggestsGlobal: Schema.optional(Schema.Boolean),
+  globalReason: Schema.optional(Schema.String),
+}).annotate({ identifier: "BreniacSummarizeResponse" })
+export type SummarizeResponse = Schema.Schema.Type<typeof SummarizeResponse>
+
+export const PromoteGlobalRequest = Schema.Struct({
+  summary: Schema.String,
+}).annotate({ identifier: "BreniacPromoteGlobalRequest" })
+export type PromoteGlobalRequest = Schema.Schema.Type<typeof PromoteGlobalRequest>
+
+export const PromoteGlobalResponse = Schema.Struct({
+  path: Schema.String,
+}).annotate({ identifier: "BreniacPromoteGlobalResponse" })
+export type PromoteGlobalResponse = Schema.Schema.Type<typeof PromoteGlobalResponse>
+
 export const BreniacApi = HttpApi.make("breniac")
   .add(
     HttpApiGroup.make("breniac")
@@ -140,6 +167,30 @@ export const BreniacApi = HttpApi.make("breniac")
             identifier: "breniac.appendTurn",
             summary: "Append a turn to the voice session temp file",
             description: "Persist a transcript/response pair to disk immediately, so it survives a crash.",
+          }),
+        ),
+        HttpApiEndpoint.post("summarize", "/breniac/summarize", {
+          query: WorkspaceRoutingQuery,
+          payload: SummarizeRequest,
+          success: described(SummarizeResponse, "Voice session summary"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.summarize",
+            summary: "Summarize a voice session into project memory",
+            description: "Summarize the temp file into the project's memory/YYYY-MM-DD.md, appending to it.",
+          }),
+        ),
+        HttpApiEndpoint.post("promoteGlobal", "/breniac/promote-global", {
+          query: WorkspaceRoutingQuery,
+          payload: PromoteGlobalRequest,
+          success: described(PromoteGlobalResponse, "Global memory entry written"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.promoteGlobal",
+            summary: "Promote a summary to global memory",
+            description: "Append a summary to global memory — only call after explicit user confirmation.",
           }),
         ),
       )

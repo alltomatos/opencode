@@ -2092,6 +2092,26 @@ export type BreniacAppendTurnResponse = {
   path: string
 }
 
+export type BreniacSummarizeRequest = {
+  voiceSessionID: string
+  directory: string
+}
+
+export type BreniacSummarizeResponse = {
+  summarized: boolean
+  summary?: string
+  suggestsGlobal?: boolean
+  globalReason?: string
+}
+
+export type BreniacPromoteGlobalRequest = {
+  summary: string
+}
+
+export type BreniacPromoteGlobalResponse = {
+  path: string
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7651,6 +7671,70 @@ export type BreniacAppendTurnResponses = {
 }
 
 export type BreniacAppendTurnResponse2 = BreniacAppendTurnResponses[keyof BreniacAppendTurnResponses]
+
+export type BreniacSummarizeData = {
+  body?: BreniacSummarizeRequest
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/summarize"
+}
+
+export type BreniacSummarizeErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacSummarizeError = BreniacSummarizeErrors[keyof BreniacSummarizeErrors]
+
+export type BreniacSummarizeResponses = {
+  /**
+   * Voice session summary
+   */
+  200: BreniacSummarizeResponse
+}
+
+export type BreniacSummarizeResponse2 = BreniacSummarizeResponses[keyof BreniacSummarizeResponses]
+
+export type BreniacPromoteGlobalData = {
+  body?: BreniacPromoteGlobalRequest
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/promote-global"
+}
+
+export type BreniacPromoteGlobalErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacPromoteGlobalError = BreniacPromoteGlobalErrors[keyof BreniacPromoteGlobalErrors]
+
+export type BreniacPromoteGlobalResponses = {
+  /**
+   * Global memory entry written
+   */
+  200: BreniacPromoteGlobalResponse
+}
+
+export type BreniacPromoteGlobalResponse2 = BreniacPromoteGlobalResponses[keyof BreniacPromoteGlobalResponses]
 
 export type ConfigGetData = {
   body?: never

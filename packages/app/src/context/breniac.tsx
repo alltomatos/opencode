@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "@solidjs/router"
 import { appendTurn } from "@/components/breniac/append-turn"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
 import { speakText } from "@/components/breniac/speak"
+import { promoteSummaryToGlobal, summarizeVoiceSession } from "@/components/breniac/summarize"
 import { transcribeTurn } from "@/components/breniac/transcribe"
 import { createVoiceCapture, type VoiceCaptureState } from "@/components/breniac/use-voice-capture"
 import { useCommand } from "@/context/command"
@@ -70,8 +71,24 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         await capture.start()
         return
       }
+
+      const sessionID = voiceSessionID
       voiceSessionID = undefined
       capture.stop()
+
+      const directory = decode64(params.dir)
+      if (!sessionID || !directory) return
+
+      summarizeVoiceSession(serverSDK, sessionID, directory)
+        .then(async (result) => {
+          if (!result.summarized || !result.summary) return
+          // RF-16: memória global nunca é escrita silenciosamente — só promove
+          // com confirmação explícita do usuário.
+          if (result.suggestsGlobal && window.confirm(language.t("breniac.memory.confirmGlobal", { reason: result.globalReason ?? "" }))) {
+            await promoteSummaryToGlobal(serverSDK, result.summary)
+          }
+        })
+        .catch((error) => console.error("[breniac] falha ao resumir a sessão de voz", error))
     }
 
     command.register("breniac", () => [

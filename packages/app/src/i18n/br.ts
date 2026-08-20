@@ -862,6 +862,7 @@ export const dict = {
   "breniac.speak.commandDone": "Feito: {title}",
   "breniac.speak.noProject": "Abra um projeto primeiro pra eu saber pra onde mandar isso.",
   "breniac.speak.promptReady": "Seu prompt está pronto — revise e envie quando quiser.",
+  "breniac.memory.confirmGlobal": "Isso parece relevante além deste projeto ({reason}). Salvar também na memória global?",
   "sidebar.workspaces.enable": "Habilitar espaços de trabalho",
   "sidebar.workspaces.disable": "Desabilitar espaços de trabalho",
   "sidebar.gettingStarted.title": "Começando",

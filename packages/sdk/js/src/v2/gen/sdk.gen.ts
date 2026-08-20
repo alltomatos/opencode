@@ -21,6 +21,9 @@ import type {
   BreniacConfig,
   BreniacGetConfigErrors,
   BreniacGetConfigResponses,
+  BreniacPromoteGlobalErrors,
+  BreniacPromoteGlobalRequest,
+  BreniacPromoteGlobalResponses,
   BreniacRouteErrors,
   BreniacRouteRequest,
   BreniacRouteResponses,
@@ -29,6 +32,9 @@ import type {
   BreniacSpeakErrors,
   BreniacSpeakRequest,
   BreniacSpeakResponses,
+  BreniacSummarizeErrors,
+  BreniacSummarizeRequest,
+  BreniacSummarizeResponses,
   BreniacTranscribeErrors,
   BreniacTranscribeRequest,
   BreniacTranscribeResponses,
@@ -1643,6 +1649,84 @@ export class Breniac extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<BreniacAppendTurnResponses, BreniacAppendTurnErrors, ThrowOnError>({
       url: "/breniac/turn",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Summarize a voice session into project memory
+   *
+   * Summarize the temp file into the project's memory/YYYY-MM-DD.md, appending to it.
+   */
+  public summarize<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacSummarizeRequest?: BreniacSummarizeRequest
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacSummarizeRequest", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BreniacSummarizeResponses, BreniacSummarizeErrors, ThrowOnError>({
+      url: "/breniac/summarize",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Promote a summary to global memory
+   *
+   * Append a summary to global memory — only call after explicit user confirmation.
+   */
+  public promoteGlobal<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacPromoteGlobalRequest?: BreniacPromoteGlobalRequest
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacPromoteGlobalRequest", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      BreniacPromoteGlobalResponses,
+      BreniacPromoteGlobalErrors,
+      ThrowOnError
+    >({
+      url: "/breniac/promote-global",
       ...options,
       ...params,
       headers: {
