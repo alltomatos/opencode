@@ -8,7 +8,7 @@
   </a>
 </p>
 <p align="center">OpenCode by Alltomatos — a fork of the open source AI coding agent.</p>
-<p align="center">[OpenCode by Alltomatos — a fork of the open source AI coding agent.](https://chat.whatsapp.com/DOLzfQ4aPZ12R7ZRbLabNh)</p>
+<p align="center">Grupo de Apoio: https://chat.whatsapp.com/DOLzfQ4aPZ12R7ZRbLabNh</p>
 
 <p align="center">
   <a href="https://github.com/alltomatos/opencode/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/alltomatos/opencode?style=flat-square" /></a>
