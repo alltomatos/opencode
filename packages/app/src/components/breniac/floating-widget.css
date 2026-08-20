@@ -19,9 +19,28 @@
   }
 }
 
-[data-component="breniac-floating-widget"] {
+@keyframes breniac-think-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-component="breniac-floating-widget-wrap"] {
   position: fixed;
   z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  touch-action: none;
+  user-select: none;
+}
+
+[data-component="breniac-floating-widget"] {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,26 +57,40 @@
   transition:
     background-color 150ms ease,
     box-shadow 150ms ease;
-  touch-action: none;
-  user-select: none;
 }
 
 [data-component="breniac-floating-widget"]:active {
   cursor: grabbing;
 }
 
-[data-component="breniac-floating-widget"][data-state="idle"] {
+/* off */
+[data-component="breniac-floating-widget"][data-phase="off"] {
   animation: breniac-breathe 3.2s ease-in-out infinite;
+  opacity: 0.85;
 }
 
-[data-component="breniac-floating-widget"][data-state="listening"] {
+/* listening — mic captando o usuário */
+[data-component="breniac-floating-widget"][data-phase="listening"] {
   background: var(--v2-state-fg-danger, #ef4444);
   box-shadow:
     0 4px 20px color-mix(in srgb, var(--v2-state-fg-danger, #ef4444) 55%, transparent),
     var(--v2-elevation-raised, 0 4px 16px rgba(0, 0, 0, 0.16));
 }
 
-[data-component="breniac-floating-widget"][data-state="speaking"] {
+/* thinking — transcrevendo/roteando */
+[data-component="breniac-floating-widget"][data-phase="thinking"] {
+  background: var(--v2-state-fg-warning, #f59e0b);
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--v2-state-fg-warning, #f59e0b) 55%, transparent),
+    var(--v2-elevation-raised, 0 4px 16px rgba(0, 0, 0, 0.16));
+}
+
+[data-component="breniac-floating-widget"][data-phase="thinking"] [data-slot="breniac-widget-icon"] {
+  animation: breniac-think-spin 1.1s linear infinite;
+}
+
+/* responding — tocando o áudio de resposta */
+[data-component="breniac-floating-widget"][data-phase="responding"] {
   background: var(--v2-state-fg-success, #22c55e);
   box-shadow:
     0 4px 20px color-mix(in srgb, var(--v2-state-fg-success, #22c55e) 55%, transparent),
@@ -78,11 +111,23 @@
   opacity: 0;
 }
 
-[data-component="breniac-floating-widget"][data-state="listening"] [data-slot="breniac-widget-ring"],
-[data-component="breniac-floating-widget"][data-state="speaking"] [data-slot="breniac-widget-ring"] {
+[data-component="breniac-floating-widget"][data-phase="listening"] [data-slot="breniac-widget-ring"] {
   animation: breniac-pulse-ring 1.4s ease-out infinite;
 }
 
-[data-component="breniac-floating-widget"][data-state="speaking"] [data-slot="breniac-widget-ring"] {
-  animation-duration: 0.8s;
+[data-component="breniac-floating-widget"][data-phase="responding"] [data-slot="breniac-widget-ring"] {
+  animation: breniac-pulse-ring 0.9s ease-out infinite;
+}
+
+[data-slot="breniac-widget-caption"] {
+  pointer-events: none;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--v2-background-bg-base);
+  border: 1px solid var(--v2-border-border-base);
+  color: var(--v2-text-text-base);
+  font-size: 11px;
+  font-weight: 530;
+  white-space: nowrap;
+  box-shadow: var(--v2-elevation-raised, 0 2px 8px rgba(0, 0, 0, 0.12));
 }

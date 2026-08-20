@@ -1,7 +1,7 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { useNavigate } from "@solidjs/router"
-import { createResource } from "solid-js"
+import { createResource, createSignal } from "solid-js"
 import { appendTurn } from "@/components/breniac/append-turn"
 import { loadMemoryContext } from "@/components/breniac/load-memory"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
@@ -137,9 +137,24 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     // sobrepondo duas vozes falando coisas diferentes (bug real observado).
     let processingTurn = false
 
+    // Estado de alto nível pro widget flutuante (caption + animação). Distinto
+    // de capture.state() (que só descreve o microfone: idle/listening/"user
+    // speaking") — aqui "pensando" cobre transcrição+roteamento, e "respondendo"
+    // cobre a reprodução do áudio do Breniac, coisas que capture.state() não
+    // enxerga.
+    type Phase = "off" | "listening" | "thinking" | "responding"
+    const [pipelinePhase, setPipelinePhase] = createSignal<"idle" | "thinking" | "responding">("idle")
+    const phase = (): Phase => {
+      if (capture.state() === "idle") return "off"
+      if (pipelinePhase() === "thinking") return "thinking"
+      if (pipelinePhase() === "responding") return "responding"
+      return "listening"
+    }
+
     const capture = createVoiceCapture((audio) => {
       if (processingTurn) return
       processingTurn = true
+      setPipelinePhase("thinking")
       const sessionID = voiceSessionID
       let transcript = ""
       const route = layout.route()
@@ -156,6 +171,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         )
         .then(execute)
         .then(async (confirmation) => {
+          setPipelinePhase("responding")
           await speakText(serverSDK, confirmation)
           if (sessionID) await appendTurn(serverSDK, sessionID, transcript, confirmation)
         })
@@ -165,6 +181,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         })
         .finally(() => {
           processingTurn = false
+          setPipelinePhase("idle")
         })
     })
 
@@ -226,6 +243,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
 
     return {
       state: capture.state,
+      phase,
       on: () => capture.state() !== "idle",
       toggle,
       enabled: () => enabledResource() ?? false,

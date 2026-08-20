@@ -40,8 +40,9 @@ function loadPosition(): Position {
  * Substitui a entrada fixa do Breniac no sidebar (issue do usuário: "deve ser
  * um elemento solto fora do sidebar") — um ícone circular flutuante,
  * arrastável pra qualquer canto da tela, que só existe enquanto o Breniac
- * está ativado nas Configurações. A animação (respiração/pulso) comunica
- * presença e estado sem precisar de texto.
+ * está ativado nas Configurações. A animação (respiração/pulso) e o caption
+ * abaixo comunicam o estado (desligado/ouvindo/pensando/respondendo) sem
+ * o usuário precisar adivinhar olhando só a cor.
  */
 export const BreniacFloatingWidget: Component = () => {
   const breniac = useBreniac()
@@ -95,31 +96,39 @@ export const BreniacFloatingWidget: Component = () => {
     if (moved < DRAG_THRESHOLD_PX) void breniac.toggle()
   }
 
-  const stateLabel = () =>
+  const captionLabel = () =>
     ({
-      idle: language.t("breniac.state.idle"),
+      off: language.t("breniac.state.off"),
       listening: language.t("breniac.state.listening"),
-      speaking: language.t("breniac.state.speaking"),
-    })[breniac.state()]
+      thinking: language.t("breniac.state.thinking"),
+      responding: language.t("breniac.state.responding"),
+    })[breniac.phase()]
 
   return (
     <Show when={breniac.enabled()}>
-      <button
-        type="button"
-        data-component="breniac-floating-widget"
-        data-state={breniac.state()}
-        data-dragging={dragging()}
+      <div
+        data-component="breniac-floating-widget-wrap"
         style={{ left: `${position().x}px`, top: `${position().y}px` }}
-        title={stateLabel()}
-        aria-label={language.t("sidebar.breniac")}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
       >
-        <span data-slot="breniac-widget-ring" />
-        <IconV2 name="breniac" size="normal" />
-      </button>
+        <button
+          type="button"
+          data-component="breniac-floating-widget"
+          data-phase={breniac.phase()}
+          data-dragging={dragging()}
+          title={captionLabel()}
+          aria-label={language.t("sidebar.breniac")}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          <span data-slot="breniac-widget-ring" />
+          <span data-slot="breniac-widget-icon">
+            <IconV2 name="breniac" size="normal" />
+          </span>
+        </button>
+        <span data-slot="breniac-widget-caption">{captionLabel()}</span>
+      </div>
     </Show>
   )
 }
