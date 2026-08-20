@@ -139,10 +139,12 @@ O opencode já tem um **command palette** com registro de comandos (`packages/ap
               [Playback no app do usuário]
 ```
 
-Duas variações possíveis pro "roteador de turno" e pro modelo em si — **ainda em aberto, precisa de decisão**:
+**Decisão de infraestrutura — decidido (2026-08-20): só Omniroute, sem self-hosting.** Nada de GPU local nem servidor de inferência próprio — todos os modelos (áudio, transcrição, memória) vêm do provedor `omnrt` já configurado no opencode. Motivo do usuário: menos infraestrutura local, menos dependência da máquina rodando o app. Isso fecha a dúvida entre "cascata via gateway" vs. "modelo self-hosted" que estava aberta — os candidatos self-hosted da seção 11.5 (NemotronLabs-VoiceChat-11B, Qwen3-Omni, Moshi/PersonaPlex) ficam **fora de escopo por ora**, não descartados — a pesquisa continua registrada como referência caso a decisão mude no futuro (ex.: se o custo por conversa no Omniroute crescer muito com o uso real, ou se surgir uma razão pra rodar totalmente offline).
 
-- **Opção A — um único modelo de áudio faz tudo**: manda a fala pro `gpt-audio-mini` com um "tool" de app-commands e um "tool" de enviar-prompt-de-sessão disponíveis; o próprio modelo decide qual usar (tool-calling nativo, que ele já suporta pra texto). Mais simples de operar, mas acopla a lógica de roteamento ao comportamento do modelo de terceiro.
-- **Opção B — STT separado + roteador próprio + LLM/TTS**: transcreve com Whisper, decide localmente (regras leves + fallback pro LLM de texto já usado na sessão) se é comando de app ou prompt, executa, e só gera áudio de saída (TTS) no final. Mais controle e mais barato por turno provavelmente, mas reintroduz a orquestração de 3 serviços que a Opção A evita.
+Duas variações possíveis pro "roteador de turno", **ambas dentro do Omniroute** — ainda em aberto, precisa de decisão:
+
+- **Opção A — um único modelo de áudio faz tudo**: manda a fala pro `gpt-audio-mini` (via Omniroute) com um "tool" de app-commands e um "tool" de enviar-prompt-de-sessão disponíveis; o próprio modelo decide qual usar (tool-calling nativo, que ele já suporta pra texto). Mais simples de operar, mas acopla a lógica de roteamento ao comportamento do modelo de terceiro.
+- **Opção B — STT separado + roteador próprio + LLM/TTS**: transcreve com Whisper (via Omniroute), decide localmente (regras leves + fallback pro LLM de texto já usado na sessão) se é comando de app ou prompt, executa, e só gera áudio de saída no final. Mais controle e mais barato por turno provavelmente, mas reintroduz a orquestração de múltiplos modelos que a Opção A evita — ainda assim tudo via Omniroute, nenhum dos dois exige infra local.
 
 ## 8.5 Arquitetura de memória
 
@@ -246,7 +248,9 @@ Decisão de produto (Ronaldo, 2026-08-20): **o Breniac não é um assistente que
 - Zero execução de ação destrutiva sem confirmação, em qualquer teste.
 - Uso do modo Breniac não quebra nenhum fluxo existente de teclado/mouse (regressão zero na UI atual).
 
-## 11.5 Panorama de modelos self-hosted (pesquisa em andamento — 2026-08-20)
+## 11.5 Panorama de modelos self-hosted (pesquisa — 2026-08-20; **fora de escopo por ora**, ver seção 8)
+
+**Status: não vamos seguir por aqui na v1.** Decisão de 2026-08-20: Breniac usa só Omniroute, sem infraestrutura local (seção 8). Esta seção fica registrada como referência — não foi descartada, só adiada, caso a decisão mude no futuro (custo do gateway crescer muito, necessidade de rodar offline, etc.).
 
 Levantamento no Hugging Face de modelos de voz auto-hospedáveis que se encaixam no objetivo de "conversa live + controle do app" (não só bate-papo). Ordenado por aderência ao caso de uso do Breniac, não por popularidade:
 
@@ -283,7 +287,7 @@ A cascata via Omniroute continua sendo a opção **de menor esforço de infraest
 3. Mapear quais comandos do command palette (`context/command.tsx`) fazem sentido como "ações de app" pra Breniac, e quais precisam de uma versão nova com parâmetros explícitos.
 4. Liberar permissão de microfone no Electron (`packages/desktop/src/main/windows.ts`) atrás de uma flag/feature gate, pra não expor isso a todos os usuários do fork prematuramente.
 5. Fatiar em issues (seguindo o mesmo padrão usado pro epic Batuta: slices verticais pequenos, `Blocked by` entre eles) assim que a arquitetura da seção 8 estiver decidida.
-6. Testar de verdade (não só ler a model card) o NemotronLabs-VoiceChat-11B e o Qwen3-Omni-30B-A3B — o primeiro pra confirmar se o formato `<TOOLCALL>` mapeia bem pros comandos do command palette, o segundo pra medir VRAM real em cenário áudio-only (a documentação só cobre vídeo).
+6. ~~Testar NemotronLabs-VoiceChat-11B e Qwen3-Omni~~ — fora de escopo por ora (seção 8/11.5, decisão de 2026-08-20 de usar só Omniroute).
 7. Prototipar o ciclo mínimo da seção 8.5 (já decidido): sessão de voz → resumo em texto ao desligar → arquivo `memory/YYYY-MM-DD.md` → próxima sessão lê e usa como contexto inicial.
 8. Implementar o passo "frio" de auto-revisão do `soul.md` (seção 8.6, já decidido) — o gatilho por padrão repetido/sinal explícito, a proposta com justificativa, e o fluxo de confirmação antes de gravar. Testar primeiro com dados sintéticos/simulados antes de deixar rodar sobre sessões reais.
 9. Implementar a aba de Configurações do Breniac (RF-17/18/19) e o mecanismo de captura incremental em arquivo temporário (seção 8.5) — esses dois são pré-requisitos de infraestrutura pra qualquer protótipo funcional, não só o modelo de voz em si.
