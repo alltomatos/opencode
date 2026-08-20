@@ -21,6 +21,8 @@ import type {
   BreniacConfig,
   BreniacGetConfigErrors,
   BreniacGetConfigResponses,
+  BreniacLoadMemoryErrors,
+  BreniacLoadMemoryResponses,
   BreniacPromoteGlobalErrors,
   BreniacPromoteGlobalRequest,
   BreniacPromoteGlobalResponses,
@@ -1734,6 +1736,38 @@ export class Breniac extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Load recent memory
+   *
+   * Concatenate recent global + project memory files, global first, to seed a new voice session.
+   */
+  public loadMemory<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      projectDirectory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "projectDirectory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<BreniacLoadMemoryResponses, BreniacLoadMemoryErrors, ThrowOnError>({
+      url: "/breniac/memory",
+      ...options,
+      ...params,
     })
   }
 }

@@ -4,8 +4,14 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable
 import { UpstreamError } from "../errors"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
-import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
+import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery, WorkspaceRoutingQueryFields } from "../middleware/workspace-routing"
 import { described } from "./metadata"
+
+export const LoadMemoryQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  /** Project directory to load the project-scoped memory for. */
+  projectDirectory: Schema.optional(Schema.String),
+}).annotate({ identifier: "BreniacLoadMemoryQuery" })
 
 const root = "/breniac/config"
 
@@ -31,6 +37,8 @@ export const RouteCommand = Schema.Struct({
 export const RouteRequest = Schema.Struct({
   text: Schema.String,
   commands: Schema.Array(RouteCommand),
+  /** Concatenated recent memory (global + project), loaded when Breniac turned on. */
+  memoryContext: Schema.optional(Schema.String),
 }).annotate({ identifier: "BreniacRouteRequest" })
 export type RouteRequest = Schema.Schema.Type<typeof RouteRequest>
 
@@ -95,6 +103,11 @@ export const PromoteGlobalResponse = Schema.Struct({
   path: Schema.String,
 }).annotate({ identifier: "BreniacPromoteGlobalResponse" })
 export type PromoteGlobalResponse = Schema.Schema.Type<typeof PromoteGlobalResponse>
+
+export const LoadMemoryResponse = Schema.Struct({
+  context: Schema.String,
+}).annotate({ identifier: "BreniacLoadMemoryResponse" })
+export type LoadMemoryResponse = Schema.Schema.Type<typeof LoadMemoryResponse>
 
 export const BreniacApi = HttpApi.make("breniac")
   .add(
@@ -191,6 +204,17 @@ export const BreniacApi = HttpApi.make("breniac")
             identifier: "breniac.promoteGlobal",
             summary: "Promote a summary to global memory",
             description: "Append a summary to global memory — only call after explicit user confirmation.",
+          }),
+        ),
+        HttpApiEndpoint.get("loadMemory", "/breniac/memory", {
+          query: LoadMemoryQuery,
+          success: described(LoadMemoryResponse, "Recent memory context"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.loadMemory",
+            summary: "Load recent memory",
+            description: "Concatenate recent global + project memory files, global first, to seed a new voice session.",
           }),
         ),
       )

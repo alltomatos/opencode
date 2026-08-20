@@ -2,16 +2,18 @@ import { Breniac } from "@/breniac"
 import { Provider } from "@/provider/provider"
 import type { ConfigBreniacV1 } from "@opencode-ai/core/v1/config/breniac"
 import { Global } from "@opencode-ai/core/global"
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { jsonSchema, streamText, tool } from "ai"
-import { mkdir } from "node:fs/promises"
+import { mkdir, readdir, unlink } from "node:fs/promises"
 import path from "node:path"
 import { UpstreamError } from "../errors"
 import { InstanceHttpApi } from "../api"
+import { LoadMemoryQuery } from "../groups/breniac"
 import type {
   AppendTurnRequest,
   AppendTurnResponse,
+  LoadMemoryResponse,
   PromoteGlobalRequest,
   PromoteGlobalResponse,
   RouteRequest,
@@ -39,6 +41,40 @@ async function appendMemoryEntry(file: string, entry: string) {
   await Bun.write(file, existing + entry)
 }
 
+const TMP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
+
+// Roda uma vez por startup do servidor (não precisa de scheduler dedicado): apaga
+// arquivos temporários de conversa cujo resumo foi concluído há mais de 7 dias.
+async function cleanupExpiredTmpFiles() {
+  const dir = path.join(Global.Path.data, "breniac", "tmp")
+  const entries = await readdir(dir).catch(() => [] as string[])
+  const now = Date.now()
+  for (const entry of entries) {
+    if (!entry.endsWith(".summarized")) continue
+    const markerPath = path.join(dir, entry)
+    const timestamp = await Bun.file(markerPath)
+      .text()
+      .catch(() => "")
+    const summarizedAt = Date.parse(timestamp)
+    if (Number.isNaN(summarizedAt) || now - summarizedAt < TMP_RETENTION_MS) continue
+    const base = entry.slice(0, -".summarized".length)
+    await Promise.all([unlink(markerPath).catch(() => {}), unlink(path.join(dir, `${base}.md`)).catch(() => {})])
+  }
+}
+
+async function readRecentMemoryFiles(dir: string, count: number) {
+  const entries = await readdir(dir).catch(() => [] as string[])
+  const files = entries.filter((entry) => entry.endsWith(".md")).sort().slice(-count)
+  const contents = await Promise.all(
+    files.map((file) =>
+      Bun.file(path.join(dir, file))
+        .text()
+        .catch(() => ""),
+    ),
+  )
+  return contents.filter(Boolean).join("\n")
+}
+
 // Cloudflare (fronting Omniroute) blocks requests without a browser-like User-Agent.
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
@@ -47,6 +83,8 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
   Effect.gen(function* () {
     const breniac = yield* Breniac.Service
     const provider = yield* Provider.Service
+
+    yield* Effect.tryPromise({ try: cleanupExpiredTmpFiles, catch: () => undefined }).pipe(Effect.ignore)
 
     const getConfig = Effect.fn("BreniacHttpApi.getConfig")(function* () {
       return yield* breniac.get()
@@ -176,7 +214,10 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
             system:
               "Você roteia um turno de voz do Breniac. Se o texto do usuário corresponder claramente a um dos " +
               "comandos de app disponíveis, chame a tool desse comando. Caso contrário, ou se o texto for um pedido " +
-              "de trabalho na sessão de código, chame session_prompt com o texto original.",
+              "de trabalho na sessão de código, chame session_prompt com o texto original." +
+              (ctx.payload.memoryContext
+                ? `\n\nMemória recente de conversas anteriores (use como contexto, não repita de volta):\n${ctx.payload.memoryContext}`
+                : ""),
             prompt: ctx.payload.text,
             tools,
             toolChoice: "required",
@@ -391,6 +432,14 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
         catch: () => new UpstreamError({ message: "Breniac: falha ao gravar a memória do projeto", service: "breniac" }),
       })
 
+      // Marca o arquivo temporário como resumido — a expiração (7 dias) conta a partir daqui.
+      const safeIDForMarker = ctx.payload.voiceSessionID.replace(/[^a-zA-Z0-9_-]/g, "_")
+      yield* Effect.tryPromise({
+        try: () =>
+          Bun.write(path.join(Global.Path.data, "breniac", "tmp", `${safeIDForMarker}.summarized`), new Date().toISOString()),
+        catch: () => new UpstreamError({ message: "", service: "breniac" }),
+      }).pipe(Effect.ignore)
+
       return {
         summarized: true,
         summary: input.summary,
@@ -410,6 +459,29 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       return { path: globalFile } satisfies PromoteGlobalResponse
     })
 
+    const loadMemory = Effect.fn("BreniacHttpApi.loadMemory")(function* (ctx: {
+      query: Schema.Schema.Type<typeof LoadMemoryQuery>
+    }) {
+      const globalDir = path.join(Global.Path.data, "breniac", "memory", "global")
+      const globalContext = yield* Effect.tryPromise({
+        try: () => readRecentMemoryFiles(globalDir, 3),
+        catch: () => new UpstreamError({ message: "", service: "breniac" }),
+      }).pipe(Effect.orElseSucceed(() => ""))
+
+      let projectContext = ""
+      if (ctx.query.projectDirectory) {
+        const key = projectKey(ctx.query.projectDirectory)
+        const projectDir = path.join(Global.Path.data, "breniac", "memory", "projects", key)
+        projectContext = yield* Effect.tryPromise({
+          try: () => readRecentMemoryFiles(projectDir, 3),
+          catch: () => new UpstreamError({ message: "", service: "breniac" }),
+        }).pipe(Effect.orElseSucceed(() => ""))
+      }
+
+      const context = [globalContext, projectContext].filter(Boolean).join("\n\n")
+      return { context } satisfies LoadMemoryResponse
+    })
+
     return handlers
       .handle("getConfig", getConfig)
       .handle("setConfig", setConfig)
@@ -419,5 +491,6 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       .handle("appendTurn", appendTurn)
       .handle("summarize", summarize)
       .handle("promoteGlobal", promoteGlobal)
+      .handle("loadMemory", loadMemory)
   }),
 )

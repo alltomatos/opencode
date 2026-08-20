@@ -2064,6 +2064,7 @@ export type BreniacRouteCommand = {
 export type BreniacRouteRequest = {
   text: string
   commands: Array<BreniacRouteCommand>
+  memoryContext?: string
 }
 
 export type BreniacRouteResponse = {
@@ -2110,6 +2111,10 @@ export type BreniacPromoteGlobalRequest = {
 
 export type BreniacPromoteGlobalResponse = {
   path: string
+}
+
+export type BreniacLoadMemoryResponse = {
+  context: string
 }
 
 export type Model = {
@@ -7735,6 +7740,39 @@ export type BreniacPromoteGlobalResponses = {
 }
 
 export type BreniacPromoteGlobalResponse2 = BreniacPromoteGlobalResponses[keyof BreniacPromoteGlobalResponses]
+
+export type BreniacLoadMemoryData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+    projectDirectory?: string
+  }
+  url: "/breniac/memory"
+}
+
+export type BreniacLoadMemoryErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacLoadMemoryError = BreniacLoadMemoryErrors[keyof BreniacLoadMemoryErrors]
+
+export type BreniacLoadMemoryResponses = {
+  /**
+   * Recent memory context
+   */
+  200: BreniacLoadMemoryResponse
+}
+
+export type BreniacLoadMemoryResponse2 = BreniacLoadMemoryResponses[keyof BreniacLoadMemoryResponses]
 
 export type ConfigGetData = {
   body?: never

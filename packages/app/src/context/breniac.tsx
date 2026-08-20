@@ -1,6 +1,7 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useNavigate, useParams } from "@solidjs/router"
 import { appendTurn } from "@/components/breniac/append-turn"
+import { loadMemoryContext } from "@/components/breniac/load-memory"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
 import { speakText } from "@/components/breniac/speak"
 import { promoteSummaryToGlobal, summarizeVoiceSession } from "@/components/breniac/summarize"
@@ -48,6 +49,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     }
 
     let voiceSessionID: string | undefined
+    let memoryContext = ""
 
     const capture = createVoiceCapture((audio) => {
       const sessionID = voiceSessionID
@@ -55,7 +57,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       transcribeTurn(serverSDK, audio)
         .then((text) => {
           transcript = text
-          return routeTurn(serverSDK, text, command.options)
+          return routeTurn(serverSDK, text, command.options, memoryContext || undefined)
         })
         .then(execute)
         .then(async (confirmation) => {
@@ -68,6 +70,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     const toggle = async () => {
       if (capture.state() === "idle") {
         voiceSessionID = crypto.randomUUID()
+        memoryContext = await loadMemoryContext(serverSDK, decode64(params.dir))
         await capture.start()
         return
       }
