@@ -144,10 +144,18 @@ No fim de uma sessão de voz (ao desligar o Breniac, ou periodicamente), um pass
 
 Isso é o mesmo padrão de memória índice+arquivos que já é usado nesta sessão de desenvolvimento (`MEMORY.md` + arquivos por tópico) — só que aplicado à continuidade de conversas de voz em vez de preferências de projeto. Não precisa de um mecanismo de armazenamento novo: é markdown normal, gerenciável pelas tools `read`/`write`/`edit` que o agente já usa pra tudo mais.
 
-**Questões em aberto sobre essa camada** (a resolver antes da Fase 1, ver seção 10):
+**Escopo e localização — decidido (2026-08-20):** os dois níveis existem em paralelo, não é "ou/ou":
+
+- **Memória global** — `~/.local/share/opencode/breniac/memory/global/YYYY-MM-DD.md`. Continuidade pessoal que não é específica de um projeto: preferências do usuário, contexto de conversas que não tratam de um repo em particular.
+- **Memória por projeto** — `~/.local/share/opencode/breniac/memory/projects/<chave-do-projeto>/YYYY-MM-DD.md`. Decisões e contexto específicos daquele repo, com a mesma lógica de chave-por-diretório que o resto do opencode já usa pra escopar dados por projeto (mesmo princípio de `Persist.serverWorkspace`/chaves por diretório já usado em outras partes do app, ver `packages/app/src/utils/persist.ts`).
+
+Ambos ficam **fora do repositório versionado** — na pasta de dados locais do opencode (`~/.local/share/opencode/`, onde já vivem os bancos de sessão hoje: `opencode.db`, `opencode-*.db`), não dentro do projeto em si. Motivo: memória de conversa por voz é dado pessoal, não faz sentido entrar no histórico git de cada projeto nem ser exposta a quem clonar o repo.
+
+**Ordem de carregamento**: ao ligar o Breniac, ele lê primeiro a memória global recente (quem é o usuário, preferências gerais), depois a memória do projeto atual (o que rolou especificamente ali) — geral primeiro, específico por cima, mesmo padrão de "config global + override por projeto/página" que outras partes do app já seguem (ex.: o design-system master+overrides, o sistema de permissões por sessão/agente).
+
+**Ainda em aberto** (a resolver antes da Fase 1, ver seção 10):
 - Quem decide o que vale a pena persistir no arquivo diário — um resumo automático ao final da sessão (LLM de texto, barato, chamado uma vez) é o candidato óbvio, mas precisa de critério pra não virar um despejo de tudo que foi dito.
-- Escopo do arquivo: por dia, por projeto, ou os dois (ex.: `memory/2026-08-20.md` genérico + `memory/project/opencode.md` específico)? A ideia original do usuário foi por data; pode precisar de refinamento se o Breniac for usado em múltiplos projetos no mesmo dia.
-- Onde esse arquivo mora — dentro do repositório atual (versionado, mas então é por-repo), ou numa pasta de config do usuário tipo `~/.config/opencode/breniac/memory/` (global, funciona entre projetos, mas não é versionado nem compartilhável em equipe)? A segunda opção parece mais correta pra memória de conversa pessoal (não é código do projeto).
+- Quando uma fala do usuário é sobre "assunto geral" vs. "assunto do projeto atual" — nem sempre é óbvio, e provavelmente vira responsabilidade do próprio passo de resumo decidir em qual dos dois arquivos (ou nos dois) aquele trecho entra.
 
 ## 9. Fases propostas
 
