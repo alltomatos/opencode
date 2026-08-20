@@ -21,6 +21,8 @@ Exemplo do próprio pedido do usuário, que define o critério de aceite mais co
 
 Isso implica que Breniac não vive só dentro de uma sessão de chat — ele tem que enxergar e acionar o **app shell inteiro**: lista de projetos, criação de sessão, e (por extensão natural) o resto do que hoje só é alcançável clicando na UI.
 
+**Breniac não é um assistente que concorda por padrão.** A segunda parte da visão de produto (2026-08-20) é tão central quanto a primeira: o objetivo não é só executar comandos, é ajudar o usuário a pensar melhor — entender suas dificuldades reais, apontar pontos cegos, questionar uma premissa quando fizer sentido, em vez de sempre validar o que foi dito. Essa postura é intencionalmente registrada num documento à parte (`soul.md`, seção 8.6) que evolui com o uso.
+
 ## 3. Não-objetivos (por agora)
 
 - Não é objetivo desta fase suportar múltiplos idiomas simultâneos ou troca de idioma em tempo real (assume-se o idioma configurado no app).
@@ -67,6 +69,10 @@ Isso implica que Breniac não vive só dentro de uma sessão de chat — ele tem
 ### 5.5 Contexto e permissões
 - **RF-12**: Breniac herda as mesmas permissões/regras de ferramentas já configuradas no opencode (ruleset de permissão por sessão/agente) — não é um caminho paralelo que ignora `permission.ask`/bloqueios existentes.
 - **RF-13**: Ações destrutivas (deletar projeto, remover sessão, etc.) continuam exigindo confirmação — por voz ("tem certeza?") ou caindo pra UI, não executam direto só por terem sido faladas.
+
+### 5.6 Postura e identidade
+- **RF-14**: Antes de gerar uma resposta, Breniac consulta o `soul.md` (seção 8.6) — não só a memória factual — pra decidir *como* responder, não só *o quê*. Isso inclui a possibilidade de questionar o pedido do usuário em vez de só executá-lo, quando fizer sentido.
+- **RF-15**: O critério de sucesso de qualquer ajuste de postura registrado no `soul.md` precisa ser auditável em termos de utilidade real pro usuário (decisão melhor, problema resolvido), nunca em termos de "o usuário gostou/concordou" — ver salvaguarda contra bajulação na seção 8.6.
 
 ## 6. Requisitos não funcionais
 
@@ -157,6 +163,33 @@ Ambos ficam **fora do repositório versionado** — na pasta de dados locais do 
 - Quem decide o que vale a pena persistir no arquivo diário — um resumo automático ao final da sessão (LLM de texto, barato, chamado uma vez) é o candidato óbvio, mas precisa de critério pra não virar um despejo de tudo que foi dito.
 - Quando uma fala do usuário é sobre "assunto geral" vs. "assunto do projeto atual" — nem sempre é óbvio, e provavelmente vira responsabilidade do próprio passo de resumo decidir em qual dos dois arquivos (ou nos dois) aquele trecho entra.
 
+## 8.6 `soul.md` — identidade e postura do Breniac
+
+Decisão de produto (Ronaldo, 2026-08-20): **o Breniac não é um assistente que concorda por padrão.** Ele existe pra ajudar o usuário a pensar melhor, entender suas dificuldades reais (técnicas e de raciocínio) e ajudá-lo a melhorar — o que às vezes significa discordar, questionar uma premissa, ou apontar um ponto cego, não só executar o que foi pedido. Isso é postura, não fato — por isso vive num documento separado da memória (seção 8.5), o `soul.md`.
+
+**Diferença entre os dois tipos de arquivo:**
+
+| | `memory/*.md` | `soul.md` |
+|---|---|---|
+| Conteúdo | O que aconteceu (fatos, decisões, contexto episódico) | Quem o Breniac é e como ele se relaciona com o usuário |
+| Muda | Toda sessão relevante | Devagar, só quando há um aprendizado real sobre *como ajudar melhor* |
+| Escopo | Global + por projeto (seção 8.5) | Global por padrão — é sobre a pessoa, não sobre o projeto |
+
+**Conteúdo esperado do `soul.md`:**
+- Diretrizes de postura: quando questionar em vez de concordar, quando o usuário precisa de apoio direto (executar sem fricção) vs. quando precisa ser desafiado a pensar antes de executar.
+- Padrões observados nas dificuldades do usuário — não é uma lista de fatos ("o usuário trabalha no projeto X"), é entendimento acumulado ("o usuário tende a pular a etapa de validação quando está com pressa — vale perguntar antes de seguir direto").
+- Sinais de que uma abordagem anterior não ajudou (o usuário corrigiu, ignorou uma sugestão, ficou frustrado) — pra não repetir o mesmo erro de condução.
+
+**Mecanismo de auto-aperfeiçoamento — com guarda explícita contra virar bajulação.** O risco central desse recurso é que otimizar "o que funciona com o usuário" pode, sem querer, convergir pra "o que agrada o usuário" em vez de "o que realmente ajuda" — exatamente o comportamento que essa funcionalidade existe pra evitar. Duas salvaguardas necessárias:
+
+1. **Objetivo de otimização explícito no próprio arquivo**: o critério de sucesso registrado não pode ser "o usuário ficou satisfeito", tem que ser algo como "o usuário chegou a uma decisão melhor/mais informada" ou "o problema foi resolvido de verdade" — precisa ser auditável, não um proxy de humor.
+2. **Mudanças no arquivo são auditáveis e reversíveis**: nunca um auto-edit silencioso. Cada revisão do `soul.md` é um diff (git, já que o arquivo é markdown normal) com uma justificativa curta de por que mudou — o usuário pode ver o histórico e reverter uma "aprendizagem" que considerar errada, do mesmo jeito que reverteria qualquer commit.
+
+**Ainda em aberto:**
+- Frequência/gatilho da auto-revisão — a cada sessão é provavelmente barulho demais; um gatilho mais forte (ex.: um padrão que se repete N vezes, ou um sinal explícito de correção do usuário) parece mais seguro.
+- Quem escreve a revisão — o próprio Breniac ao final de uma sessão (LLM de texto, análise da conversa), ou um passo separado e mais "frio" (rodado depois, sem a pressão de estar em tempo real)? A segunda opção parece mais prudente pra um arquivo que define a própria postura do agente.
+- Se `soul.md` deveria também ter uma variante por projeto no futuro (ex.: "nesse projeto o usuário prefere rigor mais alto antes de mergear") — por ora, fica só global, mesma decisão de manter simples que guiou a seção 8.5 antes de expandir.
+
 ## 9. Fases propostas
 
 **Fase 1 — Turnos discretos, sem duplex real** (baixo risco, reaproveita quase tudo que já existe):
@@ -183,6 +216,7 @@ Ambos ficam **fora do repositório versionado** — na pasta de dados locais do 
 4. **TTS "de qualidade" ainda não está liberado na conta Omniroute** (falta crédito/credencial Vertex) — a Fase 1 pode depender de resolver isso, ou usar `gpt-audio-mini` (que já funciona) como fonte tanto de texto quanto de áudio de saída, evitando depender do TTS separado do Gemini.
 5. **Ainda não testamos áudio de entrada** (mandar a fala do usuário pro modelo) — só testamos pedir áudio de saída. Isso precisa ser validado antes de fechar a Opção A da arquitetura.
 6. **Cobertura do command palette pra virar "tools" de voz** não foi mapeada em detalhe — alguns comandos podem precisar de parâmetros que hoje só existem implicitamente (contexto visual da UI), não como argumentos explícitos.
+7. **`soul.md` auto-aperfeiçoável pode derivar pra bajulação se o critério de sucesso não for bem definido** (ver salvaguardas na seção 8.6) — é o risco mais delicado desse PRD, porque o próprio objetivo do recurso ("Breniac não deve só concordar") é o que uma otimização mal desenhada tende a corroer primeiro. Precisa de revisão cuidadosa antes de implementar o mecanismo de auto-revisão, não só do conteúdo do arquivo.
 
 ## 11. Métricas de sucesso (propostas)
 
@@ -229,4 +263,5 @@ A cascata via Omniroute continua sendo a opção **de menor esforço de infraest
 4. Liberar permissão de microfone no Electron (`packages/desktop/src/main/windows.ts`) atrás de uma flag/feature gate, pra não expor isso a todos os usuários do fork prematuramente.
 5. Fatiar em issues (seguindo o mesmo padrão usado pro epic Batuta: slices verticais pequenos, `Blocked by` entre eles) assim que a arquitetura da seção 8 estiver decidida.
 6. Testar de verdade (não só ler a model card) o NemotronLabs-VoiceChat-11B e o Qwen3-Omni-30B-A3B — o primeiro pra confirmar se o formato `<TOOLCALL>` mapeia bem pros comandos do command palette, o segundo pra medir VRAM real em cenário áudio-only (a documentação só cobre vídeo).
-7. Resolver as questões em aberto da seção 8.5 (onde mora o arquivo de memória, escopo por-dia vs. por-projeto, quem gera o resumo) e prototipar o ciclo mínimo: sessão de voz → resumo em texto → arquivo `memory/YYYY-MM-DD.md` → próxima sessão lê e usa como contexto inicial.
+7. Resolver as questões em aberto da seção 8.5 (quem gera o resumo, quando algo é global vs. por projeto) e prototipar o ciclo mínimo: sessão de voz → resumo em texto → arquivo `memory/YYYY-MM-DD.md` → próxima sessão lê e usa como contexto inicial.
+8. Desenhar o mecanismo de auto-revisão do `soul.md` (seção 8.6) com o critério de sucesso e as salvaguardas anti-bajulação bem explícitos *antes* de implementar qualquer auto-edit — esse é o item de maior risco de design do documento inteiro.
