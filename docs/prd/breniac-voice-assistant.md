@@ -71,7 +71,7 @@ Isso implica que Breniac não vive só dentro de uma sessão de chat — ele tem
 ## 6. Requisitos não funcionais
 
 - **RNF-01 (latência)**: o ciclo fala→ação/resposta precisa parecer conversacional — a v1 aceita alguns segundos de latência por turno (não é tempo real duplex), mas não pode ser "grava, espera 10s, ouve resposta" para comandos simples de app.
-- **RNF-02 (custo)**: cada turno de voz consome tokens de um modelo de áudio (mais caro que texto puro) — precisa de visibilidade de custo/uso, e idealmente um jeito de desligar Breniac sem custo residual.
+- **RNF-02 (custo)**: cada turno de voz consome tokens de um modelo de áudio (mais caro que texto puro) — precisa de visibilidade de custo/uso, e idealmente um jeito de desligar Breniac sem custo residual. Estimativa: com `openai/gpt-audio-mini` via Omniroute (`$0,60`/`$2,40` por 1M tokens in/out; conversão ~600 tokens/min de fala do usuário, ~1.200 tokens/min de fala do assistente), uma hora de conversa com turnos "limpos" (sem reenviar áudio antigo) custa **≈ $0,10**. O risco real é reenvio de histórico: `/v1/chat/completions` não é stateful como a Realtime API — sem controle de contexto, cada turno reenviaria a conversa acumulada em áudio, o que pode multiplicar esse custo várias vezes numa sessão longa com muitos turnos. Mitigação: ver seção 8.5 (arquitetura de memória) — só o turno atual vai como áudio; tudo antes disso vira texto ou memória resumida, nunca é reenviado como áudio.
 - **RNF-03 (privacidade)**: áudio do microfone é sensível por natureza. Precisa ficar claro pro usuário quando está sendo capturado (RF-02) e o áudio deve ir só pro provedor configurado (Omniroute), sem gravação/persistência desnecessária local ou no servidor além do necessário pro turno atual.
 - **RNF-04 (degradação graciosa)**: se o microfone não tiver permissão, ou o provedor de áudio falhar, o app não pode quebrar — cai pra aviso claro + sugestão de liberar permissão/checar conexão.
 - **RNF-05 (acessibilidade)**: Breniac é um recurso adicional, não uma substituição — todo comando que ele executa precisa continuar sendo alcançável por teclado/mouse.
@@ -129,6 +129,25 @@ Duas variações possíveis pro "roteador de turno" e pro modelo em si — **ain
 
 - **Opção A — um único modelo de áudio faz tudo**: manda a fala pro `gpt-audio-mini` com um "tool" de app-commands e um "tool" de enviar-prompt-de-sessão disponíveis; o próprio modelo decide qual usar (tool-calling nativo, que ele já suporta pra texto). Mais simples de operar, mas acopla a lógica de roteamento ao comportamento do modelo de terceiro.
 - **Opção B — STT separado + roteador próprio + LLM/TTS**: transcreve com Whisper, decide localmente (regras leves + fallback pro LLM de texto já usado na sessão) se é comando de app ou prompt, executa, e só gera áudio de saída (TTS) no final. Mais controle e mais barato por turno provavelmente, mas reintroduz a orquestração de 3 serviços que a Opção A evita.
+
+## 8.5 Arquitetura de memória
+
+Decisão de design (proposta pelo Ronaldo, 2026-08-20): **o áudio nunca é a forma de armazenar memória.** Ele existe só como transporte do turno atual (fala → texto na entrada, texto → fala na saída). Tudo que precisa persistir — dentro da sessão ou entre dias — vira texto. Isso resolve continuidade ("lembra do que conversamos ontem") e custo (seção RNF-02) ao mesmo tempo, com o mesmo mecanismo.
+
+Duas camadas:
+
+**Curto prazo (dentro da sessão de voz atual)**
+O histórico da conversa em andamento fica como **transcrição em texto**, igual qualquer sessão de chat do opencode hoje. Só o turno mais recente (o que o usuário acabou de falar) vai como áudio de entrada pro modelo; a resposta sai em áudio, mas o que já foi dito antes nesse mesmo "ligar" do Breniac não é reenviado como áudio a cada novo turno — é contexto de texto normal, que já é ordens de magnitude mais barato.
+
+**Longo prazo (entre sessões/dias)**
+No fim de uma sessão de voz (ao desligar o Breniac, ou periodicamente), um passo de resumo escreve o que foi relevante num arquivo — ex.: `memory/2026-08-20.md` — com o que foi discutido/decidido/pendente. Quando o Breniac liga de novo (no mesmo dia ou depois), ele não recarrega a sessão anterior inteira: ele **lê o(s) arquivo(s) de memória recentes** (hoje + últimos N dias, ou um índice tipo `memory/INDEX.md` apontando pros arquivos relevantes) e usa isso como contexto inicial. "Lembra do que conversamos ontem" vira uma leitura de arquivo (`read` tool, que o Breniac já tem acesso via as tools normais do opencode), não reprocessamento de áudio nem de uma transcrição longa.
+
+Isso é o mesmo padrão de memória índice+arquivos que já é usado nesta sessão de desenvolvimento (`MEMORY.md` + arquivos por tópico) — só que aplicado à continuidade de conversas de voz em vez de preferências de projeto. Não precisa de um mecanismo de armazenamento novo: é markdown normal, gerenciável pelas tools `read`/`write`/`edit` que o agente já usa pra tudo mais.
+
+**Questões em aberto sobre essa camada** (a resolver antes da Fase 1, ver seção 10):
+- Quem decide o que vale a pena persistir no arquivo diário — um resumo automático ao final da sessão (LLM de texto, barato, chamado uma vez) é o candidato óbvio, mas precisa de critério pra não virar um despejo de tudo que foi dito.
+- Escopo do arquivo: por dia, por projeto, ou os dois (ex.: `memory/2026-08-20.md` genérico + `memory/project/opencode.md` específico)? A ideia original do usuário foi por data; pode precisar de refinamento se o Breniac for usado em múltiplos projetos no mesmo dia.
+- Onde esse arquivo mora — dentro do repositório atual (versionado, mas então é por-repo), ou numa pasta de config do usuário tipo `~/.config/opencode/breniac/memory/` (global, funciona entre projetos, mas não é versionado nem compartilhável em equipe)? A segunda opção parece mais correta pra memória de conversa pessoal (não é código do projeto).
 
 ## 9. Fases propostas
 
@@ -202,3 +221,4 @@ A cascata via Omniroute continua sendo a opção **de menor esforço de infraest
 4. Liberar permissão de microfone no Electron (`packages/desktop/src/main/windows.ts`) atrás de uma flag/feature gate, pra não expor isso a todos os usuários do fork prematuramente.
 5. Fatiar em issues (seguindo o mesmo padrão usado pro epic Batuta: slices verticais pequenos, `Blocked by` entre eles) assim que a arquitetura da seção 8 estiver decidida.
 6. Testar de verdade (não só ler a model card) o NemotronLabs-VoiceChat-11B e o Qwen3-Omni-30B-A3B — o primeiro pra confirmar se o formato `<TOOLCALL>` mapeia bem pros comandos do command palette, o segundo pra medir VRAM real em cenário áudio-only (a documentação só cobre vídeo).
+7. Resolver as questões em aberto da seção 8.5 (onde mora o arquivo de memória, escopo por-dia vs. por-projeto, quem gera o resumo) e prototipar o ciclo mínimo: sessão de voz → resumo em texto → arquivo `memory/YYYY-MM-DD.md` → próxima sessão lê e usa como contexto inicial.
