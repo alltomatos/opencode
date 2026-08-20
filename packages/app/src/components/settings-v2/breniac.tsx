@@ -129,7 +129,7 @@ export const SettingsBreniacV2: Component = () => {
       </div>
       <div class="settings-v2-tab-body">
         <Show
-          when={!config.loading}
+          when={config() !== undefined}
           fallback={<div class="settings-v2-models-status">{language.t("common.loading")}</div>}
         >
           <SettingsListV2>
