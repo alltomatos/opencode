@@ -33,7 +33,6 @@ export const SettingsBreniacV2: Component = () => {
   const breniac = useBreniac()
 
   const [form, setForm] = createStore({
-    enabled: false,
     providerID: "",
     audioModel: "",
     transcriptionModel: "",
@@ -44,7 +43,6 @@ export const SettingsBreniacV2: Component = () => {
     const data = config()
     if (!data) return
     setForm({
-      enabled: data.enabled ?? false,
       providerID: data.providerID ?? "",
       audioModel: data.audioModel ?? "",
       transcriptionModel: data.transcriptionModel ?? "",
@@ -55,7 +53,7 @@ export const SettingsBreniacV2: Component = () => {
   const saveMutation = useMutation(() => ({
     mutationFn: async () => {
       const payload = {
-        enabled: form.enabled,
+        enabled: config()?.enabled,
         providerID: form.providerID || undefined,
         audioModel: form.audioModel || undefined,
         transcriptionModel: form.transcriptionModel || undefined,
@@ -66,8 +64,33 @@ export const SettingsBreniacV2: Component = () => {
     },
     onSuccess: () => {
       void refetch()
-      breniac.refreshEnabled()
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.breniac.toast.saved") })
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    },
+  }))
+
+  // Ativar/desativar salva na hora — não fica preso ao botão Salvar do resto do
+  // formulário, pra não correr risco de se perder num fluxo de save em lote.
+  const enabledMutation = useMutation(() => ({
+    mutationFn: async (enabled: boolean) => {
+      const current = config() ?? {}
+      await serverSDK().client.breniac.setConfig({
+        breniacConfig: {
+          enabled,
+          providerID: current.providerID,
+          audioModel: current.audioModel,
+          transcriptionModel: current.transcriptionModel,
+          memoryModel: current.memoryModel,
+        },
+      })
+      return enabled
+    },
+    onSuccess: () => {
+      void refetch()
+      breniac.refreshEnabled()
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
@@ -114,7 +137,11 @@ export const SettingsBreniacV2: Component = () => {
               title={language.t("settings.breniac.field.enabled.title")}
               description={language.t("settings.breniac.field.enabled.description")}
             >
-              <Switch checked={form.enabled} onChange={(value) => setForm("enabled", value)} />
+              <Switch
+                checked={config()?.enabled ?? false}
+                disabled={enabledMutation.isPending}
+                onChange={(value) => enabledMutation.mutate(value)}
+              />
             </SettingsRowV2>
             <SettingsRowV2
               title={language.t("settings.breniac.field.provider.title")}
