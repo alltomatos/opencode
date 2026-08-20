@@ -49,6 +49,7 @@ import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
 import { LayoutProvider } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
 import { BreniacProvider } from "@/context/breniac"
+import { BreniacFloatingWidget } from "@/components/breniac/floating-widget"
 import { NotificationProvider } from "@/context/notification"
 import { PermissionProvider } from "@/context/permission"
 import { usePlatform } from "@/context/platform"
@@ -375,6 +376,7 @@ function NewAppLayout(props: ParentProps<{ serverScoped?: JSX.Element }>) {
       <ServerScopedProviders serverScoped={props.serverScoped}>
         <BreniacProvider>
           <NewLayout>{props.children}</NewLayout>
+          <BreniacFloatingWidget />
         </BreniacProvider>
       </ServerScopedProviders>
     </SelectedServerProviders>

@@ -1,0 +1,88 @@
+@keyframes breniac-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes breniac-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+[data-component="breniac-floating-widget"] {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, white 35%, transparent);
+  background: var(--v2-state-fg-info);
+  box-shadow:
+    0 4px 16px color-mix(in srgb, var(--v2-state-fg-info) 45%, transparent),
+    var(--v2-elevation-raised, 0 4px 16px rgba(0, 0, 0, 0.16));
+  cursor: grab;
+  color: white;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+  touch-action: none;
+  user-select: none;
+}
+
+[data-component="breniac-floating-widget"]:active {
+  cursor: grabbing;
+}
+
+[data-component="breniac-floating-widget"][data-state="idle"] {
+  animation: breniac-breathe 3.2s ease-in-out infinite;
+}
+
+[data-component="breniac-floating-widget"][data-state="listening"] {
+  background: var(--v2-state-fg-danger, #ef4444);
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--v2-state-fg-danger, #ef4444) 55%, transparent),
+    var(--v2-elevation-raised, 0 4px 16px rgba(0, 0, 0, 0.16));
+}
+
+[data-component="breniac-floating-widget"][data-state="speaking"] {
+  background: var(--v2-state-fg-success, #22c55e);
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--v2-state-fg-success, #22c55e) 55%, transparent),
+    var(--v2-elevation-raised, 0 4px 16px rgba(0, 0, 0, 0.16));
+}
+
+[data-component="breniac-floating-widget"][data-dragging="true"] {
+  transition: none;
+  animation: none;
+}
+
+[data-slot="breniac-widget-ring"] {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid currentColor;
+  pointer-events: none;
+  opacity: 0;
+}
+
+[data-component="breniac-floating-widget"][data-state="listening"] [data-slot="breniac-widget-ring"],
+[data-component="breniac-floating-widget"][data-state="speaking"] [data-slot="breniac-widget-ring"] {
+  animation: breniac-pulse-ring 1.4s ease-out infinite;
+}
+
+[data-component="breniac-floating-widget"][data-state="speaking"] [data-slot="breniac-widget-ring"] {
+  animation-duration: 0.8s;
+}
