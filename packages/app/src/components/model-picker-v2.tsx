@@ -52,7 +52,16 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const modelList = createMemo(() => {
     const provider = selectedProvider()
     if (!provider) return []
-    return Object.values(provider.models).sort((a, b) => a.name.localeCompare(b.name))
+    const models = Object.values(provider.models)
+    const modelID = selectedModelID()
+    // O modelo selecionado pode estar ausente do catálogo local em cache do
+    // provider (ex.: escolhido no diálogo de recomendados do Omniroute) — nesse
+    // caso ele não teria <option> nenhuma e o <select> ficaria em branco mesmo
+    // com um valor válido. Adiciona uma entrada sintética pra manter visível.
+    if (modelID && !provider.models[modelID]) {
+      return [...models, { id: modelID, name: modelID }].sort((a, b) => a.name.localeCompare(b.name))
+    }
+    return models.sort((a, b) => a.name.localeCompare(b.name))
   })
 
   return (
