@@ -41,6 +41,8 @@ export const RouteRequest = Schema.Struct({
   memoryContext: Schema.optional(Schema.String),
   /** Human-readable description of what's currently on screen (project/session open, or home). */
   currentScreen: Schema.optional(Schema.String),
+  /** Truncated text of the last agent message in the active session, if any. */
+  sessionContext: Schema.optional(Schema.String),
 }).annotate({ identifier: "BreniacRouteRequest" })
 export type RouteRequest = Schema.Schema.Type<typeof RouteRequest>
 

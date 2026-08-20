@@ -12,6 +12,7 @@ export async function routeTurn(
   commands: CommandOption[],
   memoryContext?: string,
   currentScreen?: string,
+  sessionContext?: string,
 ): Promise<BreniacRoute> {
   const result = await serverSDK().client.breniac.route({
     breniacRouteRequest: {
@@ -19,6 +20,7 @@ export async function routeTurn(
       commands: commands.map((option) => ({ id: option.id, title: option.title, description: option.description })),
       memoryContext,
       currentScreen,
+      sessionContext,
     },
   })
   if (result.error) throw new Error("message" in result.error ? result.error.message : "Breniac: falha no roteamento")

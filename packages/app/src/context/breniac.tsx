@@ -6,6 +6,7 @@ import { appendTurn } from "@/components/breniac/append-turn"
 import { loadMemoryContext } from "@/components/breniac/load-memory"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
 import { speakText } from "@/components/breniac/speak"
+import { getLastAssistantMessage } from "@/components/breniac/session-context"
 import { promoteSummaryToGlobal, summarizeVoiceSession } from "@/components/breniac/summarize"
 import { transcribeTurn } from "@/components/breniac/transcribe"
 import { createVoiceCapture, type VoiceCaptureState } from "@/components/breniac/use-voice-capture"
@@ -108,21 +109,37 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
 
     let voiceSessionID: string | undefined
     let memoryContext = ""
+    // A captura continua gravando durante a fala do Breniac (use-voice-capture
+    // não pausa o mic) — sem essa trava, um turno detectado nesse meio-tempo
+    // (ruído, eco do próprio TTS) dispara um segundo speakText() em paralelo,
+    // sobrepondo duas vozes falando coisas diferentes (bug real observado).
+    let processingTurn = false
 
     const capture = createVoiceCapture((audio) => {
+      if (processingTurn) return
+      processingTurn = true
       const sessionID = voiceSessionID
       let transcript = ""
-      transcribeTurn(serverSDK, audio)
-        .then((text) => {
-          transcript = text
-          return routeTurn(serverSDK, text, command.options, memoryContext || undefined, currentScreen())
-        })
+      const route = layout.route()
+      const sessionContextPromise =
+        route.type === "session" ? getLastAssistantMessage(serverSDK, route.sessionId, currentDirectory() ?? "") : undefined
+      Promise.resolve(sessionContextPromise)
+        .catch(() => undefined)
+        .then((sessionContext) =>
+          transcribeTurn(serverSDK, audio).then((text) => {
+            transcript = text
+            return routeTurn(serverSDK, text, command.options, memoryContext || undefined, currentScreen(), sessionContext)
+          }),
+        )
         .then(execute)
         .then(async (confirmation) => {
           await speakText(serverSDK, confirmation)
           if (sessionID) await appendTurn(serverSDK, sessionID, transcript, confirmation)
         })
         .catch((error) => console.error("[breniac] falha ao processar turno", error))
+        .finally(() => {
+          processingTurn = false
+        })
     })
 
     const toggle = async () => {

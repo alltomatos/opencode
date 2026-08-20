@@ -2067,6 +2067,7 @@ export type BreniacRouteRequest = {
   commands: Array<BreniacRouteCommand>
   memoryContext?: string
   currentScreen?: string
+  sessionContext?: string
 }
 
 export type BreniacRouteResponse = {

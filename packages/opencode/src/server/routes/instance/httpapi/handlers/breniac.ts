@@ -192,8 +192,10 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
         answer_directly: tool({
           description:
             "Responder diretamente por voz, sem executar nada — use pra perguntas sobre o app/tela atual " +
-            "(ex.: 'em que tela estamos?'), conversa/brainstorm, ou qualquer coisa que não seja nem um comando " +
-            "de app nem um pedido de trabalho de código pra sessão.",
+            "(ex.: 'em que tela estamos?'), sobre o conteúdo da última resposta do agente na sessão (quando " +
+            "fornecido no contexto), conversa/brainstorm, ou qualquer coisa que não seja nem um comando de app " +
+            "nem um pedido de trabalho NOVO pra sessão. Se não tiver a informação no contexto fornecido, diga que " +
+            "não tem acesso a isso — nunca invente que leu algo que não foi passado a você.",
           inputSchema: jsonSchema({
             type: "object",
             properties: { answer: { type: "string", description: "Resposta curta e natural, pronta pra ser falada." } },
@@ -227,8 +229,13 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
               "comandos de app disponíveis (ex.: abrir um projeto específico, criar sessão), chame a tool desse " +
               "comando. Se for um pedido de trabalho na sessão de código (ex.: 'roda os testes', 'corrige esse bug'), " +
               "chame session_prompt com o texto original. Caso contrário — pergunta sobre o app/tela atual, papo, " +
-              "brainstorm, ou qualquer coisa que não seja nem comando nem trabalho de código — chame answer_directly." +
+              "brainstorm, ou qualquer coisa que não seja nem comando nem trabalho de código — chame answer_directly. " +
+              "IMPORTANTE: só afirme ter lido/analisado algo se essa informação estiver literalmente presente no " +
+              "contexto abaixo — nunca finja ter acesso ao que não foi fornecido." +
               (ctx.payload.currentScreen ? `\n\nTela atual do app: ${ctx.payload.currentScreen}` : "") +
+              (ctx.payload.sessionContext
+                ? `\n\nÚltima resposta do agente na sessão ativa (isso é tudo que você viu dela):\n${ctx.payload.sessionContext}`
+                : "") +
               (ctx.payload.memoryContext
                 ? `\n\nMemória recente de conversas anteriores (use como contexto, não repita de volta):\n${ctx.payload.memoryContext}`
                 : ""),
