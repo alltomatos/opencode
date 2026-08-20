@@ -126,3 +126,34 @@ Ver [issue #25](https://github.com/alltomatos/opencode/issues/25) pra lista comp
 **Status:** Concluído em 2026-08-19.
 
 `electron-builder.config.ts` já builda `.dmg`/`.zip` (mac) e `AppImage`/`.deb`/`.rpm` (linux), além do `.exe` (win) — só faltava disparar automaticamente. Implementado como `.github/workflows/release-desktop.yml`: dispara em todo push na branch `prod`, builda as três plataformas em paralelo (`windows-latest`/`macos-latest`/`ubuntu-latest`) e publica tudo no mesmo release do GitHub, usando a versão de `packages/desktop/package.json` commitada no momento do push. Builds mac/linux saem sem assinatura/notarização (sem credenciais Apple/Azure configuradas neste fork) — funcionam, mas o Gatekeeper avisa na primeira abertura no mac.
+
+## Epic: Breniac (assistente de voz colaborador)
+
+**Status:** Fase 1 fatiada em issues, execução não iniciada.
+**Branch:** `breniac` (criada a partir de `dev`).
+**Origem:** pedido do usuário por um assistente de voz "sempre ligado" que entende comandos de app (abrir projeto, iniciar sessão) e prompts de sessão, com memória e postura próprias. PRD completo em [`docs/prd/breniac-voice-assistant.md`](docs/prd/breniac-voice-assistant.md) — visão de produto, requisitos, arquitetura de memória (global + por projeto), `soul.md` (postura auto-aperfeiçoável, fora de escopo na Fase 1), decisão de infraestrutura (só Omniroute, sem self-hosting).
+
+Validado tecnicamente antes da implementação (teste real contra o gateway Omniroute, fora do app): `openai/gpt-audio-mini` funciona pra entrada/saída de áudio (formato de saída precisa ser `pcm16`, único aceito), `openai/whisper-1` funciona pra transcrição — ambos via `openrouter/openai/*` no provedor `omnrt` já configurado no opencode.
+
+Fase 1 ("turnos discretos, sem duplex real") fatiada em 14 issues, em fila de dependências:
+
+| Issue | O quê | Depende de |
+|---|---|---|
+| [#35](https://github.com/alltomatos/opencode/issues/35) | Schema de config + `Breniac.Service` (backend) | — |
+| [#36](https://github.com/alltomatos/opencode/issues/36) | Rota HTTP `GET/PUT /breniac/config` + SDK | #35 |
+| [#37](https://github.com/alltomatos/opencode/issues/37) | Portar `ModelPickerV2` (nasceu na branch `batuta`, ainda não mergeada) | — |
+| [#38](https://github.com/alltomatos/opencode/issues/38) | Aba de Configurações do Breniac (4 campos) | #36, #37 |
+| [#39](https://github.com/alltomatos/opencode/issues/39) | Liberar permissão de microfone no Electron | #38 |
+| [#40](https://github.com/alltomatos/opencode/issues/40) | Hook de captura de áudio (`MediaRecorder`, corte por turno) | #39 |
+| [#41](https://github.com/alltomatos/opencode/issues/41) | Botão liga/desliga + atalho + indicador de estado | #40 |
+| [#42](https://github.com/alltomatos/opencode/issues/42) | Transcrição (STT) do turno | #38, #41 |
+| [#43](https://github.com/alltomatos/opencode/issues/43) | Roteador de turno (comando de app vs. prompt de sessão) | #42 |
+| [#44](https://github.com/alltomatos/opencode/issues/44) | Execução real (`command.trigger` / fluxo de chat) | #43 |
+| [#45](https://github.com/alltomatos/opencode/issues/45) | Resposta falada (`pcm16`, playback) | #44 |
+| [#46](https://github.com/alltomatos/opencode/issues/46) | Captura incremental em arquivo temporário | #45 |
+| [#47](https://github.com/alltomatos/opencode/issues/47) | Resumo ao desligar → `memory/YYYY-MM-DD.md` (global vs. projeto) | #46 |
+| [#48](https://github.com/alltomatos/opencode/issues/48) | Expiração do arquivo temporário (7 dias) + carregamento de memória ao ligar | #47 |
+
+Fora de escopo explícito da Fase 1 (não criar issue ainda): auto-revisão do `soul.md` (seção 8.6 do PRD — maior risco de design do documento, precisa de mais desenho antes de codar), barge-in/duplex real (Fase 2 do PRD), permissão de mic liberada por padrão pra todo mundo sem toggle.
+
+Processo: "executando em fila, sem paralelismo" — mesma disciplina já seguida no epic Batuta.
