@@ -6,6 +6,7 @@ import { ConfigExperimental } from "../../config/experimental"
 import { ConfigReference } from "../../config/reference"
 import { ConfigAgentV1 } from "./agent"
 import { ConfigAttachmentV1 } from "./attachment"
+import { ConfigBreniacV1 } from "./breniac"
 import { ConfigCommandV1 } from "./command"
 import { ConfigFormatterV1 } from "./formatter"
 import { ConfigLayoutV1 } from "./layout"
@@ -113,6 +114,9 @@ export const Info = Schema.Struct({
   mcp: Schema.optional(
     Schema.Record(Schema.String, Schema.Union([ConfigMCPV1.Info, Schema.Struct({ enabled: Schema.Boolean })])),
   ).annotate({ description: "MCP (Model Context Protocol) server configurations" }),
+  breniac: Schema.optional(ConfigBreniacV1.Info).annotate({
+    description: "Breniac voice assistant configuration (provider + audio/transcription/memory models)",
+  }),
   formatter: Schema.optional(ConfigFormatterV1.Info).annotate({
     description:
       "Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.",

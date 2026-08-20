@@ -15,6 +15,7 @@ import { Env } from "@/env"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { Format } from "@/format"
 import { Git } from "@/git"
+import { Breniac } from "@/breniac"
 import { Installation } from "@/installation"
 import { LSP } from "@/lsp/lsp"
 import { MCP } from "@/mcp"
@@ -248,6 +249,7 @@ const app = LayerNode.group([
   LLM.node,
   LSP.node,
   MCP.node,
+  Breniac.node,
   McpAuth.node,
   Command.node,
   Truncate.node,

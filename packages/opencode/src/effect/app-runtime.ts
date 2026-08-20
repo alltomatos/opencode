@@ -30,6 +30,7 @@ import { SessionRevert } from "@/session/revert"
 import { SessionSummary } from "@/session/summary"
 import { SessionPrompt } from "@/session/prompt"
 import { Instruction } from "@/session/instruction"
+import { Breniac } from "@/breniac"
 import { LLM } from "@/session/llm"
 import { LSP } from "@/lsp/lsp"
 import { MCP } from "@/mcp"
@@ -92,6 +93,7 @@ export const AppLayer = AppNodeBuilderV1.build(
     LLM.node,
     LSP.node,
     MCP.node,
+    Breniac.node,
     McpAuth.node,
     Command.node,
     Truncate.node,
