@@ -15,6 +15,9 @@ import type {
   AuthRemoveResponses,
   AuthSetErrors,
   AuthSetResponses,
+  BreniacAppendTurnErrors,
+  BreniacAppendTurnRequest,
+  BreniacAppendTurnResponses,
   BreniacConfig,
   BreniacGetConfigErrors,
   BreniacGetConfigResponses,
@@ -1603,6 +1606,43 @@ export class Breniac extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<BreniacSpeakResponses, BreniacSpeakErrors, ThrowOnError>({
       url: "/breniac/speak",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Append a turn to the voice session temp file
+   *
+   * Persist a transcript/response pair to disk immediately, so it survives a crash.
+   */
+  public appendTurn<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacAppendTurnRequest?: BreniacAppendTurnRequest
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacAppendTurnRequest", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BreniacAppendTurnResponses, BreniacAppendTurnErrors, ThrowOnError>({
+      url: "/breniac/turn",
       ...options,
       ...params,
       headers: {

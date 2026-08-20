@@ -1,5 +1,6 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useNavigate, useParams } from "@solidjs/router"
+import { appendTurn } from "@/components/breniac/append-turn"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
 import { speakText } from "@/components/breniac/speak"
 import { transcribeTurn } from "@/components/breniac/transcribe"
@@ -45,19 +46,31 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       return language.t("breniac.speak.promptReady")
     }
 
+    let voiceSessionID: string | undefined
+
     const capture = createVoiceCapture((audio) => {
+      const sessionID = voiceSessionID
+      let transcript = ""
       transcribeTurn(serverSDK, audio)
-        .then((text) => routeTurn(serverSDK, text, command.options))
+        .then((text) => {
+          transcript = text
+          return routeTurn(serverSDK, text, command.options)
+        })
         .then(execute)
-        .then((confirmation) => speakText(serverSDK, confirmation))
+        .then(async (confirmation) => {
+          await speakText(serverSDK, confirmation)
+          if (sessionID) await appendTurn(serverSDK, sessionID, transcript, confirmation)
+        })
         .catch((error) => console.error("[breniac] falha ao processar turno", error))
     })
 
     const toggle = async () => {
       if (capture.state() === "idle") {
+        voiceSessionID = crypto.randomUUID()
         await capture.start()
         return
       }
+      voiceSessionID = undefined
       capture.stop()
     }
 

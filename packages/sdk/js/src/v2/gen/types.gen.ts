@@ -2082,6 +2082,16 @@ export type BreniacSpeakResponse = {
   channels: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
+export type BreniacAppendTurnRequest = {
+  voiceSessionID: string
+  transcript: string
+  response: string
+}
+
+export type BreniacAppendTurnResponse = {
+  path: string
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7609,6 +7619,38 @@ export type BreniacSpeakResponses = {
 }
 
 export type BreniacSpeakResponse2 = BreniacSpeakResponses[keyof BreniacSpeakResponses]
+
+export type BreniacAppendTurnData = {
+  body?: BreniacAppendTurnRequest
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/turn"
+}
+
+export type BreniacAppendTurnErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacAppendTurnError = BreniacAppendTurnErrors[keyof BreniacAppendTurnErrors]
+
+export type BreniacAppendTurnResponses = {
+  /**
+   * Turn appended to the temp file
+   */
+  200: BreniacAppendTurnResponse
+}
+
+export type BreniacAppendTurnResponse2 = BreniacAppendTurnResponses[keyof BreniacAppendTurnResponses]
 
 export type ConfigGetData = {
   body?: never

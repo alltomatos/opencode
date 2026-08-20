@@ -56,6 +56,19 @@ export const SpeakResponse = Schema.Struct({
 }).annotate({ identifier: "BreniacSpeakResponse" })
 export type SpeakResponse = Schema.Schema.Type<typeof SpeakResponse>
 
+export const AppendTurnRequest = Schema.Struct({
+  /** Identifies one continuous voice session — stable while Breniac stays on. */
+  voiceSessionID: Schema.String,
+  transcript: Schema.String,
+  response: Schema.String,
+}).annotate({ identifier: "BreniacAppendTurnRequest" })
+export type AppendTurnRequest = Schema.Schema.Type<typeof AppendTurnRequest>
+
+export const AppendTurnResponse = Schema.Struct({
+  path: Schema.String,
+}).annotate({ identifier: "BreniacAppendTurnResponse" })
+export type AppendTurnResponse = Schema.Schema.Type<typeof AppendTurnResponse>
+
 export const BreniacApi = HttpApi.make("breniac")
   .add(
     HttpApiGroup.make("breniac")
@@ -115,6 +128,18 @@ export const BreniacApi = HttpApi.make("breniac")
             identifier: "breniac.speak",
             summary: "Speak a response",
             description: "Send response text to the configured audio model and return PCM16 audio.",
+          }),
+        ),
+        HttpApiEndpoint.post("appendTurn", "/breniac/turn", {
+          query: WorkspaceRoutingQuery,
+          payload: AppendTurnRequest,
+          success: described(AppendTurnResponse, "Turn appended to the temp file"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.appendTurn",
+            summary: "Append a turn to the voice session temp file",
+            description: "Persist a transcript/response pair to disk immediately, so it survives a crash.",
           }),
         ),
       )

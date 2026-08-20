@@ -1,12 +1,23 @@
 import { Breniac } from "@/breniac"
 import { Provider } from "@/provider/provider"
 import type { ConfigBreniacV1 } from "@opencode-ai/core/v1/config/breniac"
+import { Global } from "@opencode-ai/core/global"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { jsonSchema, streamText, tool } from "ai"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { UpstreamError } from "../errors"
 import { InstanceHttpApi } from "../api"
-import type { RouteRequest, RouteResponse, SpeakRequest, SpeakResponse, TranscribeRequest } from "../groups/breniac"
+import type {
+  AppendTurnRequest,
+  AppendTurnResponse,
+  RouteRequest,
+  RouteResponse,
+  SpeakRequest,
+  SpeakResponse,
+  TranscribeRequest,
+} from "../groups/breniac"
 
 // Cloudflare (fronting Omniroute) blocks requests without a browser-like User-Agent.
 const BROWSER_USER_AGENT =
@@ -259,11 +270,39 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       return { audio: btoa(binary), sampleRate: 24000, channels: 1 } satisfies SpeakResponse
     })
 
+    const appendTurn = Effect.fn("BreniacHttpApi.appendTurn")(function* (ctx: { payload: AppendTurnRequest }) {
+      const safeID = ctx.payload.voiceSessionID.replace(/[^a-zA-Z0-9_-]/g, "_")
+      if (!safeID)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: voiceSessionID inválido", service: "breniac" }))
+
+      const dir = path.join(Global.Path.data, "breniac", "tmp")
+      const file = path.join(dir, `${safeID}.md`)
+
+      yield* Effect.tryPromise({
+        try: async () => {
+          await mkdir(dir, { recursive: true })
+          const timestamp = new Date().toISOString()
+          const entry =
+            `## ${timestamp}\n\n` +
+            `**Usuário:** ${ctx.payload.transcript}\n\n` +
+            `**Breniac:** ${ctx.payload.response}\n\n`
+          const existing = await Bun.file(file)
+            .text()
+            .catch(() => "")
+          await Bun.write(file, existing + entry)
+        },
+        catch: () => new UpstreamError({ message: "Breniac: falha ao gravar o arquivo temporário", service: "breniac" }),
+      })
+
+      return { path: file } satisfies AppendTurnResponse
+    })
+
     return handlers
       .handle("getConfig", getConfig)
       .handle("setConfig", setConfig)
       .handle("transcribe", transcribe)
       .handle("route", route)
       .handle("speak", speak)
+      .handle("appendTurn", appendTurn)
   }),
 )
