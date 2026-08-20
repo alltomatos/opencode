@@ -48,6 +48,7 @@ import { HighlightsProvider } from "@/context/highlights"
 import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
 import { LayoutProvider } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
+import { BreniacProvider } from "@/context/breniac"
 import { NotificationProvider } from "@/context/notification"
 import { PermissionProvider } from "@/context/permission"
 import { usePlatform } from "@/context/platform"
@@ -372,7 +373,9 @@ function NewAppLayout(props: ParentProps<{ serverScoped?: JSX.Element }>) {
   return (
     <SelectedServerProviders>
       <ServerScopedProviders serverScoped={props.serverScoped}>
-        <NewLayout>{props.children}</NewLayout>
+        <BreniacProvider>
+          <NewLayout>{props.children}</NewLayout>
+        </BreniacProvider>
       </ServerScopedProviders>
     </SelectedServerProviders>
   )

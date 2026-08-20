@@ -11,6 +11,7 @@ import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { useBreniac } from "@/context/breniac"
 import { getProjectAvatarVariant, type HomeProjectSelection, type LocalProject } from "@/context/layout"
 import { ServerConnection } from "@/context/server"
 import { useLanguage } from "@/context/language"
@@ -160,8 +161,29 @@ export function HomeUtilityNav(props: {
   onOpenHelp: () => void
   language: ReturnType<typeof useLanguage>
 }) {
+  const breniac = useBreniac()
+  const breniacStateLabel = () =>
+    ({
+      idle: props.language.t("breniac.state.idle"),
+      listening: props.language.t("breniac.state.listening"),
+      speaking: props.language.t("breniac.state.speaking"),
+    })[breniac.state()]
+
   return (
     <div class={`${props.class ?? ""} min-w-0 flex-col gap-1 pr-3`}>
+      <HomeProjectNavButton
+        type="button"
+        class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
+        classList={{ "text-v2-state-fg-info": breniac.on() }}
+        onClick={() => void breniac.toggle()}
+        title={breniacStateLabel()}
+      >
+        <IconV2 name="breniac" size="small" />
+        <span class={HOME_PROJECT_NAV_LABEL}>
+          {props.language.t("sidebar.breniac")}
+          <Show when={breniac.on()}> · {breniacStateLabel()}</Show>
+        </span>
+      </HomeProjectNavButton>
       <HomeProjectNavButton
         type="button"
         class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
