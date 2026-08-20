@@ -222,6 +222,8 @@ export const dict = {
   "provider.custom.error.baseURL.required": "Base URL is required",
   "provider.custom.error.baseURL.format": "Must start with http:// or https://",
   "provider.custom.error.required": "Required",
+  "modelPicker.provider.placeholder": "Provider",
+  "modelPicker.model.placeholder": "Model",
   "provider.custom.error.duplicate": "Duplicate",
 
   "provider.omniroute.title": "Connect Omniroute",

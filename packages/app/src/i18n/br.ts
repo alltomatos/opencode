@@ -305,6 +305,8 @@ export const dict = {
   "provider.custom.error.baseURL.required": "A URL base é obrigatória",
   "provider.custom.error.baseURL.format": "Deve começar com http:// ou https://",
   "provider.custom.error.required": "Obrigatório",
+  "modelPicker.provider.placeholder": "Provedor",
+  "modelPicker.model.placeholder": "Modelo",
   "provider.custom.error.duplicate": "Duplicado",
 
   "provider.omniroute.title": "Conectar Omniroute",
