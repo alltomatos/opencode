@@ -164,6 +164,36 @@ Duas variações possíveis pro "roteador de turno" e pro modelo em si — **ain
 - Zero execução de ação destrutiva sem confirmação, em qualquer teste.
 - Uso do modo Breniac não quebra nenhum fluxo existente de teclado/mouse (regressão zero na UI atual).
 
+## 11.5 Panorama de modelos self-hosted (pesquisa em andamento — 2026-08-20)
+
+Levantamento no Hugging Face de modelos de voz auto-hospedáveis que se encaixam no objetivo de "conversa live + controle do app" (não só bate-papo). Ordenado por aderência ao caso de uso do Breniac, não por popularidade:
+
+### 🥇 NVIDIA NemotronLabs-VoiceChat-11B
+- **Único modelo aberto encontrado com canal de tool-calling nativo dentro de um fluxo full-duplex** — exatamente o formato do RF-04/RF-05 (comando de app vs. prompt de sessão), só que embutido no próprio modelo em vez de eu ter que construir o roteador.
+- Arquitetura: Fast Conformer (encoder de fala) + Nemotron Nano v2 9B (LLM) + decoder/codec de TTS da NVIDIA + canal de saída de tool-call separado.
+- Formato de tool-call: `<TOOLCALL>[{"name": "...", "arguments": {...}}]</TOOLCALL>`, resposta em `<TOOL_RESPONSE>[...]</TOOL_RESPONSE>` — dá pra mapear direto pros comandos do command palette (seção 7.4).
+- Toca uma mensagem "on-hold" customizável enquanto a tool executa — resolve o RF-09/RF-10 (não travar em silêncio esperando a ação terminar) de graça.
+- Latência de turno: ~450ms.
+- **Custo de hardware é o entrave**: requer GPU classe A100/H100/H200/B100/B200 ou RTX-6000 — não roda em GPU de consumidor. Serve via vLLM, container de inferência da própria NVIDIA com **interface WebSocket** (bate exatamente com o padrão de referência que já identificamos no PTY do opencode).
+- Licença: OpenMDW 1.1 (não é Apache/MIT — precisa revisar termos antes de decidir).
+- Foco em inglês (baseado no `Nemotron-Speech-Streaming-En-0.6b`) — impacto direto se quisermos comandos em português.
+
+### 🥈 Qwen3-Omni-30B-A3B-Instruct
+- Thinker-Talker (mesma família da seção 8), mas com **tool-calling documentado via "audio function call cookbook"** e suporte nativo a contexto longo/RAG — forte pro caso de "entender completamente o fork" que você descreveu.
+- Licença **Apache 2.0** (mais permissiva que a NVIDIA).
+- MoE: 35B total, ~3B ativos por token — mais leve de rodar que um denso equivalente, mas os requisitos de VRAM documentados (78-107GB) são pra vídeo; pra áudio-only não está claro, precisa medir.
+- Não é full-duplex "de verdade" — é near-duplex, turn-based com resposta rápida, não conversa sobreposta.
+- Roda via vLLM (recomendado) ou Transformers.
+
+### 🥉 Moshi (Kyutai) / PersonaPlex (NVIDIA)
+- O full-duplex mais leve pra rodar localmente (~7B, ~160-200ms, codec Mimi) — melhor "sensação de conversa" das três opções.
+- Mas **não é construído pra tool-calling/comandos estruturados** — é otimizado pra diálogo natural, não pra "abra o projeto X". Ficaria como opção de fallback se priorizarmos fluidez de conversa sobre controle de app, o que não é o objetivo principal do Breniac.
+
+### Como isso se compara com a Opção A/B da seção 8 (Omniroute/gpt-audio-mini)
+A cascata via Omniroute continua sendo a opção **de menor esforço de infraestrutura** (zero GPU local, já validada funcionando). O NemotronLabs-VoiceChat-11B é a opção que **mais se alinha à visão de produto** (full-duplex + tool-calling nativo), mas troca "zero infra" por "precisa de GPU de datacenter" — decisão de arquitetura real a ser tomada, não só técnica: depende se faz sentido pra você manter um servidor de inferência rodando localmente/em nuvem só pro Breniac, versus pagar por chamada via Omniroute.
+
+**Ainda não decidido, fica registrado como pauta aberta** — nenhuma dessas opções foi testada de verdade ainda (diferente do `gpt-audio-mini`, que já validamos rodando).
+
 ## 12. Próximos passos
 
 1. Validar o envio de **áudio de entrada** pro `gpt-audio-mini` via Omniroute (fechar a dúvida da seção 10.5).
@@ -171,3 +201,4 @@ Duas variações possíveis pro "roteador de turno" e pro modelo em si — **ain
 3. Mapear quais comandos do command palette (`context/command.tsx`) fazem sentido como "ações de app" pra Breniac, e quais precisam de uma versão nova com parâmetros explícitos.
 4. Liberar permissão de microfone no Electron (`packages/desktop/src/main/windows.ts`) atrás de uma flag/feature gate, pra não expor isso a todos os usuários do fork prematuramente.
 5. Fatiar em issues (seguindo o mesmo padrão usado pro epic Batuta: slices verticais pequenos, `Blocked by` entre eles) assim que a arquitetura da seção 8 estiver decidida.
+6. Testar de verdade (não só ler a model card) o NemotronLabs-VoiceChat-11B e o Qwen3-Omni-30B-A3B — o primeiro pra confirmar se o formato `<TOOLCALL>` mapeia bem pros comandos do command palette, o segundo pra medir VRAM real em cenário áudio-only (a documentação só cobre vídeo).
