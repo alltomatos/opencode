@@ -893,6 +893,7 @@ export const dict = {
   "breniac.command.turnOn": "Turn Breniac on",
   "breniac.command.turnOff": "Turn Breniac off",
   "breniac.command.openProject": "Open project {{name}}",
+  "breniac.command.toggle.description": "Stop listening, end the voice conversation (also matches: end, stop, that's all, close Breniac).",
   "breniac.screen.settingsTab": "Settings dialog open, on the \"{{tab}}\" tab.",
   "breniac.toast.noProject.title": "No project open",
   "breniac.toast.noProject.description": "Open a project first so Breniac knows where to send the session prompt.",

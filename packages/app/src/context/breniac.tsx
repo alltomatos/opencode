@@ -107,6 +107,28 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       return language.t("breniac.speak.promptReady")
     }
 
+    // Whisper "alucina" texto quando recebe áudio sem fala real (silêncio,
+    // ruído de fundo) — um punhado de frases conhecidas e bem documentadas
+    // (a maioria falsos "obrigado por assistir" em vários idiomas) aparecem
+    // repetidamente nessa situação. Se o mic continua ligado sem ninguém
+    // falando (ex.: o toggle-off falhou em executar), esses turnos de lixo
+    // não devem virar resposta nem entrar na memória.
+    const WHISPER_HALLUCINATION_PATTERNS = [
+      /谢谢观看/,
+      /字幕by/i,
+      /thanks for watching/i,
+      /thank you for watching/i,
+      /subscribe to my channel/i,
+      /like and subscribe/i,
+      /\[blank_audio\]/i,
+      /\(silence\)/i,
+    ]
+    const isLikelyHallucination = (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed) return true
+      return WHISPER_HALLUCINATION_PATTERNS.some((pattern) => pattern.test(trimmed))
+    }
+
     let voiceSessionID: string | undefined
     let memoryContext = ""
     // A captura continua gravando durante a fala do Breniac (use-voice-capture
@@ -127,6 +149,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         .catch(() => undefined)
         .then((sessionContext) =>
           transcribeTurn(serverSDK, audio).then((text) => {
+            if (isLikelyHallucination(text)) throw new Error("skip-hallucinated-turn")
             transcript = text
             return routeTurn(serverSDK, text, command.options, memoryContext || undefined, currentScreen(), sessionContext)
           }),
@@ -136,7 +159,10 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
           await speakText(serverSDK, confirmation)
           if (sessionID) await appendTurn(serverSDK, sessionID, transcript, confirmation)
         })
-        .catch((error) => console.error("[breniac] falha ao processar turno", error))
+        .catch((error) => {
+          if (error instanceof Error && error.message === "skip-hallucinated-turn") return
+          console.error("[breniac] falha ao processar turno", error)
+        })
         .finally(() => {
           processingTurn = false
         })
@@ -173,6 +199,10 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       {
         id: "breniac.toggle",
         title: capture.state() === "idle" ? language.t("breniac.command.turnOn") : language.t("breniac.command.turnOff"),
+        // Sinônimos explícitos pro roteador (#43) reconhecer — sem isso "pode
+        // encerrar"/"para de ouvir" caía em answer_directly, que só FALA que
+        // encerrou sem realmente desligar o microfone (bug real observado).
+        description: language.t("breniac.command.toggle.description"),
         category: language.t("command.category.settings"),
         keybind: "mod+shift+b",
         onSelect: () => void toggle(),
