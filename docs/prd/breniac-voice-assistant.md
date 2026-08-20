@@ -166,8 +166,11 @@ Ambos ficam **fora do repositório versionado** — na pasta de dados locais do 
 1. Por padrão, tudo que foi dito numa sessão vinculada a um projeto vai pra memória **daquele projeto**.
 2. Se o Breniac achar que algo é relevante além do projeto atual (relevante globalmente), ele **pergunta ao usuário** antes de gravar na memória global — nunca decide sozinho que algo "é sobre você" e promove pra global sem confirmação. Memória global só cresce com consentimento explícito, memória de projeto cresce por padrão.
 
-**Ainda em aberto** (a resolver antes da Fase 1, ver seção 10):
-- Quem decide o que vale a pena persistir no arquivo diário — um resumo automático ao final da sessão (LLM de texto, barato, chamado uma vez) é o candidato óbvio, mas precisa de critério pra não virar um despejo de tudo que foi dito.
+**Gatilho e geração do resumo — decidido (2026-08-20):**
+- **Gatilho**: o fim da sessão de voz (o usuário desliga o Breniac — RF-01) — não um timer periódico. É o único limite determinístico que já existe no fluxo, não precisa inventar um segundo.
+- **Quem gera**: um único LLM de texto barato, chamado uma vez ao final, recebendo a **transcrição da sessão em texto** (nunca o áudio) e produzindo o resumo a persistir.
+- **Critério do que persistir** (evita virar despejo de tudo que foi dito): decisões tomadas, fatos novos relevantes, pendências em aberto, e — o mais importante pro `soul.md` (seção 8.6) — **correções que o usuário fez no Breniac** durante a sessão. Conversa fiada e comandos que não mudaram nada ficam de fora.
+- **Formato**: cada sessão vira uma **entrada anexada** ao arquivo do dia (com horário), nunca uma sobrescrita — várias sessões no mesmo dia acumulam no mesmo arquivo.
 
 ## 8.6 `soul.md` — identidade e postura do Breniac
 
@@ -191,10 +194,11 @@ Decisão de produto (Ronaldo, 2026-08-20): **o Breniac não é um assistente que
 1. **Objetivo de otimização explícito no próprio arquivo**: o critério de sucesso registrado não pode ser "o usuário ficou satisfeito", tem que ser algo como "o usuário chegou a uma decisão melhor/mais informada" ou "o problema foi resolvido de verdade" — precisa ser auditável, não um proxy de humor.
 2. **Mudanças no arquivo são auditáveis e reversíveis**: nunca um auto-edit silencioso. Cada revisão do `soul.md` é um diff (git, já que o arquivo é markdown normal) com uma justificativa curta de por que mudou — o usuário pode ver o histórico e reverter uma "aprendizagem" que considerar errada, do mesmo jeito que reverteria qualquer commit.
 
-**Ainda em aberto:**
-- Frequência/gatilho da auto-revisão — a cada sessão é provavelmente barulho demais; um gatilho mais forte (ex.: um padrão que se repete N vezes, ou um sinal explícito de correção do usuário) parece mais seguro.
-- Quem escreve a revisão — o próprio Breniac ao final de uma sessão (LLM de texto, análise da conversa), ou um passo separado e mais "frio" (rodado depois, sem a pressão de estar em tempo real)? A segunda opção parece mais prudente pra um arquivo que define a própria postura do agente.
-- Se `soul.md` deveria também ter uma variante por projeto no futuro (ex.: "nesse projeto o usuário prefere rigor mais alto antes de mergear") — por ora, fica só global, mesma decisão de manter simples que guiou a seção 8.5 antes de expandir.
+**Gatilho e processo da auto-revisão — decidido (2026-08-20):**
+- **Gatilho**: não é a cada sessão. Dispara quando (a) o mesmo padrão de dificuldade/correção aparece em **3 ou mais** resumos de memória recentes (o número é um ponto de partida, ajustável depois de uso real), ou (b) o usuário dá um sinal explícito de que uma abordagem do Breniac não ajudou. Um evento isolado não é suficiente — reduz ruído e evita reagir a exceções.
+- **Quem escreve**: um passo **separado e "frio"**, rodado depois da sessão (nunca em tempo real, dentro da pressão da conversa por voz). Esse passo lê os **resumos de memória** recentes (não a sessão bruta) procurando o padrão que ativa o gatilho.
+- **Nunca aplica direto**: o passo gera uma **proposta** de revisão com justificativa explícita citando o padrão observado (ex.: *"em 3 sessões o usuário corrigiu o Breniac por pular a validação antes de executar — proposta: perguntar antes de rodar ações irreversíveis sem teste cobrindo a mudança"*) e pede confirmação do usuário antes de gravar no `soul.md`. Isso torna a salvaguarda da seção anterior preventiva (revisão antes), não só corretiva (reverter depois).
+- **Escopo**: fica global por ora — mesma decisão de manter simples já tomada na seção 8.5 antes de considerar uma variante por projeto no futuro.
 
 ## 9. Fases propostas
 
@@ -269,5 +273,5 @@ A cascata via Omniroute continua sendo a opção **de menor esforço de infraest
 4. Liberar permissão de microfone no Electron (`packages/desktop/src/main/windows.ts`) atrás de uma flag/feature gate, pra não expor isso a todos os usuários do fork prematuramente.
 5. Fatiar em issues (seguindo o mesmo padrão usado pro epic Batuta: slices verticais pequenos, `Blocked by` entre eles) assim que a arquitetura da seção 8 estiver decidida.
 6. Testar de verdade (não só ler a model card) o NemotronLabs-VoiceChat-11B e o Qwen3-Omni-30B-A3B — o primeiro pra confirmar se o formato `<TOOLCALL>` mapeia bem pros comandos do command palette, o segundo pra medir VRAM real em cenário áudio-only (a documentação só cobre vídeo).
-7. Resolver as questões em aberto da seção 8.5 (quem gera o resumo, quando algo é global vs. por projeto) e prototipar o ciclo mínimo: sessão de voz → resumo em texto → arquivo `memory/YYYY-MM-DD.md` → próxima sessão lê e usa como contexto inicial.
-8. Desenhar o mecanismo de auto-revisão do `soul.md` (seção 8.6) com o critério de sucesso e as salvaguardas anti-bajulação bem explícitos *antes* de implementar qualquer auto-edit — esse é o item de maior risco de design do documento inteiro.
+7. Prototipar o ciclo mínimo da seção 8.5 (já decidido): sessão de voz → resumo em texto ao desligar → arquivo `memory/YYYY-MM-DD.md` → próxima sessão lê e usa como contexto inicial.
+8. Implementar o passo "frio" de auto-revisão do `soul.md` (seção 8.6, já decidido) — o gatilho por padrão repetido/sinal explícito, a proposta com justificativa, e o fluxo de confirmação antes de gravar. Testar primeiro com dados sintéticos/simulados antes de deixar rodar sobre sessões reais.
