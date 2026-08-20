@@ -857,6 +857,8 @@ export const dict = {
   "breniac.state.speaking": "Falando",
   "breniac.command.turnOn": "Ligar o Breniac",
   "breniac.command.turnOff": "Desligar o Breniac",
+  "breniac.toast.noProject.title": "Nenhum projeto aberto",
+  "breniac.toast.noProject.description": "Abra um projeto primeiro pro Breniac saber pra onde mandar o prompt da sessão.",
   "sidebar.workspaces.enable": "Habilitar espaços de trabalho",
   "sidebar.workspaces.disable": "Desabilitar espaços de trabalho",
   "sidebar.gettingStarted.title": "Começando",

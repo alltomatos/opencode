@@ -884,6 +884,8 @@ export const dict = {
   "breniac.state.speaking": "Speaking",
   "breniac.command.turnOn": "Turn Breniac on",
   "breniac.command.turnOff": "Turn Breniac off",
+  "breniac.toast.noProject.title": "No project open",
+  "breniac.toast.noProject.description": "Open a project first so Breniac knows where to send the session prompt.",
   "sidebar.workspaces.enable": "Enable workspaces",
   "sidebar.workspaces.disable": "Disable workspaces",
   "sidebar.gettingStarted.title": "Getting started",
