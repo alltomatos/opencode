@@ -14,7 +14,8 @@ function splitModel(value: string) {
   return { providerID: value.slice(0, index), modelID: value.slice(index + 1) }
 }
 
-const selectClass = `
+/** Shared styling for a plain <select> that matches the rest of the v2 design system. */
+export const nativeSelectClassV2 = `
   h-8 min-w-0 flex-1 cursor-pointer appearance-none truncate rounded-md border border-v2-border-border-base
   bg-v2-background-bg-base bg-[image:var(--model-picker-chevron)] bg-[position:right_8px_center] bg-no-repeat
   py-0 pl-2.5 pr-7 text-13-regular text-v2-text-text-base outline-none transition-colors duration-150
@@ -22,6 +23,14 @@ const selectClass = `
   focus-visible:border-v2-border-border-focus focus-visible:outline-none
   disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-v2-background-bg-base
 `
+const selectClass = nativeSelectClassV2
+
+/** Inline style providing the --model-picker-chevron custom property `nativeSelectClassV2` relies on. */
+export const nativeSelectChevronStyle = {
+  "--model-picker-chevron": `url("data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 6.5L8 9.5L11 6.5" stroke="%239299A6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  )}")`,
+} as const
 
 /**
  * Provider+model picker backed by plain <select> elements rather than the
@@ -47,14 +56,7 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   })
 
   return (
-    <div
-      class="flex min-w-0 flex-1 items-center gap-2"
-      style={{
-        "--model-picker-chevron": `url("data:image/svg+xml,${encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 6.5L8 9.5L11 6.5" stroke="%239299A6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        )}")`,
-      }}
-    >
+    <div class="flex min-w-0 flex-1 items-center gap-2" style={nativeSelectChevronStyle}>
       <select
         class={selectClass}
         value={selectedProviderID()}
