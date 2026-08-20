@@ -70,7 +70,10 @@ Isso implica que Breniac não vive só dentro de uma sessão de chat — ele tem
 - **RF-12**: Breniac herda as mesmas permissões/regras de ferramentas já configuradas no opencode (ruleset de permissão por sessão/agente) — não é um caminho paralelo que ignora `permission.ask`/bloqueios existentes.
 - **RF-13**: Ações destrutivas (deletar projeto, remover sessão, etc.) continuam exigindo confirmação — por voz ("tem certeza?") ou caindo pra UI, não executam direto só por terem sido faladas.
 
-### 5.6 Postura e identidade
+### 5.6 Memória
+- **RF-16**: Por padrão, tudo que é dito numa sessão vinculada a um projeto é registrado na memória **daquele projeto** (seção 8.5). Memória global nunca é escrita silenciosamente — se o Breniac julgar algo relevante além do projeto atual, ele **pergunta ao usuário** antes de gravar lá.
+
+### 5.7 Postura e identidade
 - **RF-14**: Antes de gerar uma resposta, Breniac consulta o `soul.md` (seção 8.6) — não só a memória factual — pra decidir *como* responder, não só *o quê*. Isso inclui a possibilidade de questionar o pedido do usuário em vez de só executá-lo, quando fizer sentido.
 - **RF-15**: O critério de sucesso de qualquer ajuste de postura registrado no `soul.md` precisa ser auditável em termos de utilidade real pro usuário (decisão melhor, problema resolvido), nunca em termos de "o usuário gostou/concordou" — ver salvaguarda contra bajulação na seção 8.6.
 
@@ -159,9 +162,12 @@ Ambos ficam **fora do repositório versionado** — na pasta de dados locais do 
 
 **Ordem de carregamento**: ao ligar o Breniac, ele lê primeiro a memória global recente (quem é o usuário, preferências gerais), depois a memória do projeto atual (o que rolou especificamente ali) — geral primeiro, específico por cima, mesmo padrão de "config global + override por projeto/página" que outras partes do app já seguem (ex.: o design-system master+overrides, o sistema de permissões por sessão/agente).
 
+**Critério global vs. projeto — decidido (2026-08-20):** a regra é simples e não delega a decisão pro julgamento silencioso do modelo:
+1. Por padrão, tudo que foi dito numa sessão vinculada a um projeto vai pra memória **daquele projeto**.
+2. Se o Breniac achar que algo é relevante além do projeto atual (relevante globalmente), ele **pergunta ao usuário** antes de gravar na memória global — nunca decide sozinho que algo "é sobre você" e promove pra global sem confirmação. Memória global só cresce com consentimento explícito, memória de projeto cresce por padrão.
+
 **Ainda em aberto** (a resolver antes da Fase 1, ver seção 10):
 - Quem decide o que vale a pena persistir no arquivo diário — um resumo automático ao final da sessão (LLM de texto, barato, chamado uma vez) é o candidato óbvio, mas precisa de critério pra não virar um despejo de tudo que foi dito.
-- Quando uma fala do usuário é sobre "assunto geral" vs. "assunto do projeto atual" — nem sempre é óbvio, e provavelmente vira responsabilidade do próprio passo de resumo decidir em qual dos dois arquivos (ou nos dois) aquele trecho entra.
 
 ## 8.6 `soul.md` — identidade e postura do Breniac
 
