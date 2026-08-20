@@ -5,7 +5,7 @@ import { Global } from "@opencode-ai/core/global"
 import { Effect, Schema } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { jsonSchema, streamText, tool } from "ai"
-import { mkdir, readdir, unlink } from "node:fs/promises"
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { UpstreamError } from "../errors"
 import { InstanceHttpApi } from "../api"
@@ -35,10 +35,8 @@ function todayFile() {
 
 async function appendMemoryEntry(file: string, entry: string) {
   await mkdir(path.dirname(file), { recursive: true })
-  const existing = await Bun.file(file)
-    .text()
-    .catch(() => "")
-  await Bun.write(file, existing + entry)
+  const existing = await readFile(file, "utf8").catch(() => "")
+  await writeFile(file, existing + entry, "utf8")
 }
 
 const TMP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
@@ -52,9 +50,7 @@ async function cleanupExpiredTmpFiles() {
   for (const entry of entries) {
     if (!entry.endsWith(".summarized")) continue
     const markerPath = path.join(dir, entry)
-    const timestamp = await Bun.file(markerPath)
-      .text()
-      .catch(() => "")
+    const timestamp = await readFile(markerPath, "utf8").catch(() => "")
     const summarizedAt = Date.parse(timestamp)
     if (Number.isNaN(summarizedAt) || now - summarizedAt < TMP_RETENTION_MS) continue
     const base = entry.slice(0, -".summarized".length)
@@ -66,11 +62,7 @@ async function readRecentMemoryFiles(dir: string, count: number) {
   const entries = await readdir(dir).catch(() => [] as string[])
   const files = entries.filter((entry) => entry.endsWith(".md")).sort().slice(-count)
   const contents = await Promise.all(
-    files.map((file) =>
-      Bun.file(path.join(dir, file))
-        .text()
-        .catch(() => ""),
-    ),
+    files.map((file) => readFile(path.join(dir, file), "utf8").catch(() => "")),
   )
   return contents.filter(Boolean).join("\n")
 }
@@ -375,10 +367,8 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
             `## ${timestamp}\n\n` +
             `**Usuário:** ${ctx.payload.transcript}\n\n` +
             `**Breniac:** ${ctx.payload.response}\n\n`
-          const existing = await Bun.file(file)
-            .text()
-            .catch(() => "")
-          await Bun.write(file, existing + entry)
+          const existing = await readFile(file, "utf8").catch(() => "")
+          await writeFile(file, existing + entry, "utf8")
         },
         catch: () => new UpstreamError({ message: "Breniac: falha ao gravar o arquivo temporário", service: "breniac" }),
       })
@@ -390,7 +380,7 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       const safeID = ctx.payload.voiceSessionID.replace(/[^a-zA-Z0-9_-]/g, "_")
       const tmpFile = path.join(Global.Path.data, "breniac", "tmp", `${safeID}.md`)
       const transcript = yield* Effect.tryPromise({
-        try: () => Bun.file(tmpFile).text(),
+        try: () => readFile(tmpFile, "utf8"),
         catch: () => new UpstreamError({ message: "", service: "breniac" }),
       }).pipe(Effect.orElseSucceed(() => ""))
 
@@ -464,7 +454,11 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       const safeIDForMarker = ctx.payload.voiceSessionID.replace(/[^a-zA-Z0-9_-]/g, "_")
       yield* Effect.tryPromise({
         try: () =>
-          Bun.write(path.join(Global.Path.data, "breniac", "tmp", `${safeIDForMarker}.summarized`), new Date().toISOString()),
+          writeFile(
+            path.join(Global.Path.data, "breniac", "tmp", `${safeIDForMarker}.summarized`),
+            new Date().toISOString(),
+            "utf8",
+          ),
         catch: () => new UpstreamError({ message: "", service: "breniac" }),
       }).pipe(Effect.ignore)
 
