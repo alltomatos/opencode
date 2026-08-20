@@ -1,7 +1,9 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
+import { transcribeTurn } from "@/components/breniac/transcribe"
 import { createVoiceCapture, type VoiceCaptureState } from "@/components/breniac/use-voice-capture"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
+import { useServerSDK } from "@/context/server-sdk"
 
 export const { use: useBreniac, provider: BreniacProvider } = createSimpleContext({
   name: "Breniac",
@@ -9,11 +11,16 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
   init: () => {
     const command = useCommand()
     const language = useLanguage()
+    const serverSDK = useServerSDK()
 
-    // O tratamento de verdade de um turno (transcrição, roteamento, execução,
-    // resposta em áudio) chega nas próximas issues do epic (#42-45) — por ora
-    // só capturamos o áudio do turno.
-    const capture = createVoiceCapture((_audio) => {})
+    // O roteamento (comando de app vs. prompt de sessão) e a execução real
+    // chegam nas próximas issues do epic (#43-45) — por ora transcrevemos o
+    // turno e apenas logamos o texto reconhecido.
+    const capture = createVoiceCapture((audio) => {
+      transcribeTurn(serverSDK, audio)
+        .then((text) => console.log("[breniac] turno transcrito:", text))
+        .catch((error) => console.error("[breniac] falha ao transcrever turno", error))
+    })
 
     const toggle = async () => {
       if (capture.state() === "idle") {

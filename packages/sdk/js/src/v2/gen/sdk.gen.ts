@@ -20,6 +20,9 @@ import type {
   BreniacGetConfigResponses,
   BreniacSetConfigErrors,
   BreniacSetConfigResponses,
+  BreniacTranscribeErrors,
+  BreniacTranscribeRequest,
+  BreniacTranscribeResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -1483,6 +1486,43 @@ export class Breniac extends HeyApiClient {
     )
     return (options?.client ?? this.client).put<BreniacSetConfigResponses, BreniacSetConfigErrors, ThrowOnError>({
       url: "/breniac/config",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Transcribe a voice turn
+   *
+   * Send a turn's audio to the configured transcription model and return the text.
+   */
+  public transcribe<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacTranscribeRequest?: BreniacTranscribeRequest
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacTranscribeRequest", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BreniacTranscribeResponses, BreniacTranscribeErrors, ThrowOnError>({
+      url: "/breniac/transcribe",
       ...options,
       ...params,
       headers: {

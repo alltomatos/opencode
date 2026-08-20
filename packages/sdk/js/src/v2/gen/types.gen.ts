@@ -2039,6 +2039,22 @@ export type Config = {
   }
 }
 
+export type BreniacTranscribeRequest = {
+  audio: string
+  mimeType: string
+}
+
+export type BreniacTranscribeResponse = {
+  text: string
+}
+
+export type UpstreamError = {
+  _tag: "UpstreamError"
+  message: string
+  service?: string
+  status?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7470,6 +7486,38 @@ export type BreniacSetConfigResponses = {
 }
 
 export type BreniacSetConfigResponse = BreniacSetConfigResponses[keyof BreniacSetConfigResponses]
+
+export type BreniacTranscribeData = {
+  body?: BreniacTranscribeRequest
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/transcribe"
+}
+
+export type BreniacTranscribeErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacTranscribeError = BreniacTranscribeErrors[keyof BreniacTranscribeErrors]
+
+export type BreniacTranscribeResponses = {
+  /**
+   * Transcribed text
+   */
+  200: BreniacTranscribeResponse
+}
+
+export type BreniacTranscribeResponse2 = BreniacTranscribeResponses[keyof BreniacTranscribeResponses]
 
 export type ConfigGetData = {
   body?: never

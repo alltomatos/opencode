@@ -1,11 +1,26 @@
 import { ConfigBreniacV1 } from "@opencode-ai/core/v1/config/breniac"
+import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
+import { UpstreamError } from "../errors"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
 import { described } from "./metadata"
 
 const root = "/breniac/config"
+
+export const TranscribeRequest = Schema.Struct({
+  /** Base64-encoded audio bytes for a single turn. */
+  audio: Schema.String,
+  /** e.g. "audio/webm" — passed through as the uploaded file's content type. */
+  mimeType: Schema.String,
+}).annotate({ identifier: "BreniacTranscribeRequest" })
+export type TranscribeRequest = Schema.Schema.Type<typeof TranscribeRequest>
+
+export const TranscribeResponse = Schema.Struct({
+  text: Schema.String,
+}).annotate({ identifier: "BreniacTranscribeResponse" })
+export type TranscribeResponse = Schema.Schema.Type<typeof TranscribeResponse>
 
 export const BreniacApi = HttpApi.make("breniac")
   .add(
@@ -30,6 +45,18 @@ export const BreniacApi = HttpApi.make("breniac")
             identifier: "breniac.setConfig",
             summary: "Set Breniac configuration",
             description: "Replace the Breniac voice assistant's provider and model configuration.",
+          }),
+        ),
+        HttpApiEndpoint.post("transcribe", "/breniac/transcribe", {
+          query: WorkspaceRoutingQuery,
+          payload: TranscribeRequest,
+          success: described(TranscribeResponse, "Transcribed text"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.transcribe",
+            summary: "Transcribe a voice turn",
+            description: "Send a turn's audio to the configured transcription model and return the text.",
           }),
         ),
       )
