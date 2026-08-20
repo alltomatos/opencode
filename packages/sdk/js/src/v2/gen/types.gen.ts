@@ -1867,6 +1867,13 @@ export type McpRemoteConfig = {
   timeout?: number
 }
 
+export type BreniacConfig = {
+  providerID?: string
+  audioModel?: string
+  transcriptionModel?: string
+  memoryModel?: string
+}
+
 /**
  * @deprecated Always uses stretch layout.
  */
@@ -1962,6 +1969,7 @@ export type Config = {
           enabled: boolean
         }
   }
+  breniac?: BreniacConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
    */
@@ -7406,6 +7414,62 @@ export type EventSubscribeResponses = {
 }
 
 export type EventSubscribeResponse = EventSubscribeResponses[keyof EventSubscribeResponses]
+
+export type BreniacGetConfigData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/config"
+}
+
+export type BreniacGetConfigErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BreniacGetConfigError = BreniacGetConfigErrors[keyof BreniacGetConfigErrors]
+
+export type BreniacGetConfigResponses = {
+  /**
+   * Get Breniac config
+   */
+  200: BreniacConfig
+}
+
+export type BreniacGetConfigResponse = BreniacGetConfigResponses[keyof BreniacGetConfigResponses]
+
+export type BreniacSetConfigData = {
+  body?: BreniacConfig
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/config"
+}
+
+export type BreniacSetConfigErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BreniacSetConfigError = BreniacSetConfigErrors[keyof BreniacSetConfigErrors]
+
+export type BreniacSetConfigResponses = {
+  /**
+   * Config updated successfully
+   */
+  200: BreniacConfig
+}
+
+export type BreniacSetConfigResponse = BreniacSetConfigResponses[keyof BreniacSetConfigResponses]
 
 export type ConfigGetData = {
   body?: never

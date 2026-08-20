@@ -15,6 +15,11 @@ import type {
   AuthRemoveResponses,
   AuthSetErrors,
   AuthSetResponses,
+  BreniacConfig,
+  BreniacGetConfigErrors,
+  BreniacGetConfigResponses,
+  BreniacSetConfigErrors,
+  BreniacSetConfigResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -1416,6 +1421,75 @@ export class Event extends HeyApiClient {
       url: "/event",
       ...options,
       ...params,
+    })
+  }
+}
+
+export class Breniac extends HeyApiClient {
+  /**
+   * Get Breniac configuration
+   *
+   * Retrieve the Breniac voice assistant's provider and model configuration.
+   */
+  public getConfig<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<BreniacGetConfigResponses, BreniacGetConfigErrors, ThrowOnError>({
+      url: "/breniac/config",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Set Breniac configuration
+   *
+   * Replace the Breniac voice assistant's provider and model configuration.
+   */
+  public setConfig<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacConfig?: BreniacConfig
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacConfig", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<BreniacSetConfigResponses, BreniacSetConfigErrors, ThrowOnError>({
+      url: "/breniac/config",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -7187,6 +7261,11 @@ export class OpencodeClient extends HeyApiClient {
   private _event?: Event
   get event(): Event {
     return (this._event ??= new Event({ client: this.client }))
+  }
+
+  private _breniac?: Breniac
+  get breniac(): Breniac {
+    return (this._breniac ??= new Breniac({ client: this.client }))
   }
 
   private _config?: Config2
