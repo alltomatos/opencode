@@ -120,7 +120,7 @@ export const SettingsBreniacV2: Component = () => {
               title={language.t("settings.breniac.field.provider.title")}
               description={language.t("settings.breniac.field.provider.description")}
             >
-              <div class="w-full sm:w-[220px]" style={nativeSelectChevronStyle}>
+              <div class="w-full sm:w-[280px]" style={nativeSelectChevronStyle}>
                 <select
                   class={nativeSelectClassV2}
                   value={form.providerID}
