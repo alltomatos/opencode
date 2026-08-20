@@ -2055,6 +2055,23 @@ export type UpstreamError = {
   status?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
+export type BreniacRouteCommand = {
+  id: string
+  title: string
+  description?: string
+}
+
+export type BreniacRouteRequest = {
+  text: string
+  commands: Array<BreniacRouteCommand>
+}
+
+export type BreniacRouteResponse = {
+  kind: "appCommand" | "sessionPrompt"
+  commandID?: string
+  prompt?: string
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7518,6 +7535,38 @@ export type BreniacTranscribeResponses = {
 }
 
 export type BreniacTranscribeResponse2 = BreniacTranscribeResponses[keyof BreniacTranscribeResponses]
+
+export type BreniacRouteData = {
+  body?: BreniacRouteRequest
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/route"
+}
+
+export type BreniacRouteErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacRouteError = BreniacRouteErrors[keyof BreniacRouteErrors]
+
+export type BreniacRouteResponses = {
+  /**
+   * Turn routing decision
+   */
+  200: BreniacRouteResponse
+}
+
+export type BreniacRouteResponse2 = BreniacRouteResponses[keyof BreniacRouteResponses]
 
 export type ConfigGetData = {
   body?: never

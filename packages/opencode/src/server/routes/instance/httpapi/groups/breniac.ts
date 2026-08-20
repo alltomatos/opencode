@@ -22,6 +22,27 @@ export const TranscribeResponse = Schema.Struct({
 }).annotate({ identifier: "BreniacTranscribeResponse" })
 export type TranscribeResponse = Schema.Schema.Type<typeof TranscribeResponse>
 
+export const RouteCommand = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  description: Schema.optional(Schema.String),
+}).annotate({ identifier: "BreniacRouteCommand" })
+
+export const RouteRequest = Schema.Struct({
+  text: Schema.String,
+  commands: Schema.Array(RouteCommand),
+}).annotate({ identifier: "BreniacRouteRequest" })
+export type RouteRequest = Schema.Schema.Type<typeof RouteRequest>
+
+export const RouteResponse = Schema.Struct({
+  kind: Schema.Literals(["appCommand", "sessionPrompt"]),
+  /** Present when kind === "appCommand": the id of the command to trigger. */
+  commandID: Schema.optional(Schema.String),
+  /** Present when kind === "sessionPrompt": the text to send to the session. */
+  prompt: Schema.optional(Schema.String),
+}).annotate({ identifier: "BreniacRouteResponse" })
+export type RouteResponse = Schema.Schema.Type<typeof RouteResponse>
+
 export const BreniacApi = HttpApi.make("breniac")
   .add(
     HttpApiGroup.make("breniac")
@@ -57,6 +78,18 @@ export const BreniacApi = HttpApi.make("breniac")
             identifier: "breniac.transcribe",
             summary: "Transcribe a voice turn",
             description: "Send a turn's audio to the configured transcription model and return the text.",
+          }),
+        ),
+        HttpApiEndpoint.post("route", "/breniac/route", {
+          query: WorkspaceRoutingQuery,
+          payload: RouteRequest,
+          success: described(RouteResponse, "Turn routing decision"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.route",
+            summary: "Route a transcribed turn",
+            description: "Decide whether a transcribed turn is an app command or a session prompt.",
           }),
         ),
       )

@@ -18,6 +18,9 @@ import type {
   BreniacConfig,
   BreniacGetConfigErrors,
   BreniacGetConfigResponses,
+  BreniacRouteErrors,
+  BreniacRouteRequest,
+  BreniacRouteResponses,
   BreniacSetConfigErrors,
   BreniacSetConfigResponses,
   BreniacTranscribeErrors,
@@ -1523,6 +1526,43 @@ export class Breniac extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<BreniacTranscribeResponses, BreniacTranscribeErrors, ThrowOnError>({
       url: "/breniac/transcribe",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Route a transcribed turn
+   *
+   * Decide whether a transcribed turn is an app command or a session prompt.
+   */
+  public route<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacRouteRequest?: BreniacRouteRequest
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacRouteRequest", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BreniacRouteResponses, BreniacRouteErrors, ThrowOnError>({
+      url: "/breniac/route",
       ...options,
       ...params,
       headers: {

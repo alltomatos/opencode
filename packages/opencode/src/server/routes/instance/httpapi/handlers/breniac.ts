@@ -3,9 +3,10 @@ import { Provider } from "@/provider/provider"
 import type { ConfigBreniacV1 } from "@opencode-ai/core/v1/config/breniac"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { jsonSchema, streamText, tool } from "ai"
 import { UpstreamError } from "../errors"
 import { InstanceHttpApi } from "../api"
-import type { TranscribeRequest } from "../groups/breniac"
+import type { RouteRequest, RouteResponse, TranscribeRequest } from "../groups/breniac"
 
 // Cloudflare (fronting Omniroute) blocks requests without a browser-like User-Agent.
 const BROWSER_USER_AGENT =
@@ -76,6 +77,103 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       return { text: json.text ?? "" }
     })
 
-    return handlers.handle("getConfig", getConfig).handle("setConfig", setConfig).handle("transcribe", transcribe)
+    const route = Effect.fn("BreniacHttpApi.route")(function* (ctx: { payload: RouteRequest }) {
+      const config = yield* breniac.get()
+      if (!config.providerID)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: providerID não configurado", service: "breniac" }))
+
+      const small = yield* provider.getSmallModel(config.providerID as any)
+      const model =
+        small ??
+        (yield* provider.getProvider(config.providerID as any).pipe(
+          Effect.map((info) => {
+            const models = Object.values(info?.models ?? {})
+            // Prefer well-known routing prefixes (openrouter/kc) validated against this gateway;
+            // exotic aggregator prefixes (e.g. "agy/") have proven unreliable for tool-calling.
+            const preferred = [
+              "openrouter/openai/gpt-4o-mini",
+              "openrouter/google/gemini-3.5-flash-lite",
+              "kc/google/gemini-3.5-flash-lite",
+              "openrouter/anthropic/claude-haiku",
+            ]
+            for (const id of preferred) {
+              const match = models.find((m) => m.id === id)
+              if (match) return match
+            }
+            const fallback = models.find((m) => m.id.startsWith("openrouter/") || m.id.startsWith("kc/"))
+            return fallback ?? models[0]
+          }),
+        ))
+      if (!model)
+        return yield* Effect.fail(
+          new UpstreamError({ message: "Breniac: nenhum modelo disponível pro provider configurado", service: "breniac" }),
+        )
+      const language = yield* provider
+        .getLanguage(model)
+        .pipe(
+          Effect.catchTag("ProviderModelNotFoundError", (cause) =>
+            Effect.fail(
+              new UpstreamError({ message: `Breniac: modelo de roteamento não encontrado (${cause.modelID})`, service: "breniac" }),
+            ),
+          ),
+        )
+
+      const APP_COMMAND_TOOL_PREFIX = "app_command_"
+      const tools: Record<string, ReturnType<typeof tool>> = {
+        session_prompt: tool({
+          description: "Enviar o texto como um prompt de sessão de chat normal (não é um comando conhecido do app).",
+          inputSchema: jsonSchema({
+            type: "object",
+            properties: { text: { type: "string" } },
+            required: ["text"],
+          }),
+        }),
+      }
+      for (const command of ctx.payload.commands) {
+        tools[`${APP_COMMAND_TOOL_PREFIX}${command.id}`] = tool({
+          description: command.description ? `${command.title} — ${command.description}` : command.title,
+          inputSchema: jsonSchema({ type: "object", properties: {} }),
+        })
+      }
+
+      const toolCalls = yield* Effect.tryPromise({
+        try: async () => {
+          // O gateway Omniroute sempre responde em streaming (SSE), mesmo sem stream:true —
+          // generateText() espera um JSON único e falha com "Invalid JSON response" nele.
+          const stream = streamText({
+            model: language,
+            system:
+              "Você roteia um turno de voz do Breniac. Se o texto do usuário corresponder claramente a um dos " +
+              "comandos de app disponíveis, chame a tool desse comando. Caso contrário, ou se o texto for um pedido " +
+              "de trabalho na sessão de código, chame session_prompt com o texto original.",
+            prompt: ctx.payload.text,
+            tools,
+            toolChoice: "required",
+          })
+          return await stream.toolCalls
+        },
+        catch: (cause) => new UpstreamError({ message: `Breniac: falha no roteamento (${String(cause)})`, service: "breniac" }),
+      })
+
+      const call = toolCalls[0]
+      if (!call)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: roteador não decidiu nada", service: "breniac" }))
+
+      if (call.toolName === "session_prompt") {
+        const input = call.input as { text?: string }
+        return { kind: "sessionPrompt", prompt: input.text ?? ctx.payload.text } satisfies RouteResponse
+      }
+
+      return {
+        kind: "appCommand",
+        commandID: call.toolName.slice(APP_COMMAND_TOOL_PREFIX.length),
+      } satisfies RouteResponse
+    })
+
+    return handlers
+      .handle("getConfig", getConfig)
+      .handle("setConfig", setConfig)
+      .handle("transcribe", transcribe)
+      .handle("route", route)
   }),
 )
