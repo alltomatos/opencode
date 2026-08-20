@@ -2,7 +2,9 @@ import { createMemo, createResource, Show, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useMutation } from "@tanstack/solid-query"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useBreniac } from "@/context/breniac"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { useProviders } from "@/hooks/use-providers"
@@ -28,7 +30,10 @@ export const SettingsBreniacV2: Component = () => {
     return result.data ?? {}
   })
 
+  const breniac = useBreniac()
+
   const [form, setForm] = createStore({
+    enabled: false,
     providerID: "",
     audioModel: "",
     transcriptionModel: "",
@@ -39,6 +44,7 @@ export const SettingsBreniacV2: Component = () => {
     const data = config()
     if (!data) return
     setForm({
+      enabled: data.enabled ?? false,
       providerID: data.providerID ?? "",
       audioModel: data.audioModel ?? "",
       transcriptionModel: data.transcriptionModel ?? "",
@@ -49,6 +55,7 @@ export const SettingsBreniacV2: Component = () => {
   const saveMutation = useMutation(() => ({
     mutationFn: async () => {
       const payload = {
+        enabled: form.enabled,
         providerID: form.providerID || undefined,
         audioModel: form.audioModel || undefined,
         transcriptionModel: form.transcriptionModel || undefined,
@@ -59,6 +66,7 @@ export const SettingsBreniacV2: Component = () => {
     },
     onSuccess: () => {
       void refetch()
+      breniac.refreshEnabled()
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.breniac.toast.saved") })
     },
     onError: (err) => {
@@ -102,6 +110,12 @@ export const SettingsBreniacV2: Component = () => {
           fallback={<div class="settings-v2-models-status">{language.t("common.loading")}</div>}
         >
           <SettingsListV2>
+            <SettingsRowV2
+              title={language.t("settings.breniac.field.enabled.title")}
+              description={language.t("settings.breniac.field.enabled.description")}
+            >
+              <Switch checked={form.enabled} onChange={(value) => setForm("enabled", value)} />
+            </SettingsRowV2>
             <SettingsRowV2
               title={language.t("settings.breniac.field.provider.title")}
               description={language.t("settings.breniac.field.provider.description")}

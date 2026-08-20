@@ -1136,6 +1136,8 @@ export const dict = {
   "settings.breniac.recommended.tier.ok": "paid, no known limit",
   "settings.breniac.recommended.tier.limited": "free, rate-limited",
   "settings.breniac.recommended.notInCatalog": "not in the local catalog, should still work",
+  "settings.breniac.field.enabled.title": "Enable Breniac",
+  "settings.breniac.field.enabled.description": "Show the Breniac toggle in the sidebar. Off by default.",
   "settings.breniac.field.provider.title": "Provider",
   "settings.breniac.field.provider.description": "Provider used for Breniac's voice conversation.",
   "settings.breniac.field.audioModel.title": "Audio model",

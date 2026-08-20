@@ -1868,6 +1868,7 @@ export type McpRemoteConfig = {
 }
 
 export type BreniacConfig = {
+  enabled?: boolean
   providerID?: string
   audioModel?: string
   transcriptionModel?: string

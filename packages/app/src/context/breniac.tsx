@@ -1,5 +1,6 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useNavigate, useParams } from "@solidjs/router"
+import { createResource } from "solid-js"
 import { appendTurn } from "@/components/breniac/append-turn"
 import { loadMemoryContext } from "@/components/breniac/load-memory"
 import { routeTurn, type BreniacRoute } from "@/components/breniac/route"
@@ -22,6 +23,11 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     const serverSDK = useServerSDK()
     const navigate = useNavigate()
     const params = useParams<{ dir?: string }>()
+
+    const [enabledResource, { refetch: refreshEnabled }] = createResource(async () => {
+      const result = await serverSDK().client.breniac.getConfig()
+      return result.data?.enabled ?? false
+    })
 
     // Auto-enviar o prompt de sessão sem revisão do usuário fica de fora
     // deliberadamente por ora: uma transcrição errada não deve disparar
@@ -108,6 +114,8 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       state: capture.state,
       on: () => capture.state() !== "idle",
       toggle,
+      enabled: () => enabledResource() ?? false,
+      refreshEnabled: () => void refreshEnabled(),
     }
   },
 })

@@ -3,6 +3,9 @@ export * as ConfigBreniacV1 from "./breniac"
 import { Schema } from "effect"
 
 export const Info = Schema.Struct({
+  enabled: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether the Breniac sidebar entry is shown at all (off by default)",
+  }),
   providerID: Schema.optional(Schema.String).annotate({
     description: "Provider used for Breniac's voice conversation (e.g. 'omnrt')",
   }),

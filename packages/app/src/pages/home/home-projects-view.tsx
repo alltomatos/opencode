@@ -174,19 +174,6 @@ export function HomeUtilityNav(props: {
       <HomeProjectNavButton
         type="button"
         class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
-        classList={{ "text-v2-state-fg-info": breniac.on() }}
-        onClick={() => void breniac.toggle()}
-        title={breniacStateLabel()}
-      >
-        <IconV2 name="breniac" size="small" />
-        <span class={HOME_PROJECT_NAV_LABEL}>
-          {props.language.t("sidebar.breniac")}
-          <Show when={breniac.on()}> · {breniacStateLabel()}</Show>
-        </span>
-      </HomeProjectNavButton>
-      <HomeProjectNavButton
-        type="button"
-        class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
         onClick={props.onOpenSettings}
       >
         <IconV2 name="settings-gear" size="small" />
@@ -200,6 +187,21 @@ export function HomeUtilityNav(props: {
         <IconV2 name="help" size="small" />
         <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.help")}</span>
       </HomeProjectNavButton>
+      <Show when={breniac.enabled()}>
+        <HomeProjectNavButton
+          type="button"
+          class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
+          classList={{ "text-v2-state-fg-info": breniac.on() }}
+          onClick={() => void breniac.toggle()}
+          title={breniacStateLabel()}
+        >
+          <IconV2 name="breniac" size="small" />
+          <span class={HOME_PROJECT_NAV_LABEL}>
+            {props.language.t("sidebar.breniac")}
+            <Show when={breniac.on()}> · {breniacStateLabel()}</Show>
+          </span>
+        </HomeProjectNavButton>
+      </Show>
     </div>
   )
 }
