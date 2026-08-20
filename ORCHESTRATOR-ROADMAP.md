@@ -129,7 +129,7 @@ Ver [issue #25](https://github.com/alltomatos/opencode/issues/25) pra lista comp
 
 ## Epic: Breniac (assistente de voz colaborador)
 
-**Status:** Fase 1 fatiada em issues, execução não iniciada.
+**Status:** Fase 1 concluída — todas as 14 issues (#35-48) fechadas em 2026-08-20, cada uma commitada, empurrada e verificada com testes reais contra o gateway Omniroute/servidor local (sem mocks). Loop completo de voz funcionando: ligar → captura de áudio → transcrição (Whisper) → roteamento (comando de app vs. prompt de sessão, via tool-calling) → execução real → resposta falada (PCM16) → memória incremental em disco → resumo ao desligar (projeto por padrão, global só com confirmação explícita) → expiração automática de arquivos temporários. Verificação end-to-end real de microfone/Electron ainda pendente (ambiente de dev sandboxed não tem acesso a dispositivo de áudio) — próximo passo é testar no app empacotado.
 **Branch:** `breniac` (criada a partir de `dev`).
 **Origem:** pedido do usuário por um assistente de voz "sempre ligado" que entende comandos de app (abrir projeto, iniciar sessão) e prompts de sessão, com memória e postura próprias. PRD completo em [`docs/prd/breniac-voice-assistant.md`](docs/prd/breniac-voice-assistant.md) — visão de produto, requisitos, arquitetura de memória (global + por projeto), `soul.md` (postura auto-aperfeiçoável, fora de escopo na Fase 1), decisão de infraestrutura (só Omniroute, sem self-hosting).
 
