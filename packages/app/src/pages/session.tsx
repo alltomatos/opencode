@@ -377,12 +377,15 @@ export default function Page() {
   const sessionOwnership = createSessionOwnership(sessionKey)
   const newSessionDesign = createMemo(() => settings.general.newLayoutDesigns())
 
+  // Pré-preenche o composer a partir de ?prompt= — usado tanto pra sessão nova
+  // quanto pra uma já aberta (ex.: o Breniac dita uma resposta e o usuário
+  // revisa/envia). Nunca envia sozinho, só coloca o texto na caixa. Rastreia
+  // searchParams.prompt de propósito (fora do untrack) pra reagir de novo
+  // quando o Breniac navegar pra essa mesma página com um ditado novo.
   createEffect(() => {
-    if (!prompt.ready()) return
+    const text = searchParams.prompt
+    if (!prompt.ready() || !text) return
     untrack(() => {
-      if (params.id) return
-      const text = searchParams.prompt
-      if (!text) return
       prompt.set([{ type: "text", content: text, start: 0, end: text.length }], text.length)
       setSearchParams({ ...searchParams, prompt: undefined })
     })

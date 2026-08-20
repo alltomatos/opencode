@@ -66,7 +66,10 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
         return language.t("breniac.speak.noProject")
       }
 
-      navigate(`/${params.dir}/session?prompt=${encodeURIComponent(route.prompt)}`)
+      // Se já tem sessão aberta, dita a resposta direto nela (o usuário revisa e
+      // envia); senão, abre o fluxo de nova sessão com o prompt pré-preenchido.
+      const sessionPath = params.id ? `/${params.dir}/session/${params.id}` : `/${params.dir}/session`
+      navigate(`${sessionPath}?prompt=${encodeURIComponent(route.prompt)}`)
       return language.t("breniac.speak.promptReady")
     }
 
