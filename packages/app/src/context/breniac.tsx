@@ -1,6 +1,6 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { base64Encode } from "@opencode-ai/core/util/encode"
-import { useNavigate, useParams } from "@solidjs/router"
+import { useNavigate } from "@solidjs/router"
 import { createResource } from "solid-js"
 import { appendTurn } from "@/components/breniac/append-turn"
 import { loadMemoryContext } from "@/components/breniac/load-memory"
@@ -13,9 +13,11 @@ import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { screenFocus } from "@/context/screen-focus"
+import { useServer } from "@/context/server"
 import { useServerSDK } from "@/context/server-sdk"
+import { useServerSync } from "@/context/server-sync"
+import { useTabs } from "@/context/tabs"
 import { displayName } from "@/pages/layout/helpers"
-import { decode64 } from "@/utils/base64"
 import { showToast } from "@/utils/toast"
 
 export const { use: useBreniac, provider: BreniacProvider } = createSimpleContext({
@@ -26,20 +28,40 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     const language = useLanguage()
     const serverSDK = useServerSDK()
     const navigate = useNavigate()
-    const params = useParams<{ dir?: string; id?: string }>()
     const layout = useLayout()
+    const serverSync = useServerSync()
+    const tabs = useTabs()
+    const server = useServer()
 
-    // A rota (useParams) não muda quando um diálogo (ex.: Configurações) abre por
-    // cima da tela — sem screenFocus o Breniac ficaria cego pra isso e continuaria
-    // descrevendo só o que está por baixo. screenFocus tem prioridade quando setado.
+    // useParams() só cobre a rota /:dir/session/:id — o app tem outros estados
+    // ativos que não passam por ela (uma aba de rascunho/"nova sessão" usa
+    // /new-session?draftId=, sessões antigas usam /server/:key/session/:id) e
+    // ficavam invisíveis pro Breniac. layout.route() já normaliza os três
+    // formatos (mesma lógica que dialog-settings-v2.tsx usa pra achar o
+    // diretório atual) — usa isso como fonte única de verdade.
+    const currentDirectory = (): string | undefined => {
+      const route = layout.route()
+      if (route.type === "dir-new-sesssion") return route.dir
+      if (route.type === "draft") {
+        const draft = tabs.store.find((item) => item.type === "draft" && item.draftID === route.draftID)
+        return draft?.type === "draft" ? draft.directory : undefined
+      }
+      if (route.type === "session") return serverSync().session.get(route.sessionId)?.directory
+      return undefined
+    }
+
+    // A rota não muda quando um diálogo (ex.: Configurações) abre por cima da
+    // tela — sem screenFocus o Breniac ficaria cego pra isso. screenFocus tem
+    // prioridade quando setado.
     const routeScreen = () => {
-      const directory = decode64(params.dir)
+      const directory = currentDirectory()
       if (!directory) return "Tela inicial (lista de projetos), nenhum projeto aberto."
       const project = layout.projects.list().find((item) => item.worktree === directory)
       const name = project ? displayName(project) : directory
-      return params.id
-        ? `Projeto "${name}" aberto, com uma sessão de código ativa.`
-        : `Projeto "${name}" aberto, sem sessão ativa (tela de nova sessão).`
+      const serverLabel = server.isLocal() ? "servidor local" : "servidor remoto"
+      const sessionState =
+        layout.route().type === "session" ? "com uma sessão de código ativa" : "sem sessão ativa (tela de nova sessão)"
+      return `Projeto "${name}" aberto (${serverLabel}), ${sessionState}.`
     }
     const currentScreen = () => {
       const focus = screenFocus.label()
@@ -65,7 +87,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
 
       if (route.kind === "answer") return route.answer
 
-      const directory = decode64(params.dir)
+      const directory = currentDirectory()
       if (!directory) {
         showToast({
           title: language.t("breniac.toast.noProject.title"),
@@ -76,7 +98,10 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
 
       // Se já tem sessão aberta, dita a resposta direto nela (o usuário revisa e
       // envia); senão, abre o fluxo de nova sessão com o prompt pré-preenchido.
-      const sessionPath = params.id ? `/${params.dir}/session/${params.id}` : `/${params.dir}/session`
+      const layoutRoute = layout.route()
+      const dirBase64 = base64Encode(directory)
+      const sessionPath =
+        layoutRoute.type === "session" ? `/${dirBase64}/session/${layoutRoute.sessionId}` : `/${dirBase64}/session`
       navigate(`${sessionPath}?prompt=${encodeURIComponent(route.prompt)}`)
       return language.t("breniac.speak.promptReady")
     }
@@ -103,7 +128,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
     const toggle = async () => {
       if (capture.state() === "idle") {
         voiceSessionID = crypto.randomUUID()
-        memoryContext = await loadMemoryContext(serverSDK, decode64(params.dir))
+        memoryContext = await loadMemoryContext(serverSDK, currentDirectory())
         await capture.start()
         return
       }
@@ -112,7 +137,7 @@ export const { use: useBreniac, provider: BreniacProvider } = createSimpleContex
       voiceSessionID = undefined
       capture.stop()
 
-      const directory = decode64(params.dir)
+      const directory = currentDirectory()
       if (!sessionID || !directory) return
 
       summarizeVoiceSession(serverSDK, sessionID, directory)
