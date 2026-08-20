@@ -1,0 +1,173 @@
+# PRD — Breniac: Assistente de Voz Colaborador
+
+**Status:** Rascunho / descoberta
+**Branch:** `breniac` (criado a partir de `dev`)
+**Autor:** Ronaldo + Claude (sessão de exploração)
+**Última atualização:** 2026-08-20
+
+## 1. Contexto
+
+O opencode (fork) já tem um agente de chat completo — sessões, delegação de subagentes (Batuta), execução de tools, streaming de resposta token a token. O que falta é um modo de **interação por voz contínua**, onde o usuário liga um assistente (não grava um trecho e solta) e conversa com ele como conversaria com um colega: pede pra abrir um projeto, iniciar uma sessão, e a partir daí conduz o trabalho por voz, com o assistente executando e respondendo em tempo real.
+
+Este documento registra a visão do produto e o que já foi levantado tecnicamente, para servir de base às próximas decisões de arquitetura e às issues que vão fatiar a implementação.
+
+## 2. Visão do produto
+
+**Breniac** é um colaborador de voz embutido no opencode. Não é um "ditado" (falar substitui digitar no composer) nem um "grava e manda" (like a voice memo). É um **modo ligado/desligado**: o usuário aciona um botão/atalho, o assistente fica "no ar" ouvindo, entende comandos tanto de **nível de aplicativo** (navegação, gestão de projetos/sessões) quanto de **nível de sessão** (pedir pra editar um arquivo, rodar um comando, delegar pra um worker Batuta), executa, e responde falando — sem que o usuário precise tocar em teclado ou mouse no meio do fluxo.
+
+Exemplo do próprio pedido do usuário, que define o critério de aceite mais concreto que temos:
+
+> "por favor abra o projeto X e vamos iniciar uma nova sessão"
+
+Isso implica que Breniac não vive só dentro de uma sessão de chat — ele tem que enxergar e acionar o **app shell inteiro**: lista de projetos, criação de sessão, e (por extensão natural) o resto do que hoje só é alcançável clicando na UI.
+
+## 3. Não-objetivos (por agora)
+
+- Não é objetivo desta fase suportar múltiplos idiomas simultâneos ou troca de idioma em tempo real (assume-se o idioma configurado no app).
+- Não é objetivo ter wake-word ("Ei Breniac") nesta primeira versão — a ativação é manual (botão/atalho), não por voz.
+- Não é objetivo rodar 100% local/offline — a v1 depende de um provedor de modelo com áudio (via Omniroute), não de STT/TTS embarcados.
+- Não é objetivo cobrir mobile/web público — o foco é o app desktop (Electron).
+
+## 4. Persona e caso de uso principal
+
+**Persona:** o próprio Ronaldo, desenvolvendo com o opencode aberto, mãos ocupadas ou querendo manter o fluxo sem trocar de janela/foco de teclado — quer comandar o app com a voz enquanto olha código, revisa algo, ou está longe do teclado.
+
+**Fluxo principal (happy path):**
+
+1. Usuário aciona Breniac (botão fixo na UI, ou atalho de teclado global).
+2. Um indicador visual mostra que o assistente está "ligado" e ouvindo.
+3. Usuário fala: *"Abre o projeto opencode e inicia uma sessão nova."*
+4. Breniac entende que isso é uma ação de app (não um prompt de sessão), executa: seleciona/abre o projeto, cria uma nova sessão.
+5. Breniac confirma por voz: *"Pronto, sessão nova aberta no opencode."*
+6. Usuário continua falando, agora dentro do contexto da sessão: *"Roda os testes e me diz se passou."*
+7. Breniac interpreta isso como um prompt de sessão, envia pro fluxo normal de chat (que já dispara tools como `bash`), acompanha a execução, e quando a resposta streamada terminar, fala o resumo de volta.
+8. Usuário desliga o Breniac (mesmo botão/atalho) quando quiser voltar ao silêncio.
+
+## 5. Requisitos funcionais
+
+### 5.1 Ativação
+- **RF-01**: Um controle único (botão na UI + atalho de teclado global) liga/desliga o modo Breniac. Não é push-to-talk nem gravação de trecho — é um estado persistente "ligado" até ser desligado.
+- **RF-02**: Indicador visual claro do estado (ocioso / ouvindo / processando / falando), visível mesmo se a janela não estiver em foco (ex.: badge no ícone da barra de tarefas, ou overlay).
+- **RF-03**: Desligar o Breniac interrompe qualquer fala em andamento e para de escutar imediatamente.
+
+### 5.2 Entendimento de comandos — dois níveis
+- **RF-04 (nível de app)**: Breniac precisa reconhecer intenções que mapeiam pra **ações do app shell** — não são prompts de LLM dentro de uma sessão, são comandos diretos: abrir projeto, criar sessão, trocar de sessão, abrir Batuta, abrir configurações, etc.
+- **RF-05 (nível de sessão)**: Quando o usuário está "dentro" de uma sessão (ou pede pra criar uma), a fala vira um prompt normal enviado pro fluxo de chat existente — reaproveita 100% o pipeline de streaming/tools que já existe.
+- **RF-06**: Precisa haver alguma forma de decidir "isso é um comando de app ou um prompt de sessão?" — seja via um roteador leve (regras + fallback pro LLM), seja delegando essa decisão pro próprio modelo de voz com acesso às duas famílias de "tools".
+
+### 5.3 Execução
+- **RF-07**: Comandos de app executam de verdade (não é só transcrição bonita) — mesma ideia already validada com Batuta: sem mock, ação real.
+- **RF-08**: Tools dentro de sessão (bash, edit, task, etc.) continuam executando exatamente como hoje — Breniac não reimplementa isso, só governa a entrada (voz→prompt) e a saída (resposta→voz) desse fluxo já existente.
+
+### 5.4 Resposta falada
+- **RF-09**: A resposta falada deve começar assim que houver conteúdo suficiente — não esperar a resposta inteira do LLM terminar pra só então começar a falar (mesmo princípio de streaming que já existe pro texto).
+- **RF-10**: Se a resposta de texto for muito longa (ex.: um diff grande, uma lista extensa de arquivos), Breniac deve resumir por voz em vez de "ler" tudo — o texto completo continua disponível na UI normalmente.
+- **RF-11**: O usuário deve poder interromper Breniac falando por cima (barge-in) — pelo menos na v2 (ver seção de fases); a v1 pode exigir esperar a resposta terminar antes do próximo comando.
+
+### 5.5 Contexto e permissões
+- **RF-12**: Breniac herda as mesmas permissões/regras de ferramentas já configuradas no opencode (ruleset de permissão por sessão/agente) — não é um caminho paralelo que ignora `permission.ask`/bloqueios existentes.
+- **RF-13**: Ações destrutivas (deletar projeto, remover sessão, etc.) continuam exigindo confirmação — por voz ("tem certeza?") ou caindo pra UI, não executam direto só por terem sido faladas.
+
+## 6. Requisitos não funcionais
+
+- **RNF-01 (latência)**: o ciclo fala→ação/resposta precisa parecer conversacional — a v1 aceita alguns segundos de latência por turno (não é tempo real duplex), mas não pode ser "grava, espera 10s, ouve resposta" para comandos simples de app.
+- **RNF-02 (custo)**: cada turno de voz consome tokens de um modelo de áudio (mais caro que texto puro) — precisa de visibilidade de custo/uso, e idealmente um jeito de desligar Breniac sem custo residual.
+- **RNF-03 (privacidade)**: áudio do microfone é sensível por natureza. Precisa ficar claro pro usuário quando está sendo capturado (RF-02) e o áudio deve ir só pro provedor configurado (Omniroute), sem gravação/persistência desnecessária local ou no servidor além do necessário pro turno atual.
+- **RNF-04 (degradação graciosa)**: se o microfone não tiver permissão, ou o provedor de áudio falhar, o app não pode quebrar — cai pra aviso claro + sugestão de liberar permissão/checar conexão.
+- **RNF-05 (acessibilidade)**: Breniac é um recurso adicional, não uma substituição — todo comando que ele executa precisa continuar sendo alcançável por teclado/mouse.
+
+## 7. O que já sabemos tecnicamente (descoberta feita nesta sessão)
+
+### 7.1 Transporte em tempo real do opencode hoje
+- **SSE, não WebSocket**, é o canal de sessão/chat (`GET /event`, implementado em `packages/opencode/src/server/routes/instance/httpapi/handlers/event.ts` com `effect/unstable/encoding/Sse`). A resposta do LLM já é streamada token a token via `streamText()` da Vercel AI SDK (`packages/opencode/src/session/llm.ts`), normalizada em `session/llm/ai-sdk.ts` e publicada no mesmo barramento de eventos que alimenta o SSE.
+- **WebSocket já existe no projeto, mas só pro terminal (PTY)** — `packages/opencode/src/server/routes/instance/httpapi/handlers/pty.ts` (upgrade HTTP→WS via `ctx.request.upgrade`), cliente em `packages/app/src/components/terminal.tsx`, com um `WebSocketTracker` pra fechar tudo no shutdown. **Esse é o padrão de referência caso a v2 do Breniac precise de duplex de áudio de verdade** (áudio binário nos dois sentidos, baixa latência) — não precisaríamos inventar a abstração de socket do zero.
+- Não existe hoje nenhum suporte a áudio/voz no codebase (sem `getUserMedia`, `MediaRecorder`, STT/TTS) além de efeitos sonoros de notificação (`packages/tui/src/audio.ts`, `packages/app/src/utils/sound.ts`).
+
+### 7.2 Permissão de microfone no Electron — bloqueada hoje
+`packages/desktop/src/main/windows.ts:25-27` só permite as permissões `clipboard-sanitized-write` e `notifications`; qualquer outra (incluindo `"media"`, que cobre microfone) é negada por padrão pelo `setPermissionRequestHandler`/`setPermissionCheckHandler`. **Pré-requisito técnico**: adicionar `"media"` a `rendererPermissions`, e no macOS declarar `NSMicrophoneUsageDescription` no plist/entitlements (não existe hoje).
+
+### 7.3 Modelo de voz — testado e funcional via Omniroute
+- O provedor `omnrt` (Omniroute), já configurado no opencode, expõe **1565 modelos**, incluindo vários de áudio.
+- **Testei de verdade** (fora do opencode, direto contra o gateway) o modelo `openrouter/openai/gpt-audio-mini` via `POST /v1/chat/completions` com `modalities: ["text","audio"]` e `audio: {voice, format: "pcm16"}`: retornou **200 OK**, streaming SSE, resposta em texto ("OK") + ~28.8 KB de áudio PCM16 real. **Esse é o modelo mais promissor pra Breniac**, porque faz entrada+saída de texto/áudio no mesmo modelo (não precisa orquestrar STT + LLM + TTS como três serviços separados).
+  - Achado técnico importante: **o formato de áudio de saída tem que ser `pcm16`** — `mp3`, `opus`, `aac`, `flac`, `wav` todos retornaram `unsupported_value` da OpenAI.
+  - Ainda não testei mandar **áudio de entrada** (só testei pedir áudio de saída) — próximo passo técnico antes de fechar a arquitetura.
+- **STT isolado também funciona**: `openrouter/openai/whisper-1` via `POST /v1/audio/transcriptions` (multipart/form-data com arquivo de áudio) retornou 200 com transcrição real.
+- **TTS isolado (Gemini) não está pronto**: `gemini-2.5-pro-preview-tts` retorna `"No credentials for provider: vertex"` — falta crédito/credencial de Vertex na conta Omniroute. `kc/openai/gpt-audio-mini` (rota kilocode, diferente da rota openrouter que funcionou) retorna `402 Add credits`.
+- **Áudio nativo/realtime "puro" (Gemini Live API) não está mapeado no gateway**: `gemini/gemini-2.5-flash-native-audio-latest` retorna 404 — esse modelo precisa da API Live/bidiGenerateContent (websocket) do Google, não da rota REST padrão que o Omniroute está usando pra ele hoje.
+- **Cuidado operacional**: as chamadas diretas ao gateway retornam `403` (Cloudflare, "error code 1010") se o `User-Agent` do cliente não parecer um navegador — qualquer implementação real (incluindo o backend do opencode) precisa mandar um `User-Agent` de navegador normal pras chamadas ao Omniroute não serem bloqueadas no edge.
+
+### 7.4 Superfície de "ações de app" já existente pra reaproveitar
+O opencode já tem um **command palette** com registro de comandos (`packages/app/src/context/command.tsx`, `CommandOption { id, title, description?, category?, keybind? }`), usado hoje por atalhos de teclado e pela paleta (Cmd+K). **Isso é o encaixe natural pras "ações de nível de app" do RF-04** — em vez de Breniac reimplementar "abrir projeto"/"nova sessão" do zero, ele pode expor (um subconjunto de, ou todos) os comandos já registrados na paleta como a lista de ações que o modelo de voz pode invocar (via tool-calling do próprio modelo de áudio, ou via um roteador de intenção mais simples). Precisa de investigação futura pra confirmar cobertura (nem todo comando de teclado hoje tem os parâmetros necessários pra ser chamado "as a function" — ex.: "abrir projeto X" precisa resolver X pra um projeto real, o comando de teclado hoje assume que o usuário já está navegando visualmente).
+
+## 8. Arquitetura proposta (alto nível, sujeita a validação)
+
+```
+[Microfone do usuário]
+        │  áudio (PCM16, streaming)
+        ▼
+[Camada de captura no app — precisa de permissão "media" liberada no Electron]
+        │
+        ▼
+[Roteador de turno]  ── decide: comando de app OU prompt de sessão
+        │                              │
+        │ comando de app               │ prompt de sessão
+        ▼                              ▼
+[Executor de comandos]          [Fluxo de chat existente: SSE + streamText + tools]
+        │                              │
+        └──────────────┬───────────────┘
+                        ▼
+              [Resposta em texto, já streamada]
+                        │
+                        ▼
+        [Modelo de voz gera/streama áudio de resposta]
+                        │
+                        ▼
+              [Playback no app do usuário]
+```
+
+Duas variações possíveis pro "roteador de turno" e pro modelo em si — **ainda em aberto, precisa de decisão**:
+
+- **Opção A — um único modelo de áudio faz tudo**: manda a fala pro `gpt-audio-mini` com um "tool" de app-commands e um "tool" de enviar-prompt-de-sessão disponíveis; o próprio modelo decide qual usar (tool-calling nativo, que ele já suporta pra texto). Mais simples de operar, mas acopla a lógica de roteamento ao comportamento do modelo de terceiro.
+- **Opção B — STT separado + roteador próprio + LLM/TTS**: transcreve com Whisper, decide localmente (regras leves + fallback pro LLM de texto já usado na sessão) se é comando de app ou prompt, executa, e só gera áudio de saída (TTS) no final. Mais controle e mais barato por turno provavelmente, mas reintroduz a orquestração de 3 serviços que a Opção A evita.
+
+## 9. Fases propostas
+
+**Fase 1 — Turnos discretos, sem duplex real** (baixo risco, reaproveita quase tudo que já existe):
+- Botão liga/desliga captura de áudio (sem VAD sofisticado — um turno = falar, uma pausa detectável simples, processa).
+- STT (Whisper, já validado) → roteador simples (regras + fallback LLM) → executa comando de app OU manda como prompt de sessão.
+- Resposta falada gerada ao final (TTS ou o próprio `gpt-audio-mini`), tocada no app.
+- **Sem interrupção (barge-in)** — usuário espera Breniac terminar de falar antes do próximo comando.
+
+**Fase 2 — Conversa mais fluida**:
+- Streaming de resposta em áudio conforme os tokens de texto chegam (não espera a resposta inteira).
+- Barge-in (interromper Breniac falando por cima).
+- Possível migração pra um canal WebSocket dedicado (reaproveitando o padrão do PTY) se a latência round-trip por HTTP não for suficiente.
+
+**Fase 3 (especulativa, fora de escopo por ora)**:
+- Wake-word / ativação por voz.
+- Múltiplas vozes/personas.
+- Uso em mobile.
+
+## 10. Riscos e questões em aberto
+
+1. **Reconhecimento de "isso é comando de app ou prompt de sessão" é ambíguo por natureza.** Ex.: *"cria uma nova sessão pra revisar o PR 42"* já mistura os dois. Precisa de uma estratégia clara (provavelmente: deixar o próprio modelo decidir via tool-calling, com as duas famílias de ação expostas juntas, em vez de um classificador separado).
+2. **Custo de áudio por token é bem mais alto que texto** — precisa de um teto de uso ou aviso, especialmente porque o modo é "ligado" (não por turno explícito) e pode ficar escutando silêncio/ruído de fundo sem querer.
+3. **Permissão de microfone no Electron ainda não existe** — é um pré-requisito de engenharia antes de qualquer protótipo rodar dentro do app (funciona no browser hoje via `preview_start`, mas não no app empacotado).
+4. **TTS "de qualidade" ainda não está liberado na conta Omniroute** (falta crédito/credencial Vertex) — a Fase 1 pode depender de resolver isso, ou usar `gpt-audio-mini` (que já funciona) como fonte tanto de texto quanto de áudio de saída, evitando depender do TTS separado do Gemini.
+5. **Ainda não testamos áudio de entrada** (mandar a fala do usuário pro modelo) — só testamos pedir áudio de saída. Isso precisa ser validado antes de fechar a Opção A da arquitetura.
+6. **Cobertura do command palette pra virar "tools" de voz** não foi mapeada em detalhe — alguns comandos podem precisar de parâmetros que hoje só existem implicitamente (contexto visual da UI), não como argumentos explícitos.
+
+## 11. Métricas de sucesso (propostas)
+
+- Comando de app simples ("abre o projeto X e inicia uma sessão") executa corretamente em ≥95% das tentativas em teste manual.
+- Latência percebida (fim da fala do usuário → início da resposta falada) abaixo de ~3s pra comandos de app na Fase 1.
+- Zero execução de ação destrutiva sem confirmação, em qualquer teste.
+- Uso do modo Breniac não quebra nenhum fluxo existente de teclado/mouse (regressão zero na UI atual).
+
+## 12. Próximos passos
+
+1. Validar o envio de **áudio de entrada** pro `gpt-audio-mini` via Omniroute (fechar a dúvida da seção 10.5).
+2. Decidir Opção A vs Opção B da arquitetura (seção 8) com base nesse teste.
+3. Mapear quais comandos do command palette (`context/command.tsx`) fazem sentido como "ações de app" pra Breniac, e quais precisam de uma versão nova com parâmetros explícitos.
+4. Liberar permissão de microfone no Electron (`packages/desktop/src/main/windows.ts`) atrás de uma flag/feature gate, pra não expor isso a todos os usuários do fork prematuramente.
+5. Fatiar em issues (seguindo o mesmo padrão usado pro epic Batuta: slices verticais pequenos, `Blocked by` entre eles) assim que a arquitetura da seção 8 estiver decidida.
