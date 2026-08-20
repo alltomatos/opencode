@@ -43,6 +43,19 @@ export const RouteResponse = Schema.Struct({
 }).annotate({ identifier: "BreniacRouteResponse" })
 export type RouteResponse = Schema.Schema.Type<typeof RouteResponse>
 
+export const SpeakRequest = Schema.Struct({
+  text: Schema.String,
+}).annotate({ identifier: "BreniacSpeakRequest" })
+export type SpeakRequest = Schema.Schema.Type<typeof SpeakRequest>
+
+export const SpeakResponse = Schema.Struct({
+  /** Base64-encoded raw PCM16 samples (no container). */
+  audio: Schema.String,
+  sampleRate: Schema.Number,
+  channels: Schema.Number,
+}).annotate({ identifier: "BreniacSpeakResponse" })
+export type SpeakResponse = Schema.Schema.Type<typeof SpeakResponse>
+
 export const BreniacApi = HttpApi.make("breniac")
   .add(
     HttpApiGroup.make("breniac")
@@ -90,6 +103,18 @@ export const BreniacApi = HttpApi.make("breniac")
             identifier: "breniac.route",
             summary: "Route a transcribed turn",
             description: "Decide whether a transcribed turn is an app command or a session prompt.",
+          }),
+        ),
+        HttpApiEndpoint.post("speak", "/breniac/speak", {
+          query: WorkspaceRoutingQuery,
+          payload: SpeakRequest,
+          success: described(SpeakResponse, "Spoken audio for the response text"),
+          error: UpstreamError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "breniac.speak",
+            summary: "Speak a response",
+            description: "Send response text to the configured audio model and return PCM16 audio.",
           }),
         ),
       )

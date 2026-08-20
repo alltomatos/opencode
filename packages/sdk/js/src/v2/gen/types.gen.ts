@@ -2072,6 +2072,16 @@ export type BreniacRouteResponse = {
   prompt?: string
 }
 
+export type BreniacSpeakRequest = {
+  text: string
+}
+
+export type BreniacSpeakResponse = {
+  audio: string
+  sampleRate: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  channels: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7567,6 +7577,38 @@ export type BreniacRouteResponses = {
 }
 
 export type BreniacRouteResponse2 = BreniacRouteResponses[keyof BreniacRouteResponses]
+
+export type BreniacSpeakData = {
+  body?: BreniacSpeakRequest
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/breniac/speak"
+}
+
+export type BreniacSpeakErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * UpstreamError
+   */
+  502: UpstreamError
+}
+
+export type BreniacSpeakError = BreniacSpeakErrors[keyof BreniacSpeakErrors]
+
+export type BreniacSpeakResponses = {
+  /**
+   * Spoken audio for the response text
+   */
+  200: BreniacSpeakResponse
+}
+
+export type BreniacSpeakResponse2 = BreniacSpeakResponses[keyof BreniacSpeakResponses]
 
 export type ConfigGetData = {
   body?: never

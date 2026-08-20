@@ -23,6 +23,9 @@ import type {
   BreniacRouteResponses,
   BreniacSetConfigErrors,
   BreniacSetConfigResponses,
+  BreniacSpeakErrors,
+  BreniacSpeakRequest,
+  BreniacSpeakResponses,
   BreniacTranscribeErrors,
   BreniacTranscribeRequest,
   BreniacTranscribeResponses,
@@ -1563,6 +1566,43 @@ export class Breniac extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<BreniacRouteResponses, BreniacRouteErrors, ThrowOnError>({
       url: "/breniac/route",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Speak a response
+   *
+   * Send response text to the configured audio model and return PCM16 audio.
+   */
+  public speak<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      breniacSpeakRequest?: BreniacSpeakRequest
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "breniacSpeakRequest", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BreniacSpeakResponses, BreniacSpeakErrors, ThrowOnError>({
+      url: "/breniac/speak",
       ...options,
       ...params,
       headers: {

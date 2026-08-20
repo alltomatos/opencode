@@ -6,7 +6,7 @@ import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { jsonSchema, streamText, tool } from "ai"
 import { UpstreamError } from "../errors"
 import { InstanceHttpApi } from "../api"
-import type { RouteRequest, RouteResponse, TranscribeRequest } from "../groups/breniac"
+import type { RouteRequest, RouteResponse, SpeakRequest, SpeakResponse, TranscribeRequest } from "../groups/breniac"
 
 // Cloudflare (fronting Omniroute) blocks requests without a browser-like User-Agent.
 const BROWSER_USER_AGENT =
@@ -170,10 +170,100 @@ export const breniacHandlers = HttpApiBuilder.group(InstanceHttpApi, "breniac", 
       } satisfies RouteResponse
     })
 
+    const speak = Effect.fn("BreniacHttpApi.speak")(function* (ctx: { payload: SpeakRequest }) {
+      const config = yield* breniac.get()
+      if (!config.audioModel)
+        return yield* Effect.fail(new UpstreamError({ message: "Breniac: audioModel não configurado", service: "breniac" }))
+
+      const separator = config.audioModel.indexOf("/")
+      const providerID = config.audioModel.slice(0, separator)
+      const modelID = config.audioModel.slice(separator + 1)
+
+      const providerInfo = yield* provider.getProvider(providerID as any)
+      const baseURL = String(providerInfo.options["baseURL"] ?? "").replace(/\/$/, "")
+      const apiKey = providerInfo.key
+
+      const res = yield* Effect.tryPromise({
+        try: () =>
+          fetch(`${baseURL}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+              "User-Agent": BROWSER_USER_AGENT,
+            },
+            body: JSON.stringify({
+              model: modelID,
+              modalities: ["text", "audio"],
+              // pcm16 é o único formato de saída suportado pelo gateway pra esse modelo
+              // (mp3/opus/aac/flac/wav retornam "unsupported_value" da OpenAI).
+              audio: { voice: "alloy", format: "pcm16" },
+              messages: [{ role: "user", content: ctx.payload.text }],
+              stream: true,
+            }),
+          }),
+        catch: () => new UpstreamError({ message: "Breniac: falha ao chamar o modelo de áudio", service: "breniac" }),
+      })
+
+      if (!res.ok || !res.body) {
+        const body = yield* Effect.tryPromise({ try: () => res.text(), catch: () => "" }).pipe(
+          Effect.orElseSucceed(() => ""),
+        )
+        return yield* Effect.fail(
+          new UpstreamError({ message: `Breniac: resposta em áudio falhou (${res.status}): ${body}`, service: "breniac", status: res.status }),
+        )
+      }
+
+      const chunks = yield* Effect.tryPromise({
+        try: async () => {
+          const reader = res.body!.getReader()
+          const decoder = new TextDecoder()
+          const audioChunks: Uint8Array[] = []
+          let buffer = ""
+          for (;;) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split("\n")
+            buffer = lines.pop() ?? ""
+            for (const line of lines) {
+              const trimmed = line.trim()
+              if (!trimmed.startsWith("data:")) continue
+              const payload = trimmed.slice("data:".length).trim()
+              if (payload === "[DONE]") continue
+              try {
+                const json = JSON.parse(payload)
+                const audio = json.choices?.[0]?.delta?.audio?.data
+                if (typeof audio === "string") audioChunks.push(Uint8Array.from(atob(audio), (c) => c.charCodeAt(0)))
+              } catch {
+                // linha SSE incompleta ou não-JSON — ignora
+              }
+            }
+          }
+          return audioChunks
+        },
+        catch: () => new UpstreamError({ message: "Breniac: falha ao ler o stream de áudio", service: "breniac" }),
+      })
+
+      const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
+      const merged = new Uint8Array(total)
+      let offset = 0
+      for (const chunk of chunks) {
+        merged.set(chunk, offset)
+        offset += chunk.length
+      }
+
+      let binary = ""
+      for (let i = 0; i < merged.length; i++) binary += String.fromCharCode(merged[i]!)
+
+      return { audio: btoa(binary), sampleRate: 24000, channels: 1 } satisfies SpeakResponse
+    })
+
     return handlers
       .handle("getConfig", getConfig)
       .handle("setConfig", setConfig)
       .handle("transcribe", transcribe)
       .handle("route", route)
+      .handle("speak", speak)
   }),
 )
