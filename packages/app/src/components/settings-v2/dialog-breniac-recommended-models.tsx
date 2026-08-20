@@ -53,14 +53,16 @@ export const DialogBreniacRecommendedModels: Component<{
 
   const provider = createMemo(() => providers.all().get(OMNIROUTE_PROVIDER_ID))
 
+  // Não filtra pelo catálogo local (provider.models): esse catálogo é uma foto do
+  // momento em que o Omniroute foi conectado/sincronizado no app e pode estar
+  // desatualizado em relação ao que o gateway realmente serve (ex.:
+  // openrouter/openai/gpt-audio-mini existe e funciona de verdade no Omniroute —
+  // validado nesta sessão via chamada direta — mesmo quando ausente do catálogo
+  // local em cache). A curadoria manual abaixo já é a fonte de verdade.
   const available = createMemo(() => {
     const p = provider()
     if (!p) return { audioModel: [], transcriptionModel: [], memoryModel: [] } as Record<Field, Candidate[]>
-    return {
-      audioModel: CANDIDATES.audioModel.filter((c) => p.models[c.id]),
-      transcriptionModel: CANDIDATES.transcriptionModel.filter((c) => p.models[c.id]),
-      memoryModel: CANDIDATES.memoryModel.filter((c) => p.models[c.id]),
-    }
+    return CANDIDATES
   })
 
   const currentModelID = (field: Field) => {
@@ -135,6 +137,9 @@ export const DialogBreniacRecommendedModels: Component<{
                               {candidate.tier === "ok"
                                 ? language.t("settings.breniac.recommended.tier.ok")
                                 : language.t("settings.breniac.recommended.tier.limited")}
+                              <Show when={!provider()?.models[candidate.id]}>
+                                {" "}· {language.t("settings.breniac.recommended.notInCatalog")}
+                              </Show>
                             </span>
                           </label>
                         )}

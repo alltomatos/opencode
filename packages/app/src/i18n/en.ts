@@ -1135,6 +1135,7 @@ export const dict = {
   "settings.breniac.recommended.apply": "Apply",
   "settings.breniac.recommended.tier.ok": "paid, no known limit",
   "settings.breniac.recommended.tier.limited": "free, rate-limited",
+  "settings.breniac.recommended.notInCatalog": "not in the local catalog, should still work",
   "settings.breniac.field.provider.title": "Provider",
   "settings.breniac.field.provider.description": "Provider used for Breniac's voice conversation.",
   "settings.breniac.field.audioModel.title": "Audio model",

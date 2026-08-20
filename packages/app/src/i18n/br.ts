@@ -1068,6 +1068,7 @@ export const dict = {
   "settings.breniac.recommended.apply": "Aplicar",
   "settings.breniac.recommended.tier.ok": "pago, sem limite conhecido",
   "settings.breniac.recommended.tier.limited": "grátis, com limite de uso",
+  "settings.breniac.recommended.notInCatalog": "fora do catálogo local, deve funcionar mesmo assim",
   "settings.breniac.field.provider.title": "Provedor",
   "settings.breniac.field.provider.description": "Provedor usado na conversa de voz do Breniac.",
   "settings.breniac.field.audioModel.title": "Modelo de áudio",
