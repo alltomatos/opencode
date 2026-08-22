@@ -87,6 +87,8 @@ export type LocalProject = Partial<Project> & { worktree: string; expanded: bool
 export type HomeProjectSelection = { server: ServerConnection.Key; directory?: string }
 
 export type ReviewDiffStyle = "unified" | "split"
+
+export type ProjectSidebarTab = "code" | "batuta"
 export type ReviewChangeMode = "git" | "branch" | "turn"
 export type ReviewPanelSource = "context-button" | "other"
 
@@ -281,6 +283,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         projectSidebar: {
           opened: true,
           width: DEFAULT_PROJECT_SIDEBAR_WIDTH,
+          tab: "code" as ProjectSidebarTab,
         },
         terminal: {
           height: DEFAULT_TERMINAL_HEIGHT,
@@ -704,6 +707,10 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         width: createMemo(() => store.projectSidebar.width),
         resize(width: number) {
           setStore("projectSidebar", "width", width)
+        },
+        tab: createMemo(() => store.projectSidebar.tab),
+        setTab(tab: ProjectSidebarTab) {
+          setStore("projectSidebar", "tab", tab)
         },
       },
       terminal: {

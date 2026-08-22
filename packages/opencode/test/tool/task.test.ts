@@ -2,6 +2,8 @@ import { afterEach, describe, expect } from "bun:test"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Database } from "@opencode-ai/core/database/database"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
+import { InstanceBootstrap } from "@/project/bootstrap"
+import { InstanceStore } from "@/project/instance-store"
 import { SessionProjector } from "@opencode-ai/core/session/projector"
 import { Deferred, Effect, Exit, Fiber, Layer } from "effect"
 import { Agent } from "../../src/agent/agent"
@@ -17,6 +19,7 @@ import { SessionRunState } from "@/session/run-state"
 import { SessionStatus } from "@/session/status"
 
 import { TaskTool, type TaskPromptOps } from "../../src/tool/task"
+import { Batuta } from "@/batuta"
 import { Truncate } from "@/tool/truncate"
 import { ToolRegistry } from "@/tool/registry"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -51,8 +54,12 @@ const layer = (flags: Partial<RuntimeFlags.Info> = {}) =>
       Database.node,
       RuntimeFlags.node,
       Ripgrep.node,
+      Batuta.node,
     ]),
-    [[RuntimeFlags.node, RuntimeFlags.layer(flags)]],
+    [
+      [RuntimeFlags.node, RuntimeFlags.layer(flags)],
+      [InstanceStore.bootstrapNode, InstanceBootstrap.node],
+    ],
   )
 
 const it = testEffect(layer())
@@ -980,6 +987,78 @@ describe("tool.task", () => {
 
       expect((yield* jobs.get(child.id))?.status).toBe("cancelled")
       expect((yield* jobs.get(grandchild.id))?.status).toBe("cancelled")
+    }),
+  )
+
+  it.instance("execute delegates to a Batuta worker by label, using its model", () =>
+    Effect.gen(function* () {
+      const batutaSvc = yield* Batuta.Service
+      const sessions = yield* Session.Service
+      const workerModel = {
+        providerID: ProviderV2.ID.make("worker-provider"),
+        modelID: ModelV2.ID.make("worker-model"),
+      }
+      yield* batutaSvc.add({
+        id: "activity-1",
+        name: "Test activity",
+        goal: "do the thing",
+        orchestratorModel: `${ref.providerID}/${ref.modelID}`,
+        workers: [{ id: "w1", label: "reviewer", model: `${workerModel.providerID}/${workerModel.modelID}` }],
+      })
+      const { sessionID } = yield* batutaSvc.start("activity-1")
+
+      const user = yield* sessions.updateMessage({
+        id: MessageID.ascending(),
+        role: "user",
+        sessionID,
+        agent: "build",
+        model: ref,
+        time: { created: Date.now() },
+      })
+      const assistant: SessionV1.Assistant = {
+        id: MessageID.ascending(),
+        role: "assistant",
+        parentID: user.id,
+        sessionID,
+        mode: "build",
+        agent: "build",
+        cost: 0,
+        path: { cwd: "/tmp", root: "/tmp" },
+        tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+        modelID: ref.modelID,
+        providerID: ref.providerID,
+        time: { created: Date.now() },
+      }
+      yield* sessions.updateMessage(assistant)
+
+      const tool = yield* TaskTool
+      const def = yield* tool.init()
+      let seen: SessionPrompt.PromptInput | undefined
+      const promptOps = stubOps({ text: "reviewed", onPrompt: (input) => (seen = input) })
+
+      const result = yield* def.execute(
+        {
+          description: "review the change",
+          prompt: "please review",
+          subagent_type: "reviewer",
+        },
+        {
+          sessionID,
+          messageID: assistant.id,
+          agent: "build",
+          abort: new AbortController().signal,
+          extra: { promptOps, bypassAgentCheck: true },
+          messages: [],
+          metadata: () => Effect.void,
+          ask: () => Effect.void,
+        },
+      )
+
+      const kids = yield* sessions.children(sessionID)
+      expect(kids).toHaveLength(1)
+      expect(seen?.model?.providerID).toBe(workerModel.providerID)
+      expect(seen?.model?.modelID).toBe(workerModel.modelID)
+      expect(result.output).toContain("state=\"completed\"")
     }),
   )
 })

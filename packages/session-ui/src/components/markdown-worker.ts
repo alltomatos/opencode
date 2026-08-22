@@ -27,6 +27,15 @@ type ParsePending = {
   reject: (error: Error) => void
 }
 
+function safeReject(reject: (error: Error) => void, error: Error) {
+  try {
+    reject(error)
+  } catch {
+    // A consumer's .catch/.then handler threw synchronously — swallow it so one
+    // bad callback can't crash the caller (e.g. worker teardown, dispose loops).
+  }
+}
+
 let worker: Worker | undefined
 let disabled: Error | undefined
 let nextID = 0
@@ -42,7 +51,7 @@ const transport = createWorkerTransport<Extract<MarkdownWorkerRequest, { type: "
     const result = pending.get(request.id)
     if (!result) return
     pending.delete(request.id)
-    result.reject(new MarkdownWorkerSupersededError())
+    safeReject(result.reject, new MarkdownWorkerSupersededError())
   },
 })
 const projectTransport = createWorkerTransport<Extract<MarkdownWorkerRequest, { type: "project" }>>({
@@ -51,7 +60,7 @@ const projectTransport = createWorkerTransport<Extract<MarkdownWorkerRequest, { 
     const result = projects.get(request.id)
     if (!result) return
     projects.delete(request.id)
-    result.reject(new MarkdownWorkerSupersededError())
+    safeReject(result.reject, new MarkdownWorkerSupersededError())
   },
 })
 
@@ -78,7 +87,7 @@ export function disposeMarkdownProjection(key: string) {
   projects.forEach((request, id) => {
     if (request.key !== key) return
     projects.delete(id)
-    request.reject(new MarkdownWorkerDisposedError())
+    safeReject(request.reject, new MarkdownWorkerDisposedError())
   })
   worker?.postMessage({ type: "dispose", key } satisfies MarkdownWorkerRequest)
 }
@@ -104,7 +113,7 @@ export function disposeStreamingCode(key: string) {
   pending.forEach((request, id) => {
     if (request.key !== key) return
     pending.delete(id)
-    request.reject(new MarkdownWorkerDisposedError())
+    safeReject(request.reject, new MarkdownWorkerDisposedError())
   })
   worker?.postMessage({ type: "dispose", key } satisfies MarkdownWorkerRequest)
 }
@@ -202,9 +211,9 @@ function getWorker() {
     disabled = error
     transport.reset()
     projectTransport.reset()
-    pending.forEach((request) => request.reject(error))
-    projects.forEach((request) => request.reject(error))
-    parses.forEach((request) => request.reject(error))
+    pending.forEach((request) => safeReject(request.reject, error))
+    projects.forEach((request) => safeReject(request.reject, error))
+    parses.forEach((request) => safeReject(request.reject, error))
     pending.clear()
     projects.clear()
     parses.clear()

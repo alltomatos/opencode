@@ -1867,6 +1867,54 @@ export type McpRemoteConfig = {
   timeout?: number
 }
 
+export type BatutaWorker = {
+  /**
+   * Stable identifier for this worker within the activity
+   */
+  id: string
+  /**
+   * Name the orchestrator uses to delegate to this worker via the task tool
+   */
+  label: string
+  /**
+   * Model for this worker, in 'providerID/modelID' form
+   */
+  model: string
+}
+
+export type BatutaActivity = {
+  /**
+   * Stable identifier for this activity
+   */
+  id: string
+  /**
+   * Display name for this activity
+   */
+  name: string
+  /**
+   * Initial goal/prompt given to the orchestrator
+   */
+  goal: string
+  /**
+   * Model that drives the orchestrator, in 'providerID/modelID' form
+   */
+  orchestratorModel: string
+  /**
+   * Workers the orchestrator can delegate to by label
+   */
+  workers: Array<BatutaWorker>
+  useWorktree?: boolean
+  directory?: string
+  branch?: string
+  phase?: "architecting" | "ready" | "orchestrating"
+  architectSessionID?: string
+  orchestratorSessionID?: string
+}
+
+export type BatutaConfig = {
+  [key: string]: BatutaActivity
+}
+
 /**
  * @deprecated Always uses stretch layout.
  */
@@ -1962,6 +2010,7 @@ export type Config = {
           enabled: boolean
         }
   }
+  batuta?: BatutaConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
    */
@@ -2029,6 +2078,12 @@ export type Config = {
     mcp_timeout?: number
     policies?: Array<ConfigV2ExperimentalPolicy>
   }
+}
+
+export type BatutaActivityNotFoundError = {
+  _tag: "BatutaActivityNotFoundError"
+  id: string
+  message: string
 }
 
 export type Model = {
@@ -7406,6 +7461,348 @@ export type EventSubscribeResponses = {
 }
 
 export type EventSubscribeResponse = EventSubscribeResponses[keyof EventSubscribeResponses]
+
+export type BatutaListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta"
+}
+
+export type BatutaListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BatutaListError = BatutaListErrors[keyof BatutaListErrors]
+
+export type BatutaListResponses = {
+  /**
+   * List Batuta activities
+   */
+  200: Array<BatutaActivity>
+}
+
+export type BatutaListResponse = BatutaListResponses[keyof BatutaListResponses]
+
+export type BatutaAddData = {
+  body?: BatutaActivity
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta"
+}
+
+export type BatutaAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BatutaAddError = BatutaAddErrors[keyof BatutaAddErrors]
+
+export type BatutaAddResponses = {
+  /**
+   * Activity added successfully
+   */
+  200: BatutaActivity
+}
+
+export type BatutaAddResponse = BatutaAddResponses[keyof BatutaAddResponses]
+
+export type BatutaRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}"
+}
+
+export type BatutaRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BatutaRemoveError = BatutaRemoveErrors[keyof BatutaRemoveErrors]
+
+export type BatutaRemoveResponses = {
+  /**
+   * Activity removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type BatutaRemoveResponse = BatutaRemoveResponses[keyof BatutaRemoveResponses]
+
+export type BatutaStartData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/start"
+}
+
+export type BatutaStartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError
+   */
+  404: BatutaActivityNotFoundError
+}
+
+export type BatutaStartError = BatutaStartErrors[keyof BatutaStartErrors]
+
+export type BatutaStartResponses = {
+  /**
+   * Activity started
+   */
+  200: {
+    sessionID: string
+  }
+}
+
+export type BatutaStartResponse = BatutaStartResponses[keyof BatutaStartResponses]
+
+export type BatutaSyncData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/sync"
+}
+
+export type BatutaSyncErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError
+   */
+  404: BatutaActivityNotFoundError
+}
+
+export type BatutaSyncError = BatutaSyncErrors[keyof BatutaSyncErrors]
+
+export type BatutaSyncResponses = {
+  /**
+   * Current activity state and handoff (if ready)
+   */
+  200: {
+    activity: BatutaActivity
+    handoff?: string
+  }
+}
+
+export type BatutaSyncResponse = BatutaSyncResponses[keyof BatutaSyncResponses]
+
+export type BatutaBranchesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/branches"
+}
+
+export type BatutaBranchesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BatutaBranchesError = BatutaBranchesErrors[keyof BatutaBranchesErrors]
+
+export type BatutaBranchesResponses = {
+  /**
+   * Local git branches for the given directory
+   */
+  200: {
+    current?: string
+    branches: Array<string>
+  }
+}
+
+export type BatutaBranchesResponse = BatutaBranchesResponses[keyof BatutaBranchesResponses]
+
+export type BatutaDispatchData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/dispatch"
+}
+
+export type BatutaDispatchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError
+   */
+  404: BatutaActivityNotFoundError
+}
+
+export type BatutaDispatchError = BatutaDispatchErrors[keyof BatutaDispatchErrors]
+
+export type BatutaDispatchResponses = {
+  /**
+   * Orchestrator started
+   */
+  200: {
+    sessionID: string
+  }
+}
+
+export type BatutaDispatchResponse = BatutaDispatchResponses[keyof BatutaDispatchResponses]
+
+export type BatutaGetPipelineDefinitionData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/pipeline-definition"
+}
+
+export type BatutaGetPipelineDefinitionErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError
+   */
+  404: BatutaActivityNotFoundError
+}
+
+export type BatutaGetPipelineDefinitionError =
+  BatutaGetPipelineDefinitionErrors[keyof BatutaGetPipelineDefinitionErrors]
+
+export type BatutaGetPipelineDefinitionResponses = {
+  /**
+   * Current pipeline definition, if it exists
+   */
+  200: {
+    content?: string
+  }
+}
+
+export type BatutaGetPipelineDefinitionResponse =
+  BatutaGetPipelineDefinitionResponses[keyof BatutaGetPipelineDefinitionResponses]
+
+export type BatutaSetPipelineDefinitionData = {
+  body?: {
+    content: string
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/pipeline-definition"
+}
+
+export type BatutaSetPipelineDefinitionErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError
+   */
+  404: BatutaActivityNotFoundError
+}
+
+export type BatutaSetPipelineDefinitionError =
+  BatutaSetPipelineDefinitionErrors[keyof BatutaSetPipelineDefinitionErrors]
+
+export type BatutaSetPipelineDefinitionResponses = {
+  /**
+   * Pipeline definition saved
+   */
+  200: {
+    content?: string
+  }
+}
+
+export type BatutaSetPipelineDefinitionResponse =
+  BatutaSetPipelineDefinitionResponses[keyof BatutaSetPipelineDefinitionResponses]
+
+export type BatutaStartPipelineChatData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/pipeline-chat"
+}
+
+export type BatutaStartPipelineChatErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError
+   */
+  404: BatutaActivityNotFoundError
+}
+
+export type BatutaStartPipelineChatError = BatutaStartPipelineChatErrors[keyof BatutaStartPipelineChatErrors]
+
+export type BatutaStartPipelineChatResponses = {
+  /**
+   * Pipeline chat session started
+   */
+  200: {
+    sessionID: string
+  }
+}
+
+export type BatutaStartPipelineChatResponse = BatutaStartPipelineChatResponses[keyof BatutaStartPipelineChatResponses]
 
 export type ConfigGetData = {
   body?: never

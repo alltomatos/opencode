@@ -1429,7 +1429,9 @@ const layer = Layer.effect(
         throw error
       }
 
-      const templateParts = yield* resolvePromptParts(template)
+      const templateParts = (yield* resolvePromptParts(template)).map((part) =>
+        part.type === "text" ? { ...part, synthetic: true } : part,
+      )
       const inputFiles = new Set(
         input.parts?.filter((part) => new URL(part.url).protocol === "file:").map((part) => fileURLToPath(part.url)),
       )

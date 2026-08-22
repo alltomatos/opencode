@@ -1,3 +1,29 @@
+/* @keyframes must live at the stylesheet root — they cannot be nested inside
+   a selector block (the [data-component="session-turn"] rule below nests via
+   native CSS nesting, which is fine for regular rules, but a nested
+   @keyframes never registers, so `animation-name` silently resolves to
+   nothing and the element never actually animates). */
+@keyframes thinking-face-ponder {
+  0%,
+  100% {
+    transform: rotate(-6deg) scale(0.94);
+  }
+  50% {
+    transform: rotate(6deg) scale(1.08);
+  }
+}
+
+@keyframes thinking-face-eyebrow-raise {
+  0%,
+  35%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.1px);
+  }
+}
+
 [data-component="session-turn"] {
   --sticky-header-height: calc(var(--session-title-height, 0px) + 24px);
   height: 100%;
@@ -61,6 +87,17 @@
       width: 16px;
       height: 16px;
     }
+  }
+
+  .thinking-face-icon {
+    display: inline-flex;
+    transform-origin: 50% 65%;
+    animation: thinking-face-ponder 1.4s ease-in-out infinite;
+  }
+
+  .thinking-face-eyebrow {
+    transform-origin: 15px 7px;
+    animation: thinking-face-eyebrow-raise 1.8s ease-in-out infinite;
   }
 
   [data-component="text-reveal"].session-turn-thinking-heading {

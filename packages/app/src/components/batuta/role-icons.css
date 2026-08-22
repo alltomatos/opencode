@@ -1,0 +1,49 @@
+@keyframes batuta-role-conduct {
+  0%,
+  100% {
+    transform: rotate(-18deg);
+  }
+  50% {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes batuta-role-look {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(1.2px);
+  }
+}
+
+@keyframes batuta-role-work {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-16deg);
+  }
+}
+
+[data-role-icon="orchestrator"][data-animated="true"] [data-part="baton"] {
+  transform-origin: 12px 15px;
+  animation: batuta-role-conduct 0.9s ease-in-out infinite;
+}
+
+[data-role-icon="architect"][data-animated="true"] [data-part="eyes"] {
+  animation: batuta-role-look 1.6s ease-in-out infinite;
+}
+
+[data-role-icon="worker"][data-animated="true"] [data-part="arm"] {
+  transform-origin: 14.4px 17px;
+  animation: batuta-role-work 0.7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-role-icon] [data-part] {
+    animation: none !important;
+  }
+}

@@ -7,6 +7,8 @@ import { Session } from "@/session/session"
 import { SessionID, MessageID } from "../session/schema"
 import { MessageV2 } from "../session/message-v2"
 import { Agent } from "../agent/agent"
+import { Batuta, parseModel as parseBatutaModel } from "@/batuta"
+import { ConfigBatutaSkillsV1 } from "@opencode-ai/core/v1/config/batuta-skills"
 import { deriveSubagentSessionPermission } from "../agent/subagent-permissions"
 import type { SessionPrompt } from "../session/prompt"
 import { Config } from "@/config/config"
@@ -82,6 +84,7 @@ export const TaskTool = Tool.define(
   id,
   Effect.gen(function* () {
     const agent = yield* Agent.Service
+    const batuta = yield* Batuta.Service
     const background = yield* BackgroundJob.Service
     const config = yield* Config.Service
     const sessions = yield* Session.Service
@@ -128,7 +131,50 @@ export const TaskTool = Tool.define(
         })
       }
 
-      const next = yield* agent.get(params.subagent_type)
+      // Batuta activities register their workers against the orchestrator
+      // session; a worker label resolves before falling back to a
+      // config-defined agent, so it doesn't collide with build/plan/general
+      // or custom agent names.
+      const batutaWorker = yield* batuta.resolveWorker(ctx.sessionID, params.subagent_type)
+      // Fixed catalog of skills (e.g. "diagnose", "to-prd") a Batuta
+      // orchestrator can delegate to directly by slug, alongside its
+      // pre-configured workers — see batuta-skills.ts for the list.
+      const batutaSkill = !batutaWorker ? ConfigBatutaSkillsV1.bySlug.get(params.subagent_type) : undefined
+      const next = batutaWorker
+        ? {
+            name: batutaWorker.worker.label,
+            description: undefined,
+            mode: "subagent" as const,
+            native: undefined,
+            hidden: undefined,
+            topP: undefined,
+            temperature: undefined,
+            color: undefined,
+            permission: parent.permission ?? [],
+            model: parseBatutaModel(batutaWorker.worker.model),
+            variant: undefined,
+            prompt: undefined,
+            options: {},
+            steps: undefined,
+          }
+        : batutaSkill
+          ? {
+              name: batutaSkill.slug,
+              description: undefined,
+              mode: "subagent" as const,
+              native: undefined,
+              hidden: undefined,
+              topP: undefined,
+              temperature: undefined,
+              color: undefined,
+              permission: parent.permission ?? [],
+              model: undefined,
+              variant: undefined,
+              prompt: undefined,
+              options: {},
+              steps: undefined,
+            }
+          : yield* agent.get(params.subagent_type)
       if (!next) {
         return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
       }
@@ -159,6 +205,7 @@ export const TaskTool = Tool.define(
           parentID: ctx.sessionID,
           title: params.description + ` (@${next.name} subagent)`,
           agent: next.name,
+          directory: batutaWorker?.directory,
           permission: [
             ...childPermission,
             ...childToolDenies.filter(
@@ -197,8 +244,10 @@ export const TaskTool = Tool.define(
       const ops = ctx.extra?.promptOps as TaskPromptOps
       if (!ops) return yield* Effect.fail(new Error("TaskTool requires promptOps in ctx.extra"))
 
+      const effectivePrompt = batutaSkill ? `/${batutaSkill.slug}\n\n${params.prompt}` : params.prompt
+
       const runTask = Effect.fn("TaskTool.runTask")(function* () {
-        const parts = yield* ops.resolvePromptParts(params.prompt)
+        const parts = yield* ops.resolvePromptParts(effectivePrompt)
         const result = yield* ops.prompt({
           messageID: MessageID.ascending(),
           sessionID: nextSession.id,
