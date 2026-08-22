@@ -68,6 +68,9 @@ import { createSessionLineage } from "@/pages/session/session-lineage"
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
 import { NewHome } from "@/pages/home"
 import { BatutaPage } from "@/pages/batuta"
+import { BatutaActivityFormPage } from "@/pages/batuta/activity-form"
+import { BatutaActivityLivePage } from "@/pages/batuta/activity-live"
+import { SettingsPage } from "@/pages/settings"
 import { LegacyHome } from "@/pages/home/legacy-home"
 
 const NewSession = lazy(() => import("@/pages/new-session"))
@@ -639,6 +642,10 @@ function Routes(props: { serverScoped?: JSX.Element }) {
       <Show when={settings.general.newLayoutDesigns()}>
         <Route path="/" component={NewHome} />
         <Route path="/batuta" component={BatutaPage} />
+        <Route path="/batuta/new" component={BatutaActivityFormPage} />
+        <Route path="/batuta/:id/edit" component={BatutaActivityFormPage} />
+        <Route path="/batuta/:id/live" component={BatutaActivityLivePage} />
+        <Route path="/settings/:tab?" component={SettingsPage} />
         <Route path="/:dir/session/:id" component={NewLayoutLegacySessionRedirect} />
         <Route path="/server/:serverKey/session/:id" component={TargetSessionRoute} />
       </Show>

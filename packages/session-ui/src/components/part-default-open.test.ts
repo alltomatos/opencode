@@ -44,9 +44,32 @@ describe("partDefaultOpen", () => {
   test("preserves shell defaults", () => {
     expect(partDefaultOpen(tool("shell", {}), true, false)).toBe(true)
   })
+
+  test("collapses markdown writes even when edit expansion is enabled", () => {
+    expect(partDefaultOpen(tool("write", {}, { filePath: "docs/CONTEXT.md" }), false, true)).toBe(false)
+  })
+
+  test("collapses markdown patches even when edit expansion is enabled", () => {
+    expect(
+      partDefaultOpen(
+        tool("apply_patch", {
+          files: [
+            { filePath: "AGENTS.md", type: "update" },
+            { filePath: "CONTEXT.md", type: "update" },
+          ],
+        }),
+        false,
+        true,
+      ),
+    ).toBe(false)
+  })
+
+  test("keeps non-markdown writes expanded when edit expansion is enabled", () => {
+    expect(partDefaultOpen(tool("write", {}, { filePath: "src/index.ts" }), false, true)).toBe(true)
+  })
 })
 
-function tool(name: string, metadata: Record<string, unknown>): PartType {
+function tool(name: string, metadata: Record<string, unknown>, input: Record<string, unknown> = {}): PartType {
   return {
     id: `part_${name}`,
     sessionID: "session",
@@ -56,7 +79,7 @@ function tool(name: string, metadata: Record<string, unknown>): PartType {
     tool: name,
     state: {
       status: "completed",
-      input: {},
+      input,
       output: "",
       title: name,
       metadata,

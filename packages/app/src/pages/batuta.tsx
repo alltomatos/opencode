@@ -12,16 +12,12 @@ import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import type { BatutaActivity } from "@opencode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
-import { useServer } from "@/context/server"
+import { useSettings } from "@/context/settings"
 import { useServerSDK } from "@/context/server-sdk"
-import { sessionHref } from "@/utils/session-route"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "@/components/settings-v2/parts/list"
 import { SettingsRowV2 } from "@/components/settings-v2/parts/row"
-import { DialogBatutaActivityV2 } from "@/components/batuta/dialog-batuta-activity-v2"
-import { BatutaActivityPanel2D } from "@/components/batuta/activity-panel-2d"
-import { BatutaActivityPanel3D } from "@/components/batuta/activity-panel-3d"
-import { detectGpuSupport } from "@/utils/gpu"
+import "./batuta.css"
 
 const RUNNING_SESSIONS_KEY = "batuta.runningSessions.v1"
 
@@ -51,7 +47,7 @@ function ModelTag(props: { value: string }) {
 
 export function BatutaPage() {
   const language = useLanguage()
-  const server = useServer()
+  const settings = useSettings()
   const serverSDK = useServerSDK()
   const dialog = useDialog()
   const navigate = useNavigate()
@@ -82,14 +78,14 @@ export function BatutaPage() {
   }))
 
   const startMutation = useMutation(() => ({
-    mutationFn: async (id: string) => {
-      const result = await serverSDK().client.batuta.start({ id })
-      return { id, sessionID: result.data?.sessionID }
+    mutationFn: async (activity: BatutaActivity) => {
+      const result = await serverSDK().client.batuta.start({ id: activity.id, directory: activity.directory })
+      return { id: activity.id, sessionID: result.data?.sessionID }
     },
     onSuccess: ({ id, sessionID }) => {
       if (!sessionID) return
       setRunningSessions((prev) => ({ ...prev, [id]: sessionID }))
-      navigate(sessionHref(server.key, sessionID))
+      navigate(`/batuta/${id}/live`)
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
@@ -97,36 +93,9 @@ export function BatutaPage() {
     },
   }))
 
-  const openLivePanel = (activity: BatutaActivity, sessionID: string) => {
-    dialog.push(() => (
-      <Dialog fit class="settings-v2-server-dialog">
-        <DialogHeader hideClose={true}>
-          <DialogTitle>{language.t("batuta.panel.title")}</DialogTitle>
-        </DialogHeader>
-        <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2 overflow-y-auto max-h-[70vh]">
-          <Show
-            when={detectGpuSupport()}
-            fallback={<BatutaActivityPanel2D orchestratorSessionID={sessionID} activity={activity} />}
-          >
-            <BatutaActivityPanel3D orchestratorSessionID={sessionID} activity={activity} />
-          </Show>
-        </DialogBody>
-        <DialogFooter>
-          <ButtonV2 variant="neutral" onClick={() => dialog.close()}>
-            {language.t("common.close")}
-          </ButtonV2>
-        </DialogFooter>
-      </Dialog>
-    ))
-  }
+  const openCreate = () => navigate("/batuta/new")
 
-  const openCreate = () => {
-    dialog.push(() => <DialogBatutaActivityV2 onSaved={() => void refetch()} />)
-  }
-
-  const openEdit = (activity: BatutaActivity) => {
-    dialog.push(() => <DialogBatutaActivityV2 existing={activity} onSaved={() => void refetch()} />)
-  }
+  const openEdit = (activity: BatutaActivity) => navigate(`/batuta/${activity.id}/edit`)
 
   const confirmRemove = (activity: BatutaActivity) => {
     dialog.show(() => (
@@ -167,8 +136,13 @@ export function BatutaPage() {
       <ScrollView class="h-full">
         <div class="mx-auto flex w-full max-w-[720px] flex-col gap-6 px-3 py-8 lg:px-6">
           <div class="flex items-center gap-3">
-            <div class="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-v2-background-bg-raised text-v2-icon-icon-base">
-              <IconV2 name="batuta" size="large" />
+            <div class="flex size-16 shrink-0 items-center justify-center rounded-[14px] bg-v2-background-bg-raised text-v2-icon-icon-base">
+              <IconV2
+                name="batuta"
+                size="large"
+                class="size-9"
+                classList={{ "batuta-icon-conducting": settings.general.use3dAnimations() }}
+              />
             </div>
             <div class="flex min-w-0 flex-col gap-1">
               <h1 class="text-lg font-medium text-v2-text-text-base">{language.t("batuta.title")}</h1>
@@ -223,7 +197,7 @@ export function BatutaPage() {
               <SettingsListV2>
                 <For each={activities()}>
                   {(activity) => {
-                    const pending = () => startMutation.isPending && startMutation.variables === activity.id
+                    const pending = () => startMutation.isPending && startMutation.variables?.id === activity.id
                     return (
                       <SettingsRowV2
                         title={activity.name}
@@ -249,11 +223,13 @@ export function BatutaPage() {
                       >
                         <div class="flex items-center gap-1">
                           <Show when={runningSessions()[activity.id]}>
-                            {(sessionID) => (
-                              <ButtonV2 variant="neutral" size="normal" onClick={() => openLivePanel(activity, sessionID())}>
-                                {language.t("batuta.list.viewLive")}
-                              </ButtonV2>
-                            )}
+                            <ButtonV2
+                              variant="neutral"
+                              size="normal"
+                              onClick={() => navigate(`/batuta/${activity.id}/live`)}
+                            >
+                              {language.t("batuta.list.viewLive")}
+                            </ButtonV2>
                           </Show>
                           <IconButtonV2
                             variant="ghost-muted"
@@ -272,7 +248,7 @@ export function BatutaPage() {
                             variant="contrast"
                             size="normal"
                             disabled={pending()}
-                            onClick={() => startMutation.mutate(activity.id)}
+                            onClick={() => startMutation.mutate(activity)}
                           >
                             {pending() ? language.t("common.loading") : language.t("batuta.list.start")}
                           </ButtonV2>

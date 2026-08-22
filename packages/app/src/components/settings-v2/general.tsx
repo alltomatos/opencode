@@ -396,6 +396,23 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
+        <SettingsRowV2
+          title={
+            <span class="flex items-center gap-2">
+              <Icon name="dot-grid" class="size-3.5 shrink-0 text-text-weak" />
+              {language.t("settings.general.row.use3dAnimations.title")}
+            </span>
+          }
+          description={language.t("settings.general.row.use3dAnimations.description")}
+        >
+          <div data-action="settings-use-3d-animations">
+            <Switch
+              checked={settings.general.use3dAnimations()}
+              onChange={(checked) => settings.general.setUse3dAnimations(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+
         <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
           <SettingsRowV2
             title={language.t("settings.general.row.mobileTitlebarBottom.title")}

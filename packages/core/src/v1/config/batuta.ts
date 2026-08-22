@@ -24,7 +24,25 @@ export const Activity = Schema.Struct({
     description: "Workers the orchestrator can delegate to by label",
   }),
   useWorktree: Schema.optional(Schema.Boolean).annotate({
-    description: "Isolate each worker session in its own git worktree",
+    description:
+      "@deprecated worker isolation is now always-on — every worker always runs in its own git worktree, this field is ignored",
+  }),
+  directory: Schema.optional(Schema.String).annotate({
+    description: "Project directory this activity runs against",
+  }),
+  branch: Schema.optional(Schema.String).annotate({
+    description:
+      "Git branch the main checkout should be on when the activity starts. If it doesn't exist yet, it's created from the current HEAD.",
+  }),
+  phase: Schema.optional(Schema.Literals(["architecting", "ready", "orchestrating"])).annotate({
+    description:
+      "Which stage a running activity is in: architect studying, handoff ready for the user to dispatch, or orchestrator dispatching",
+  }),
+  architectSessionID: Schema.optional(Schema.String).annotate({
+    description: "Session ID of the dedicated architect session, set once start() creates it",
+  }),
+  orchestratorSessionID: Schema.optional(Schema.String).annotate({
+    description: "Session ID of the orchestrator session, set once the architect hands off",
   }),
 }).annotate({ identifier: "BatutaActivity" })
 export type Activity = Schema.Schema.Type<typeof Activity>

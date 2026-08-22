@@ -28,11 +28,24 @@ export function createWorkerTransport<T extends { id: number; key: string }>(inp
     dispose(key: string) {
       active.delete(key)
       const request = queued.get(key)
-      if (request) input.supersede(request)
+      if (request) {
+        try {
+          input.supersede(request)
+        } catch {
+          // See reset() — a consumer's rejection handler throwing must not propagate here.
+        }
+      }
       queued.delete(key)
     },
     reset() {
-      queued.forEach(input.supersede)
+      queued.forEach((request) => {
+        try {
+          input.supersede(request)
+        } catch {
+          // A consumer's rejection handler threw synchronously — don't let one
+          // bad callback abort teardown for the rest or crash the caller.
+        }
+      })
       queued.clear()
       active.clear()
     },

@@ -18,12 +18,24 @@ import type {
   BatutaActivity,
   BatutaAddErrors,
   BatutaAddResponses,
+  BatutaBranchesErrors,
+  BatutaBranchesResponses,
+  BatutaDispatchErrors,
+  BatutaDispatchResponses,
+  BatutaGetPipelineDefinitionErrors,
+  BatutaGetPipelineDefinitionResponses,
   BatutaListErrors,
   BatutaListResponses,
   BatutaRemoveErrors,
   BatutaRemoveResponses,
+  BatutaSetPipelineDefinitionErrors,
+  BatutaSetPipelineDefinitionResponses,
   BatutaStartErrors,
+  BatutaStartPipelineChatErrors,
+  BatutaStartPipelineChatResponses,
   BatutaStartResponses,
+  BatutaSyncErrors,
+  BatutaSyncResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -1532,7 +1544,7 @@ export class Batuta extends HeyApiClient {
   /**
    * Start a Batuta activity
    *
-   * Start a Batuta orchestration activity: creates the orchestrator session (and worker worktrees, if enabled) and returns its session ID.
+   * Start a Batuta orchestration activity: creates the dedicated Architect session (and worker worktrees, if enabled) and returns its session ID. The Orchestrator session is created later, once the Architect hands off — see batuta.sync.
    */
   public start<ThrowOnError extends boolean = false>(
     parameters: {
@@ -1556,6 +1568,215 @@ export class Batuta extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<BatutaStartResponses, BatutaStartErrors, ThrowOnError>({
       url: "/batuta/{id}/start",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Sync a Batuta activity's phase
+   *
+   * Poll while an activity is in the 'architecting' phase: checks for the Architect's handoff file and, once found, moves the activity to 'ready' and returns the handoff content for review.
+   */
+  public sync<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BatutaSyncResponses, BatutaSyncErrors, ThrowOnError>({
+      url: "/batuta/{id}/sync",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List local git branches
+   *
+   * List local git branches for a directory, plus the current one — used by the activity form's branch picker.
+   */
+  public branches<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<BatutaBranchesResponses, BatutaBranchesErrors, ThrowOnError>({
+      url: "/batuta/branches",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Dispatch a 'ready' Batuta activity to the orchestrator
+   *
+   * Called when the user clicks 'Iniciar atividade' on a 'ready' activity: creates the Orchestrator session from the reviewed handoff and returns its session ID.
+   */
+  public dispatch<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BatutaDispatchResponses, BatutaDispatchErrors, ThrowOnError>({
+      url: "/batuta/{id}/dispatch",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Read the project's pipeline definition
+   *
+   * Reads docs/batuta-pipeline.md for the activity's project — the phases/skills flow the Architect defined (or the user edited), shared across all activities in that project.
+   */
+  public getPipelineDefinition<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      BatutaGetPipelineDefinitionResponses,
+      BatutaGetPipelineDefinitionErrors,
+      ThrowOnError
+    >({
+      url: "/batuta/{id}/pipeline-definition",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Edit the project's pipeline definition
+   *
+   * Overwrites docs/batuta-pipeline.md — lets the user edit the flow at any point, including while the Orchestrator is already dispatching (it re-reads the file periodically).
+   */
+  public setPipelineDefinition<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      content?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "content" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<
+      BatutaSetPipelineDefinitionResponses,
+      BatutaSetPipelineDefinitionErrors,
+      ThrowOnError
+    >({
+      url: "/batuta/{id}/pipeline-definition",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Start a chat session to edit the pipeline definition
+   *
+   * Creates a session scoped to editing docs/batuta-pipeline.md — hidden from the normal session list (it's a child of the Architect/Orchestrator session) and restricted to only that file.
+   */
+  public startPipelineChat<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      BatutaStartPipelineChatResponses,
+      BatutaStartPipelineChatErrors,
+      ThrowOnError
+    >({
+      url: "/batuta/{id}/pipeline-chat",
       ...options,
       ...params,
     })

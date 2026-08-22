@@ -32,6 +32,7 @@ export interface Settings {
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
+    use3dAnimations: boolean
     showCustomAgents: boolean
     mobileTitlebarPosition: "top" | "bottom"
     newLayoutDesigns?: boolean
@@ -193,6 +194,7 @@ const defaultSettings: Settings = {
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
+    use3dAnimations: false,
     showCustomAgents: false,
     mobileTitlebarPosition: "top",
   },
@@ -416,6 +418,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setEditToolPartsExpanded(value: boolean) {
           setStore("general", "editToolPartsExpanded", value)
+        },
+        use3dAnimations: withFallback(() => store.general?.use3dAnimations, defaultSettings.general.use3dAnimations),
+        setUse3dAnimations(value: boolean) {
+          setStore("general", "use3dAnimations", value)
         },
         showCustomAgents,
         setShowCustomAgents(value: boolean) {

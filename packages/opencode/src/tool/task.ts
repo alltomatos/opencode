@@ -8,6 +8,7 @@ import { SessionID, MessageID } from "../session/schema"
 import { MessageV2 } from "../session/message-v2"
 import { Agent } from "../agent/agent"
 import { Batuta, parseModel as parseBatutaModel } from "@/batuta"
+import { ConfigBatutaSkillsV1 } from "@opencode-ai/core/v1/config/batuta-skills"
 import { deriveSubagentSessionPermission } from "../agent/subagent-permissions"
 import type { SessionPrompt } from "../session/prompt"
 import { Config } from "@/config/config"
@@ -135,6 +136,10 @@ export const TaskTool = Tool.define(
       // config-defined agent, so it doesn't collide with build/plan/general
       // or custom agent names.
       const batutaWorker = yield* batuta.resolveWorker(ctx.sessionID, params.subagent_type)
+      // Fixed catalog of skills (e.g. "diagnose", "to-prd") a Batuta
+      // orchestrator can delegate to directly by slug, alongside its
+      // pre-configured workers — see batuta-skills.ts for the list.
+      const batutaSkill = !batutaWorker ? ConfigBatutaSkillsV1.bySlug.get(params.subagent_type) : undefined
       const next = batutaWorker
         ? {
             name: batutaWorker.worker.label,
@@ -152,7 +157,24 @@ export const TaskTool = Tool.define(
             options: {},
             steps: undefined,
           }
-        : yield* agent.get(params.subagent_type)
+        : batutaSkill
+          ? {
+              name: batutaSkill.slug,
+              description: undefined,
+              mode: "subagent" as const,
+              native: undefined,
+              hidden: undefined,
+              topP: undefined,
+              temperature: undefined,
+              color: undefined,
+              permission: parent.permission ?? [],
+              model: undefined,
+              variant: undefined,
+              prompt: undefined,
+              options: {},
+              steps: undefined,
+            }
+          : yield* agent.get(params.subagent_type)
       if (!next) {
         return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
       }
@@ -222,8 +244,10 @@ export const TaskTool = Tool.define(
       const ops = ctx.extra?.promptOps as TaskPromptOps
       if (!ops) return yield* Effect.fail(new Error("TaskTool requires promptOps in ctx.extra"))
 
+      const effectivePrompt = batutaSkill ? `/${batutaSkill.slug}\n\n${params.prompt}` : params.prompt
+
       const runTask = Effect.fn("TaskTool.runTask")(function* () {
-        const parts = yield* ops.resolvePromptParts(params.prompt)
+        const parts = yield* ops.resolvePromptParts(effectivePrompt)
         const result = yield* ops.prompt({
           messageID: MessageID.ascending(),
           sessionID: nextSession.id,

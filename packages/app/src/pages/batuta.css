@@ -1,0 +1,16 @@
+@keyframes batuta-conduct {
+  0%,
+  100% {
+    transform: rotate(-16deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .batuta-icon-conducting {
+    transform-origin: 22% 78%;
+    animation: batuta-conduct 1.3s ease-in-out infinite;
+  }
+}

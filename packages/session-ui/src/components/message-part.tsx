@@ -604,7 +604,7 @@ function taskSession(
     .sort((a, b) => (b.time.created ?? 0) - (a.time.created ?? 0))[0]?.id
 }
 
-const CONTEXT_GROUP_TOOLS = new Set(["read", "glob", "grep", "list"])
+const CONTEXT_GROUP_TOOLS = new Set(["read", "glob", "grep", "list", "shell", "bash"])
 const HIDDEN_TOOLS = new Set(["todowrite"])
 
 function list<T>(value: T[] | undefined | null, fallback: T[]) {
@@ -900,7 +900,8 @@ function contextToolSummary(parts: ToolPart[]) {
   const read = parts.filter((part) => part.tool === "read").length
   const search = parts.filter((part) => part.tool === "glob" || part.tool === "grep").length
   const list = parts.filter((part) => part.tool === "list").length
-  return { read, search, list }
+  const shell = parts.filter((part) => part.tool === "shell" || part.tool === "bash").length
+  return { read, search, list, shell }
 }
 
 function ExaOutput(props: { output?: string }) {
@@ -1104,6 +1105,10 @@ export function ContextToolGroup(props: {
                 ]}
                 fallback=""
               />
+              <Show when={summary().shell > 0}>
+                <Show when={summary().read + summary().search + summary().list > 0}>, </Show>
+                {i18n.t("ui.tool.shell")} × {summary().shell}
+              </Show>
             </span>
           </span>
           <Collapsible.Arrow />
@@ -1728,12 +1733,20 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
     }
   }
 
+  const body = () => (
+    <div data-slot="text-part-body">
+      <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+    </div>
+  )
+
   return (
     <Show when={text()}>
       <div data-component="text-part" data-timeline-part-id={part().id}>
-        <div data-slot="text-part-body">
-          <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
-        </div>
+        <Show when={part().synthetic} fallback={body()}>
+          <BasicTool icon="brain" defaultOpen={false} animated trigger={{ title: i18n.t("ui.tool.skill") }}>
+            {body()}
+          </BasicTool>
+        </Show>
         <Show when={showCopy()}>
           <div data-slot="text-part-copy-wrapper" data-interrupted={interrupted() ? "" : undefined}>
             <MessageActionButton
@@ -1758,6 +1771,7 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
 
 PART_MAPPING["reasoning"] = function ReasoningPartDisplay(props) {
   const data = useData()
+  const i18n = useI18n()
   const part = () => props.part as ReasoningPart
   const streaming = createMemo(
     () => props.message.role === "assistant" && typeof (props.message as AssistantMessage).time.completed !== "number",
@@ -1767,7 +1781,14 @@ PART_MAPPING["reasoning"] = function ReasoningPartDisplay(props) {
   return (
     <Show when={text()}>
       <div data-component="reasoning-part" data-timeline-part-id={part().id}>
-        <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+        <BasicTool
+          icon="brain"
+          defaultOpen={false}
+          animated
+          trigger={{ title: i18n.t("ui.sessionTurn.status.thinking") }}
+        >
+          <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+        </BasicTool>
       </div>
     </Show>
   )

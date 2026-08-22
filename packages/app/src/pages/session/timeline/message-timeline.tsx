@@ -131,12 +131,38 @@ const markBoundaryGesture = (input: {
   }
 }
 
+function ThinkingFaceIcon() {
+  return (
+    <div class="thinking-face-icon size-10 shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="size-full">
+        {/* face */}
+        <circle cx="12" cy="12" r="9.5" fill="#FFCC4D" stroke="#E8A500" stroke-width="0.5" />
+        {/* eyebrows: left flat, right raised — the asymmetry reads as "considering" */}
+        <path d="M7.4 9.2L10 8.9" stroke="#664500" stroke-width="1.1" stroke-linecap="round" />
+        <path
+          class="thinking-face-eyebrow"
+          d="M13.9 8.1C14.7 7.2 16 6.9 17 7.4"
+          stroke="#664500"
+          stroke-width="1.1"
+          stroke-linecap="round"
+        />
+        {/* eyes */}
+        <circle cx="9.2" cy="11.4" r="0.95" fill="#664500" />
+        <circle cx="14.9" cy="10.9" r="0.95" fill="#664500" />
+        {/* small, off-centered pursed mouth */}
+        <path d="M9.3 16.2C10.9 15.8 12.7 15.8 14.1 16.2" stroke="#664500" stroke-width="1.1" stroke-linecap="round" />
+      </svg>
+    </div>
+  )
+}
+
 function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSummaries: boolean }) {
   const language = useLanguage()
 
   return (
     <div data-slot="session-turn-thinking">
-      <TextShimmer text={language.t("ui.sessionTurn.status.thinking")} />
+      <ThinkingFaceIcon />
+      <TextShimmer text={`${language.t("ui.sessionTurn.status.thinking")}...`} />
       <Show when={!props.showReasoningSummaries}>
         <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
       </Show>

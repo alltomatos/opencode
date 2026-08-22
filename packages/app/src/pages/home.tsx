@@ -42,7 +42,6 @@ export function NewHome() {
             class="flex lg:hidden"
             onOpenSettings={projects.utility.settings}
             onOpenHelp={projects.utility.help}
-            onOpenBatuta={projects.utility.batuta}
             language={projects.copy.language}
           />
         </div>
