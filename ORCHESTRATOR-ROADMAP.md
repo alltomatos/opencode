@@ -158,6 +158,23 @@ Desvios de implementação registrados nos comentários de fechamento de cada is
 - O tipo público de metadata do `task` tool (`ExecuteResult<M>`) é inferido como um único shape a partir de todos os `return`s da função — a branch de worker externo usa um cast documentado (`as unknown as typeof metadata`) pra não virar union e forçar 20+ call sites de teste a adicionar narrowing por um shape que nunca veem em runtime.
 - Cobertura de teste do caminho externo ponta-a-ponta via `TaskTool.execute` ficou faltando: exigiria rodar o ciclo completo do Batuta (architect → handoff.md → dispatch), e o teste equivalente já existente pra worker **interno** no mesmo arquivo já falha sem nenhuma mudança desta fase (lacuna pré-existente, confirmada via `git stash` antes de cada commit) — testei `ExternalAgent.Service` isoladamente em vez disso (`test/external-agent/index.test.ts`).
 
+### V2 fase 2 (UI mínima) + débito técnico descoberto
+
+**Status:** Concluída em 2026-08-23, branch `batuta`.
+
+| Issue | O quê |
+|---|---|
+| [#53](https://github.com/alltomatos/opencode/issues/53) | Seletor `kind` + campos `command`/`args` no form de worker (SDK regenerado) |
+| [#54](https://github.com/alltomatos/opencode/issues/54) | Badge/ícone de terminal pra worker externo na lista de workers |
+| [#55](https://github.com/alltomatos/opencode/issues/55) | Corrigido teste de delegação a worker interno — não passava pelo ciclo real (`start`→`checkHandoff`→`dispatch`), passava por acidente num fallback errado. Suite completa de `task.test.ts` (21/21) verde agora |
+
+Achado durante a #55, registrado como issue própria — **não corrigido nesta rodada**:
+- [#58](https://github.com/alltomatos/opencode/issues/58) — no Windows, o PTY spawnado por `ExternalAgent.Service` não termina de verdade após `kill()` (ConPTY), prendendo o processo que o usa. Bloqueou um teste de integração ponta-a-ponta pro worker externo (revertido antes de commitar pra não travar CI).
+
+Backlog de fase 3 (decisão de produto pendente antes de iniciar):
+- [#56](https://github.com/alltomatos/opencode/issues/56) — painel de terminal ao vivo (xterm.js) pro worker externo.
+- [#57](https://github.com/alltomatos/opencode/issues/57) — handoff/DAG entre múltiplos workers externos.
+
 ## Epic: Descontinuar o layout legado
 
 **Status:** Decisão tomada em 2026-08-19 (issue #25), execução não iniciada.
