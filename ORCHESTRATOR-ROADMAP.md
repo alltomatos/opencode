@@ -137,7 +137,7 @@ Executando em fila, sem paralelismo, um commit por issue, verificado antes de se
 
 ### V2: orquestração de CLIs externos (`claude`, `codex`) via PTY
 
-**Status:** Fase 1 (backend) planejada em 2026-08-23, execução não iniciada.
+**Status:** Fase 1 (backend) concluída em 2026-08-23, em fila sem paralelismo, um commit por issue. Todas as 4 issues fechadas na branch `batuta`.
 **Origem:** estudo do modelo do Orca (`orca-cli` skill) — orquestrador de terminal que controla CLIs de agentes de terceiros via PTY dentro de git worktrees, sem motor de LLM próprio. Pesquisa completa em `docs/research/external-agent-orchestration.md`.
 
 Insight de arquitetura: o `node-pty` (já dependência do projeto, usado no empacotamento do `.exe`) roda em qualquer processo Node/Bun — não precisa ser o Electron main. O `ExternalAgent.Service` vive em `packages/opencode`, o mesmo processo que já roda `task.ts`, evitando IPC com o desktop. Pra quem chama a tool `task`, delegar a um worker interno (V1) ou externo (V2) é indistinguível — a interface não muda, só a implementação por trás do `kind` do worker.
@@ -152,6 +152,11 @@ Insight de arquitetura: o `node-pty` (já dependência do projeto, usado no empa
 | [#52](https://github.com/alltomatos/opencode/issues/52) | `task.ts` delega pro worker externo via PTY quando `kind === "external"` |
 
 Fora de escopo desta fase: UI de seleção `kind`/`command` no form de worker, handoff/DAG entre múltiplos workers externos, painel de terminal ao vivo (xterm.js) — tudo isso fica pra fases seguintes, só depois do backend funcionar ponta a ponta com um worker externo controlado por request/response (sem UI de terminal).
+
+Desvios de implementação registrados nos comentários de fechamento de cada issue (vale ler antes de continuar o V2):
+- `ExternalAgent.Service` (#50) não depende do `Pty.Service` do core (é location-scoped, `task.ts`/`Batuta.Service` rodam no grafo global do opencode) — ficou self-contained, reaproveitando só o wrapper de baixo nível `@opencode-ai/core/pty/pty.bun`.
+- O tipo público de metadata do `task` tool (`ExecuteResult<M>`) é inferido como um único shape a partir de todos os `return`s da função — a branch de worker externo usa um cast documentado (`as unknown as typeof metadata`) pra não virar union e forçar 20+ call sites de teste a adicionar narrowing por um shape que nunca veem em runtime.
+- Cobertura de teste do caminho externo ponta-a-ponta via `TaskTool.execute` ficou faltando: exigiria rodar o ciclo completo do Batuta (architect → handoff.md → dispatch), e o teste equivalente já existente pra worker **interno** no mesmo arquivo já falha sem nenhuma mudança desta fase (lacuna pré-existente, confirmada via `git stash` antes de cada commit) — testei `ExternalAgent.Service` isoladamente em vez disso (`test/external-agent/index.test.ts`).
 
 ## Epic: Descontinuar o layout legado
 
