@@ -124,6 +124,8 @@ export type ElectronAPI = {
   setPinchZoomEnabled: (enabled: boolean) => Promise<void>
   onPinchZoomEnabledChanged: (cb: (enabled: boolean) => void) => () => void
   onZoomFactorChanged: (cb: (factor: number) => void) => () => void
+  getDebugModeEnabled: () => Promise<boolean>
+  setDebugModeEnabled: (enabled: boolean) => Promise<void>
   setTitlebar: (theme: TitlebarTheme) => Promise<void>
   runDesktopMenuAction: (action: DesktopMenuAction) => Promise<void>
   setBackgroundColor: (color: string) => Promise<void>
