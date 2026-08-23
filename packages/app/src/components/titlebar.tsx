@@ -371,6 +371,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 }}
               >
                 <ChannelIndicator debugTools={props.debugTools} />
+                <GlobalDevToolsButton variant="v2" />
                 <Show when={windows() || linux()}>
                   <WindowsAppMenu command={command} platform={platform} variant="v2" />
                 </Show>
@@ -582,6 +583,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
               }}
               data-tauri-drag-region
             >
+              <GlobalDevToolsButton variant="legacy" />
               <Tooltip placement="bottom" value={language.t("command.settings.open")}>
                 <IconButton
                   icon="settings-gear"
@@ -664,6 +666,52 @@ function TitlebarUpdateIconButton(props: { state: TitlebarUpdatePillState }) {
         </span>
       </button>
     </div>
+  )
+}
+
+// When "Modo debug" (Settings > Advanced) is on, this stays reachable from every
+// screen instead of requiring a trip through Settings — the whole point of the
+// setting is diagnosing a broken app, and a broken app is exactly when digging
+// through a settings dialog is most likely to be impossible or unreliable.
+function GlobalDevToolsButton(props: { variant: "v2" | "legacy" }) {
+  const platform = usePlatform()
+  const language = useLanguage()
+  const desktop = createMemo(() => platform.platform === "desktop")
+  const [debugMode] = createResource(
+    () => desktop() && !!platform.getDebugModeEnabled,
+    () => Promise.resolve(platform.getDebugModeEnabled?.() ?? false).catch(() => false),
+    { initialValue: false },
+  )
+  const open = () => void platform.runDesktopMenuAction?.("view.toggleDevTools")
+
+  return (
+    <Show when={debugMode()}>
+      <Show
+        when={props.variant === "v2"}
+        fallback={
+          <Tooltip placement="bottom" value={language.t("settings.general.row.devTools.open")}>
+            <IconButton
+              icon="console"
+              variant="ghost"
+              size="normal"
+              onClick={open}
+              aria-label={language.t("settings.general.row.devTools.open")}
+            />
+          </Tooltip>
+        }
+      >
+        <TooltipV2 placement="bottom" value={language.t("settings.general.row.devTools.open")}>
+          <IconButtonV2
+            variant="ghost-muted"
+            size="large"
+            class="!w-9 shrink-0"
+            icon={<IconV2 name="console" />}
+            onClick={open}
+            aria-label={language.t("settings.general.row.devTools.open")}
+          />
+        </TooltipV2>
+      </Show>
+    </Show>
   )
 }
 
