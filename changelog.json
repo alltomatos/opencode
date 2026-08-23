@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.21.2",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido chat em branco após a primeira mensagem",
+              "description": "Sessões novas podiam ficar com a área de conversa completamente em branco assim que a primeira mensagem era enviada, mesmo com a resposta chegando normalmente no servidor. Corrigido um trecho da tela de sessão que não estava sendo renderizado."
+            },
+            {
+              "title": "Reconexão mais estável em conexões instáveis",
+              "description": "Quando a conexão com o servidor local oscilava, o app tentava reconectar imediatamente e sem limite, o que podia interromper repetidamente o carregamento do projeto e deixar a tela travada. Agora as tentativas usam um intervalo crescente até a conexão estabilizar."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.1",
       "highlights": [
         {
