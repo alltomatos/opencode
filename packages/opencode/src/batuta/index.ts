@@ -55,7 +55,13 @@ ${skills}
 function orchestratorInstructions(activity: ConfigBatutaV1.Activity, handoff: string) {
   const skills = ConfigBatutaSkillsV1.SKILLS.map((skill) => `- ${skill.slug}: ${skill.description}`).join("\n")
   const workers = activity.workers.length
-    ? activity.workers.map((worker) => `- ${worker.label} (model: ${worker.model})`).join("\n")
+    ? activity.workers
+        .map((worker) =>
+          worker.kind === "external"
+            ? `- ${worker.label} (external: ${worker.command})`
+            : `- ${worker.label} (model: ${worker.model})`,
+        )
+        .join("\n")
     : "(nenhum worker pré-configurado)"
   return `Você é o Orquestrador da atividade "${activity.name}". O Arquiteto concluiu a preparação e entregou o seguinte pacote (documentos + issues):
 

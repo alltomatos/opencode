@@ -7,8 +7,22 @@ export const Worker = Schema.Struct({
   label: Schema.String.annotate({
     description: "Name the orchestrator uses to delegate to this worker via the task tool",
   }),
-  model: Schema.String.annotate({
-    description: "Model for this worker, in 'providerID/modelID' form",
+  kind: Schema.optional(Schema.Literals(["internal", "external"])).annotate({
+    description:
+      "'internal' (default) delegates via an opencode subagent session using `model`. 'external' spawns a third-party agent CLI (e.g. claude, codex) in a PTY inside the worker's worktree using `command`/`args`.",
+  }),
+  model: Schema.optional(Schema.String).annotate({
+    description: "Model for this worker, in 'providerID/modelID' form. Required when kind is 'internal' (or omitted).",
+  }),
+  command: Schema.optional(Schema.String).annotate({
+    description: "Executable to spawn for an external worker, e.g. 'claude' or 'codex'. Required when kind is 'external'.",
+  }),
+  args: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "Extra CLI arguments passed to `command` when spawning an external worker.",
+  }),
+  idleTimeoutMs: Schema.optional(Schema.Number).annotate({
+    description:
+      "How long the external worker's PTY must be silent before its output is considered a finished turn. Only used when kind is 'external'.",
   }),
 }).annotate({ identifier: "BatutaWorker" })
 export type Worker = Schema.Schema.Type<typeof Worker>

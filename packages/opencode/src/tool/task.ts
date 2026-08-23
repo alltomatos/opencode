@@ -140,6 +140,16 @@ export const TaskTool = Tool.define(
       // orchestrator can delegate to directly by slug, alongside its
       // pre-configured workers — see batuta-skills.ts for the list.
       const batutaSkill = !batutaWorker ? ConfigBatutaSkillsV1.bySlug.get(params.subagent_type) : undefined
+      // TODO(#52): external workers (kind === "external") currently fall through to
+      // the internal path below and fail if `model` is unset — real PTY dispatch
+      // via ExternalAgent.Service lands in #52.
+      if (batutaWorker?.worker.kind === "external") {
+        return yield* Effect.fail(
+          new Error(
+            `Worker "${batutaWorker.worker.label}" is an external worker (${batutaWorker.worker.command}) — external delegation isn't implemented yet`,
+          ),
+        )
+      }
       const next = batutaWorker
         ? {
             name: batutaWorker.worker.label,
@@ -151,7 +161,7 @@ export const TaskTool = Tool.define(
             temperature: undefined,
             color: undefined,
             permission: parent.permission ?? [],
-            model: parseBatutaModel(batutaWorker.worker.model),
+            model: parseBatutaModel(batutaWorker.worker.model!),
             variant: undefined,
             prompt: undefined,
             options: {},
