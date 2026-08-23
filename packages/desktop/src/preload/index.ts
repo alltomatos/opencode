@@ -128,6 +128,11 @@ const api: ElectronAPI = {
   },
   getDebugModeEnabled: () => ipcRenderer.invoke("get-debug-mode-enabled"),
   setDebugModeEnabled: (enabled) => ipcRenderer.invoke("set-debug-mode-enabled", enabled),
+  onDebugModeEnabledChanged: (cb) => {
+    const handler = (_: unknown, enabled: boolean) => cb(enabled)
+    ipcRenderer.on("debug-mode-enabled-changed", handler)
+    return () => ipcRenderer.removeListener("debug-mode-enabled-changed", handler)
+  },
   setTitlebar: (theme) => ipcRenderer.invoke("set-titlebar", theme),
   runDesktopMenuAction: (action) => ipcRenderer.invoke("run-desktop-menu-action", action),
   setBackgroundColor: (color: string) => ipcRenderer.invoke("set-background-color", color),
