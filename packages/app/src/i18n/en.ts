@@ -1025,6 +1025,7 @@ export const dict = {
   "settings.general.section.general": "General",
   "settings.general.section.appearance": "Appearance",
   "settings.general.section.advanced": "Advanced",
+  "settings.general.section.experimental": "Experimental",
   "settings.general.section.notifications": "System notifications",
   "settings.general.section.updates": "Updates",
   "settings.general.section.sounds": "Sound effects",

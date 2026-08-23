@@ -409,76 +409,6 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
-        <SettingsRowV2
-          title={
-            <span class="flex items-center gap-2">
-              <Icon name="dot-grid" class="size-3.5 shrink-0 text-text-weak" />
-              {language.t("settings.general.row.use3dAnimations.title")}
-            </span>
-          }
-          description={language.t("settings.general.row.use3dAnimations.description")}
-        >
-          <div data-action="settings-use-3d-animations">
-            <Switch
-              checked={settings.general.use3dAnimations()}
-              onChange={(checked) => settings.general.setUse3dAnimations(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-
-        <Show when={desktop() && !!platform.runDesktopMenuAction}>
-          <SettingsRowV2
-            title={
-              <span class="flex items-center gap-2">
-                <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
-                {language.t("settings.general.row.devTools.title")}
-              </span>
-            }
-            description={language.t("settings.general.row.devTools.description")}
-          >
-            <ButtonV2
-              variant="neutral"
-              size="small"
-              data-action="settings-open-dev-tools"
-              onClick={() => void platform.runDesktopMenuAction?.("view.toggleDevTools")}
-            >
-              {language.t("settings.general.row.devTools.open")}
-            </ButtonV2>
-          </SettingsRowV2>
-        </Show>
-
-        <Show when={desktop() && !!platform.setDebugModeEnabled}>
-          <SettingsRowV2
-            title={
-              <span class="flex items-center gap-2">
-                <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
-                {language.t("settings.general.row.debugMode.title")}
-              </span>
-            }
-            description={
-              debugMode()
-                ? language.t("settings.general.row.debugMode.descriptionOn")
-                : language.t("settings.general.row.debugMode.description")
-            }
-          >
-            <div class="flex items-center gap-2">
-              <Show when={debugMode()}>
-                <ButtonV2
-                  variant="neutral"
-                  size="small"
-                  data-action="settings-restart-for-debug-mode"
-                  onClick={() => void platform.restart()}
-                >
-                  {language.t("settings.general.row.debugMode.restart")}
-                </ButtonV2>
-              </Show>
-              <div data-action="settings-debug-mode">
-                <Switch checked={debugMode()} onChange={onDebugModeChange} />
-              </div>
-            </div>
-          </SettingsRowV2>
-        </Show>
-
         <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
           <SettingsRowV2
             title={language.t("settings.general.row.mobileTitlebarBottom.title")}
@@ -545,6 +475,84 @@ export const SettingsGeneralV2: Component<{
             <Switch
               checked={settings.general.showCustomAgents()}
               onChange={(checked) => settings.general.setShowCustomAgents(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+
+        <Show when={desktop() && !!platform.runDesktopMenuAction}>
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.devTools.title")}
+              </span>
+            }
+            description={language.t("settings.general.row.devTools.description")}
+          >
+            <ButtonV2
+              variant="neutral"
+              size="small"
+              data-action="settings-open-dev-tools"
+              onClick={() => void platform.runDesktopMenuAction?.("view.toggleDevTools")}
+            >
+              {language.t("settings.general.row.devTools.open")}
+            </ButtonV2>
+          </SettingsRowV2>
+        </Show>
+
+        <Show when={desktop() && !!platform.setDebugModeEnabled}>
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.debugMode.title")}
+              </span>
+            }
+            description={
+              debugMode()
+                ? language.t("settings.general.row.debugMode.descriptionOn")
+                : language.t("settings.general.row.debugMode.description")
+            }
+          >
+            <div class="flex items-center gap-2">
+              <Show when={debugMode()}>
+                <ButtonV2
+                  variant="neutral"
+                  size="small"
+                  data-action="settings-restart-for-debug-mode"
+                  onClick={() => void platform.restart()}
+                >
+                  {language.t("settings.general.row.debugMode.restart")}
+                </ButtonV2>
+              </Show>
+              <div data-action="settings-debug-mode">
+                <Switch checked={debugMode()} onChange={onDebugModeChange} />
+              </div>
+            </div>
+          </SettingsRowV2>
+        </Show>
+      </SettingsListV2>
+    </div>
+  )
+
+  const ExperimentalSection = () => (
+    <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.experimental")}</h3>
+
+      <SettingsListV2>
+        <SettingsRowV2
+          title={
+            <span class="flex items-center gap-2">
+              <Icon name="dot-grid" class="size-3.5 shrink-0 text-text-weak" />
+              {language.t("settings.general.row.use3dAnimations.title")}
+            </span>
+          }
+          description={language.t("settings.general.row.use3dAnimations.description")}
+        >
+          <div data-action="settings-use-3d-animations">
+            <Switch
+              checked={settings.general.use3dAnimations()}
+              onChange={(checked) => settings.general.setUse3dAnimations(checked)}
             />
           </div>
         </SettingsRowV2>
@@ -673,6 +681,8 @@ export const SettingsGeneralV2: Component<{
         </Show>
 
         <DisplaySection />
+
+        <ExperimentalSection />
 
         <AdvancedSection />
       </div>

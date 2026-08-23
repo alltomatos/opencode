@@ -963,6 +963,7 @@ export const dict = {
   "settings.general.section.general": "Geral",
   "settings.general.section.appearance": "Aparência",
   "settings.general.section.advanced": "Avançado",
+  "settings.general.section.experimental": "Experimental",
   "settings.general.section.notifications": "Notificações do sistema",
   "settings.general.section.updates": "Atualizações",
   "settings.general.section.sounds": "Efeitos sonoros",
