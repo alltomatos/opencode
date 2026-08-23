@@ -1080,6 +1080,11 @@ export const dict = {
   "settings.general.row.devTools.description":
     "Open Chromium DevTools (Console, Network) to debug issues, even in production builds.",
   "settings.general.row.devTools.open": "Open DevTools",
+  "settings.general.row.debugMode.title": "Debug mode",
+  "settings.general.row.debugMode.description":
+    "Enable the remote debugging (CDP) port even in packaged/production builds, so external debugging tools can connect. Requires restarting the app.",
+  "settings.general.row.debugMode.descriptionOn": "Enabled — restart the app for the remote debugging port to take effect.",
+  "settings.general.row.debugMode.restart": "Restart now",
   "settings.general.row.newInterface.title": "New layout",
   "settings.general.row.newInterface.badge": "New",
   "settings.general.row.newInterface.description":

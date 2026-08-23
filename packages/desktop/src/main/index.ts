@@ -14,6 +14,7 @@ import contextMenu from "electron-context-menu"
 import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
 import { CHANNEL } from "./constants"
+import { getDebugModeEnabled, setDebugModeEnabled } from "./debug"
 import { ensureDefaultSkills } from "./default-skills"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { forwardInitializationFailure } from "./initialization"
@@ -194,7 +195,9 @@ const main = Effect.gen(function* () {
   app.commandLine.appendSwitch("proxy-bypass-list", "<-loopback>")
   const features = app.commandLine.getSwitchValue("enable-features")
   app.commandLine.appendSwitch("enable-features", features ? `${jsCallStackFeature},${features}` : jsCallStackFeature)
-  if (!app.isPackaged) app.commandLine.appendSwitch("remote-debugging-port", "9222")
+  const debugMode = getDebugModeEnabled()
+  if (!app.isPackaged || debugMode) app.commandLine.appendSwitch("remote-debugging-port", "9222")
+  if (debugMode) logger.log("debug mode enabled", { remoteDebuggingPort: 9222 })
 
   if (!app.requestSingleInstanceLock()) {
     app.quit()

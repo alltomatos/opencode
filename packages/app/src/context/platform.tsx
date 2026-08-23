@@ -107,6 +107,12 @@ type PlatformBase = {
   /** Run a desktop-only menu action from the app chrome */
   runDesktopMenuAction?(action: DesktopMenuAction): Promise<void> | void
 
+  /** Get whether debug mode (remote DevTools port, even in a packaged build) is enabled (desktop only) */
+  getDebugModeEnabled?(): Promise<boolean> | boolean
+
+  /** Enable debug mode; takes effect after the app is fully quit and relaunched (desktop only) */
+  setDebugModeEnabled?(enabled: boolean): Promise<void> | void
+
   /** Check if an editor app exists (desktop only) */
   checkAppExists?(appName: string): Promise<boolean>
 
