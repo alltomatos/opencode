@@ -5,6 +5,7 @@ import {
   createSignal,
   Match,
   on,
+  onCleanup,
   onMount,
   Show,
   Switch,
@@ -677,11 +678,17 @@ function GlobalDevToolsButton(props: { variant: "v2" | "legacy" }) {
   const platform = usePlatform()
   const language = useLanguage()
   const desktop = createMemo(() => platform.platform === "desktop")
-  const [debugMode] = createResource(
-    () => desktop() && !!platform.getDebugModeEnabled,
-    () => Promise.resolve(platform.getDebugModeEnabled?.() ?? false).catch(() => false),
-    { initialValue: false },
-  )
+  const [debugMode, setDebugMode] = createSignal(false)
+
+  onMount(() => {
+    if (!desktop()) return
+    Promise.resolve(platform.getDebugModeEnabled?.() ?? false)
+      .then(setDebugMode)
+      .catch(() => {})
+    const unsubscribe = platform.onDebugModeEnabledChanged?.(setDebugMode)
+    onCleanup(() => unsubscribe?.())
+  })
+
   const open = () => void platform.runDesktopMenuAction?.("view.toggleDevTools")
 
   return (

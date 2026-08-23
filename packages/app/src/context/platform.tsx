@@ -113,6 +113,9 @@ type PlatformBase = {
   /** Enable debug mode; takes effect after the app is fully quit and relaunched (desktop only) */
   setDebugModeEnabled?(enabled: boolean): Promise<void> | void
 
+  /** Subscribe to debug-mode changes from any window/source (desktop only). Returns an unsubscribe function. */
+  onDebugModeEnabledChanged?(cb: (enabled: boolean) => void): () => void
+
   /** Check if an editor app exists (desktop only) */
   checkAppExists?(appName: string): Promise<boolean>
 
