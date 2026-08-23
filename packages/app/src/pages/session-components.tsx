@@ -21,6 +21,7 @@ import { DirectoryDataProvider } from "@/pages/directory-layout";
 import { useServerSDK } from "@/context/server-sdk";
 import { useSDK } from "@/context/sdk";
 import { isLocalSessionNotFoundError, isSessionNotFoundError } from "@/utils/server-errors";
+import { SessionPage } from "./session";
 
 export function isCurrentSessionNotFoundError(error: unknown, sessionID: string | undefined) {
   if (!sessionID) return false;
@@ -35,7 +36,7 @@ export const TargetSessionRouteContent = () => {
     <TargetServerScopedProviders directory={directory} sessionID={() => params.id}>
       <TargetSessionSettingsCommand />
       <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)} padded>
-        <ResolvedTargetSessionRoute />
+        <ResolvedTargetSessionRoute directory={directory} serverKey={requireServerKey(params.serverKey)} />
       </SessionRouteErrorBoundary>
     </TargetServerScopedProviders>
   )
@@ -112,13 +113,21 @@ export const SessionErrorFallback = (props: { error: unknown; sessionID?: string
   return <ErrorPage error={props.error} />
 }
 
-function ResolvedTargetSessionRoute() {
-  // Re-importing or re-implementing these if needed by session.tsx
-  return null
-}
-
-function TargetSessionPage() {
-  return null
+function ResolvedTargetSessionRoute(props: {
+  directory: () => string | undefined
+  serverKey: ServerConnection.Key
+}) {
+  return (
+    <Show when={props.directory()}>
+      {(directory) => (
+        <SDKProvider directory={directory}>
+          <DirectoryDataProvider directory={directory} server={() => props.serverKey}>
+            <SessionPage />
+          </DirectoryDataProvider>
+        </SDKProvider>
+      )}
+    </Show>
+  )
 }
 
 function TargetServerScopedProviders(
