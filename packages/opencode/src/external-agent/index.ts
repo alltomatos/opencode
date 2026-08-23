@@ -1,5 +1,11 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { spawn as ptySpawn } from "@opencode-ai/core/pty/pty.bun"
+// This must resolve conditionally: the "bun" variant statically imports "bun-pty", which
+// itself imports "bun:ffi". Under Node (e.g. this file's dist/node build, loaded by
+// Electron's Node-based main/utility process) an eager `bun:`-scheme import crashes with
+// ERR_UNSUPPORTED_ESM_URL_SCHEME even if never actually invoked, since ESM imports are
+// resolved eagerly. See @opencode-ai/core's package.json "exports"/"./pty/runtime" and
+// packages/opencode/script/build-node.ts's `conditions: ["node"]`.
+import { spawn as ptySpawn } from "@opencode-ai/core/pty/runtime"
 import type { Proc } from "@opencode-ai/core/pty/pty"
 import { Context, Effect, Layer, Schema } from "effect"
 
