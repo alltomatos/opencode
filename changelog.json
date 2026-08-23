@@ -1,6 +1,32 @@
 {
   "releases": [
     {
+      "tag": "v1.21.3",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Versão do app visível na barra lateral",
+              "description": "A versão instalada agora aparece embaixo de \"Ajuda\", facilitando saber qual build está rodando sem abrir Configurações."
+            },
+            {
+              "title": "Ferramentas de desenvolvedor em qualquer build",
+              "description": "Novo botão em Configurações > Avançado abre o DevTools do Chromium mesmo em builds de produção, para facilitar o diagnóstico de problemas."
+            },
+            {
+              "title": "Modo debug",
+              "description": "Nova opção em Configurações > Avançado habilita a porta de depuração remota mesmo em builds empacotados, útil para investigar problemas com ferramentas externas. Requer reiniciar o app."
+            },
+            {
+              "title": "Configurações reorganizadas",
+              "description": "\"Usar animações 3D\" foi movido para uma nova categoria Experimental; as novas opções de depuração foram agrupadas em Avançado."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.2",
       "highlights": [
         {
