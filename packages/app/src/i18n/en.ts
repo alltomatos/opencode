@@ -1083,7 +1083,7 @@ export const dict = {
   "settings.general.row.devTools.open": "Open DevTools",
   "settings.general.row.debugMode.title": "Debug mode",
   "settings.general.row.debugMode.description":
-    "Enable the remote debugging (CDP) port even in packaged/production builds, so external debugging tools can connect. Requires restarting the app.",
+    "Shows a DevTools icon in the titlebar, reachable from any screen, and enables the remote debugging (CDP) port even in packaged/production builds. Requires restarting the app.",
   "settings.general.row.debugMode.descriptionOn": "Enabled — restart the app for the remote debugging port to take effect.",
   "settings.general.row.debugMode.restart": "Restart now",
   "settings.general.row.newInterface.title": "New layout",
