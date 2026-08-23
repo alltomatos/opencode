@@ -126,6 +126,7 @@ export type ElectronAPI = {
   onZoomFactorChanged: (cb: (factor: number) => void) => () => void
   getDebugModeEnabled: () => Promise<boolean>
   setDebugModeEnabled: (enabled: boolean) => Promise<void>
+  onDebugModeEnabledChanged: (cb: (enabled: boolean) => void) => () => void
   setTitlebar: (theme: TitlebarTheme) => Promise<void>
   runDesktopMenuAction: (action: DesktopMenuAction) => Promise<void>
   setBackgroundColor: (color: string) => Promise<void>

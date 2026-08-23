@@ -1,4 +1,4 @@
-import { Component, Show, createMemo, createResource } from "solid-js"
+import { Component, Show, createMemo, createResource, onCleanup, onMount } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -315,6 +315,11 @@ export const SettingsGeneralV2: Component<{
     () => Promise.resolve(platform.getDebugModeEnabled?.() ?? false).catch(() => false),
     { initialValue: false },
   )
+
+  onMount(() => {
+    const unsubscribe = platform.onDebugModeEnabledChanged?.(setDebugModeResource)
+    onCleanup(() => unsubscribe?.())
+  })
 
   const onDebugModeChange = (checked: boolean) => {
     setDebugModeResource(checked)

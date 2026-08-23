@@ -306,6 +306,8 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     setDebugModeEnabled: (enabled: boolean) => window.api.setDebugModeEnabled(enabled),
 
+    onDebugModeEnabledChanged: (cb: (enabled: boolean) => void) => window.api.onDebugModeEnabledChanged(cb),
+
     checkAppExists: async (appName: string) => {
       return window.api.checkAppExists(appName)
     },
