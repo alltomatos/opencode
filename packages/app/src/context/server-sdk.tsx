@@ -218,6 +218,12 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
   const FLUSH_FRAME_MS = 16
   const STREAM_YIELD_MS = 8
   const RECONNECT_DELAY_MS = 250
+  const RECONNECT_DELAY_MAX_MS = 10_000
+  // A stream that stayed up at least this long is treated as having connected
+  // for real (whatever ended it — server restart, brief network blip — isn't
+  // a rapid flap), so the next attempt goes back to the base delay instead of
+  // continuing to back off.
+  const STABLE_CONNECTION_MS = 3_000
 
   let queue: Queued[] = []
   let buffer: Queued[] = []
@@ -256,6 +262,15 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
   let run: Promise<void> | undefined
   let started = false
   let generation = 0
+  // Consecutive attempts that dropped fast (under STABLE_CONNECTION_MS).
+  // Each reconnect re-triggers a "server.connected" event, which the sync
+  // layer treats as "refresh everything" — with no backoff, an unstable
+  // connection reconnects every RECONNECT_DELAY_MS forever, and each
+  // reconnect's full re-bootstrap gets cut off by the *next* reconnect before
+  // it can finish (surfacing as repeated HTTP 499 client-abort errors on
+  // whatever project directories were open). Backing off turns that into a
+  // shrinking number of self-inflicted aborts instead of a sustained storm.
+  let consecutiveFastDrops = 0
 
   const start = () => {
     if (started) return run
@@ -271,6 +286,7 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
           attempt?.abort()
         }
         abort.signal.addEventListener("abort", onAbort)
+        const connectedAt = Date.now()
         try {
           const kind = await protocol
           const events =
@@ -305,7 +321,11 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
         }
 
         if (abort.signal.aborted || !started || generation !== active) return
-        await wait(RECONNECT_DELAY_MS)
+        if (Date.now() - connectedAt >= STABLE_CONNECTION_MS) consecutiveFastDrops = 0
+        else consecutiveFastDrops++
+        const backoff = Math.min(RECONNECT_DELAY_MS * 2 ** consecutiveFastDrops, RECONNECT_DELAY_MAX_MS)
+        const jitter = Math.random() * Math.min(backoff, RECONNECT_DELAY_MS)
+        await wait(backoff + jitter)
       }
     })().finally(() => {
       if (run !== current) return
