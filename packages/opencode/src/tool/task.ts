@@ -24,6 +24,10 @@ export interface TaskPromptOps {
 }
 
 const id = "task"
+// Spawning a third-party agent CLI (claude, codex, ...) with write access to a
+// worktree is at least as risky as bash/write — gate it the same way, distinct
+// from the "task" permission that only covers picking an internal subagent.
+const EXTERNAL_AGENT_PERMISSION = "external_agent"
 const BACKGROUND_DESCRIPTION = [
   "Background mode: background=true launches the subagent asynchronously and returns immediately.",
   "Foreground is the default; use it when you need the result before continuing.",
@@ -140,10 +144,23 @@ export const TaskTool = Tool.define(
       // orchestrator can delegate to directly by slug, alongside its
       // pre-configured workers — see batuta-skills.ts for the list.
       const batutaSkill = !batutaWorker ? ConfigBatutaSkillsV1.bySlug.get(params.subagent_type) : undefined
-      // TODO(#52): external workers (kind === "external") currently fall through to
-      // the internal path below and fail if `model` is unset — real PTY dispatch
-      // via ExternalAgent.Service lands in #52.
+      // TODO(#52): once past the permission gate, external workers still fall
+      // through to a not-implemented error — real PTY dispatch via
+      // ExternalAgent.Service lands in #52.
       if (batutaWorker?.worker.kind === "external") {
+        if (!ctx.extra?.bypassAgentCheck) {
+          yield* ctx.ask({
+            permission: EXTERNAL_AGENT_PERMISSION,
+            patterns: [batutaWorker.worker.command ?? batutaWorker.worker.label],
+            always: ["*"],
+            metadata: {
+              description: params.description,
+              subagent_type: params.subagent_type,
+              command: batutaWorker.worker.command,
+              args: batutaWorker.worker.args,
+            },
+          })
+        }
         return yield* Effect.fail(
           new Error(
             `Worker "${batutaWorker.worker.label}" is an external worker (${batutaWorker.worker.command}) — external delegation isn't implemented yet`,
