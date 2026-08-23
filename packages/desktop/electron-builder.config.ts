@@ -86,14 +86,17 @@ const getBase = (appId: string): Configuration => ({
     notarize: !!process.env.APPLE_API_KEY_ID,
     target: ["dmg", "zip"],
     // bun's flat/hoisted install keeps every optional native prebuild
-    // (darwin-x64 *and* darwin-arm64 variants of @lydell/node-pty) on disk
-    // regardless of the arch electron-builder is currently packaging, unlike
-    // npm which prunes non-matching optionalDependencies. @electron/universal
-    // then finds the same darwin-arm64 pty.node byte-identical in both the
-    // x64 and arm64 temp app bundles and refuses to merge them, since it
-    // can't tell whether that's expected or a real per-arch mismatch. This
-    // glob tells it "expected" for both node-pty variant packages.
-    x64ArchFiles: "Contents/Resources/app.asar.unpacked/node_modules/@lydell/node-pty-darwin-*/**/*",
+    // (darwin-x64 *and* darwin-arm64 variants — @lydell/node-pty-darwin-*,
+    // @msgpackr-extract/msgpackr-extract-darwin-*, and any other package
+    // following the same "<name>-darwin-<arch>" convention) on disk
+    // regardless of which arch electron-builder is currently packaging,
+    // unlike npm, which prunes non-matching optionalDependencies.
+    // @electron/universal then finds the same byte-identical file in both
+    // the x64 and arm64 temp app bundles and refuses to merge them one
+    // package at a time — matched node-pty first, then hit the same thing
+    // for msgpackr-extract — so this covers the whole naming convention
+    // instead of allowlisting packages one at a time as more turn up.
+    x64ArchFiles: "Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-*/**/*",
   },
   dmg: {
     sign: !!process.env.CSC_LINK,
