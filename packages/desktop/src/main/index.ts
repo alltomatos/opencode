@@ -387,6 +387,19 @@ const main = Effect.gen(function* () {
       }),
     )
     server = listener
+
+    // Don't tell the renderer the server is ready until it's actually
+    // healthy — resolving serverReady up front regardless of health check
+    // outcome meant a sidecar that spawned but never became healthy (port
+    // race, blocked loopback, etc) still got reported as "ready", leaving
+    // the UI stuck with no real diagnostic. A health check failure now
+    // fails this effect, which forwardInitializationFailure below routes
+    // into the same error-surfacing path as any other startup failure.
+    yield* Effect.promise(() => health.wait).pipe(
+      Effect.timeout("30 seconds"),
+      Effect.catch((e) => Effect.fail(new Error(`Sidecar failed to become healthy within 30s: ${String(e)}`))),
+    )
+
     yield* Deferred.succeed(serverReady, {
       url,
       username: "opencode",
@@ -396,15 +409,6 @@ const main = Effect.gen(function* () {
     if (process.platform === "win32") {
       void wslServers.initialize().catch((error) => logger.error("wsl server initialization failed", error))
     }
-
-    yield* Effect.promise(() => health.wait).pipe(
-      Effect.timeout("30 seconds"),
-      Effect.catch((e) =>
-        Effect.sync(() => {
-          logger.error("sidecar health check failed", e.toString())
-        }),
-      ),
-    )
 
     logger.log("loading task finished")
   }).pipe(forwardInitializationFailure(serverReady), Effect.forkChild)
