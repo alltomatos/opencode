@@ -1027,7 +1027,7 @@ export const dict = {
   "settings.general.row.devTools.open": "Abrir DevTools",
   "settings.general.row.debugMode.title": "Modo debug",
   "settings.general.row.debugMode.description":
-    "Habilita a porta de depuração remota (CDP) mesmo em builds empacotados/produção, permitindo conectar ferramentas externas de debug. Requer reiniciar o app.",
+    "Mostra um ícone de DevTools na barra de título, acessível em qualquer tela, e habilita a porta de depuração remota (CDP) mesmo em builds empacotados/produção. Requer reiniciar o app.",
   "settings.general.row.debugMode.descriptionOn":
     "Ativado — reinicie o app para a porta de depuração remota entrar em vigor.",
   "settings.general.row.debugMode.restart": "Reiniciar agora",
