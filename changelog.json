@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.4",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Ícone de DevTools sempre acessível no Modo debug",
+              "description": "Com o Modo debug ativo (Configurações > Avançado), um ícone de DevTools passa a ficar fixo na barra de título, acessível em qualquer tela — não precisa mais abrir Configurações pra alcançá-lo, útil justamente quando o app está travado ou apresentando problemas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.3",
       "highlights": [
         {
