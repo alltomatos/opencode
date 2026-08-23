@@ -1024,6 +1024,12 @@ export const dict = {
   "settings.general.row.devTools.description":
     "Abre o DevTools do Chromium (Console, Network) para depurar problemas, mesmo em builds de produção.",
   "settings.general.row.devTools.open": "Abrir DevTools",
+  "settings.general.row.debugMode.title": "Modo debug",
+  "settings.general.row.debugMode.description":
+    "Habilita a porta de depuração remota (CDP) mesmo em builds empacotados/produção, permitindo conectar ferramentas externas de debug. Requer reiniciar o app.",
+  "settings.general.row.debugMode.descriptionOn":
+    "Ativado — reinicie o app para a porta de depuração remota entrar em vigor.",
+  "settings.general.row.debugMode.restart": "Reiniciar agora",
   "settings.general.row.newInterface.title": "Novo layout",
   "settings.general.row.newInterface.badge": "Novo",
   "settings.general.row.newInterface.description":

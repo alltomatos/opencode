@@ -8,7 +8,7 @@ import { parseDesktopNativeBundle, type DesktopNativeBundle } from "@opencode-ai
 
 import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../preload/types"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
-import { setForceFocus } from "./debug"
+import { getDebugModeEnabled, setDebugModeEnabled, setForceFocus } from "./debug"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
 import { getStore, removeStoreFileIfEmpty } from "./store"
 import {
@@ -315,6 +315,10 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("get-pinch-zoom-enabled", () => getPinchZoomEnabled())
   ipcMain.handle("set-pinch-zoom-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) => {
     setPinchZoomEnabled(enabled)
+  })
+  ipcMain.handle("get-debug-mode-enabled", () => getDebugModeEnabled())
+  ipcMain.handle("set-debug-mode-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    setDebugModeEnabled(enabled)
   })
   ipcMain.handle("set-titlebar", (event: IpcMainInvokeEvent, theme: TitlebarTheme) => {
     const win = BrowserWindow.fromWebContents(event.sender)

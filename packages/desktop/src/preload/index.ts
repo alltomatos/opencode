@@ -126,6 +126,8 @@ const api: ElectronAPI = {
     ipcRenderer.on("zoom-factor-changed", handler)
     return () => ipcRenderer.removeListener("zoom-factor-changed", handler)
   },
+  getDebugModeEnabled: () => ipcRenderer.invoke("get-debug-mode-enabled"),
+  setDebugModeEnabled: (enabled) => ipcRenderer.invoke("set-debug-mode-enabled", enabled),
   setTitlebar: (theme) => ipcRenderer.invoke("set-titlebar", theme),
   runDesktopMenuAction: (action) => ipcRenderer.invoke("run-desktop-menu-action", action),
   setBackgroundColor: (color: string) => ipcRenderer.invoke("set-background-color", color),

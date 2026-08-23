@@ -1,4 +1,19 @@
 import type { WebContents } from "electron"
+import { getStore } from "./store"
+import { DEBUG_MODE_ENABLED_KEY } from "./store-keys"
+
+// Persisted so the setting survives restarts (and can be flipped from a
+// packaged/production build via Settings, without a debug/dev rebuild).
+// The remote-debugging-port switch this gates must be read at boot, before
+// app.whenReady() — see index.ts — so a change here only takes effect after
+// the app is fully quit and relaunched, not on a simple window reload.
+export function getDebugModeEnabled() {
+  return getStore().get(DEBUG_MODE_ENABLED_KEY) === true
+}
+
+export function setDebugModeEnabled(enabled: boolean) {
+  getStore().set(DEBUG_MODE_ENABLED_KEY, enabled)
+}
 
 const focusDebuggerOwners = new WeakSet<WebContents>()
 const forcedFocusNodes = new WeakMap<WebContents, number[]>()

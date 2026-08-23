@@ -302,6 +302,10 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     runDesktopMenuAction,
 
+    getDebugModeEnabled: () => window.api.getDebugModeEnabled(),
+
+    setDebugModeEnabled: (enabled: boolean) => window.api.setDebugModeEnabled(enabled),
+
     checkAppExists: async (appName: string) => {
       return window.api.checkAppExists(appName)
     },

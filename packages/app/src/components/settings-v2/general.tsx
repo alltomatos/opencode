@@ -310,6 +310,19 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setPinchZoom(!checked))
   }
 
+  const [debugMode, { mutate: setDebugModeResource }] = createResource(
+    () => desktop() && "getDebugModeEnabled" in platform,
+    () => Promise.resolve(platform.getDebugModeEnabled?.() ?? false).catch(() => false),
+    { initialValue: false },
+  )
+
+  const onDebugModeChange = (checked: boolean) => {
+    setDebugModeResource(checked)
+    const update = platform.setDebugModeEnabled?.(checked)
+    if (!update) return
+    void update.catch(() => setDebugModeResource(!checked))
+  }
+
   const InterfaceSection = () => (
     <LayoutTransitionToggle
       title={language.t("settings.general.row.newInterface.title")}
@@ -431,6 +444,38 @@ export const SettingsGeneralV2: Component<{
             >
               {language.t("settings.general.row.devTools.open")}
             </ButtonV2>
+          </SettingsRowV2>
+        </Show>
+
+        <Show when={desktop() && !!platform.setDebugModeEnabled}>
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.debugMode.title")}
+              </span>
+            }
+            description={
+              debugMode()
+                ? language.t("settings.general.row.debugMode.descriptionOn")
+                : language.t("settings.general.row.debugMode.description")
+            }
+          >
+            <div class="flex items-center gap-2">
+              <Show when={debugMode()}>
+                <ButtonV2
+                  variant="neutral"
+                  size="small"
+                  data-action="settings-restart-for-debug-mode"
+                  onClick={() => void platform.restart()}
+                >
+                  {language.t("settings.general.row.debugMode.restart")}
+                </ButtonV2>
+              </Show>
+              <div data-action="settings-debug-mode">
+                <Switch checked={debugMode()} onChange={onDebugModeChange} />
+              </div>
+            </div>
           </SettingsRowV2>
         </Show>
 
