@@ -413,6 +413,27 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
+        <Show when={desktop() && !!platform.runDesktopMenuAction}>
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="console" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.devTools.title")}
+              </span>
+            }
+            description={language.t("settings.general.row.devTools.description")}
+          >
+            <ButtonV2
+              variant="neutral"
+              size="small"
+              data-action="settings-open-dev-tools"
+              onClick={() => void platform.runDesktopMenuAction?.("view.toggleDevTools")}
+            >
+              {language.t("settings.general.row.devTools.open")}
+            </ButtonV2>
+          </SettingsRowV2>
+        </Show>
+
         <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
           <SettingsRowV2
             title={language.t("settings.general.row.mobileTitlebarBottom.title")}
