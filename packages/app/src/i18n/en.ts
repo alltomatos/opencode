@@ -1080,6 +1080,10 @@ export const dict = {
   "settings.general.row.use3dAnimations.title": "Use 3D animations",
   "settings.general.row.use3dAnimations.description":
     "Render 3D visuals where available (like the Batuta activity scene) instead of the flat 2D fallback",
+  "settings.general.row.devTools.title": "Developer tools",
+  "settings.general.row.devTools.description":
+    "Open Chromium DevTools (Console, Network) to debug issues, even in production builds.",
+  "settings.general.row.devTools.open": "Open DevTools",
   "settings.general.row.newInterface.title": "New layout",
   "settings.general.row.newInterface.badge": "New",
   "settings.general.row.newInterface.description":
