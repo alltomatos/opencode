@@ -151,6 +151,7 @@ export function HomeUtilityNav(props: {
   onOpenHelp: () => void
   language: ReturnType<typeof useLanguage>
 }) {
+  const platform = usePlatform()
   return (
     <div class={`${props.class ?? ""} min-w-0 flex-col gap-1 pr-3`}>
       <HomeProjectNavButton
@@ -169,6 +170,11 @@ export function HomeUtilityNav(props: {
         <IconV2 name="help" size="small" />
         <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.help")}</span>
       </HomeProjectNavButton>
+      <Show when={platform.version}>
+        {(version) => (
+          <div class="min-w-0 px-2 pt-0.5 text-11-regular text-v2-text-text-faint select-none">v{version()}</div>
+        )}
+      </Show>
     </div>
   )
 }
