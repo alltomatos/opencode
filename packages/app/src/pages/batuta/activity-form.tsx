@@ -33,7 +33,7 @@ function newId() {
 }
 
 function emptyWorker(): WorkerRow {
-  return { id: newId(), label: "", model: "" }
+  return { id: newId(), label: "", kind: "internal", model: "" }
 }
 
 function createBatutaProjectControls(directory: () => string, setDirectory: (value: string) => void) {
@@ -174,7 +174,9 @@ export function BatutaActivityFormPage() {
   const validate = () => {
     const name = form.name.trim()
     const goal = form.goal.trim()
-    const workers = form.workers.map((w) => ({ ...w, label: w.label.trim() })).filter((w) => w.label && w.model)
+    const workers = form.workers
+      .map((w) => ({ ...w, label: w.label.trim(), command: w.command?.trim() }))
+      .filter((w) => w.label && (w.kind === "external" ? w.command : w.model))
     const err = {
       name: !name ? language.t("provider.custom.error.required") : undefined,
       goal: !goal ? language.t("provider.custom.error.required") : undefined,
@@ -401,7 +403,36 @@ export function BatutaActivityFormPage() {
                         placeholder={language.t("batuta.form.field.workers.label.placeholder")}
                         onInput={(event) => setWorker(index(), { label: event.currentTarget.value })}
                       />
-                      <ModelPickerV2 value={worker.model} onChange={(value) => setWorker(index(), { model: value })} />
+                      <SelectV2
+                        class="!w-[110px] shrink-0"
+                        options={["internal", "external"] as const}
+                        current={worker.kind ?? "internal"}
+                        label={(kind) => language.t(`batuta.form.field.workers.kind.${kind}`)}
+                        onSelect={(kind) => kind && setWorker(index(), { kind })}
+                      />
+                      <Show
+                        when={worker.kind === "external"}
+                        fallback={
+                          <ModelPickerV2 value={worker.model ?? ""} onChange={(value) => setWorker(index(), { model: value })} />
+                        }
+                      >
+                        <TextInputV2
+                          type="text"
+                          class="!w-[160px] shrink-0"
+                          value={worker.command ?? ""}
+                          placeholder={language.t("batuta.form.field.workers.command.placeholder")}
+                          onInput={(event) => setWorker(index(), { command: event.currentTarget.value })}
+                        />
+                        <TextInputV2
+                          type="text"
+                          class="!w-[160px] shrink-0"
+                          value={(worker.args ?? []).join(" ")}
+                          placeholder={language.t("batuta.form.field.workers.args.placeholder")}
+                          onInput={(event) =>
+                            setWorker(index(), { args: event.currentTarget.value.split(/\s+/).filter(Boolean) })
+                          }
+                        />
+                      </Show>
                       <ButtonV2
                         type="button"
                         variant="ghost-muted"

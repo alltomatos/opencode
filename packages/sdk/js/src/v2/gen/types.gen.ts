@@ -1876,10 +1876,14 @@ export type BatutaWorker = {
    * Name the orchestrator uses to delegate to this worker via the task tool
    */
   label: string
+  kind?: "internal" | "external"
+  model?: string
+  command?: string
+  args?: Array<string>
   /**
-   * Model for this worker, in 'providerID/modelID' form
+   * How long the external worker's PTY must be silent before its output is considered a finished turn. Only used when kind is 'external'.
    */
-  model: string
+  idleTimeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type BatutaActivity = {
