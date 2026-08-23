@@ -24,7 +24,9 @@ import { ExternalAgent } from "@/external-agent"
 import { Truncate } from "@/tool/truncate"
 import { ToolRegistry } from "@/tool/registry"
 import { RuntimeFlags } from "@/effect/runtime-flags"
-import { disposeAllInstances } from "../fixture/fixture"
+import { disposeAllInstances, TestInstance } from "../fixture/fixture"
+import * as fs from "fs/promises"
+import * as path from "path"
 import { testEffect } from "../lib/effect"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
@@ -996,18 +998,31 @@ describe("tool.task", () => {
     Effect.gen(function* () {
       const batutaSvc = yield* Batuta.Service
       const sessions = yield* Session.Service
+      const instance = yield* TestInstance
       const workerModel = {
         providerID: ProviderV2.ID.make("worker-provider"),
         modelID: ModelV2.ID.make("worker-model"),
       }
+      const activityID = "activity-1"
       yield* batutaSvc.add({
-        id: "activity-1",
+        id: activityID,
         name: "Test activity",
         goal: "do the thing",
         orchestratorModel: `${ref.providerID}/${ref.modelID}`,
         workers: [{ id: "w1", label: "reviewer", model: `${workerModel.providerID}/${workerModel.modelID}` }],
+        directory: instance.directory,
       })
-      const { sessionID } = yield* batutaSvc.start("activity-1")
+      yield* batutaSvc.start(activityID)
+
+      // resolveWorker only sees a worker once the activity's Architect has
+      // handed off and dispatch() has created the orchestrator session — a
+      // bare start() (the Architect session) never registers it. Replicate
+      // that handoff on disk the same way the real flow does.
+      const handoffDir = path.join(instance.directory, ".batuta", activityID)
+      yield* Effect.promise(() => fs.mkdir(handoffDir, { recursive: true }))
+      yield* Effect.promise(() => fs.writeFile(path.join(handoffDir, "handoff.md"), "- reviewer: reviewed the diff"))
+      yield* batutaSvc.checkHandoff(activityID)
+      const { sessionID } = yield* batutaSvc.dispatch(activityID)
 
       const user = yield* sessions.updateMessage({
         id: MessageID.ascending(),
