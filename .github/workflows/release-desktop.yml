@@ -39,7 +39,12 @@ jobs:
 
       - name: Build and publish
         working-directory: packages/desktop
-        run: bun run build && bun run ${{ matrix.script }} -- ${{ matrix.extra_args }} --publish always
+        # package:* scripts run `bun run build` themselves — see
+        # ORCHESTRATOR-ROADMAP.md for why (running package:win standalone
+        # used to silently ship whatever stale/incomplete out/ happened to
+        # be on disk, missing out/renderer entirely if the last local build
+        # was `dev`, which never writes it there).
+        run: bun run ${{ matrix.script }} -- ${{ matrix.extra_args }} --publish always
         env:
           OPENCODE_CHANNEL: prod
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

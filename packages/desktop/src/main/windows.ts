@@ -207,6 +207,16 @@ export function createMainWindow(id: string = randomUUID()) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // A window created with show:false can start out treated as
+      // backgrounded; if the OS never delivers a clean "now visible" signal
+      // back to Chromium (seen on this fork with a window opened directly on
+      // a secondary/GPU-attached monitor), throttled rendering can suppress
+      // the very first compositor frame indefinitely — the window sits
+      // blank until an input event forces a repaint. Disabling throttling
+      // removes that dependency; the cost is normal background-tab CPU/timer
+      // behavior, which doesn't apply here since this is the app's own
+      // single window, not a backgrounded browser tab.
+      backgroundThrottling: false,
     },
   })
 
