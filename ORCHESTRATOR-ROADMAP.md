@@ -135,6 +135,24 @@ V1 usa só providers já configurados no app. V2 (orquestrar CLIs externos como 
 
 Executando em fila, sem paralelismo, um commit por issue, verificado antes de seguir pra próxima. Merge pra `dev` só depois das 3 fases funcionando de ponta a ponta.
 
+### V2: orquestração de CLIs externos (`claude`, `codex`) via PTY
+
+**Status:** Fase 1 (backend) planejada em 2026-08-23, execução não iniciada.
+**Origem:** estudo do modelo do Orca (`orca-cli` skill) — orquestrador de terminal que controla CLIs de agentes de terceiros via PTY dentro de git worktrees, sem motor de LLM próprio. Pesquisa completa em `docs/research/external-agent-orchestration.md`.
+
+Insight de arquitetura: o `node-pty` (já dependência do projeto, usado no empacotamento do `.exe`) roda em qualquer processo Node/Bun — não precisa ser o Electron main. O `ExternalAgent.Service` vive em `packages/opencode`, o mesmo processo que já roda `task.ts`, evitando IPC com o desktop. Pra quem chama a tool `task`, delegar a um worker interno (V1) ou externo (V2) é indistinguível — a interface não muda, só a implementação por trás do `kind` do worker.
+
+4 issues em fila, com `Blocked by` entre elas:
+
+| Issue | O quê |
+|---|---|
+| [#49](https://github.com/alltomatos/opencode/issues/49) | Schema de Worker externo (`kind`/`command`/`args`/`idleTimeoutMs`) |
+| [#50](https://github.com/alltomatos/opencode/issues/50) | `ExternalAgent.Service` (spawn/write/read/waitIdle/kill de PTY) |
+| [#51](https://github.com/alltomatos/opencode/issues/51) | Permission gate dedicado antes de spawnar CLI externo |
+| [#52](https://github.com/alltomatos/opencode/issues/52) | `task.ts` delega pro worker externo via PTY quando `kind === "external"` |
+
+Fora de escopo desta fase: UI de seleção `kind`/`command` no form de worker, handoff/DAG entre múltiplos workers externos, painel de terminal ao vivo (xterm.js) — tudo isso fica pra fases seguintes, só depois do backend funcionar ponta a ponta com um worker externo controlado por request/response (sem UI de terminal).
+
 ## Epic: Descontinuar o layout legado
 
 **Status:** Decisão tomada em 2026-08-19 (issue #25), execução não iniciada.
