@@ -34,7 +34,7 @@ export type WaitIdleInput = {
   readonly timeoutMs?: number
 }
 
-const DEFAULT_IDLE_MS = 1_200
+const DEFAULT_IDLE_MS = 1_500
 const DEFAULT_TIMEOUT_MS = 5 * 60_000
 
 type Active = {

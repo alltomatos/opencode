@@ -20,6 +20,7 @@ import { SessionStatus } from "@/session/status"
 
 import { TaskTool, type TaskPromptOps } from "../../src/tool/task"
 import { Batuta } from "@/batuta"
+import { ExternalAgent } from "@/external-agent"
 import { Truncate } from "@/tool/truncate"
 import { ToolRegistry } from "@/tool/registry"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -55,6 +56,7 @@ const layer = (flags: Partial<RuntimeFlags.Info> = {}) =>
       RuntimeFlags.node,
       Ripgrep.node,
       Batuta.node,
+      ExternalAgent.node,
     ]),
     [
       [RuntimeFlags.node, RuntimeFlags.layer(flags)],
