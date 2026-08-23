@@ -59,7 +59,22 @@ runs:
         # e.g. ./patches/ for standard-openapi
         # https://github.com/oven-sh/bun/issues/28147
         if [ "$RUNNER_OS" = "Windows" ]; then
-          bun install --linker hoisted ${{ inputs.install-flags }}
+          # bun install --linker hoisted can lose a race applying a patch to
+          # its cache dir on Windows NTFS ("renaming changes to cache dir:
+          # ENOTEMPTY ... ") — seen twice in a row on real releases (v1.21.0,
+          # v1.21.1) with a cold cache, always on the same patched package.
+          # A second attempt succeeds because the first attempt already did
+          # most of the extraction work, so retry a couple of times instead
+          # of failing the whole release build outright.
+          for attempt in 1 2 3; do
+            bun install --linker hoisted ${{ inputs.install-flags }} && break
+            if [ "$attempt" = "3" ]; then
+              echo "bun install failed after 3 attempts" >&2
+              exit 1
+            fi
+            echo "bun install failed (attempt $attempt/3), retrying..." >&2
+            sleep 5
+          done
         else
           bun install ${{ inputs.install-flags }}
         fi
