@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.5",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: ícone de DevTools não aparecia ao ativar o Modo debug",
+              "description": "Na 1.21.4, ativar o Modo debug em Configurações não fazia o ícone de DevTools aparecer na barra de título — precisava recarregar/reabrir o app manualmente. Agora aparece na hora, sem precisar de nada extra."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.4",
       "highlights": [
         {
