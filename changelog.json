@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.9",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Tarefas em segundo plano",
+              "description": "Novo item no menu \"...\" da sessão: mostra as tarefas em segundo plano (subagentes) em execução e concluídas, com tempo decorrido e opção de cancelar."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.8",
       "highlights": [
         {
