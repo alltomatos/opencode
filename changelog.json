@@ -9,6 +9,10 @@
             {
               "title": "Batuta oculto na produção",
               "description": "O modo Batuta (orquestração multi-agente) ainda está em desenvolvimento ativo — a aba dele agora só aparece em builds de desenvolvimento, não mais na versão de produção."
+            },
+            {
+              "title": "Omniroute nos provedores em destaque",
+              "description": "Na tela de seleção de modelo, o cartão de GitHub Copilot foi substituído por Omniroute na lista de provedores em destaque."
             }
           ]
         }

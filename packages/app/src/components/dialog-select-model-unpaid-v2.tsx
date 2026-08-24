@@ -11,9 +11,10 @@ import { useProviders } from "@/hooks/use-providers"
 import { decode64 } from "@/utils/base64"
 import { useLanguage } from "@/context/language"
 import { ModelTooltip } from "./model-tooltip"
+import { OMNIROUTE_PROVIDER_ID } from "./dialog-connect-omniroute"
 
 type ModelState = ReturnType<typeof useLocal>["model"]
-const featuredProviders = ["opencode", "opencode-go", "openai", "anthropic", "google", "github-copilot"]
+const featuredProviders = ["opencode", "opencode-go", "openai", "anthropic", "google", OMNIROUTE_PROVIDER_ID]
 const displayModelName = (name: string) => name.replace(/\s+(?:\(free\)|free)$/i, "")
 
 export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (props) => {
