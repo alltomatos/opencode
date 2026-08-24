@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.8",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Distinção entre 'pensando' e 'executando'",
+              "description": "Na linha do tempo da sessão, o indicador de status agora mostra 'Executando comandos...' enquanto uma ferramenta está rodando, em vez de ficar preso em 'Pensando...' o tempo todo."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.7",
       "highlights": [
         {
