@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.10",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: Omniroute não aparecia na tela de modelo",
+              "description": "Na tela de seleção de modelo, o cartão do Omniroute não estava aparecendo entre os provedores em destaque. Corrigido."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.9",
       "highlights": [
         {
