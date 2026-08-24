@@ -26,7 +26,7 @@ export type TimelineRowMap = {
     group: PartGroup
     previousAssistantPart: boolean
   }
-  Thinking: { userMessageID: string; reasoningHeading?: string }
+  Thinking: { userMessageID: string; reasoningHeading?: string; executing: boolean }
   Retry: { userMessageID: string }
   DiffSummary: { userMessageID: string; diffs: SummaryDiff[] }
   Error: { userMessageID: string; text: string }
@@ -190,6 +190,13 @@ export namespace Timeline {
       assistantGroupIndex += 1
     })
 
+    // A running tool call means the model is actively executing, not
+    // reasoning — surface that distinction instead of always saying
+    // "Thinking" while a shell/tool call is visibly in progress above.
+    const hasRunningToolPart = assistantPartRefs.some(
+      (ref) => ref.part.type === "tool" && ref.part.state?.status === "running",
+    )
+
     if (isActive && status === "busy" && !error && (showReasoning ? assistantPartRefs.length === 0 : true)) {
       const heading = assistantMessages
         .flatMap((message) => getMessageParts(message.id))
@@ -200,6 +207,7 @@ export namespace Timeline {
         new TimelineRow.Thinking({
           userMessageID: userMessage.id,
           reasoningHeading: heading,
+          executing: hasRunningToolPart,
         }),
       )
     }

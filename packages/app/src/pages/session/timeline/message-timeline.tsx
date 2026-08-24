@@ -156,14 +156,15 @@ function ThinkingFaceIcon() {
   )
 }
 
-function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSummaries: boolean }) {
+function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSummaries: boolean; executing: boolean }) {
   const language = useLanguage()
+  const statusKey = () => (props.executing ? "ui.sessionTurn.status.runningCommands" : "ui.sessionTurn.status.thinking")
 
   return (
     <div data-slot="session-turn-thinking">
       <ThinkingFaceIcon />
-      <TextShimmer text={`${language.t("ui.sessionTurn.status.thinking")}...`} />
-      <Show when={!props.showReasoningSummaries}>
+      <TextShimmer text={`${language.t(statusKey())}...`} />
+      <Show when={!props.executing && !props.showReasoningSummaries}>
         <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
       </Show>
     </div>
@@ -1212,6 +1213,7 @@ export function MessageTimeline(props: {
               <TimelineThinkingRow
                 reasoningHeading={thinkingRow().reasoningHeading}
                 showReasoningSummaries={settings.general.showReasoningSummaries()}
+                executing={thinkingRow().executing}
               />
             </div>
           </TimelineRowFrame>
