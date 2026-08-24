@@ -2303,6 +2303,22 @@ export type GlobalSession = {
   project: ProjectSummary | null
 }
 
+export type BackgroundJobInfo = {
+  id: string
+  type: string
+  title?: string
+  status: "running" | "completed" | "error" | "cancelled"
+  started_at: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  completed_at?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  output?: string
+  error?: string
+  metadata?: {
+    [key: string]: unknown
+  }
+}
+
+export type BackgroundJobList = Array<BackgroundJobInfo>
+
 export type McpResource = {
   name: string
   uri: string
@@ -8283,6 +8299,68 @@ export type ExperimentalSessionBackgroundResponses = {
 
 export type ExperimentalSessionBackgroundResponse =
   ExperimentalSessionBackgroundResponses[keyof ExperimentalSessionBackgroundResponses]
+
+export type ExperimentalBackgroundJobListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/background-job"
+}
+
+export type ExperimentalBackgroundJobListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalBackgroundJobListError =
+  ExperimentalBackgroundJobListErrors[keyof ExperimentalBackgroundJobListErrors]
+
+export type ExperimentalBackgroundJobListResponses = {
+  /**
+   * Background jobs
+   */
+  200: BackgroundJobList
+}
+
+export type ExperimentalBackgroundJobListResponse =
+  ExperimentalBackgroundJobListResponses[keyof ExperimentalBackgroundJobListResponses]
+
+export type ExperimentalBackgroundJobCancelData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/background-job/{id}/cancel"
+}
+
+export type ExperimentalBackgroundJobCancelErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalBackgroundJobCancelError =
+  ExperimentalBackgroundJobCancelErrors[keyof ExperimentalBackgroundJobCancelErrors]
+
+export type ExperimentalBackgroundJobCancelResponses = {
+  /**
+   * Job cancelled
+   */
+  200: boolean
+}
+
+export type ExperimentalBackgroundJobCancelResponse =
+  ExperimentalBackgroundJobCancelResponses[keyof ExperimentalBackgroundJobCancelResponses]
 
 export type ExperimentalResourceListData = {
   body?: never
