@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.6",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: ícone de DevTools invisível",
+              "description": "O ícone do Modo debug (Configurações > Avançado) existia e funcionava, mas ficava sem desenho visível na barra de título nova — corrigido. Também movido para ficar ao lado do ícone de Configurações, mais fácil de achar."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.5",
       "highlights": [
         {
