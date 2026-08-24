@@ -712,7 +712,11 @@ function GlobalDevToolsButton(props: { variant: "v2" | "legacy" }) {
             variant="ghost-muted"
             size="large"
             class="!w-9 shrink-0"
-            icon={<IconV2 name="console" />}
+            // "console" doesn't exist in the v2 icon set (@opencode-ai/ui/v2/icon) — it
+            // only has a small, unrelated set of names. Reuse the legacy Icon component's
+            // "console" glyph instead of adding a whole new icon just for this button;
+            // IconButtonV2's `icon` prop takes any JSX.Element, not just IconV2.
+            icon={<Icon name="console" size="small" />}
             onClick={open}
             aria-label={language.t("settings.general.row.devTools.open")}
           />
