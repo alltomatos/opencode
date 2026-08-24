@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.7",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Batuta oculto na produção",
+              "description": "O modo Batuta (orquestração multi-agente) ainda está em desenvolvimento ativo — a aba dele agora só aparece em builds de desenvolvimento, não mais na versão de produção."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.6",
       "highlights": [
         {
