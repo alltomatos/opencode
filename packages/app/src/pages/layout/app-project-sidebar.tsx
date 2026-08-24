@@ -1,4 +1,4 @@
-import { Show, type Component, type JSX } from "solid-js"
+import { Show, createEffect, type Component, type JSX } from "solid-js"
 import { useLocation, useNavigate } from "@solidjs/router"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -15,6 +15,10 @@ import { HomeProjects } from "@/pages/home/home-projects"
 import { HomeUtilityNav } from "@/pages/home/home-projects-view"
 import { BatutaSidebarList } from "@/pages/batuta/batuta-sidebar-list"
 
+// Batuta is still an active work-in-progress feature — only show its entry
+// point on dev builds, not to production users, until it's ready to ship.
+const BATUTA_VISIBLE = import.meta.env.VITE_OPENCODE_CHANNEL === "dev"
+
 // Persistent, collapsible project switcher shown alongside every route (Home
 // and an open session alike) — unlike the titlebar's grid-icon toggle, this
 // never navigates away from the current session to reach it.
@@ -26,6 +30,16 @@ export const AppProjectSidebar: Component = () => {
   const home = createHomeController()
   const projectsController = createHomeProjectsController(home)
   const scroll = createHomeScrollController(() => [])
+
+  // Safety net for anyone who had "batuta" persisted from a dev build before
+  // switching to a non-dev build (or from before this gate existed) — don't
+  // strand them on a hidden tab with no way back via the UI.
+  createEffect(() => {
+    if (BATUTA_VISIBLE) return
+    if (layout.projectSidebar.tab() !== "batuta") return
+    layout.projectSidebar.setTab("code")
+    if (location.pathname === "/batuta") navigate("/")
+  })
 
   const selectProject = (conn: ServerConnection.Any, directory: string) => {
     home.project.select(conn, directory)
@@ -103,22 +117,31 @@ const ProjectSidebarTabs: Component<{
   language: ReturnType<typeof useLanguage>
 }> = (props) => {
   return (
-    <div class="flex h-7 min-w-0 flex-1 items-center gap-0.5 rounded-[8px] bg-v2-background-bg-layer-01 p-0.5">
-      <ProjectSidebarTabButton
-        active={props.tab === "code"}
-        label={props.language.t("sidebar.tab.code")}
-        onClick={() => props.onSelect("code")}
-      >
-        <Icon name="code" size="small" />
-      </ProjectSidebarTabButton>
-      <ProjectSidebarTabButton
-        active={props.tab === "batuta"}
-        label={props.language.t("sidebar.tab.batuta")}
-        onClick={() => props.onSelect("batuta")}
-      >
-        <IconV2 name="batuta" size="small" />
-      </ProjectSidebarTabButton>
-    </div>
+    <Show
+      when={BATUTA_VISIBLE}
+      fallback={
+        <div class="flex h-7 min-w-0 flex-1 items-center px-1 text-12-medium text-v2-text-text-muted">
+          {props.language.t("sidebar.tab.code")}
+        </div>
+      }
+    >
+      <div class="flex h-7 min-w-0 flex-1 items-center gap-0.5 rounded-[8px] bg-v2-background-bg-layer-01 p-0.5">
+        <ProjectSidebarTabButton
+          active={props.tab === "code"}
+          label={props.language.t("sidebar.tab.code")}
+          onClick={() => props.onSelect("code")}
+        >
+          <Icon name="code" size="small" />
+        </ProjectSidebarTabButton>
+        <ProjectSidebarTabButton
+          active={props.tab === "batuta"}
+          label={props.language.t("sidebar.tab.batuta")}
+          onClick={() => props.onSelect("batuta")}
+        >
+          <IconV2 name="batuta" size="small" />
+        </ProjectSidebarTabButton>
+      </div>
+    </Show>
   )
 }
 
