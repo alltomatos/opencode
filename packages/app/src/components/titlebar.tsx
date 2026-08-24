@@ -372,7 +372,6 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 }}
               >
                 <ChannelIndicator debugTools={props.debugTools} />
-                <GlobalDevToolsButton variant="v2" />
                 <Show when={windows() || linux()}>
                   <WindowsAppMenu command={command} platform={platform} variant="v2" />
                 </Show>
@@ -627,6 +626,7 @@ function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
       <Show when={props.state.update.visible}>
         <TitlebarUpdateIconButton state={props.state.update} />
       </Show>
+      <GlobalDevToolsButton variant="v2" />
       <TooltipV2 placement="bottom" value={language.t("command.settings.open")}>
         <IconButtonV2
           variant="ghost-muted"
