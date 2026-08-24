@@ -34,6 +34,18 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
     item.provider.id === "opencode" && (!item.cost || item.cost.input === 0)
   const freeModels = createMemo(() => model.list().filter(isFree))
 
+  // Omniroute is a fork-specific custom provider, not something the server's
+  // catalog knows about until the user has actually configured it — so unlike
+  // OpenAI/Anthropic/Google it never shows up in providers.popular() on its
+  // own. Splice in a placeholder tile (same pattern used by
+  // dialog-connect-provider.tsx and settings-v2/providers.tsx) so it renders
+  // here until connected.
+  const featuredProviderList = createMemo(() => {
+    const popular = providers.popular()
+    const connected = popular.some((provider) => provider.id === OMNIROUTE_PROVIDER_ID)
+    return connected ? popular : [...popular, { id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" }]
+  })
+
   const openProviders = (provider?: string) => {
     void import("./dialog-connect-provider").then((x) => {
       const controller = x.useProviderConnectController()
@@ -128,7 +140,7 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
               </div>
               <div class="grid w-full grid-cols-1 gap-y-1.5 gap-x-2 sm:grid-cols-2">
                 <For
-                  each={[...providers.popular()]
+                  each={featuredProviderList()
                     .filter((provider) => featuredProviders.includes(provider.id))
                     .sort((a, b) => featuredProviders.indexOf(a.id) - featuredProviders.indexOf(b.id))}
                 >
