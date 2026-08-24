@@ -94,6 +94,15 @@ export const dict = {
   "ui.sessionTurn.status.gatheringThoughts": "Organizando pensamentos",
   "ui.sessionTurn.status.consideringNextSteps": "Considerando próximos passos",
 
+  "ui.backgroundTasks.title": "Tarefas em segundo plano",
+  "ui.backgroundTasks.empty": "Nenhuma tarefa em segundo plano",
+  "ui.backgroundTasks.running": "Em execução",
+  "ui.backgroundTasks.completed": "Concluído",
+  "ui.backgroundTasks.cancel": "Cancelar",
+  "ui.backgroundTasks.status.completed": "Concluído",
+  "ui.backgroundTasks.status.error": "Falhou",
+  "ui.backgroundTasks.status.cancelled": "Cancelado",
+
   "ui.messagePart.questions.dismissed": "Perguntas descartadas",
   "ui.messagePart.compaction": "Sessão compactada",
   "ui.messagePart.context.read.one": "{{count}} leitura",

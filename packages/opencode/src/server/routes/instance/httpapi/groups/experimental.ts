@@ -87,6 +87,25 @@ export const SessionListQuery = Schema.Struct({
   archived: Schema.optional(QueryBoolean),
 })
 
+const BackgroundJobInfo = Schema.Struct({
+  id: Schema.String,
+  type: Schema.String,
+  title: Schema.optionalKey(Schema.String),
+  status: Schema.Union([
+    Schema.Literal("running"),
+    Schema.Literal("completed"),
+    Schema.Literal("error"),
+    Schema.Literal("cancelled"),
+  ]),
+  started_at: Schema.Number,
+  completed_at: Schema.optionalKey(Schema.Number),
+  output: Schema.optionalKey(Schema.String),
+  error: Schema.optionalKey(Schema.String),
+  metadata: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+}).annotate({ identifier: "BackgroundJobInfo" })
+const BackgroundJobList = Schema.Array(BackgroundJobInfo).annotate({ identifier: "BackgroundJobList" })
+export const BackgroundJobID = Schema.String
+
 export const ExperimentalPaths = {
   capabilities: "/experimental/capabilities",
   console: "/experimental/console",
@@ -98,6 +117,8 @@ export const ExperimentalPaths = {
   worktreeReset: "/experimental/worktree/reset",
   session: "/experimental/session",
   sessionBackground: "/experimental/session/:sessionID/background",
+  backgroundJob: "/experimental/background-job",
+  backgroundJobCancel: "/experimental/background-job/:id/cancel",
   resource: "/experimental/resource",
 } as const
 
@@ -243,6 +264,27 @@ export const ExperimentalApi = HttpApi.make("experimental")
             summary: "Background subagents",
             description:
               "Detach any synchronous subagents currently blocking the session and continue them in the background.",
+          }),
+        ),
+        HttpApiEndpoint.get("backgroundJob", ExperimentalPaths.backgroundJob, {
+          query: WorkspaceRoutingQuery,
+          success: described(BackgroundJobList, "Background jobs"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.backgroundJob.list",
+            summary: "List background jobs",
+            description: "Get all background jobs tracked in this instance (e.g. backgrounded subagent tasks).",
+          }),
+        ),
+        HttpApiEndpoint.post("backgroundJobCancel", ExperimentalPaths.backgroundJobCancel, {
+          params: { id: BackgroundJobID },
+          query: WorkspaceRoutingQuery,
+          success: described(Schema.Boolean, "Job cancelled"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.backgroundJob.cancel",
+            summary: "Cancel a background job",
+            description: "Cancel a running background job by id.",
           }),
         ),
         HttpApiEndpoint.get("resource", ExperimentalPaths.resource, {

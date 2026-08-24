@@ -74,6 +74,7 @@ import { useSync } from "@/context/sync"
 import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
 import { sessionTitle } from "@/utils/session-title"
 import { DialogDeleteSession } from "./dialog-delete-session"
+import { DialogBackgroundTasks } from "@/components/session/dialog-background-tasks"
 import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
@@ -1683,6 +1684,15 @@ export function MessageTimeline(props: {
                               <MenuV2.Item onSelect={() => void archiveSession(id)}>
                                 <IconV2 name="archive" size="small" />
                                 {language.t("common.archive")}
+                              </MenuV2.Item>
+                              <MenuV2.Item
+                                onSelect={() => {
+                                  setTitle("menuOpen", false)
+                                  dialog.show(() => <DialogBackgroundTasks />)
+                                }}
+                              >
+                                <IconV2 name="grid-plus" size="small" />
+                                {language.t("ui.backgroundTasks.title")}
                               </MenuV2.Item>
                               <MenuV2.Separator />
                               <MenuV2.Item

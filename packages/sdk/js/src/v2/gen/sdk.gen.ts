@@ -52,6 +52,10 @@ import type {
   EventTuiPromptAppend,
   EventTuiSessionSelect,
   EventTuiToastShow,
+  ExperimentalBackgroundJobCancelErrors,
+  ExperimentalBackgroundJobCancelResponses,
+  ExperimentalBackgroundJobListErrors,
+  ExperimentalBackgroundJobListResponses,
   ExperimentalCapabilitiesGetErrors,
   ExperimentalCapabilitiesGetResponses,
   ExperimentalConsoleGetErrors,
@@ -913,6 +917,78 @@ export class Session extends HeyApiClient {
   }
 }
 
+export class BackgroundJob extends HeyApiClient {
+  /**
+   * List background jobs
+   *
+   * Get all background jobs tracked in this instance (e.g. backgrounded subagent tasks).
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ExperimentalBackgroundJobListResponses,
+      ExperimentalBackgroundJobListErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/background-job",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Cancel a background job
+   *
+   * Cancel a running background job by id.
+   */
+  public cancel<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalBackgroundJobCancelResponses,
+      ExperimentalBackgroundJobCancelErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/background-job/{id}/cancel",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Resource extends HeyApiClient {
   /**
    * Get MCP resources
@@ -1286,6 +1362,11 @@ export class Experimental extends HeyApiClient {
   private _session?: Session
   get session(): Session {
     return (this._session ??= new Session({ client: this.client }))
+  }
+
+  private _backgroundJob?: BackgroundJob
+  get backgroundJob(): BackgroundJob {
+    return (this._backgroundJob ??= new BackgroundJob({ client: this.client }))
   }
 
   private _resource?: Resource
