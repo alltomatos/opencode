@@ -330,8 +330,8 @@ export const SettingsGeneralV2: Component<{
 
   const [computerUse, { mutate: setComputerUseResource }] = createResource(
     () => desktop() && "getComputerUseEnabled" in platform,
-    () => Promise.resolve(platform.getComputerUseEnabled?.() ?? false).catch(() => false),
-    { initialValue: false },
+    () => Promise.resolve(platform.getComputerUseEnabled?.() ?? true).catch(() => true),
+    { initialValue: true },
   )
 
   onMount(() => {

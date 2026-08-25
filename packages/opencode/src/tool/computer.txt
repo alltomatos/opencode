@@ -2,7 +2,7 @@
 - One tool, multiple actions selected via the `action` parameter: screenshot, click, move, type, key, scroll
 
 Usage notes:
-  - Only available in the opencode desktop app, and only when the operator has explicitly enabled "Computer use" in Settings > Experimental — unlike the browser tool, this is off by default because it can interact with any window or application on the machine, not a sandboxed view
+  - Only available in the opencode desktop app. On by default, but the operator can disable "Computer use" in Settings > Experimental
   - Every action asks the user for confirmation the first time in a turn; this is real input to the real desktop, so treat it as high-stakes
   - Coordinates are absolute screen pixels on the primary display. Call "screenshot" first to see the current state and figure out where to click — there is no accessibility-tree snapshot like the browser tool has, so rely on the screenshot image
   - "type" types into whatever has OS focus right now — call "click" on the target field first
