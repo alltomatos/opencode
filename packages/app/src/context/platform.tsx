@@ -116,6 +116,15 @@ type PlatformBase = {
   /** Subscribe to debug-mode changes from any window/source (desktop only). Returns an unsubscribe function. */
   onDebugModeEnabledChanged?(cb: (enabled: boolean) => void): () => void
 
+  /** Get whether the agent may control the OS (mouse/keyboard/screenshot) via the computer tool (desktop only) */
+  getComputerUseEnabled?(): Promise<boolean> | boolean
+
+  /** Allow the agent to control the OS; takes effect after the app is fully quit and relaunched (desktop only) */
+  setComputerUseEnabled?(enabled: boolean): Promise<void> | void
+
+  /** Subscribe to computer-use changes from any window/source (desktop only). Returns an unsubscribe function. */
+  onComputerUseEnabledChanged?(cb: (enabled: boolean) => void): () => void
+
   /** Check if an editor app exists (desktop only) */
   checkAppExists?(appName: string): Promise<boolean>
 

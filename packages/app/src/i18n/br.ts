@@ -1027,6 +1027,12 @@ export const dict = {
   "settings.general.row.debugMode.descriptionOn":
     "Ativado — reinicie o app para a porta de depuração remota entrar em vigor.",
   "settings.general.row.debugMode.restart": "Reiniciar agora",
+  "settings.general.row.computerUse.title": "Controle do computador",
+  "settings.general.row.computerUse.description":
+    "Permite que o agente controle este computador diretamente — mouse, teclado e tela — não só o browser embutido. Desativado por padrão porque pode interagir com qualquer janela ou app da máquina. Requer reiniciar o app.",
+  "settings.general.row.computerUse.descriptionOn":
+    "Ativado — reinicie o app para o controle do computador entrar em vigor.",
+  "settings.general.row.computerUse.restart": "Reiniciar agora",
   "settings.general.row.newInterface.title": "Novo layout",
   "settings.general.row.newInterface.badge": "Novo",
   "settings.general.row.newInterface.description":

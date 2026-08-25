@@ -133,6 +133,13 @@ const api: ElectronAPI = {
     ipcRenderer.on("debug-mode-enabled-changed", handler)
     return () => ipcRenderer.removeListener("debug-mode-enabled-changed", handler)
   },
+  getComputerUseEnabled: () => ipcRenderer.invoke("get-computer-use-enabled"),
+  setComputerUseEnabled: (enabled) => ipcRenderer.invoke("set-computer-use-enabled", enabled),
+  onComputerUseEnabledChanged: (cb) => {
+    const handler = (_: unknown, enabled: boolean) => cb(enabled)
+    ipcRenderer.on("computer-use-enabled-changed", handler)
+    return () => ipcRenderer.removeListener("computer-use-enabled-changed", handler)
+  },
   setTitlebar: (theme) => ipcRenderer.invoke("set-titlebar", theme),
   runDesktopMenuAction: (action) => ipcRenderer.invoke("run-desktop-menu-action", action),
   setBackgroundColor: (color: string) => ipcRenderer.invoke("set-background-color", color),
