@@ -328,6 +328,24 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setDebugModeResource(!checked))
   }
 
+  const [computerUse, { mutate: setComputerUseResource }] = createResource(
+    () => desktop() && "getComputerUseEnabled" in platform,
+    () => Promise.resolve(platform.getComputerUseEnabled?.() ?? false).catch(() => false),
+    { initialValue: false },
+  )
+
+  onMount(() => {
+    const unsubscribe = platform.onComputerUseEnabledChanged?.(setComputerUseResource)
+    onCleanup(() => unsubscribe?.())
+  })
+
+  const onComputerUseChange = (checked: boolean) => {
+    setComputerUseResource(checked)
+    const update = platform.setComputerUseEnabled?.(checked)
+    if (!update) return
+    void update.catch(() => setComputerUseResource(!checked))
+  }
+
   const InterfaceSection = () => (
     <LayoutTransitionToggle
       title={language.t("settings.general.row.newInterface.title")}
@@ -540,6 +558,38 @@ export const SettingsGeneralV2: Component<{
             />
           </div>
         </SettingsRowV2>
+
+        <Show when={desktop() && !!platform.setComputerUseEnabled}>
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="window-cursor" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.computerUse.title")}
+              </span>
+            }
+            description={
+              computerUse()
+                ? language.t("settings.general.row.computerUse.descriptionOn")
+                : language.t("settings.general.row.computerUse.description")
+            }
+          >
+            <div class="flex items-center gap-2">
+              <Show when={computerUse()}>
+                <ButtonV2
+                  variant="neutral"
+                  size="small"
+                  data-action="settings-restart-for-computer-use"
+                  onClick={() => void platform.restart()}
+                >
+                  {language.t("settings.general.row.computerUse.restart")}
+                </ButtonV2>
+              </Show>
+              <div data-action="settings-computer-use">
+                <Switch checked={computerUse()} onChange={onComputerUseChange} />
+              </div>
+            </div>
+          </SettingsRowV2>
+        </Show>
       </SettingsListV2>
     </div>
   )

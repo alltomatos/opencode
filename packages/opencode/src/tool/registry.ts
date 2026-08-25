@@ -14,6 +14,7 @@ import { Database } from "@opencode-ai/core/database/database"
 import { TodoWriteTool } from "./todo"
 import { WebFetchTool } from "./webfetch"
 import { BrowserTool } from "./browser"
+import { ComputerTool } from "./computer"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
@@ -110,6 +111,7 @@ const layer = Layer.effect(
     const plan = yield* PlanExitTool
     const webfetch = yield* WebFetchTool
     const browser = yield* BrowserTool
+    const computer = yield* ComputerTool
     const websearch = yield* WebSearchTool
     const shell = yield* ShellTool
     const globtool = yield* GlobTool
@@ -211,6 +213,8 @@ const layer = Layer.effect(
         const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
         const browserToolEnabled =
           flags.client === "desktop" && flags.experimentalBrowserTool && Option.isSome(flags.browserBridgePort)
+        const computerToolEnabled =
+          flags.client === "desktop" && flags.experimentalComputerTool && Option.isSome(flags.computerBridgePort)
 
         const tool = yield* Effect.all({
           invalid: Tool.init(invalid),
@@ -230,6 +234,7 @@ const layer = Layer.effect(
           lsp: Tool.init(lsptool),
           plan: Tool.init(plan),
           browser: Tool.init(browser),
+          computer: Tool.init(computer),
           ...(codeModeTool ? { execute: Tool.init(codeModeTool) } : {}),
         })
 
@@ -254,6 +259,7 @@ const layer = Layer.effect(
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
             ...(browserToolEnabled ? [tool.browser] : []),
+            ...(computerToolEnabled ? [tool.computer] : []),
           ],
           task: tool.task,
           read: tool.read,
