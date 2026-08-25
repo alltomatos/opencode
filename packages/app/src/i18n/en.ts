@@ -1088,7 +1088,7 @@ export const dict = {
   "settings.general.row.debugMode.restart": "Restart now",
   "settings.general.row.computerUse.title": "Computer use",
   "settings.general.row.computerUse.description":
-    "Lets the agent control this computer directly — mouse, keyboard, and screen — not just the embedded browser. Off by default because it can interact with any window or app on the machine. Requires restarting the app.",
+    "Lets the agent control this computer directly — mouse, keyboard, and screen — not just the embedded browser. On by default; every action still asks for confirmation first. Requires restarting the app to take effect.",
   "settings.general.row.computerUse.descriptionOn": "Enabled — restart the app for computer use to take effect.",
   "settings.general.row.computerUse.restart": "Restart now",
   "settings.general.row.newInterface.title": "New layout",

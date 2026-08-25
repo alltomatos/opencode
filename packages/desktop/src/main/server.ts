@@ -77,11 +77,9 @@ export async function spawnLocalServer(
     options.onStdout?.(`browser bridge started on port ${bridge.port}`)
   }
 
-  // Opt-in (Settings > Experimental), unlike the browser bridge above: this
-  // one drives the whole OS via platform input-automation, not a sandboxed
-  // embedded view, so it only starts when the operator has explicitly
-  // enabled it. Toggling the setting takes effect on the next app restart —
-  // this env var is only read once, at sidecar spawn time.
+  // On by default, opt-out via Settings > Experimental. Toggling the setting
+  // takes effect on the next app restart — this env var is only read once,
+  // at sidecar spawn time.
   if (getComputerUseEnabled()) {
     const computerBridge = await startComputerBridge().catch((error) => {
       options.onStderr?.(`computer bridge failed to start: ${String(error)}`)

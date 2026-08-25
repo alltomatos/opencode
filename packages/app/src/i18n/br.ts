@@ -1029,7 +1029,7 @@ export const dict = {
   "settings.general.row.debugMode.restart": "Reiniciar agora",
   "settings.general.row.computerUse.title": "Controle do computador",
   "settings.general.row.computerUse.description":
-    "Permite que o agente controle este computador diretamente — mouse, teclado e tela — não só o browser embutido. Desativado por padrão porque pode interagir com qualquer janela ou app da máquina. Requer reiniciar o app.",
+    "Permite que o agente controle este computador diretamente — mouse, teclado e tela — não só o browser embutido. Ativado por padrão; toda ação ainda pede confirmação antes. Requer reiniciar o app para entrar em vigor.",
   "settings.general.row.computerUse.descriptionOn":
     "Ativado — reinicie o app para o controle do computador entrar em vigor.",
   "settings.general.row.computerUse.restart": "Reiniciar agora",
