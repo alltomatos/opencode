@@ -144,6 +144,11 @@ function getConfig() {
         ...base,
         appId,
         productName: "OpenCode Dev",
+        // Same repo as prod, separate electron-updater channel ("dev" instead
+        // of "latest") — CI publishes here on every push to the dev branch so
+        // testers can install this build and get auto-updates that track dev,
+        // without touching the prod release feed at all.
+        publish: { provider: "github", owner: "alltomatos", repo: "opencode", channel: "dev" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "opencode-dev", fpm: [metainfoFpm(appId)] },
       }
