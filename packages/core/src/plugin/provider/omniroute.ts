@@ -1,6 +1,7 @@
 import { Duration, Effect } from "effect"
 import path from "node:path"
 import type { PluginContext } from "@opencode-ai/plugin/v2/effect"
+import { Config } from "../../config"
 import { FSUtil } from "../../fs-util"
 import { Global } from "../../global"
 import { ModelV2 } from "../../model"
@@ -170,89 +171,134 @@ async function fetchPricing(baseURL: string, apiKey: string): Promise<Map<string
   return new Map((body.data ?? []).map((entry) => [entry.id, entry]))
 }
 
+// Native Provider Plugins never receive real PluginOptions in production —
+// PluginHost.make hardcodes ctx.options to {} (only tests override it by
+// constructing ctx by hand). Per-instance settings instead live in the one
+// free-form bag the v2 Config schema actually preserves on decode:
+// provider.<id>.api.settings (Schema.Unknown — everything else in
+// ConfigProvider.Info is schema-validated and strips unknown keys). The same
+// convention drives multi-instance discovery: the base instance is always
+// "omnrt"; any other config entry whose id starts with "omniroute-" is an
+// additional instance (e.g. "omniroute-preprod"), each with its own
+// auth.json credential and provider.<id>.api.settings block.
+function instanceOptions(providers: Record<string, { api?: { settings?: Record<string, unknown> } }>, id: string) {
+  return providers[id]?.api?.settings ?? {}
+}
+
+function discoverInstanceIds(providers: Record<string, unknown>): string[] {
+  const extra = Object.keys(providers).filter((id) => id.startsWith("omniroute-"))
+  return [OmnirouteProviderID, ...extra]
+}
+
+type InstanceCache = {
+  readonly at: number
+  readonly models: readonly OmnirouteModel[]
+  readonly pricing: ReadonlyMap<string, OmnirouteModelPricing>
+}
+
 export const OmniroutePlugin = {
   id: "omniroute",
   effect: Effect.fn(function* (ctx: PluginContext) {
     const fs = yield* FSUtil.Service
+    const config = yield* Config.Service
     // Scoped to this plugin instance (one per boot), not module-level —
     // shared across every Catalog Reload within that boot (the TTL/
     // auto-sync mechanism), but never leaks across separate boots/tests.
-    let cache:
-      | {
-          readonly at: number
-          readonly models: readonly OmnirouteModel[]
-          readonly pricing: ReadonlyMap<string, OmnirouteModelPricing>
+    // Keyed by provider id so multiple OmniRoute instances (prod + preprod)
+    // never share a cache.
+    const caches = new Map<string, InstanceCache>()
+
+    const registerInstance = Effect.fn("OmniroutePlugin.registerInstance")(function* (
+      catalog: Parameters<Parameters<PluginContext["catalog"]["transform"]>[0]>[0],
+      providerID: ProviderV2.ID,
+      options: Record<string, unknown>,
+    ) {
+      catalog.provider.update(providerID, (item) => {
+        item.name = providerID === OmnirouteProviderID ? "Omniroute" : `Omniroute (${providerID})`
+        if (item.api.type !== "aisdk" || item.api.package !== "@ai-sdk/openai-compatible") {
+          item.api = { type: "aisdk", package: "@ai-sdk/openai-compatible" }
         }
-      | undefined
+      })
+
+      const stored = yield* readAuthCredential(fs, providerID)
+      if (!stored) return
+      const apiKey = stored.key
+      const baseURL = stored.metadata?.baseURL
+      if (!baseURL) return
+
+      catalog.provider.update(providerID, (item) => {
+        if (item.api.type === "aisdk") {
+          item.api = { ...item.api, url: baseURL, settings: { ...item.api.settings, fetch: geminiSanitizingFetch } }
+        }
+      })
+
+      const now = Date.now()
+      let cache = caches.get(providerID)
+      if (!cache || now - cache.at > DISCOVERY_TTL_MS) {
+        const fetched = yield* Effect.tryPromise(() => fetchModels(baseURL, apiKey)).pipe(
+          // A gateway that's offline or a stale/invalid key must not wipe
+          // the last known-good catalog — keep serving it until discovery
+          // succeeds again (see docs/agents/omniroute-native-provider.md).
+          Effect.catch(() => Effect.succeed(undefined)),
+        )
+        if (fetched) {
+          // Best-effort — a broken/missing pricing endpoint must not stop
+          // the models themselves from registering.
+          const pricing = yield* Effect.tryPromise(() => fetchPricing(baseURL, apiKey)).pipe(
+            Effect.catch(() => Effect.succeed(new Map<string, OmnirouteModelPricing>())),
+          )
+          cache = { at: now, models: fetched, pricing }
+          caches.set(providerID, cache)
+        }
+      }
+      if (!cache) return
+
+      const allowlist = resolveModelAllowlist(options.modelAllowlist)
+
+      for (const model of cache.models) {
+        if (allowlist && !allowlist.has(model.id)) continue
+        // Combos (owned_by === "combo" — a routed composition of multiple
+        // real models, not a model of its own) register the same way as
+        // any other model: the gateway is the source of truth for their
+        // capabilities (already LCD'd server-side across whatever models
+        // the combo composes), so there's no client-side capability math
+        // to redo here.
+        const priced = cache.pricing.get(model.id)
+        catalog.model.update(providerID, ModelV2.ID.make(model.id), (entry) => {
+          entry.capabilities = {
+            tools: model.capabilities?.tool_calling ?? false,
+            input: modalities(model.input_modalities),
+            output: modalities(model.output_modalities),
+          }
+          if (priced?.name) entry.name = priced.name
+          if (priced?.pricing) {
+            entry.cost = [
+              {
+                input: priced.pricing.input ?? 0,
+                output: priced.pricing.output ?? 0,
+                cache: { read: priced.pricing.cache_read ?? 0, write: priced.pricing.cache_write ?? 0 },
+              },
+            ]
+          }
+        })
+      }
+    })
+
+    const listProviders = Effect.fn("OmniroutePlugin.listProviders")(function* () {
+      const entries = yield* config.entries()
+      const providers: Record<string, { api?: { settings?: Record<string, unknown> } }> = {}
+      for (const entry of entries) {
+        if (entry.type !== "document") continue
+        Object.assign(providers, entry.info.providers ?? {})
+      }
+      return providers
+    })
 
     yield* ctx.catalog.transform(
       Effect.fn(function* (catalog) {
-        catalog.provider.update(OmnirouteProviderID, (item) => {
-          item.name = "Omniroute"
-          if (item.api.type !== "aisdk" || item.api.package !== "@ai-sdk/openai-compatible") {
-            item.api = { type: "aisdk", package: "@ai-sdk/openai-compatible" }
-          }
-        })
-
-        const stored = yield* readAuthCredential(fs, OmnirouteProviderID)
-        if (!stored) return
-        const apiKey = stored.key
-        const baseURL = stored.metadata?.baseURL
-        if (!baseURL) return
-
-        catalog.provider.update(OmnirouteProviderID, (item) => {
-          if (item.api.type === "aisdk") {
-            item.api = { ...item.api, url: baseURL, settings: { ...item.api.settings, fetch: geminiSanitizingFetch } }
-          }
-        })
-
-        const now = Date.now()
-        if (!cache || now - cache.at > DISCOVERY_TTL_MS) {
-          const fetched = yield* Effect.tryPromise(() => fetchModels(baseURL, apiKey)).pipe(
-            // A gateway that's offline or a stale/invalid key must not wipe
-            // the last known-good catalog — keep serving it until discovery
-            // succeeds again (see docs/agents/omniroute-native-provider.md).
-            Effect.catch(() => Effect.succeed(undefined)),
-          )
-          if (fetched) {
-            // Best-effort — a broken/missing pricing endpoint must not stop
-            // the models themselves from registering.
-            const pricing = yield* Effect.tryPromise(() => fetchPricing(baseURL, apiKey)).pipe(
-              Effect.catch(() => Effect.succeed(new Map<string, OmnirouteModelPricing>())),
-            )
-            cache = { at: now, models: fetched, pricing }
-          }
-        }
-        if (!cache) return
-
-        const allowlist = resolveModelAllowlist(ctx.options.modelAllowlist)
-
-        for (const model of cache.models) {
-          if (allowlist && !allowlist.has(model.id)) continue
-          // Combos (owned_by === "combo" — a routed composition of multiple
-          // real models, not a model of its own) register the same way as
-          // any other model: the gateway is the source of truth for their
-          // capabilities (already LCD'd server-side across whatever models
-          // the combo composes), so there's no client-side capability math
-          // to redo here.
-          const priced = cache.pricing.get(model.id)
-          catalog.model.update(OmnirouteProviderID, ModelV2.ID.make(model.id), (entry) => {
-            entry.capabilities = {
-              tools: model.capabilities?.tool_calling ?? false,
-              input: modalities(model.input_modalities),
-              output: modalities(model.output_modalities),
-            }
-            if (priced?.name) entry.name = priced.name
-            if (priced?.pricing) {
-              entry.cost = [
-                {
-                  input: priced.pricing.input ?? 0,
-                  output: priced.pricing.output ?? 0,
-                  cache: { read: priced.pricing.cache_read ?? 0, write: priced.pricing.cache_write ?? 0 },
-                },
-              ]
-            }
-          })
+        const providers = yield* listProviders()
+        for (const id of discoverInstanceIds(providers)) {
+          yield* registerInstance(catalog, ProviderV2.ID.make(id), instanceOptions(providers, id))
         }
       }),
     )
@@ -260,9 +306,14 @@ export const OmniroutePlugin = {
     // Background auto-sync: reruns the transform above on an interval, so
     // newly-added gateway models show up without the user reconnecting.
     // On-demand TTL discovery (above) still applies independently — this
-    // is only skipped when autoSyncIntervalMs resolves to 0.
+    // is only skipped when autoSyncIntervalMs resolves to 0. Uses the base
+    // instance's configured interval for all instances — per-instance
+    // auto-sync cadence isn't worth the extra complexity here.
+    const providers = yield* listProviders()
     const autoSyncMs = resolveAutoSyncMs(
-      typeof ctx.options.autoSyncIntervalMs === "number" ? ctx.options.autoSyncIntervalMs : undefined,
+      typeof instanceOptions(providers, OmnirouteProviderID).autoSyncIntervalMs === "number"
+        ? (instanceOptions(providers, OmnirouteProviderID).autoSyncIntervalMs as number)
+        : undefined,
     )
     if (autoSyncMs !== undefined) {
       yield* Effect.gen(function* () {
@@ -270,8 +321,9 @@ export const OmniroutePlugin = {
           yield* Effect.sleep(Duration.millis(autoSyncMs))
           // A periodic tick must force a fresh fetch even if the on-demand
           // TTL window (DISCOVERY_TTL_MS) hasn't lapsed yet — that's the
-          // whole point of scheduling it — so expire the cache first.
-          cache = undefined
+          // whole point of scheduling it — so expire every instance's cache
+          // first.
+          caches.clear()
           yield* ctx.catalog.reload().pipe(Effect.catch(() => Effect.void))
         }
       }).pipe(Effect.forkScoped)

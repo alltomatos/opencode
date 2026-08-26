@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, mock, test } from "bun:test"
 import { Effect } from "effect"
 import { Catalog } from "@opencode-ai/core/catalog"
+import { Config } from "@opencode-ai/core/config"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { PluginV2 } from "@opencode-ai/core/plugin"
@@ -61,10 +62,24 @@ describe("OmniroutePlugin allowlist", () => {
       const catalog = yield* Catalog.Service
       const plugin = yield* PluginV2.Service
       const host = yield* PluginHost.make(plugin)
-      yield* OmniroutePlugin.effect({
-        ...host,
-        options: { modelAllowlist: ["claude-sonnet", "auto/best-coding"] },
-      } as typeof host).pipe(Effect.provideService(FSUtil.Service, authFile(connected("https://gateway.example.com", "sk-test"))))
+      const fakeConfig = Config.Service.of({
+        entries: () =>
+          Effect.succeed([
+            {
+              type: "document",
+              path: "opencode.json",
+              info: {
+                providers: {
+                  omnrt: { api: { settings: { modelAllowlist: ["claude-sonnet", "auto/best-coding"] } } },
+                },
+              },
+            } as any,
+          ]),
+      })
+      yield* OmniroutePlugin.effect(host).pipe(
+        Effect.provideService(FSUtil.Service, authFile(connected("https://gateway.example.com", "sk-test"))),
+        Effect.provideService(Config.Service, fakeConfig),
+      )
 
       expect(yield* catalog.model.get(OmnirouteProviderID, ModelV2.ID.make("claude-sonnet"))).toBeDefined()
       expect(yield* catalog.model.get(OmnirouteProviderID, ModelV2.ID.make("auto/best-coding"))).toBeDefined()

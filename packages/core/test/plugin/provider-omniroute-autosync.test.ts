@@ -3,6 +3,7 @@ import { afterEach, mock } from "bun:test"
 import { Effect } from "effect"
 import * as TestClock from "effect/testing/TestClock"
 import { Catalog } from "@opencode-ai/core/catalog"
+import { Config } from "@opencode-ai/core/config"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { PluginV2 } from "@opencode-ai/core/plugin"
@@ -49,6 +50,19 @@ describe("OmniroutePlugin background auto-sync", () => {
 
       const authData = { omnrt: { type: "api", key: "sk-test", metadata: { baseURL: "https://gateway.example.com" } } }
       const fakeFs = FSUtil.Service.of({ readJson: () => Effect.succeed(authData) } as unknown as FSUtil.Interface)
+      // Native Provider Plugins never receive real ctx.options in production
+      // — auto-sync interval is configured via provider.omnrt.api.settings
+      // instead (see the comment above instanceOptions in omniroute.ts).
+      const fakeConfig = Config.Service.of({
+        entries: () =>
+          Effect.succeed([
+            {
+              type: "document",
+              path: "opencode.json",
+              info: { providers: { omnrt: { api: { settings: { autoSyncIntervalMs: 60_000 } } } } },
+            } as any,
+          ]),
+      })
 
       const catalog = yield* Catalog.Service
       const plugin = yield* PluginV2.Service
@@ -56,10 +70,10 @@ describe("OmniroutePlugin background auto-sync", () => {
 
       yield* Effect.scoped(
         Effect.gen(function* () {
-          yield* OmniroutePlugin.effect({
-            ...host,
-            options: { autoSyncIntervalMs: 60_000 },
-          } as typeof host).pipe(Effect.provideService(FSUtil.Service, fakeFs))
+          yield* OmniroutePlugin.effect(host).pipe(
+            Effect.provideService(FSUtil.Service, fakeFs),
+            Effect.provideService(Config.Service, fakeConfig),
+          )
 
           expect(calls).toBe(1)
 
