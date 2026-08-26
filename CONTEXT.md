@@ -242,3 +242,26 @@ O documento-guia curto instalado na pasta de skills própria de um **Known Exter
 ## Flagged ambiguities
 
 - Legacy `experimental.chat.system.transform` can mutate the assembled baseline system prompt arbitrarily, but V2 plugins do not yet expose an equivalent hook. Decide separately whether to port it, replace dynamic uses with plugin-defined **Context Sources**, or narrow its semantics.
+
+## Native Provider Plugin (OmniRoute)
+
+**Native Provider Plugin**:
+Um módulo em `packages/core/src/plugin/provider/*.ts`, definido via `define()` e registrado em `ProviderPlugins`, que integra um provider de modelos diretamente no boot do fork (Effect-based) — em vez de ser um pacote npm externo instalado pelo usuário via `opencode.json`'s `plugin` array e o contrato v1 (`AuthHook`/`ProviderHook`/`ConfigHook` de `packages/plugin`).
+_Avoid_: External plugin, npm plugin (quando o contexto é o padrão nativo)
+
+**Catalog Draft**:
+A estrutura mutável (`ctx.catalog.transform`) que um **Native Provider Plugin** usa para registrar/atualizar/remover providers e modelos no catálogo em memória do fork.
+
+**Catalog Reload**:
+O disparo (`ctx.catalog.reload()`, parte de `Reload`) que reexecuta o `transform` de um **Native Provider Plugin** — mecanismo usado para descoberta periódica em background, análogo ao "auto-sync" do plugin externo original.
+
+**OmniRoute Provider**:
+O **Native Provider Plugin** (id `omnrt`) que integra o AI Gateway OmniRoute — descobre modelos dinamicamente via `/v1/models` com **Catalog Reload** periódico, em vez do snapshot estático gravado uma vez no `opencode.json` pela UI anterior.
+
+**Combo**:
+Um pseudo-modelo do OmniRoute (`owned_by === "combo"`) — não é um modelo de provider real, é uma composição roteada pelo gateway, exposta ao catálogo como se fosse um modelo comum.
+
+## Relationships (OmniRoute)
+
+- A **OmniRoute Provider** substitui a lógica de fetch único que hoje vive em `dialog-connect-omniroute.tsx` — a UI passa a só coletar credencial (baseURL + API key) e disparar `auth.set` + **Catalog Reload**, sem parsear/gravar modelos no cliente.
+- Um **Combo** é descoberto e registrado no **Catalog Draft** da mesma forma que um modelo real do OmniRoute — a diferenciação (`owned_by === "combo"`) só importa para decidir capacidades default (LCD) e nomeação, não para o mecanismo de registro em si.
