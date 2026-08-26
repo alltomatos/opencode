@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Duration, Effect } from "effect"
 import type { PluginContext } from "@opencode-ai/plugin/v2/effect"
 import { Credential } from "../../credential"
 import { Integration } from "@opencode-ai/schema/integration"
@@ -20,6 +20,17 @@ const OmnirouteIntegrationID = Integration.ID.make("omnrt")
 
 const DISCOVERY_TTL_MS = 5 * 60_000
 const COMBO_OWNER = "combo"
+const MIN_AUTO_SYNC_MS = 60_000
+const DEFAULT_AUTO_SYNC_MS = 5 * 60_000
+
+// Clamps a configured auto-sync interval to the same floor the original
+// external plugin enforced (autoSyncIntervalMs, min 60s) — 0 disables
+// background sync entirely (on-demand TTL discovery still applies).
+export function resolveAutoSyncMs(configured: number | undefined): number | undefined {
+  if (configured === undefined) return DEFAULT_AUTO_SYNC_MS
+  if (configured === 0) return undefined
+  return Math.max(configured, MIN_AUTO_SYNC_MS)
+}
 
 type OmnirouteModel = {
   readonly id: string
@@ -106,5 +117,25 @@ export const OmniroutePlugin = {
         }
       }),
     )
+
+    // Background auto-sync: reruns the transform above on an interval, so
+    // newly-added gateway models show up without the user reconnecting.
+    // On-demand TTL discovery (above) still applies independently — this
+    // is only skipped when autoSyncIntervalMs resolves to 0.
+    const autoSyncMs = resolveAutoSyncMs(
+      typeof ctx.options.autoSyncIntervalMs === "number" ? ctx.options.autoSyncIntervalMs : undefined,
+    )
+    if (autoSyncMs !== undefined) {
+      yield* Effect.gen(function* () {
+        while (true) {
+          yield* Effect.sleep(Duration.millis(autoSyncMs))
+          // A periodic tick must force a fresh fetch even if the on-demand
+          // TTL window (DISCOVERY_TTL_MS) hasn't lapsed yet — that's the
+          // whole point of scheduling it — so expire the cache first.
+          cache = undefined
+          yield* ctx.catalog.reload().pipe(Effect.catch(() => Effect.void))
+        }
+      }).pipe(Effect.forkScoped)
+    }
   }),
 }
