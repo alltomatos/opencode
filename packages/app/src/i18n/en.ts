@@ -899,7 +899,12 @@ export const dict = {
   "batuta.form.field.workers.label": "Workers",
   "batuta.form.field.workers.label.placeholder": "Worker label",
   "batuta.form.field.workers.add": "Add worker",
-  "batuta.form.field.workers.error.required": "Add at least one worker with a label and a model",
+  "batuta.form.field.workers.error.required": "Add at least one worker with a label and a model or command",
+  "batuta.form.field.workers.kind.internal": "Internal",
+  "batuta.form.field.workers.kind.external": "External CLI",
+  "batuta.form.field.workers.command.placeholder": "Command (e.g. claude, codex)",
+  "batuta.form.field.workers.command.needsSkill": "Install the batuta-cli skill for this agent in Settings > Agents first",
+  "batuta.form.field.workers.args.placeholder": "Arguments (space-separated)",
   "batuta.form.field.worktree.label": "Isolated worker worktrees",
   "batuta.form.field.worktree.description": "Every worker always gets its own git worktree, isolated from your main checkout — the orchestrator reviews and merges each worker's result. This is not configurable.",
   "batuta.form.field.directory.label": "Project",
@@ -1265,6 +1270,14 @@ export const dict = {
   "settings.skills.sources.codex.title": "See Codex skills",
   "settings.skills.sources.codex.description": "Discover skills from ~/.codex/skills",
   "settings.skills.installed.title": "Discovered skills",
+
+  "settings.externalAgents.title": "Agents",
+  "settings.externalAgents.refresh": "Refresh",
+  "settings.externalAgents.selectAll.title": "Select all detected agents",
+  "settings.externalAgents.selectAll.description":
+    "Installs the batuta-cli skill on every detected agent. Turn off to pick agents individually.",
+  "settings.externalAgents.status.detected": "Detected on the connected server",
+  "settings.externalAgents.status.notDetected": "Not detected — install the CLI and click Refresh",
 
   "settings.marketplace.title": "Marketplace",
   "settings.marketplace.add.button": "Add",

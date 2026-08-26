@@ -7,8 +7,22 @@ export const Worker = Schema.Struct({
   label: Schema.String.annotate({
     description: "Name the orchestrator uses to delegate to this worker via the task tool",
   }),
-  model: Schema.String.annotate({
-    description: "Model for this worker, in 'providerID/modelID' form",
+  kind: Schema.optional(Schema.Literals(["internal", "external"])).annotate({
+    description:
+      "'internal' (default) delegates via an opencode subagent session using `model`. 'external' spawns a third-party agent CLI (e.g. claude, codex) in a PTY inside the worker's worktree using `command`/`args`.",
+  }),
+  model: Schema.optional(Schema.String).annotate({
+    description: "Model for this worker, in 'providerID/modelID' form. Required when kind is 'internal' (or omitted).",
+  }),
+  command: Schema.optional(Schema.String).annotate({
+    description: "Executable to spawn for an external worker, e.g. 'claude' or 'codex'. Required when kind is 'external'.",
+  }),
+  args: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "Extra CLI arguments passed to `command` when spawning an external worker.",
+  }),
+  idleTimeoutMs: Schema.optional(Schema.Number).annotate({
+    description:
+      "How long the external worker's PTY must be silent before its output is considered a finished turn. Only used when kind is 'external'.",
   }),
 }).annotate({ identifier: "BatutaWorker" })
 export type Worker = Schema.Schema.Type<typeof Worker>
@@ -18,7 +32,20 @@ export const Activity = Schema.Struct({
   name: Schema.String.annotate({ description: "Display name for this activity" }),
   goal: Schema.String.annotate({ description: "Initial goal/prompt given to the orchestrator" }),
   orchestratorModel: Schema.String.annotate({
-    description: "Model that drives the orchestrator, in 'providerID/modelID' form",
+    description: "Model that drives the orchestrator, in 'providerID/modelID' form. Required when orchestratorKind is 'internal' (or omitted).",
+  }),
+  orchestratorKind: Schema.optional(Schema.Literals(["internal", "external"])).annotate({
+    description:
+      "'internal' (default) runs the orchestrator as an opencode session using `orchestratorModel`, going through the Architect/handoff flow. 'external' spawns a third-party agent CLI in a PTY using `orchestratorCommand`/`orchestratorArgs` instead — it skips the Architect/handoff flow entirely (a bare CLI can't run the /handoff skill) and delegates to workers over HTTP (POST /batuta/:id/delegate) rather than the task tool.",
+  }),
+  orchestratorCommand: Schema.optional(Schema.String).annotate({
+    description: "Executable to spawn for an external orchestrator, e.g. 'claude' or 'codex'. Required when orchestratorKind is 'external'.",
+  }),
+  orchestratorArgs: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "Extra CLI arguments passed to `orchestratorCommand`.",
+  }),
+  orchestratorIdleTimeoutMs: Schema.optional(Schema.Number).annotate({
+    description: "How long the external orchestrator's PTY must be silent before a delegate call gives up waiting on it. Only used when orchestratorKind is 'external'.",
   }),
   workers: Schema.mutable(Schema.Array(Worker)).annotate({
     description: "Workers the orchestrator can delegate to by label",

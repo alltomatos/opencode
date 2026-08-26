@@ -8,6 +8,7 @@ import { SessionID, MessageID } from "../session/schema"
 import { MessageV2 } from "../session/message-v2"
 import { Agent } from "../agent/agent"
 import { Batuta, parseModel as parseBatutaModel } from "@/batuta"
+import { ExternalAgent } from "@/external-agent"
 import { ConfigBatutaSkillsV1 } from "@opencode-ai/core/v1/config/batuta-skills"
 import { deriveSubagentSessionPermission } from "../agent/subagent-permissions"
 import type { SessionPrompt } from "../session/prompt"
@@ -24,6 +25,10 @@ export interface TaskPromptOps {
 }
 
 const id = "task"
+// Spawning a third-party agent CLI (claude, codex, ...) with write access to a
+// worktree is at least as risky as bash/write — gate it the same way, distinct
+// from the "task" permission that only covers picking an internal subagent.
+const EXTERNAL_AGENT_PERMISSION = "external_agent"
 const BACKGROUND_DESCRIPTION = [
   "Background mode: background=true launches the subagent asynchronously and returns immediately.",
   "Foreground is the default; use it when you need the result before continuing.",
@@ -85,6 +90,7 @@ export const TaskTool = Tool.define(
   Effect.gen(function* () {
     const agent = yield* Agent.Service
     const batuta = yield* Batuta.Service
+    const externalAgent = yield* ExternalAgent.Service
     const background = yield* BackgroundJob.Service
     const config = yield* Config.Service
     const sessions = yield* Session.Service
@@ -140,6 +146,69 @@ export const TaskTool = Tool.define(
       // orchestrator can delegate to directly by slug, alongside its
       // pre-configured workers — see batuta-skills.ts for the list.
       const batutaSkill = !batutaWorker ? ConfigBatutaSkillsV1.bySlug.get(params.subagent_type) : undefined
+      // External workers bypass the internal subagent-session path entirely:
+      // there's no opencode session to delegate to, just a third-party CLI
+      // running in a PTY inside the worker's worktree. Background mode,
+      // cancellation, and live-terminal UI are all out of scope for v1 — this
+      // is strictly request/response, same shape as `task` already returns.
+      if (batutaWorker?.worker.kind === "external") {
+        const worker = batutaWorker.worker
+        if (!ctx.extra?.bypassAgentCheck) {
+          yield* ctx.ask({
+            permission: EXTERNAL_AGENT_PERMISSION,
+            patterns: [worker.command ?? worker.label],
+            always: ["*"],
+            metadata: {
+              description: params.description,
+              subagent_type: params.subagent_type,
+              command: worker.command,
+              args: worker.args,
+            },
+          })
+        }
+        const command = worker.command
+        if (!command) {
+          return yield* Effect.fail(new Error(`External worker "${worker.label}" has no command configured`))
+        }
+        if (!batutaWorker.directory) {
+          return yield* Effect.fail(new Error(`External worker "${worker.label}" has no worktree directory to run in`))
+        }
+        // External workers have no opencode session/model to report, but the
+        // tool's metadata type is inferred as a single shape from the
+        // internal path below (`metadata`, declared further down) — the cast
+        // keeps that public shape stable for existing consumers instead of
+        // turning it into a union that every reader of `result.metadata`
+        // would need to narrow.
+        const externalMetadata = {
+          parentSessionId: ctx.sessionID,
+          worker: worker.label,
+          command,
+          external: true,
+        } as unknown as typeof metadata
+        yield* ctx.metadata({ title: params.description, metadata: externalMetadata })
+
+        const handle = yield* externalAgent
+          .spawn({ command, args: worker.args, cwd: batutaWorker.directory })
+          .pipe(
+            Effect.mapError(
+              (e) => new Error(`Failed to spawn external worker "${worker.label}" (${command}): ${e.message}`),
+            ),
+          )
+
+        const output = yield* externalAgent
+          .send(handle, params.prompt)
+          .pipe(Effect.flatMap(() => externalAgent.waitIdle(handle, { idleMs: worker.idleTimeoutMs })))
+          .pipe(
+            Effect.mapError(() => new Error(`External worker "${worker.label}" session vanished before it finished`)),
+            Effect.ensuring(externalAgent.kill(handle)),
+          )
+
+        return {
+          title: params.description,
+          metadata: externalMetadata,
+          output: [`<task worker="${worker.label}" state="completed">`, output, "</task>"].join("\n"),
+        }
+      }
       const next = batutaWorker
         ? {
             name: batutaWorker.worker.label,
@@ -151,7 +220,7 @@ export const TaskTool = Tool.define(
             temperature: undefined,
             color: undefined,
             permission: parent.permission ?? [],
-            model: parseBatutaModel(batutaWorker.worker.model),
+            model: parseBatutaModel(batutaWorker.worker.model!),
             variant: undefined,
             prompt: undefined,
             options: {},

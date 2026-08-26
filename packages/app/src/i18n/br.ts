@@ -872,7 +872,12 @@ export const dict = {
   "batuta.form.field.workers.label": "Workers",
   "batuta.form.field.workers.label.placeholder": "Nome do worker",
   "batuta.form.field.workers.add": "Adicionar worker",
-  "batuta.form.field.workers.error.required": "Adicione ao menos um worker com nome e modelo",
+  "batuta.form.field.workers.error.required": "Adicione ao menos um worker com nome e modelo ou comando",
+  "batuta.form.field.workers.kind.internal": "Interno",
+  "batuta.form.field.workers.kind.external": "CLI externo",
+  "batuta.form.field.workers.command.placeholder": "Comando (ex: claude, codex)",
+  "batuta.form.field.workers.command.needsSkill": "Instale a skill batuta-cli para este agente em Settings > Agentes primeiro",
+  "batuta.form.field.workers.args.placeholder": "Argumentos (separados por espaço)",
   "batuta.form.field.worktree.label": "Worktree isolado por worker",
   "batuta.form.field.worktree.description": "Cada worker sempre recebe seu próprio worktree git, isolado do seu checkout principal — o orquestrador revisa e mescla o resultado de cada worker. Isso não é configurável.",
   "batuta.form.field.directory.label": "Projeto",
@@ -1200,6 +1205,14 @@ export const dict = {
   "settings.skills.sources.codex.title": "Enxergar skills do Codex",
   "settings.skills.sources.codex.description": "Descobre skills em ~/.codex/skills",
   "settings.skills.installed.title": "Skills descobertas",
+
+  "settings.externalAgents.title": "Agentes",
+  "settings.externalAgents.refresh": "Atualizar",
+  "settings.externalAgents.selectAll.title": "Selecionar todos os detectados",
+  "settings.externalAgents.selectAll.description":
+    "Instala a skill batuta-cli em todo agente detectado. Desligue para escolher agentes individualmente.",
+  "settings.externalAgents.status.detected": "Detectado no servidor conectado",
+  "settings.externalAgents.status.notDetected": "Não detectado — instale o CLI e clique em Atualizar",
 
   "settings.marketplace.title": "Marketplace",
   "settings.marketplace.add.button": "Adicionar",
