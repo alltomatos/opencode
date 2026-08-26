@@ -1,7 +1,8 @@
 import { Duration, Effect } from "effect"
+import path from "node:path"
 import type { PluginContext } from "@opencode-ai/plugin/v2/effect"
-import { Credential } from "../../credential"
-import { Integration } from "@opencode-ai/schema/integration"
+import { FSUtil } from "../../fs-util"
+import { Global } from "../../global"
 import { ModelV2 } from "../../model"
 import { ProviderV2 } from "../../provider"
 
@@ -9,14 +10,36 @@ import { ProviderV2 } from "../../provider"
 // credential is connected (see #93 for the connect-flow UI), discovers
 // its models dynamically from /v1/models — replacing the static
 // provider/model snapshot the desktop app used to write into
-// opencode.json at connect time. See ADR 0002 and ADR 0003.
+// opencode.json at connect time. See ADR 0002.
 //
 // SDK instantiation itself is already handled generically by
 // OpenAICompatiblePlugin for any provider using the
 // "@ai-sdk/openai-compatible" package, omnrt included — this plugin only
 // needs the catalog registration + discovery, no aisdk.sdk wiring of its own.
 export const OmnirouteProviderID = ProviderV2.ID.make("omnrt")
-const OmnirouteIntegrationID = Integration.ID.make("omnrt")
+
+// The credential the connect flow writes lives in the legacy
+// packages/opencode/src/auth store (~/.local/share/opencode/auth.json),
+// which every other provider's inference-time request already reads —
+// packages/core can't import that module (packages/opencode depends on
+// packages/core, never the reverse; moving the module the other way
+// touches 30+ files and the LayerNode dependency graph, out of scope
+// here — see the "não fazer" note in docs/agents/omniroute-native-provider.md).
+// Read the same file directly instead, mirroring the one field shape this
+// plugin needs, the same way GithubCopilotPlugin owns its own credential
+// access outside the generic plugin sandbox.
+type StoredApiAuth = { readonly type: "api"; readonly key: string; readonly metadata?: Record<string, string> }
+
+function readAuthCredential(fs: FSUtil.Interface, providerID: string) {
+  return fs.readJson(path.join(Global.Path.data, "auth.json")).pipe(
+    Effect.map((data) => {
+      const entry = (data as Record<string, unknown> | undefined)?.[providerID]
+      if (!entry || typeof entry !== "object" || (entry as { type?: unknown }).type !== "api") return undefined
+      return entry as StoredApiAuth
+    }),
+    Effect.catch(() => Effect.succeed(undefined)),
+  )
+}
 
 const DISCOVERY_TTL_MS = 5 * 60_000
 const MIN_AUTO_SYNC_MS = 60_000
@@ -64,7 +87,7 @@ async function fetchModels(baseURL: string, apiKey: string): Promise<OmnirouteMo
 export const OmniroutePlugin = {
   id: "omniroute",
   effect: Effect.fn(function* (ctx: PluginContext) {
-    const credential = yield* Credential.Service
+    const fs = yield* FSUtil.Service
     // Scoped to this plugin instance (one per boot), not module-level —
     // shared across every Catalog Reload within that boot (the TTL/
     // auto-sync mechanism), but never leaks across separate boots/tests.
@@ -79,11 +102,10 @@ export const OmniroutePlugin = {
           }
         })
 
-        const creds = yield* credential.list(OmnirouteIntegrationID).pipe(Effect.orDie)
-        const stored = creds[0]
-        if (!stored || stored.value.type !== "key") return
-        const apiKey = stored.value.key
-        const baseURL = typeof stored.value.metadata?.baseURL === "string" ? stored.value.metadata.baseURL : undefined
+        const stored = yield* readAuthCredential(fs, OmnirouteProviderID)
+        if (!stored) return
+        const apiKey = stored.key
+        const baseURL = stored.metadata?.baseURL
         if (!baseURL) return
 
         catalog.provider.update(OmnirouteProviderID, (item) => {

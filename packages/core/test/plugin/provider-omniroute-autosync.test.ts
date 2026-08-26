@@ -3,7 +3,7 @@ import { afterEach, mock } from "bun:test"
 import { Effect } from "effect"
 import * as TestClock from "effect/testing/TestClock"
 import { Catalog } from "@opencode-ai/core/catalog"
-import { Credential } from "@opencode-ai/core/credential"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { PluginV2 } from "@opencode-ai/core/plugin"
 import { PluginHost } from "@opencode-ai/core/plugin/host"
@@ -46,13 +46,8 @@ describe("OmniroutePlugin background auto-sync", () => {
         return new Response(JSON.stringify({ data }), { status: 200 })
       }) as unknown as typeof fetch
 
-      const credential = yield* Credential.Service
-      yield* credential
-        .create({
-          integrationID: "omnrt" as any,
-          value: { type: "key", key: "sk-test", metadata: { baseURL: "https://gateway.example.com" } },
-        })
-        .pipe(Effect.orDie)
+      const authData = { omnrt: { type: "api", key: "sk-test", metadata: { baseURL: "https://gateway.example.com" } } }
+      const fakeFs = FSUtil.Service.of({ readJson: () => Effect.succeed(authData) } as unknown as FSUtil.Interface)
 
       const catalog = yield* Catalog.Service
       const plugin = yield* PluginV2.Service
@@ -63,7 +58,7 @@ describe("OmniroutePlugin background auto-sync", () => {
           yield* OmniroutePlugin.effect({
             ...host,
             options: { autoSyncIntervalMs: 60_000 },
-          } as typeof host)
+          } as typeof host).pipe(Effect.provideService(FSUtil.Service, fakeFs))
 
           expect(calls).toBe(1)
 

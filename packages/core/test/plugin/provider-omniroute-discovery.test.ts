@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, mock } from "bun:test"
 import { Effect } from "effect"
 import { Catalog } from "@opencode-ai/core/catalog"
-import { Credential } from "@opencode-ai/core/credential"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { PluginV2 } from "@opencode-ai/core/plugin"
 import { PluginHost } from "@opencode-ai/core/plugin/host"
@@ -11,18 +11,19 @@ import { PluginTestLayer } from "./fixture"
 
 const it = testEffect(PluginTestLayer)
 
-const addPlugin = Effect.fn(function* () {
-  const plugin = yield* PluginV2.Service
-  const host = yield* PluginHost.make(plugin)
-  yield* OmniroutePlugin.effect(host)
-})
+function authFile(entries: Record<string, unknown>) {
+  return FSUtil.Service.of({ readJson: () => Effect.succeed(entries) } as unknown as FSUtil.Interface)
+}
 
-const connect = Effect.fn(function* (baseURL: string, apiKey: string) {
-  const credential = yield* Credential.Service
-  yield* credential.create({
-    integrationID: "omnrt" as any,
-    value: { type: "key", key: apiKey, metadata: { baseURL } },
+const addPlugin = (authData: Record<string, unknown>) =>
+  Effect.gen(function* () {
+    const plugin = yield* PluginV2.Service
+    const host = yield* PluginHost.make(plugin)
+    yield* OmniroutePlugin.effect(host).pipe(Effect.provideService(FSUtil.Service, authFile(authData)))
   })
+
+const connected = (baseURL: string, apiKey: string) => ({
+  omnrt: { type: "api", key: apiKey, metadata: { baseURL } },
 })
 
 let originalFetch: typeof fetch
@@ -36,7 +37,7 @@ describe("OmniroutePlugin discovery", () => {
   it.effect("does nothing when no credential is connected", () =>
     Effect.gen(function* () {
       const catalog = yield* Catalog.Service
-      yield* addPlugin()
+      yield* addPlugin({})
       const provider = yield* catalog.provider.get(OmnirouteProviderID)
       expect(provider?.name).toBe("Omniroute")
       expect(Object.keys((yield* catalog.model.all()).filter((m) => m.providerID === OmnirouteProviderID))).toEqual(
@@ -74,8 +75,7 @@ describe("OmniroutePlugin discovery", () => {
       }) as unknown as typeof fetch
 
       const catalog = yield* Catalog.Service
-      yield* connect("https://gateway.example.com", "sk-test")
-      yield* addPlugin()
+      yield* addPlugin(connected("https://gateway.example.com", "sk-test"))
 
       const model = yield* catalog.model.get(OmnirouteProviderID, ModelV2.ID.make("claude-sonnet"))
       expect(model?.capabilities.tools).toBe(true)
@@ -103,8 +103,7 @@ describe("OmniroutePlugin discovery", () => {
       }) as unknown as typeof fetch
 
       const catalog = yield* Catalog.Service
-      yield* connect("https://gateway.example.com", "sk-test")
-      yield* addPlugin()
+      yield* addPlugin(connected("https://gateway.example.com", "sk-test"))
 
       expect(calls).toBeGreaterThan(0)
       const model = yield* catalog.model.get(OmnirouteProviderID, ModelV2.ID.make("claude-sonnet"))
