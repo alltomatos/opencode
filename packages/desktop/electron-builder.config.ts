@@ -96,7 +96,13 @@ const getBase = (appId: string): Configuration => ({
     // package at a time — matched node-pty first, then hit the same thing
     // for msgpackr-extract — so this covers the whole naming convention
     // instead of allowlisting packages one at a time as more turn up.
-    x64ArchFiles: "Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-*/**/*",
+    // Also covers Contents/Resources/opencode-cli — the dev channel's bundled
+    // CLI binary (see extraResources above) is byte-identical between the x64
+    // and arm64 temp app bundles, same as the *-darwin-* native prebuilds, so
+    // @electron/universal needs it in this allowlist too or the universal
+    // merge step refuses to proceed (only hit by the dev channel — prod/beta
+    // never bundle opencode-cli).
+    x64ArchFiles: "Contents/Resources/{opencode-cli,app.asar.unpacked/node_modules/**/*-darwin-*/**/*}",
   },
   dmg: {
     sign: !!process.env.CSC_LINK,
