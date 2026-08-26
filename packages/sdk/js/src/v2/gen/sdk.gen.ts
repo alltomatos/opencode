@@ -20,6 +20,8 @@ import type {
   BatutaAddResponses,
   BatutaBranchesErrors,
   BatutaBranchesResponses,
+  BatutaDelegateErrors,
+  BatutaDelegateResponses,
   BatutaDispatchErrors,
   BatutaDispatchResponses,
   BatutaGetPipelineDefinitionErrors,
@@ -1821,6 +1823,47 @@ export class Batuta extends HeyApiClient {
       ThrowOnError
     >({
       url: "/batuta/{id}/pipeline-definition",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Delegate a task to a worker (for external-CLI orchestrators)
+   *
+   * Called by an external-CLI orchestrator (no task tool available) to delegate a task to one of its pre-configured workers by label. Synchronous — the response only arrives once the worker finishes.
+   */
+  public delegate<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      label?: string
+      prompt?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "label" },
+            { in: "body", key: "prompt" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BatutaDelegateResponses, BatutaDelegateErrors, ThrowOnError>({
+      url: "/batuta/{id}/delegate",
       ...options,
       ...params,
       headers: {

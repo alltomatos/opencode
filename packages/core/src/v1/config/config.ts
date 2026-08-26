@@ -8,6 +8,7 @@ import { ConfigAgentV1 } from "./agent"
 import { ConfigAttachmentV1 } from "./attachment"
 import { ConfigBatutaV1 } from "./batuta"
 import { ConfigCommandV1 } from "./command"
+import { ConfigExternalAgentV1 } from "./external-agent"
 import { ConfigFormatterV1 } from "./formatter"
 import { ConfigLayoutV1 } from "./layout"
 import { ConfigLSPV1 } from "./lsp"
@@ -43,6 +44,9 @@ export const Info = Schema.Struct({
     description: "Command configuration, see https://opencode.ai/docs/commands",
   }),
   skills: Schema.optional(ConfigSkillsV1.Info).annotate({ description: "Additional skill folder paths" }),
+  externalAgent: Schema.optional(ConfigExternalAgentV1.Info).annotate({
+    description: "Batuta external agent CLI selection (Settings > Agentes)",
+  }),
   references: Schema.optional(ConfigReference.Info).annotate({
     description: "Named git or local directory references",
   }),
