@@ -1,6 +1,32 @@
 {
   "releases": [
     {
+      "tag": "v1.21.1",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigida janela em branco ao abrir o app",
+              "description": "Em algumas configurações de monitor, a janela podia abrir completamente em branco até o primeiro clique. Corrigido no nível de renderização do Electron."
+            },
+            {
+              "title": "Detecção real de falha ao iniciar o servidor local",
+              "description": "Se o servidor local não conseguisse ficar saudável na inicialização, o app antes seguia em frente silenciosamente; agora mostra o erro corretamente em vez de travar sem explicação."
+            },
+            {
+              "title": "Build do instalador mais confiável",
+              "description": "Corrigido um problema em que gerar o instalador sem antes compilar o app podia produzir um pacote quebrado."
+            },
+            {
+              "title": "Atualizações do projeto original incorporadas",
+              "description": "Diversas correções de provedores, modelos e estabilidade vindas do projeto original (upstream) foram sincronizadas neste release."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.0",
       "highlights": [
         {

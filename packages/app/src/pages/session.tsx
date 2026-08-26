@@ -2014,6 +2014,11 @@ export default function Page() {
                       newSessionWorktree={newSessionWorktree()}
                       onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
                       onSubmit={() => {
+                        const id = params.id
+                        if (id) {
+                          setFollowup("paused", id, undefined)
+                          setFollowup("failed", id, undefined)
+                        }
                         comments.clear()
                         resumeScroll()
                       }}
@@ -2042,6 +2047,11 @@ export default function Page() {
                       },
                       onNewSessionWorktreeReset: () => setStore("newSessionWorktree", "main"),
                       onSubmit: () => {
+                        const id = params.id
+                        if (id) {
+                          setFollowup("paused", id, undefined)
+                          setFollowup("failed", id, undefined)
+                        }
                         comments.clear()
                         resumeScroll()
                       },

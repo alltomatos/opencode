@@ -85,6 +85,18 @@ const getBase = (appId: string): Configuration => ({
     // fine, they just show a Gatekeeper warning the user has to click through.
     notarize: !!process.env.APPLE_API_KEY_ID,
     target: ["dmg", "zip"],
+    // bun's flat/hoisted install keeps every optional native prebuild
+    // (darwin-x64 *and* darwin-arm64 variants — @lydell/node-pty-darwin-*,
+    // @msgpackr-extract/msgpackr-extract-darwin-*, and any other package
+    // following the same "<name>-darwin-<arch>" convention) on disk
+    // regardless of which arch electron-builder is currently packaging,
+    // unlike npm, which prunes non-matching optionalDependencies.
+    // @electron/universal then finds the same byte-identical file in both
+    // the x64 and arm64 temp app bundles and refuses to merge them one
+    // package at a time — matched node-pty first, then hit the same thing
+    // for msgpackr-extract — so this covers the whole naming convention
+    // instead of allowlisting packages one at a time as more turn up.
+    x64ArchFiles: "Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-*/**/*",
   },
   dmg: {
     sign: !!process.env.CSC_LINK,
