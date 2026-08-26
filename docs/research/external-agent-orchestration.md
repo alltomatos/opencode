@@ -121,6 +121,87 @@ O opencode já tem quase todas as peças que o Orca precisou construir do zero:
 
 ---
 
+## 6. Deep-dive: como o Orca auto-detecta CLIs de agente instalados (2026-08-26)
+
+Pedido do usuário: replicar no opencode a funcionalidade de "Agentes" das Settings do Orca — auto-detectar quais CLIs de terceiros estão instalados e disponíveis para controle externo. Clonado `stablyai/orca` (público, MIT) para inspecionar a implementação real (não só a skill local `orca-cli`).
+
+### Registro central de agentes conhecidos
+
+`src/shared/tui-agent-config.ts` — `TUI_AGENT_CONFIG: Record<TuiAgent, TuiAgentConfig>`, ~35 CLIs (`claude`, `codex`, `gemini`, `cursor-agent`, `droid`, `copilot`, `grok`, `aider`, `goose`, `amp`, `crush`, `kiro-cli`, `qwen`, `devin`, etc). Cada entrada:
+
+```ts
+type TuiAgentConfig = {
+  detectCmd: string
+  detectCmdAliases?: readonly string[]        // outros nomes de binário pro mesmo agente
+  detectRequiredCommands?: readonly string[]  // ex: "claude-agent-teams" exige `claude` também
+  detectUnsupportedRuntimes?: readonly TuiAgentDetectionRuntime[]
+  launchCmd: string
+  launchCmdByPlatform?: Partial<Record<NodeJS.Platform, string>>
+  promptInjectionMode: 'argv' | 'flag-prompt' | 'flag-prompt-interactive' | 'flag-interactive' | 'hermes-query' | 'stdin-after-start'
+  draftPromptFlag?: string      // ex: claude usa `--prefill <text>`
+  draftPromptEnvVar?: string    // pi/omp não têm flag, usam env var
+  preflightTrust?: 'cursor' | 'copilot' | 'codex'  // pula menu de "trust this folder" no 1º launch
+  // ...
+}
+```
+
+`getTuiAgentDetectCommands(config)` retorna `[detectCmd, ...detectCmdAliases]`; `buildTuiAgentDetectionCommands()` (em `src/shared/tui-agent-detection-commands.ts`) achata isso numa lista global `KNOWN_TUI_AGENT_DETECTION_COMMANDS` usada tanto localmente quanto contra hosts remotos/WSL.
+
+### Detecção sem spawn de subprocesso
+
+`isCommandOnPath()` (`src/main/ipc/preflight-command-exec.ts`) resolve contra o PATH via `fs.stat`/`fs.access` diretório por diretório (`isCommandOnLocalPath`), **não** via `which`/`where` como child process — comentário no código cita issue real (#9297): softwares de segurança corporativos interceptam cada spawn e travam o boot do app quando são N probes por CLI conhecido.
+
+Fallback pra CLIs instalados fora do PATH: `detectCommandsInInstallDirs` varre diretórios de instalação comuns conhecidos (`~/.opencode/bin`, `~/.cargo/bin`, shims de nvm/pyenv/volta) numa passada em lote.
+
+### Hydration do PATH da shell de login (`src/main/startup/hydrate-shell-path.ts`)
+
+Problema real: apps Electron GUI no macOS/Linux não herdam o `PATH` completo que o perfil da shell do usuário exportaria (nvm/rvm/conda/gcloud em `.zshrc`/`.bashrc`). Orca spawna a shell de login (`$SHELL -ilc 'echo $PATH'`, ou PowerShell/Git Bash no Windows) **uma vez por processo**, captura o PATH real via delimitadores sentinela, e faz merge preservando a ordem do shell na frente do PATH herdado. Timeout de 10s (medido: perfis carregados com nvm+rvm+conda+gcloud levam 6-7s). Cacheado como `Promise` até um refresh forçado.
+
+### Overrides e refresh manual
+
+- `agentCmdOverrides` nas settings do usuário: aponta um caminho absoluto ou um nome de binário alternativo por agente, sobrepondo `detectCmd`.
+- Botão "Refresh" na aba Agentes das Settings invalida o cache de hydration e re-roda a detecção — cobre o caso "acabei de instalar o CLI, o app ainda não vê" sem restart.
+- Suporte a detecção remota (`detectRemoteAgents`) e via WSL (`detectWslCommandsOnPath`) usando o mesmo registro de comandos, só trocando o executor.
+
+### Gap no nosso fork
+
+O form de worker do Batuta (`packages/app/src/pages/batuta/activity-form.tsx:422`) hoje tem `command` como **texto livre**, sem nenhuma validação/sugestão — é o análogo direto do que o Orca resolve com essa auto-detecção.
+
+### MVP proposto (visto em issues formais, ver GitHub)
+
+Escopo reduzido vs. Orca — sem shell-PATH-hydration completo na v1 (mais complexo cross-platform), sem WSL/remote na v1:
+1. Registro de agentes conhecidos (`packages/core`), lista curta inicial.
+2. Detecção via scan de PATH (`fs`, sem spawn) exposta por rota HTTP.
+3. Seção "Agentes" nas Settings mostrando instalado/não-instalado + botão Atualizar.
+4. Combobox de agentes detectados no campo `command` do form de worker do Batuta (aceitando texto livre também).
+
+---
+
+## 7. Deep-dive: como o Orca instala skills nos agentes CLI detectados (2026-08-26)
+
+Gatilho: print de tela mostrando o autocomplete `/orch` dentro do Claude Code sugerindo as skills `orchestrator`/`orchestration` — isso é a skill `orchestration` do Orca (stub em `skill-stubs/orchestration.md`) instalada dentro de `~/.claude/skills/` pelo próprio instalador do Orca.
+
+### Raiz canônica + placement por provider
+
+- Conteúdo real da skill vive numa raiz canônica: `<home>/.agents/skills` (escopo global) ou `<worktree>/.agents/skills` (escopo por workspace).
+- `src/shared/skill-install-providers.ts` mapeia cada agente CLI detectável (mesmo `id` do `TUI_AGENT_CONFIG`, seção 6) pra onde ele espera encontrar skills — `null` significa "lê a raiz canônica direto" (ex: `codex`), outros têm pasta própria (`claude` → `.claude/skills`, `cursor` → `.cursor/skills`, `gemini` → `.gemini/skills`, `droid` → `.factory/skills`, `grok`/`aug`/`continue`/`trae` → pastas análogas).
+- `skill-installation-topology.ts` classifica cada placement (`canonical-copy`, `provider-alias`/symlink, `independent-copy`, `external-link`, `read-only`) — decide se cria cópia real ou symlink pra raiz canônica dependendo do sistema de arquivos.
+
+### Seleção do usuário (o painel de Settings)
+
+`selectedOrDetectedSkillProviders(detected, selected)` — por padrão instala em **todos os agentes detectados como instalados** (reaproveita a mesma detecção da seção 6), mas aceita uma seleção explícita do usuário que sobrepõe a lista automática. É esse toggle por provider que aparece no painel "Skills"/"Agents" do Orca Desktop.
+
+### Conteúdo em duas camadas: stub + guide
+
+- **Stub** (`skill-stubs/*.md`, ~3KB): sempre carregado, é o que aparece no autocomplete/tooltip. Deliberadamente **não** lista subcomandos/flags — só diz quando engajar a skill e como carregar o guia completo (`ORCA skills get <nome>`).
+- **Guide** (`skill-guides/*.md`, 10-45KB): documentação completa, versionada pro binário exato do Orca rodando — evitando o guia dessincronizar do binário real.
+
+### Aplicação ao Batuta
+
+Hoje, quando o Batuta spawna `claude`/`codex` como worker externo (`packages/opencode/src/external-agent/index.ts`), o CLI spawnado **não tem nenhum contexto** de estar rodando dentro de um worktree orquestrado pelo Batuta — não existe um "manual" equivalente ao `orca-cli`/`orchestration`. Ver issue #77 (criada a partir desta seção) para o plano de instalar uma skill `batuta-cli` nos agentes detectados, reaproveitando a detecção (#74) e o toggle por provider (#75).
+
+---
+
 ## Referências
 
 - Claude Code: https://github.com/anthropics/claude-code (ver `CHANGELOG.md`)
