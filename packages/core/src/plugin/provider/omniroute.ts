@@ -92,6 +92,17 @@ export const geminiSanitizingFetch = async (
   }
 }
 
+// Restricts which discovered models (combos included, #92) actually get
+// registered in the catalog — checked before catalog.model.update, so a
+// model outside the allowlist is silently skipped at registration, not
+// removed after the fact. Absent/empty allowlist = current behaviour (every
+// discovered model registers).
+export function resolveModelAllowlist(configured: unknown): Set<string> | undefined {
+  if (!Array.isArray(configured) || configured.length === 0) return undefined
+  const ids = configured.filter((id): id is string => typeof id === "string")
+  return ids.length ? new Set(ids) : undefined
+}
+
 const DISCOVERY_TTL_MS = 5 * 60_000
 const MIN_AUTO_SYNC_MS = 60_000
 const DEFAULT_AUTO_SYNC_MS = 5 * 60_000
@@ -214,7 +225,10 @@ export const OmniroutePlugin = {
         }
         if (!cache) return
 
+        const allowlist = resolveModelAllowlist(ctx.options.modelAllowlist)
+
         for (const model of cache.models) {
+          if (allowlist && !allowlist.has(model.id)) continue
           // Combos (owned_by === "combo" — a routed composition of multiple
           // real models, not a model of its own) register the same way as
           // any other model: the gateway is the source of truth for their
