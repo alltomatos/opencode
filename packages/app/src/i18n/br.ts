@@ -1205,6 +1205,14 @@ export const dict = {
   "settings.skills.sources.codex.description": "Descobre skills em ~/.codex/skills",
   "settings.skills.installed.title": "Skills descobertas",
 
+  "settings.externalAgents.title": "Agentes",
+  "settings.externalAgents.refresh": "Atualizar",
+  "settings.externalAgents.selectAll.title": "Selecionar todos os detectados",
+  "settings.externalAgents.selectAll.description":
+    "Instala a skill batuta-cli em todo agente detectado. Desligue para escolher agentes individualmente.",
+  "settings.externalAgents.status.detected": "Detectado no servidor conectado",
+  "settings.externalAgents.status.notDetected": "Não detectado — instale o CLI e clique em Atualizar",
+
   "settings.marketplace.title": "Marketplace",
   "settings.marketplace.add.button": "Adicionar",
   "settings.marketplace.skills.add.title": "Adicionar fonte de skills",

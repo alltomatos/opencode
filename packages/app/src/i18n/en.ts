@@ -1270,6 +1270,14 @@ export const dict = {
   "settings.skills.sources.codex.description": "Discover skills from ~/.codex/skills",
   "settings.skills.installed.title": "Discovered skills",
 
+  "settings.externalAgents.title": "Agents",
+  "settings.externalAgents.refresh": "Refresh",
+  "settings.externalAgents.selectAll.title": "Select all detected agents",
+  "settings.externalAgents.selectAll.description":
+    "Installs the batuta-cli skill on every detected agent. Turn off to pick agents individually.",
+  "settings.externalAgents.status.detected": "Detected on the connected server",
+  "settings.externalAgents.status.notDetected": "Not detected — install the CLI and click Refresh",
+
   "settings.marketplace.title": "Marketplace",
   "settings.marketplace.add.button": "Add",
   "settings.marketplace.skills.add.title": "Add skill source",

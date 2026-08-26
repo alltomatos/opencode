@@ -87,6 +87,8 @@ import type {
   ExperimentalWorkspaceSyncListResponses,
   ExperimentalWorkspaceWarpErrors,
   ExperimentalWorkspaceWarpResponses,
+  ExternalAgentDetectErrors,
+  ExternalAgentDetectResponses,
   FileListErrors,
   FileListResponses,
   FilePartInput,
@@ -2180,6 +2182,38 @@ export class Worktree extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+}
+
+export class ExternalAgent extends HeyApiClient {
+  /**
+   * Detect installed external agent CLIs
+   *
+   * Scans the connected server's PATH for every agent in the known registry (claude, codex, ...) without spawning any subprocess.
+   */
+  public detect<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ExternalAgentDetectResponses, ExternalAgentDetectErrors, ThrowOnError>({
+      url: "/external-agent/detect",
+      ...options,
+      ...params,
     })
   }
 }
@@ -7651,6 +7685,11 @@ export class OpencodeClient extends HeyApiClient {
   private _worktree?: Worktree
   get worktree(): Worktree {
     return (this._worktree ??= new Worktree({ client: this.client }))
+  }
+
+  private _externalAgent?: ExternalAgent
+  get externalAgent(): ExternalAgent {
+    return (this._externalAgent ??= new ExternalAgent({ client: this.client }))
   }
 
   private _find?: Find

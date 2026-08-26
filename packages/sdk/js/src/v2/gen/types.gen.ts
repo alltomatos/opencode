@@ -8397,6 +8397,37 @@ export type ExperimentalResourceListResponses = {
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
 
+export type ExternalAgentDetectData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/external-agent/detect"
+}
+
+export type ExternalAgentDetectErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExternalAgentDetectError = ExternalAgentDetectErrors[keyof ExternalAgentDetectErrors]
+
+export type ExternalAgentDetectResponses = {
+  /**
+   * Known external agent CLIs and whether each is installed
+   */
+  200: Array<{
+    id: string
+    installed: boolean
+  }>
+}
+
+export type ExternalAgentDetectResponse = ExternalAgentDetectResponses[keyof ExternalAgentDetectResponses]
+
 export type FindTextData = {
   body?: never
   path?: never
