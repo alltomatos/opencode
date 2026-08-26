@@ -47,18 +47,30 @@ export const SettingsExternalAgentsV2: Component = () => {
     },
   }))
 
+  // The toggle IS the confirmation (no extra dialog) — every selection change
+  // reconciles the batuta-cli skill on the connected server right away, one
+  // write per detected agent, so it stays installed iff detected AND selected.
+  const syncSkills = async (nextSelected: string[] | undefined) => {
+    const agents = detected() ?? []
+    await Promise.all(
+      agents.map((agent) => {
+        const shouldBeInstalled = agent.installed && (nextSelected === undefined || nextSelected.includes(agent.id))
+        return serverSDK().client.externalAgent.setSkill({ id: agent.id, install: shouldBeInstalled })
+      }),
+    )
+  }
+
   const toggleAll = async (checked: boolean) => {
-    if (checked) {
-      await setSelectedAgents.mutateAsync({ selectedAgents: undefined })
-      return
-    }
-    await setSelectedAgents.mutateAsync({ selectedAgents: [] })
+    const next = checked ? undefined : []
+    await setSelectedAgents.mutateAsync({ selectedAgents: next })
+    await syncSkills(next)
   }
 
   const toggleOne = async (id: string, checked: boolean) => {
     const current = selectedAgents() ?? allDetectedIds()
     const next = checked ? Array.from(new Set([...current, id])) : current.filter((agentID) => agentID !== id)
     await setSelectedAgents.mutateAsync({ selectedAgents: next })
+    await syncSkills(next)
   }
 
   const allSelected = () => selectedAgents() === undefined

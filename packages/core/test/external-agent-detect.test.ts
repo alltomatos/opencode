@@ -5,8 +5,8 @@ import { join } from "node:path"
 import { detectExternalAgents } from "@opencode-ai/core/external-agent-detect"
 
 const agents = [
-  { id: "claude", name: "Claude Code", bin: "claude" },
-  { id: "codex", name: "Codex", bin: "codex" },
+  { id: "claude", name: "Claude Code", bin: "claude", skillsDir: ".claude/skills" },
+  { id: "codex", name: "Codex", bin: "codex", skillsDir: ".codex/skills" },
 ]
 
 describe("detectExternalAgents", () => {

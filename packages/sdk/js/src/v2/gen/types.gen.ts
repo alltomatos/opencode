@@ -8428,6 +8428,40 @@ export type ExternalAgentDetectResponses = {
 
 export type ExternalAgentDetectResponse = ExternalAgentDetectResponses[keyof ExternalAgentDetectResponses]
 
+export type ExternalAgentSetSkillData = {
+  body?: {
+    install: boolean
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/external-agent/{id}/skill"
+}
+
+export type ExternalAgentSetSkillErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExternalAgentSetSkillError = ExternalAgentSetSkillErrors[keyof ExternalAgentSetSkillErrors]
+
+export type ExternalAgentSetSkillResponses = {
+  /**
+   * Skill installation updated
+   */
+  200: {
+    installed: boolean
+  }
+}
+
+export type ExternalAgentSetSkillResponse = ExternalAgentSetSkillResponses[keyof ExternalAgentSetSkillResponses]
+
 export type FindTextData = {
   body?: never
   path?: never

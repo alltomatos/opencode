@@ -13,6 +13,13 @@ export const DetectedAgent = Schema.Struct({
 })
 export const DetectResponse = Schema.Array(DetectedAgent)
 
+export const SetSkillPayload = Schema.Struct({
+  install: Schema.Boolean,
+})
+export const SetSkillResponse = Schema.Struct({
+  installed: Schema.Boolean,
+})
+
 export const ExternalAgentApi = HttpApi.make("externalAgent")
   .add(
     HttpApiGroup.make("externalAgent")
@@ -26,6 +33,19 @@ export const ExternalAgentApi = HttpApi.make("externalAgent")
             summary: "Detect installed external agent CLIs",
             description:
               "Scans the connected server's PATH for every agent in the known registry (claude, codex, ...) without spawning any subprocess.",
+          }),
+        ),
+        HttpApiEndpoint.post("setSkill", `${root}/:id/skill`, {
+          params: { id: Schema.String },
+          query: WorkspaceRoutingQuery,
+          payload: SetSkillPayload,
+          success: described(SetSkillResponse, "Skill installation updated"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "externalAgent.setSkill",
+            summary: "Install or remove the batuta-cli skill for an agent",
+            description:
+              "Writes or removes ~/<agent skills dir>/batuta-cli/SKILL.md on the connected server for the given known agent id.",
           }),
         ),
       )

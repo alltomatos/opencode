@@ -89,6 +89,8 @@ import type {
   ExperimentalWorkspaceWarpResponses,
   ExternalAgentDetectErrors,
   ExternalAgentDetectResponses,
+  ExternalAgentSetSkillErrors,
+  ExternalAgentSetSkillResponses,
   FileListErrors,
   FileListResponses,
   FilePartInput,
@@ -2214,6 +2216,49 @@ export class ExternalAgent extends HeyApiClient {
       url: "/external-agent/detect",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Install or remove the batuta-cli skill for an agent
+   *
+   * Writes or removes ~/<agent skills dir>/batuta-cli/SKILL.md on the connected server for the given known agent id.
+   */
+  public setSkill<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      install?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "install" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExternalAgentSetSkillResponses,
+      ExternalAgentSetSkillErrors,
+      ThrowOnError
+    >({
+      url: "/external-agent/{id}/skill",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }

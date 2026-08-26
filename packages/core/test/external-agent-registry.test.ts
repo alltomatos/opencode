@@ -18,4 +18,11 @@ describe("KNOWN_EXTERNAL_AGENTS", () => {
       expect(agent.bin.length).toBeGreaterThan(0)
     }
   })
+
+  test("every entry declares a skills directory relative to the home directory", () => {
+    for (const agent of KNOWN_EXTERNAL_AGENTS) {
+      expect(agent.skillsDir.length).toBeGreaterThan(0)
+      expect(agent.skillsDir.startsWith("/")).toBe(false)
+    }
+  })
 })
