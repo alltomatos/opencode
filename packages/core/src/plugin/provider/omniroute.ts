@@ -41,6 +41,57 @@ function readAuthCredential(fs: FSUtil.Interface, providerID: string) {
   )
 }
 
+// Gemini models (via OmniRoute) reject full JSON-Schema tool parameters —
+// only a subset is accepted, so $schema/$ref/additionalProperties must be
+// stripped before the request goes out. Registered as `item.api.settings.fetch`
+// (packages/core/src/aisdk.ts's prepareOptions already threads that through
+// to the real network call), scoped to model ids containing "gemini" only.
+function stripSchemaKeys(schema: Record<string, unknown>): void {
+  delete schema.$schema
+  delete schema.$ref
+  delete schema.additionalProperties
+  for (const value of Object.values(schema)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === "object") stripSchemaKeys(item as Record<string, unknown>)
+      }
+    } else if (value && typeof value === "object") {
+      stripSchemaKeys(value as Record<string, unknown>)
+    }
+  }
+}
+
+function sanitizeGeminiToolSchemas(payload: unknown): unknown {
+  if (!payload || typeof payload !== "object") return payload
+  const body = payload as { tools?: Array<{ function?: { parameters?: unknown } }> }
+  if (!Array.isArray(body.tools)) return payload
+  for (const tool of body.tools) {
+    const parameters = tool.function?.parameters
+    if (parameters && typeof parameters === "object") stripSchemaKeys(parameters as Record<string, unknown>)
+  }
+  return payload
+}
+
+// One fetch override registered per-provider (not per-model — the provider
+// entry has no per-request model context), so the model id has to be read
+// back out of the outgoing request body itself (every AI SDK chat-completions
+// call includes it as `body.model`).
+export const geminiSanitizingFetch = async (
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1],
+): Promise<Response> => {
+  if (typeof init?.body !== "string") return fetch(input, init)
+  try {
+    const payload = JSON.parse(init.body) as { model?: unknown }
+    if (typeof payload.model !== "string" || !payload.model.includes("gemini")) return fetch(input, init)
+    const cleaned = sanitizeGeminiToolSchemas(payload)
+    return fetch(input, { ...init, body: JSON.stringify(cleaned) })
+  } catch {
+    // Fail open — a sanitizer bug must never break the request path.
+    return fetch(input, init)
+  }
+}
+
 const DISCOVERY_TTL_MS = 5 * 60_000
 const MIN_AUTO_SYNC_MS = 60_000
 const DEFAULT_AUTO_SYNC_MS = 5 * 60_000
@@ -109,7 +160,9 @@ export const OmniroutePlugin = {
         if (!baseURL) return
 
         catalog.provider.update(OmnirouteProviderID, (item) => {
-          if (item.api.type === "aisdk") item.api = { ...item.api, url: baseURL }
+          if (item.api.type === "aisdk") {
+            item.api = { ...item.api, url: baseURL, settings: { ...item.api.settings, fetch: geminiSanitizingFetch } }
+          }
         })
 
         const now = Date.now()
