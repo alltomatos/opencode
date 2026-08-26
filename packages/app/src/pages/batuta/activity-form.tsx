@@ -11,8 +11,10 @@ import { TextareaV2 } from "@opencode-ai/ui/v2/textarea-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
 import type { BatutaActivity, BatutaWorker } from "@opencode-ai/sdk/v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { useServerSync } from "@/context/server-sync"
 import { ServerConnection, serverName, useServer } from "@/context/server"
 import { useGlobal } from "@/context/global"
 import { useDirectoryPicker } from "@/components/directory-picker"
@@ -98,11 +100,29 @@ export function BatutaActivityFormPage() {
   const params = useParams<{ id?: string }>()
   const language = useLanguage()
   const serverSDK = useServerSDK()
+  const serverSync = useServerSync()
   const isEdit = !!params.id
 
   const [activities] = createResource(async () => {
     const result = await serverSDK().client.batuta.list()
     return result.data ?? []
+  })
+
+  const [detectedAgents] = createResource(async () => {
+    const result = await serverSDK().client.externalAgent.detect()
+    return (result.data ?? []) as { id: string; installed: boolean }[]
+  })
+  // Eligible = detected AND the batuta-cli skill was written for it (Settings > Agentes
+  // is the source of truth for that, since the toggle there writes the skill synchronously
+  // — see ADR 0001: the combobox never offers an agent the orchestrator can't talk to).
+  const workerAgentOptions = createMemo(() => {
+    const selectedAgents = (
+      serverSync().data.config as { externalAgent?: { selectedAgents?: string[] } }
+    ).externalAgent?.selectedAgents
+    return (detectedAgents() ?? []).map((agent) => ({
+      ...agent,
+      eligible: agent.installed && (selectedAgents === undefined || selectedAgents.includes(agent.id)),
+    }))
   })
   const existing = createMemo(() => (isEdit ? activities()?.find((item) => item.id === params.id) : undefined))
   const ready = createMemo(() => !isEdit || activities.state === "ready")
@@ -416,13 +436,29 @@ export function BatutaActivityFormPage() {
                           <ModelPickerV2 value={worker.model ?? ""} onChange={(value) => setWorker(index(), { model: value })} />
                         }
                       >
-                        <TextInputV2
-                          type="text"
+                        <SelectV2
                           class="!w-[160px] shrink-0"
-                          value={worker.command ?? ""}
+                          options={workerAgentOptions()}
+                          current={workerAgentOptions().find((agent) => agent.id === worker.command)}
+                          value={(agent) => agent.id}
+                          label={(agent) => agent.id}
                           placeholder={language.t("batuta.form.field.workers.command.placeholder")}
-                          onInput={(event) => setWorker(index(), { command: event.currentTarget.value })}
-                        />
+                          optionDisabled={(agent: { eligible: boolean }) => !agent.eligible}
+                          onSelect={(agent) => agent && setWorker(index(), { command: agent.id })}
+                        >
+                          {(agent) => (
+                            <Show
+                              when={agent.eligible}
+                              fallback={
+                                <TooltipV2 value={language.t("batuta.form.field.workers.command.needsSkill")}>
+                                  <span>{agent.id}</span>
+                                </TooltipV2>
+                              }
+                            >
+                              {agent.id}
+                            </Show>
+                          )}
+                        </SelectV2>
                         <TextInputV2
                           type="text"
                           class="!w-[160px] shrink-0"

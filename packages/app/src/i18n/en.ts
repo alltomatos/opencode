@@ -903,6 +903,7 @@ export const dict = {
   "batuta.form.field.workers.kind.internal": "Internal",
   "batuta.form.field.workers.kind.external": "External CLI",
   "batuta.form.field.workers.command.placeholder": "Command (e.g. claude, codex)",
+  "batuta.form.field.workers.command.needsSkill": "Install the batuta-cli skill for this agent in Settings > Agents first",
   "batuta.form.field.workers.args.placeholder": "Arguments (space-separated)",
   "batuta.form.field.worktree.label": "Isolated worker worktrees",
   "batuta.form.field.worktree.description": "Every worker always gets its own git worktree, isolated from your main checkout — the orchestrator reviews and merges each worker's result. This is not configurable.",
