@@ -12,6 +12,7 @@ import { SettingsModelsV2 } from "@/components/settings-v2/models"
 import { SettingsServersV2 } from "@/components/settings-v2/servers"
 import { SettingsSkillsV2 } from "@/components/settings-v2/skills"
 import { SettingsMcpV2 } from "@/components/settings-v2/mcp"
+import { SettingsExternalAgentsV2 } from "@/components/settings-v2/external-agents"
 import "@/components/settings-v2/settings-v2.css"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -126,6 +127,10 @@ export function SettingsPage() {
                         <Icon name="link" />
                         {language.t("settings.mcp.title")}
                       </TabsV2.Trigger>
+                      <TabsV2.Trigger value="externalAgents">
+                        <Icon name="terminal" />
+                        {language.t("settings.externalAgents.title")}
+                      </TabsV2.Trigger>
                     </div>
                   </div>
                 </div>
@@ -164,6 +169,9 @@ export function SettingsPage() {
           </TabsV2.Content>
           <TabsV2.Content value="mcp" class="settings-v2-panel">
             <SettingsMcpV2 />
+          </TabsV2.Content>
+          <TabsV2.Content value="externalAgents" class="settings-v2-panel">
+            <SettingsExternalAgentsV2 />
           </TabsV2.Content>
         </TabsV2>
       </div>
