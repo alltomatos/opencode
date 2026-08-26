@@ -60,6 +60,13 @@ describe("OmniroutePlugin discovery", () => {
                 output_modalities: ["text"],
                 capabilities: { tool_calling: true, vision: true },
               },
+              {
+                id: "auto/best-coding",
+                owned_by: "combo",
+                input_modalities: ["text"],
+                output_modalities: ["text"],
+                capabilities: { tool_calling: false, vision: false },
+              },
             ],
           }),
           { status: 200 },
@@ -74,6 +81,12 @@ describe("OmniroutePlugin discovery", () => {
       expect(model?.capabilities.tools).toBe(true)
       expect(model?.capabilities.input).toEqual(["text", "image"])
       expect(model?.capabilities.output).toEqual(["text"])
+
+      // Combos register through the exact same path — the gateway is the
+      // source of truth for their (already LCD'd) capabilities.
+      const combo = yield* catalog.model.get(OmnirouteProviderID, ModelV2.ID.make("auto/best-coding"))
+      expect(combo?.capabilities.tools).toBe(false)
+      expect(combo?.capabilities.input).toEqual(["text"])
 
       const provider = yield* catalog.provider.get(OmnirouteProviderID)
       expect(provider?.api.type === "aisdk" ? provider.api.url : undefined).toBe("https://gateway.example.com")

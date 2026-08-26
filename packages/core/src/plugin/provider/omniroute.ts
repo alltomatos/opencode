@@ -19,7 +19,6 @@ export const OmnirouteProviderID = ProviderV2.ID.make("omnrt")
 const OmnirouteIntegrationID = Integration.ID.make("omnrt")
 
 const DISCOVERY_TTL_MS = 5 * 60_000
-const COMBO_OWNER = "combo"
 const MIN_AUTO_SYNC_MS = 60_000
 const DEFAULT_AUTO_SYNC_MS = 5 * 60_000
 
@@ -104,9 +103,12 @@ export const OmniroutePlugin = {
         if (!cache) return
 
         for (const model of cache.models) {
-          // Combos (owned_by === "combo") get LCD capabilities and their own
-          // registration path — #92.
-          if (model.owned_by === COMBO_OWNER) continue
+          // Combos (owned_by === "combo" — a routed composition of multiple
+          // real models, not a model of its own) register the same way as
+          // any other model: the gateway is the source of truth for their
+          // capabilities (already LCD'd server-side across whatever models
+          // the combo composes), so there's no client-side capability math
+          // to redo here.
           catalog.model.update(OmnirouteProviderID, ModelV2.ID.make(model.id), (entry) => {
             entry.capabilities = {
               tools: model.capabilities?.tool_calling ?? false,
