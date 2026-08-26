@@ -40,7 +40,8 @@ describe("OmniroutePlugin background auto-sync", () => {
       let calls = 0
       let modelCount = 1
       originalFetch = globalThis.fetch
-      globalThis.fetch = (async () => {
+      globalThis.fetch = (async (url: string) => {
+        if (url.endsWith("/api/pricing/models")) return new Response(JSON.stringify({ data: [] }), { status: 200 })
         calls++
         const data = Array.from({ length: modelCount }, (_, i) => ({ id: `model-${i}` }))
         return new Response(JSON.stringify({ data }), { status: 200 })

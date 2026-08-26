@@ -135,6 +135,30 @@ async function fetchModels(baseURL: string, apiKey: string): Promise<OmnirouteMo
   return body.data ?? []
 }
 
+// Overlays display name + pricing onto the ModelV2 entries /v1/models
+// already produced — solves the "raw id in UI" complaint without a
+// client-side heuristic. Best-effort: a failure here must never block
+// discovery of the models themselves, so it's always wrapped and caught by
+// the caller, never thrown into the main discovery path.
+type OmnirouteModelPricing = {
+  readonly id: string
+  readonly name?: string
+  readonly pricing?: {
+    readonly input?: number
+    readonly output?: number
+    readonly cache_read?: number
+    readonly cache_write?: number
+  }
+}
+
+async function fetchPricing(baseURL: string, apiKey: string): Promise<Map<string, OmnirouteModelPricing>> {
+  const origin = new URL(baseURL).origin
+  const response = await fetch(`${origin}/api/pricing/models`, { headers: { Authorization: `Bearer ${apiKey}` } })
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+  const body = (await response.json()) as { data?: OmnirouteModelPricing[] }
+  return new Map((body.data ?? []).map((entry) => [entry.id, entry]))
+}
+
 export const OmniroutePlugin = {
   id: "omniroute",
   effect: Effect.fn(function* (ctx: PluginContext) {
@@ -142,7 +166,13 @@ export const OmniroutePlugin = {
     // Scoped to this plugin instance (one per boot), not module-level —
     // shared across every Catalog Reload within that boot (the TTL/
     // auto-sync mechanism), but never leaks across separate boots/tests.
-    let cache: { readonly at: number; readonly models: readonly OmnirouteModel[] } | undefined
+    let cache:
+      | {
+          readonly at: number
+          readonly models: readonly OmnirouteModel[]
+          readonly pricing: ReadonlyMap<string, OmnirouteModelPricing>
+        }
+      | undefined
 
     yield* ctx.catalog.transform(
       Effect.fn(function* (catalog) {
@@ -173,7 +203,14 @@ export const OmniroutePlugin = {
             // succeeds again (see docs/agents/omniroute-native-provider.md).
             Effect.catch(() => Effect.succeed(undefined)),
           )
-          if (fetched) cache = { at: now, models: fetched }
+          if (fetched) {
+            // Best-effort — a broken/missing pricing endpoint must not stop
+            // the models themselves from registering.
+            const pricing = yield* Effect.tryPromise(() => fetchPricing(baseURL, apiKey)).pipe(
+              Effect.catch(() => Effect.succeed(new Map<string, OmnirouteModelPricing>())),
+            )
+            cache = { at: now, models: fetched, pricing }
+          }
         }
         if (!cache) return
 
@@ -184,11 +221,22 @@ export const OmniroutePlugin = {
           // capabilities (already LCD'd server-side across whatever models
           // the combo composes), so there's no client-side capability math
           // to redo here.
+          const priced = cache.pricing.get(model.id)
           catalog.model.update(OmnirouteProviderID, ModelV2.ID.make(model.id), (entry) => {
             entry.capabilities = {
               tools: model.capabilities?.tool_calling ?? false,
               input: modalities(model.input_modalities),
               output: modalities(model.output_modalities),
+            }
+            if (priced?.name) entry.name = priced.name
+            if (priced?.pricing) {
+              entry.cost = [
+                {
+                  input: priced.pricing.input ?? 0,
+                  output: priced.pricing.output ?? 0,
+                  cache: { read: priced.pricing.cache_read ?? 0, write: priced.pricing.cache_write ?? 0 },
+                },
+              ]
             }
           })
         }
