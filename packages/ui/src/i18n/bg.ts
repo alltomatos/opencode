@@ -194,4 +194,12 @@ export const dict = {
   "ui.question.multiHint": "Изберете всички приложими отговори",
   "ui.question.singleHint": "Изберете един отговор",
   "ui.question.custom.placeholder": "Въведете вашия отговор...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

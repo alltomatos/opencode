@@ -194,4 +194,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Välj alla svar som gäller",
   "ui.question.singleHint": "Välj ett svar",
   "ui.question.custom.placeholder": "Skriv ditt svar...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

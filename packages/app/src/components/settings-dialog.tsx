@@ -19,7 +19,12 @@ export function useSettingsDialog(defaultValue?: string) {
 
   return () => {
     if (settings.general.newLayoutDesigns()) {
-      navigate(`/settings/${defaultValue ?? "general"}`)
+      // The settings route has no :id segment of its own, so the session
+      // that was active when settings were opened (needed to scope the
+      // per-session permission toggle) has to travel as a query param —
+      // otherwise it's lost the moment navigate() changes the URL.
+      const search = params.id ? `?session=${encodeURIComponent(params.id)}` : ""
+      navigate(`/settings/${defaultValue ?? "general"}${search}`)
       return
     }
     const current = ++run

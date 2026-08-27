@@ -193,4 +193,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "የሚመለከተውን ሁሉንም መልሶች ይምረጡ",
   "ui.question.singleHint": "አንድ መልስ ምረጥ",
   "ui.question.custom.placeholder": "መልስዎን ይተይቡ...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

@@ -20,7 +20,10 @@ test("session settings use the remote server context", async ({ page }) => {
   await expect(page.getByText(sessionB.title).first()).toBeVisible()
   await page.keyboard.press("Control+,")
 
-  const dialog = page.locator(".settings-v2-dialog")
+  // newLayoutDesigns routes settings to a full page (.settings-v2-page)
+  // instead of the modal dialog (.settings-v2-dialog) — match either
+  // surface since both render the same underlying settings components.
+  const dialog = page.locator(".settings-v2-dialog, .settings-v2-page")
   const autoAccept = dialog.locator('[data-action="settings-auto-accept-permissions"]')
   const input = autoAccept.getByRole("switch")
   await expect(autoAccept).toBeVisible()
@@ -60,7 +63,9 @@ test("auto-accept responds for an unfocused server session", async ({ page }) =>
   await page.goto(`/server/${base64Encode(serverA)}/session/${sessionA.id}`)
   await expect(page.getByText(sessionA.title).first()).toBeVisible()
   await page.keyboard.press("Control+,")
-  const autoAccept = page.locator(".settings-v2-dialog").locator('[data-action="settings-auto-accept-permissions"]')
+  const autoAccept = page
+    .locator(".settings-v2-dialog, .settings-v2-page")
+    .locator('[data-action="settings-auto-accept-permissions"]')
   await autoAccept.locator('[data-slot="switch-control"]').click()
   await expect(autoAccept.getByRole("switch")).toBeChecked()
   await expect

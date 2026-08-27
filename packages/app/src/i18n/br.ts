@@ -1395,4 +1395,6 @@ export const dict = {
   "error.childStore.persistedProjectIconCreateFailed": "Falha ao criar ícone de projeto persistente",
   "error.childStore.storeCreateFailed": "Falha ao criar armazenamento",
   "terminal.connectionLost.abnormalClose": "WebSocket fechado anormalmente: {{code}}",
+  "dialog.model.selectProvider.title": "Selecionar provedor",
+  "dialog.model.provider.label": "Provedor",
 }
