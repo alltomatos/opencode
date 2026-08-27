@@ -195,4 +195,12 @@ export const dict = {
   "ui.question.multiHint": "သက်ဆိုင်သည့် အဖြေအားလုံးကို ရွေးပါ။",
   "ui.question.singleHint": "အဖြေတစ်ခု ရွေးပါ။",
   "ui.question.custom.placeholder": "သင့်အဖြေကို ရိုက်ထည့်ပါ...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

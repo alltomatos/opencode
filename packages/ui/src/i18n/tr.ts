@@ -220,4 +220,12 @@ export const dict = {
   "ui.toolErrorCard.copyError": "Hatayı kopyala",
   "ui.message.duration.seconds": "{{count}} sn",
   "ui.message.duration.minutesSeconds": "{{minutes}} dk {{seconds}} sn",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 } satisfies Partial<Record<Keys, string>>

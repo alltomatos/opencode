@@ -2,6 +2,7 @@ import { AgentV2 } from "@opencode-ai/core/agent"
 import { AISDK } from "@opencode-ai/core/aisdk"
 import { Catalog } from "@opencode-ai/core/catalog"
 import { CommandV2 } from "@opencode-ai/core/command"
+import { Config } from "@opencode-ai/core/config"
 import { Credential } from "@opencode-ai/core/credential"
 import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
 import { LayerNodePlatform } from "@opencode-ai/core/effect/app-node-platform"
@@ -12,6 +13,7 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Integration } from "@opencode-ai/core/integration"
 import { Location } from "@opencode-ai/core/location"
 import { Npm } from "@opencode-ai/core/npm"
+import { Policy } from "@opencode-ai/core/policy"
 import { PluginV2 } from "@opencode-ai/core/plugin"
 import { Reference } from "@opencode-ai/core/reference"
 import { SkillV2 } from "@opencode-ai/core/skill"
@@ -33,6 +35,8 @@ export const PluginTestLayer = AppNodeBuilder.build(
     FSUtil.node,
     Location.node,
     Npm.node,
+    Policy.node,
+    Config.node,
     Credential.node,
     EventV2.node,
     LayerNodePlatform.httpClient,
