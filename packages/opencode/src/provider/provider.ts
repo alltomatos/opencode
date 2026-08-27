@@ -1321,6 +1321,68 @@ export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
   }
 }
 
+// Bridges a Catalog v2 provider (registered by a Native Provider Plugin,
+// e.g. OmniRoute — packages/core/src/plugin/provider/omniroute.ts) into the
+// richer v1 Provider/Model shape this API has always returned. The v2
+// schema only carries what Native Provider Plugins actually produce
+// (ProviderV2.Info has no `env`/`source`, ModelV2.Info has no
+// temperature/reasoning/attachment/interleaved flags) — everything absent
+// here gets the same conservative defaults GithubCopilotPlugin-style native
+// providers ship with elsewhere, mirroring fromModelsDevModel's structure
+// without inventing capabilities the plugin never reported.
+export function fromCatalog(provider: ProviderV2.Info, models: ModelV2.Info[]): Info {
+  const entries: Record<string, Model> = {}
+  for (const model of models) {
+    entries[model.id] = {
+      id: model.id,
+      providerID: provider.id,
+      name: model.name,
+      family: model.family,
+      api: {
+        id: model.api.id,
+        url: model.api.type === "aisdk" ? (model.api.url ?? provider.api.url ?? "") : (model.api.url ?? ""),
+        npm: model.api.type === "aisdk" ? model.api.package : "@ai-sdk/openai-compatible",
+      },
+      status: model.status,
+      headers: model.request.headers,
+      options: {},
+      cost: model.cost[0] ?? { input: 0, output: 0, cache: { read: 0, write: 0 } },
+      limit: model.limit,
+      capabilities: {
+        temperature: true,
+        reasoning: false,
+        attachment: model.capabilities.input.includes("image") || model.capabilities.input.includes("pdf"),
+        toolcall: model.capabilities.tools,
+        input: {
+          text: model.capabilities.input.includes("text"),
+          audio: model.capabilities.input.includes("audio"),
+          image: model.capabilities.input.includes("image"),
+          video: model.capabilities.input.includes("video"),
+          pdf: model.capabilities.input.includes("pdf"),
+        },
+        output: {
+          text: model.capabilities.output.includes("text"),
+          audio: model.capabilities.output.includes("audio"),
+          image: model.capabilities.output.includes("image"),
+          video: model.capabilities.output.includes("video"),
+          pdf: model.capabilities.output.includes("pdf"),
+        },
+        interleaved: false,
+      },
+      release_date: model.time.released ? new Date(model.time.released).toISOString().slice(0, 10) : "",
+      variants: {},
+    }
+  }
+  return {
+    id: provider.id,
+    source: "custom",
+    name: provider.name,
+    env: [],
+    options: {},
+    models: entries,
+  }
+}
+
 function modeOptions(model: Model, body: Record<string, unknown> | undefined) {
   if (!body) return model.options
   const options = Object.fromEntries(
