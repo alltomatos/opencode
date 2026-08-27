@@ -221,4 +221,12 @@ export const dict = {
   "ui.toolErrorCard.copyError": "Скопировать ошибку",
   "ui.message.duration.seconds": "{{count}} с",
   "ui.message.duration.minutesSeconds": "{{minutes}} мин {{seconds}} с",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

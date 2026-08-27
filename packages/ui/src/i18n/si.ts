@@ -194,4 +194,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "අදාළ සියලු පිළිතුරු තෝරන්න",
   "ui.question.singleHint": "එක් පිළිතුරක් තෝරන්න",
   "ui.question.custom.placeholder": "ඔබේ පිළිතුර ටයිප් කරන්න...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }
