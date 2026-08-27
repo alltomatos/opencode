@@ -50,6 +50,7 @@ describe("OmniroutePlugin discovery", () => {
     Effect.gen(function* () {
       originalFetch = globalThis.fetch
       globalThis.fetch = (async (url: string) => {
+        if (url.endsWith("/api/pricing/models")) return new Response(JSON.stringify({ data: [] }), { status: 200 })
         expect(url).toBe("https://gateway.example.com/models")
         return new Response(
           JSON.stringify({
