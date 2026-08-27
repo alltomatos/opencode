@@ -121,7 +121,7 @@ Este fork existe graças ao trabalho da equipe original do **[OpenCode](https://
 - Site oficial: [opencode.ai](https://opencode.ai)
 - Discord oficial: [opencode.ai/discord](https://opencode.ai/discord)
 
-Se você não está procurando especificamente por este fork, use o [projeto original](https://github.com/anomalyco/opencode) — ele recebe atualizações com muito mais frequência e é o software com suporte oficial.
+Se você não está procurando especificamente por este fork, use o [projeto original](https://github.com/anomalyco/opencode)
 
 ### Building on OpenCode
 
