@@ -604,7 +604,7 @@ function taskSession(
     .sort((a, b) => (b.time.created ?? 0) - (a.time.created ?? 0))[0]?.id
 }
 
-const CONTEXT_GROUP_TOOLS = new Set(["read", "glob", "grep", "list", "shell", "bash"])
+const CONTEXT_GROUP_TOOLS = new Set(["read", "glob", "grep", "list"])
 const HIDDEN_TOOLS = new Set(["todowrite"])
 
 function list<T>(value: T[] | undefined | null, fallback: T[]) {
@@ -900,8 +900,7 @@ function contextToolSummary(parts: ToolPart[]) {
   const read = parts.filter((part) => part.tool === "read").length
   const search = parts.filter((part) => part.tool === "glob" || part.tool === "grep").length
   const list = parts.filter((part) => part.tool === "list").length
-  const shell = parts.filter((part) => part.tool === "shell" || part.tool === "bash").length
-  return { read, search, list, shell }
+  return { read, search, list }
 }
 
 function ExaOutput(props: { output?: string }) {
@@ -1105,10 +1104,6 @@ export function ContextToolGroup(props: {
                 ]}
                 fallback=""
               />
-              <Show when={summary().shell > 0}>
-                <Show when={summary().read + summary().search + summary().list > 0}>, </Show>
-                {i18n.t("ui.tool.shell")} × {summary().shell}
-              </Show>
             </span>
           </span>
           <Collapsible.Arrow />
