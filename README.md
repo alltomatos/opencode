@@ -15,7 +15,16 @@
   <a href="https://github.com/alltomatos/opencode/actions"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alltomatos/opencode/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://github.com/alltomatos/opencode)
+[![OpenCode Desktop](packages/web/src/assets/lander/screenshot-splash.png)](https://github.com/alltomatos/opencode)
+
+---
+
+### Screenshots
+
+<p align="center">
+  <img src="packages/web/src/assets/lander/t2.png" alt="Modos de permissão (Automático, Manual, Aceitar edições, Planejar)" width="49%">
+  <img src="packages/web/src/assets/lander/config.png" alt="Tela de Configurações, com suporte a português" width="49%">
+</p>
 
 ---
 
