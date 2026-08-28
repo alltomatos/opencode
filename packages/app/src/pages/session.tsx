@@ -19,7 +19,6 @@ import {
   untrack,
 } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { createMediaQuery } from "@solid-primitives/media"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { debounce } from "@solid-primitives/scheduled"
 import { useLocal } from "@/context/local"
@@ -37,7 +36,7 @@ import { showToast } from "@/utils/toast"
 import { base64Encode, checksum } from "@opencode-ai/core/util/encode"
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
-import { BrowserPanelOverlay, isBrowserPanelAvailable, isBrowserPanelOpen } from "@/components/browser-panel"
+import { BrowserPanelOverlay } from "@/components/browser-panel"
 import { ErrorPage } from "@/pages/error"
 import { CommentsProvider, useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
@@ -65,19 +64,14 @@ import {
   createSessionComposerRegionController,
   SessionComposerRegion,
 } from "@/pages/session/composer"
-import { createOpenReviewFile, createSessionTabs, createSizing, shouldShowFileTree } from "@/pages/session/helpers"
+import { createOpenReviewFile, createSessionTabs } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/timeline/message-timeline"
 import { createTimelineModel } from "@/pages/session/timeline/model"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
-import {
-  clampSessionPanelWidth,
-  SESSION_PANEL_WIDTH_MIN,
-  sessionPanelWidthMax,
-} from "@/pages/session/session-panel-width"
+import { SESSION_PANEL_WIDTH_MIN } from "@/pages/session/session-panel-width"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
-import { sessionPanelLayout } from "@/pages/session/session-panel-layout"
 import { SessionReviewEmptyChangesV2 } from "@opencode-ai/session-ui/v2/session-review-empty-changes-v2"
 import { SessionReviewEmptyNoGitV2 } from "@opencode-ai/session-ui/v2/session-review-empty-no-git-v2"
 import { SessionReviewV2SidebarToggle } from "@opencode-ai/session-ui/v2/session-review-v2"
@@ -101,6 +95,7 @@ import { createRevertRestore } from "./session/session-revert-restore"
 import { createFollowupQueue, type FollowupItem, type FollowupEdit } from "./session/session-followup-queue"
 import { createReviewComments } from "./session/session-review-comments"
 import { createGlobalKeydownHandler } from "./session/session-global-keydown"
+import { createPanelGeometry } from "./session/session-panel-geometry"
 
 type ChangeMode = "git" | "branch" | "turn"
 type VcsMode = "git" | "branch"
@@ -233,75 +228,36 @@ export default function Page() {
     ),
   )
 
-  const isDesktop = createMediaQuery("(min-width: 768px)")
-  const size = createSizing()
-  const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
-  const desktopV2ReviewOpen = createMemo(() => newSessionDesign() && desktopReviewOpen() && !!params.id)
-  const terminalOpen = createMemo(() => view().terminal.opened())
-  const desktopTerminalOpen = createMemo(() => isDesktop() && terminalOpen())
-  const desktopInlineTerminalOnlyOpen = createMemo(
-    () => newSessionDesign() && desktopTerminalOpen() && !desktopV2ReviewOpen(),
-  )
-  const desktopFileTreeOpen = createMemo(
-    () =>
-      isDesktop() &&
-      shouldShowFileTree({
-        visible: settings.visibility.fileTree(),
-        opened: layout.fileTree.opened(),
-      }),
-  )
-  const desktopSessionResizeOpen = createMemo(() =>
-    newSessionDesign() ? desktopV2ReviewOpen() || desktopTerminalOpen() : desktopReviewOpen(),
-  )
-  const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
-  let panelRow: HTMLDivElement | undefined
-  const [panelRowWidth, setPanelRowWidth] = createSignal<number>()
-  createResizeObserver(
-    () => panelRow,
-    ({ width }) => setPanelRowWidth(width),
-  )
-  const splitReview = createMemo(
-    () => (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()) && layout.review.diffStyle() === "split",
-  )
-  // The observer reports the content-box width, which already excludes the row
-  // padding; only the flex gap between the panels remains to subtract.
-  const sessionPanelAvailable = createMemo(() => {
-    const width = panelRowWidth()
-    if (width === undefined) return undefined
-    return width - (settings.general.newLayoutDesigns() ? 8 : 0)
+  const {
+    isDesktop,
+    size,
+    desktopReviewOpen,
+    desktopV2ReviewOpen,
+    terminalOpen,
+    desktopTerminalOpen,
+    desktopInlineTerminalOnlyOpen,
+    desktopFileTreeOpen,
+    desktopSessionResizeOpen,
+    desktopSidePanelOpen,
+    bindPanelRow,
+    splitReview,
+    sessionPanelAvailable,
+    sessionPanelMax,
+    sessionPanelResizedWidth,
+    sessionPanelWidth,
+    centered,
+    desktopV2PanelLayout,
+    browserPanelOpen,
+    terminalRegionOpen,
+    browserPanelStacked,
+    openReviewPanel,
+  } = createPanelGeometry({
+    view,
+    newSessionDesign,
+    settings,
+    layout,
+    sessionID: () => params.id,
   })
-  const sessionPanelMax = createMemo(() => {
-    const available = sessionPanelAvailable()
-    if (available === undefined) return 1000
-    return sessionPanelWidthMax({ available, split: splitReview() })
-  })
-  // Clamp at render time so window or sidebar resizes squeeze the chat panel
-  // instead of the review pane, without overwriting the persisted width.
-  const sessionPanelResizedWidth = createMemo(() =>
-    clampSessionPanelWidth({
-      width: layout.session.width(),
-      available: sessionPanelAvailable(),
-      split: splitReview(),
-    }),
-  )
-  const sessionPanelWidth = createMemo(() => {
-    if (!desktopSidePanelOpen()) return "100%"
-    if (desktopSessionResizeOpen()) return `${sessionPanelResizedWidth()}px`
-    return `calc(100% - ${layout.fileTree.width()}px)`
-  })
-  const centered = createMemo(() => isDesktop() && (newSessionDesign() || !desktopReviewOpen()))
-  const desktopV2PanelLayout = createMemo(() =>
-    sessionPanelLayout({
-      review: desktopV2ReviewOpen(),
-      terminal: desktopTerminalOpen(),
-      files: desktopFileTreeOpen(),
-    }),
-  )
-  const browserPanelOpen = createMemo(() => isBrowserPanelAvailable() && isBrowserPanelOpen())
-  const terminalRegionOpen = createMemo(
-    () => newSessionDesign() && (isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()),
-  )
-  const browserPanelStacked = createMemo(() => browserPanelOpen() && terminalRegionOpen())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
@@ -318,10 +274,6 @@ export default function Page() {
       next.push(value)
     }
     return next
-  }
-
-  const openReviewPanel = () => {
-    if (!view().reviewPanel.opened()) view().reviewPanel.open()
   }
 
   const info = createMemo(() => (params.id ? sync().session.get(params.id) : undefined))
@@ -1801,7 +1753,7 @@ export default function Page() {
     <SessionRouteFrame>
       <SessionHeader />
       <div
-        ref={panelRow}
+        ref={bindPanelRow}
         class="flex-1 min-h-0 flex flex-col md:flex-row"
         classList={{
           "gap-2 p-2": settings.general.newLayoutDesigns(),
