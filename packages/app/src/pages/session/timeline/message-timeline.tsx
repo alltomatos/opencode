@@ -36,7 +36,7 @@ import { DialogFooter, DialogHeader, DialogTitleGroup, DialogV2 } from "@opencod
 import { InlineInput } from "@opencode-ai/ui/inline-input"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { SessionRetry } from "@opencode-ai/session-ui/session-retry"
-import { isScrollKeyTarget, scrollKey, scrollKeyOwner, ScrollView } from "@opencode-ai/ui/scroll-view"
+import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { TextField } from "@opencode-ai/ui/text-field"
 import type {
   AssistantMessage,
@@ -47,7 +47,6 @@ import type {
 } from "@opencode-ai/sdk/v2"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { Popover as KobaltePopover } from "@kobalte/core/popover"
-import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { isBrowserPanelAvailable, isBrowserPanelOpen, toggleBrowserPanel } from "@/components/browser-panel"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
@@ -68,6 +67,7 @@ import { createTimelineProjection } from "./projection"
 import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
 import { TimelineThinkingRow, TimelineDiffSummaryRow } from "./timeline-static-rows"
 import { createSessionHeaderActions } from "./timeline-session-actions"
+import { createScrollAnchor } from "./timeline-scroll-anchor"
 import { filterVirtualIndexes } from "./virtual-items"
 
 const emptyMessages: MessageType[] = []
@@ -88,37 +88,6 @@ const taskDescription = (part: PartType, sessionID: string) => {
   if (metadata?.sessionId !== sessionID) return
   const value = part.state.input?.description
   if (typeof value === "string" && value) return value
-}
-
-const boundaryTarget = (root: HTMLElement, target: EventTarget | null) => {
-  const current = target instanceof Element ? target : undefined
-  const nested = current?.closest("[data-scrollable]")
-  if (!nested || nested === root) return root
-  if (!(nested instanceof HTMLElement)) return root
-  return nested
-}
-
-const markBoundaryGesture = (input: {
-  root: HTMLDivElement
-  target: EventTarget | null
-  delta: number
-  onMarkScrollGesture: (target?: EventTarget | null) => void
-}) => {
-  const target = boundaryTarget(input.root, input.target)
-  if (target === input.root) {
-    input.onMarkScrollGesture(input.root)
-    return
-  }
-  if (
-    shouldMarkBoundaryGesture({
-      delta: input.delta,
-      scrollTop: target.scrollTop,
-      scrollHeight: target.scrollHeight,
-      clientHeight: target.clientHeight,
-    })
-  ) {
-    input.onMarkScrollGesture(input.root)
-  }
 }
 
 export function MessageTimeline(props: {
@@ -142,8 +111,6 @@ export function MessageTimeline(props: {
   setScrollToEnd?: (fn: () => void) => void
   setHistoryAnchor?: (handlers: { capture: () => void; restore: (done: boolean) => void }) => void
 }) {
-  let touchGesture: number | undefined
-
   const navigate = useNavigate()
   const serverSDK = useServerSDK()
   const sdk = useSDK()
@@ -234,65 +201,28 @@ export function MessageTimeline(props: {
   const timelineRowByKey = projection.rowByKey
   const timelineRows = projection.rows
 
-  let prependAnchor: { key: string; offset: number } | undefined
-  let prependAnchorFrame: number | undefined
-  let prependLoading = false
-  const clearPrependAnchor = () => {
-    prependLoading = false
-    prependAnchor = undefined
-    if (prependAnchorFrame === undefined) return
-    cancelAnimationFrame(prependAnchorFrame)
-    prependAnchorFrame = undefined
-  }
-  const capturePrependAnchor = () => {
-    prependLoading = true
-    updatePrependAnchor()
-  }
-  const updatePrependAnchor = () => {
-    const root = listRoot()
-    if (!root) return
-    const view = root.getBoundingClientRect()
-    const anchor = [...root.querySelectorAll<HTMLElement>("[data-timeline-key]")]
-      .map((element) => ({ element, rect: element.getBoundingClientRect() }))
-      .filter((item) => item.rect.bottom > view.top && item.rect.top < view.bottom)
-      .sort((a, b) => a.rect.top - b.rect.top)[0]
-    if (!anchor) return
-    if (!anchor.element.dataset.timelineKey) return
-    prependAnchor = { key: anchor.element.dataset.timelineKey, offset: anchor.rect.top - view.top }
-  }
-  const restorePrependAnchor = (done: boolean) => {
-    if (done) prependLoading = false
-    applyPrependAnchor()
-  }
-  const applyPrependAnchor = () => {
-    const root = listRoot()
-    if (!root || !prependAnchor) return
-    if (prependAnchorFrame !== undefined) cancelAnimationFrame(prependAnchorFrame)
-    let frames = 0
-    let stable = 0
-    const apply = () => {
-      prependAnchorFrame = undefined
-      const anchor = prependAnchor
-      if (!anchor) return
-      const element = root.querySelector<HTMLElement>(`[data-timeline-key="${CSS.escape(anchor.key)}"]`)
-      const delta = element
-        ? element.getBoundingClientRect().top - root.getBoundingClientRect().top - anchor.offset
-        : undefined
-      if (delta !== undefined && Math.abs(delta) > 0.5) {
-        root.scrollTop += delta
-        stable = 0
-      } else {
-        stable += 1
-      }
-      frames += 1
-      if (stable >= 30 || frames >= 180) {
-        if (!prependLoading) prependAnchor = undefined
-        return
-      }
-      prependAnchorFrame = requestAnimationFrame(apply)
-    }
-    prependAnchorFrame = requestAnimationFrame(apply)
-  }
+  const {
+    clearPrependAnchor,
+    cancelPendingApply,
+    capturePrependAnchor,
+    restorePrependAnchor,
+    handleListWheel,
+    handleListTouchStart,
+    handleListTouchMove,
+    handleListTouchEnd,
+    handleListPointerDown,
+    handleListPointerMove,
+    handleListKeyDown,
+    handleListScroll,
+  } = createScrollAnchor({
+    listRoot,
+    onMarkScrollGesture: props.onMarkScrollGesture,
+    onScheduleScrollState: props.onScheduleScrollState,
+    onHistoryScroll: props.onHistoryScroll,
+    hasScrollGesture: props.hasScrollGesture,
+    onUserScroll: props.onUserScroll,
+    onAutoScrollHandleScroll: props.onAutoScrollHandleScroll,
+  })
 
   const [toolOpen, setToolOpen] = createStore<Record<string, boolean | undefined>>(cached?.toolOpen ?? {})
   const [renderOverscan, setRenderOverscan] = createSignal(initialMeasurements?.length || coldBottomMount ? 6 : 20)
@@ -410,7 +340,7 @@ export function MessageTimeline(props: {
     if (!props.shouldAnchorBottom() || props.hasScrollGesture()) return
     if (resizePinFrame !== undefined) cancelAnimationFrame(resizePinFrame)
     clearPrependAnchor()
-    if (prependAnchorFrame !== undefined) cancelAnimationFrame(prependAnchorFrame)
+    cancelPendingApply()
     virtualizer.scrollToEnd()
   }
 
@@ -479,73 +409,6 @@ export function MessageTimeline(props: {
     if (root === listRoot()) return
     setListRoot(root)
     props.setScrollRef(root)
-  }
-
-  const handleListWheel = (event: WheelEvent & { currentTarget: HTMLDivElement }) => {
-    if (!prependLoading) clearPrependAnchor()
-    const root = event.currentTarget
-    const delta = normalizeWheelDelta({
-      deltaY: event.deltaY,
-      deltaMode: event.deltaMode,
-      rootHeight: root.clientHeight,
-    })
-    if (!delta) return
-    markBoundaryGesture({ root, target: event.target, delta, onMarkScrollGesture: props.onMarkScrollGesture })
-  }
-
-  const handleListTouchStart = (event: TouchEvent) => {
-    if (!prependLoading) clearPrependAnchor()
-    touchGesture = event.touches[0]?.clientY
-  }
-
-  const handleListTouchMove = (event: TouchEvent & { currentTarget: HTMLDivElement }) => {
-    const next = event.touches[0]?.clientY
-    const prev = touchGesture
-    touchGesture = next
-    if (next === undefined || prev === undefined) return
-
-    const delta = prev - next
-    if (!delta) return
-
-    markBoundaryGesture({
-      root: event.currentTarget,
-      target: event.target,
-      delta,
-      onMarkScrollGesture: props.onMarkScrollGesture,
-    })
-  }
-
-  const handleListTouchEnd = () => {
-    touchGesture = undefined
-  }
-
-  const handleListPointerDown = (event: PointerEvent & { currentTarget: HTMLDivElement }) => {
-    if (!prependLoading) clearPrependAnchor()
-    props.onMarkScrollGesture(event.target)
-  }
-
-  const handleListPointerMove = (event: PointerEvent) => {
-    if (event.buttons !== 1) return
-    props.onMarkScrollGesture(event.target)
-  }
-
-  const handleListKeyDown = (event: KeyboardEvent & { currentTarget: HTMLDivElement }) => {
-    const key = scrollKey(event)
-    if (!key) return
-    if (!isScrollKeyTarget(event.target, key)) return
-    if (scrollKeyOwner(event.currentTarget, event.target, key) !== event.currentTarget) return
-    if (!prependLoading) clearPrependAnchor()
-    props.onMarkScrollGesture(event.currentTarget)
-  }
-
-  const handleListScroll = (event: Event & { currentTarget: HTMLDivElement }) => {
-    if (prependLoading) updatePrependAnchor()
-    props.onScheduleScrollState(event.currentTarget)
-    props.onHistoryScroll()
-    if (!props.hasScrollGesture()) return
-    props.onUserScroll()
-    props.onAutoScrollHandleScroll()
-    props.onMarkScrollGesture(event.currentTarget)
   }
 
   onCleanup(() => {
