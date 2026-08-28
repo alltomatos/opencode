@@ -185,6 +185,23 @@ export class PtyForbiddenError extends Schema.TaggedErrorClass<PtyForbiddenError
   { httpApiStatus: 403 },
 ) {}
 
+export class ExternalAgentSessionNotFoundError extends Schema.TaggedErrorClass<ExternalAgentSessionNotFoundError>()(
+  "ExternalAgentSessionNotFoundError",
+  {
+    handle: Schema.String,
+    message: Schema.String,
+  },
+  { httpApiStatus: 404 },
+) {}
+
+export class ExternalAgentForbiddenError extends Schema.TaggedErrorClass<ExternalAgentForbiddenError>()(
+  "ExternalAgentForbiddenError",
+  {
+    message: Schema.String,
+  },
+  { httpApiStatus: 403 },
+) {}
+
 export class ProjectNotFoundError extends Schema.TaggedErrorClass<ProjectNotFoundError>()(
   "ProjectNotFoundError",
   {

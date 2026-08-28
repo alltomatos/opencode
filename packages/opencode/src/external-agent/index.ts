@@ -47,7 +47,27 @@ const DEFAULT_TIMEOUT_MS = 5 * 60_000
 
 type Active = {
   readonly proc: Proc
+  readonly command: string
+  readonly args: readonly string[]
+  readonly cwd: string
   buffer: string
+}
+
+export type SessionInfo = {
+  readonly handle: Handle
+  readonly command: string
+  readonly args: readonly string[]
+  readonly cwd: string
+  readonly pid: number
+}
+
+export type Attachment = {
+  // The output already buffered before this attach — send it to the client once, then rely
+  // on the onData callback for everything after (no cursor/replay-cursor protocol needed:
+  // one process only ever has one live viewer's worth of state to catch up on).
+  readonly replay: string
+  readonly write: (data: string) => void
+  readonly dispose: () => void
 }
 
 export interface Interface {
@@ -55,6 +75,8 @@ export interface Interface {
   readonly send: (handle: Handle, text: string) => Effect.Effect<void, NotFoundError>
   readonly waitIdle: (handle: Handle, opts?: WaitIdleInput) => Effect.Effect<string, NotFoundError>
   readonly kill: (handle: Handle) => Effect.Effect<void>
+  readonly list: () => Effect.Effect<readonly SessionInfo[]>
+  readonly attach: (handle: Handle, onData: (chunk: string) => void) => Effect.Effect<Attachment, NotFoundError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ExternalAgent") {}
@@ -87,7 +109,7 @@ const layer = Layer.effect(
           }),
         catch: (e) => new SpawnFailedError({ message: e instanceof Error ? e.message : String(e) }),
       })
-      const session: Active = { proc, buffer: "" }
+      const session: Active = { proc, command: input.command, args: input.args ?? [], cwd: input.cwd, buffer: "" }
       sessions.set(handle, session)
       proc.onData((chunk) => {
         session.buffer += chunk
@@ -162,7 +184,32 @@ const layer = Layer.effect(
       } catch {}
     })
 
-    return Service.of({ spawn, send, waitIdle, kill })
+    const list = Effect.fn("ExternalAgent.list")(function* () {
+      return Array.from(sessions.entries(), ([handle, session]) => ({
+        handle,
+        command: session.command,
+        args: session.args,
+        cwd: session.cwd,
+        pid: session.proc.pid,
+      }))
+    })
+
+    // Streams output to a caller-supplied sink from the moment of attach; the already-buffered
+    // output is returned once as `replay` so the client can render what it missed without a
+    // cursor protocol. Only one viewer is expected at a time (the live-terminal panel), so no
+    // fan-out bookkeeping beyond the single onData subscription.
+    const attach = Effect.fn("ExternalAgent.attach")(function* (handle: Handle, onData: (chunk: string) => void) {
+      const session = sessions.get(handle)
+      if (!session) return yield* new NotFoundError({ handle })
+      const disp = session.proc.onData(onData)
+      return {
+        replay: session.buffer,
+        write: (data: string) => session.proc.write(data),
+        dispose: () => disp.dispose(),
+      }
+    })
+
+    return Service.of({ spawn, send, waitIdle, kill, list, attach })
   }),
 )
 

@@ -2348,6 +2348,17 @@ export type McpResource = {
   client: string
 }
 
+export type ExternalAgentForbiddenError = {
+  _tag: "ExternalAgentForbiddenError"
+  message: string
+}
+
+export type ExternalAgentSessionNotFoundError = {
+  _tag: "ExternalAgentSessionNotFoundError"
+  handle: string
+  message: string
+}
+
 export type Symbol = {
   name: string
   kind: number
@@ -8518,6 +8529,83 @@ export type ExternalAgentSetSkillResponses = {
 
 export type ExternalAgentSetSkillResponse = ExternalAgentSetSkillResponses[keyof ExternalAgentSetSkillResponses]
 
+export type ExternalAgentListSessionsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/external-agent/sessions"
+}
+
+export type ExternalAgentListSessionsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExternalAgentListSessionsError = ExternalAgentListSessionsErrors[keyof ExternalAgentListSessionsErrors]
+
+export type ExternalAgentListSessionsResponses = {
+  /**
+   * Active external agent PTY sessions
+   */
+  200: Array<{
+    handle: string
+    command: string
+    args: Array<string>
+    cwd: string
+    pid: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }>
+}
+
+export type ExternalAgentListSessionsResponse =
+  ExternalAgentListSessionsResponses[keyof ExternalAgentListSessionsResponses]
+
+export type ExternalAgentConnectTokenData = {
+  body?: never
+  path: {
+    handle: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/external-agent/sessions/{handle}/connect-token"
+}
+
+export type ExternalAgentConnectTokenErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * ExternalAgentForbiddenError
+   */
+  403: ExternalAgentForbiddenError
+  /**
+   * ExternalAgentSessionNotFoundError
+   */
+  404: ExternalAgentSessionNotFoundError
+}
+
+export type ExternalAgentConnectTokenError = ExternalAgentConnectTokenErrors[keyof ExternalAgentConnectTokenErrors]
+
+export type ExternalAgentConnectTokenResponses = {
+  /**
+   * WebSocket connect token
+   */
+  200: {
+    ticket: string
+    expires_in: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ExternalAgentConnectTokenResponse =
+  ExternalAgentConnectTokenResponses[keyof ExternalAgentConnectTokenResponses]
+
 export type FindTextData = {
   body?: never
   path?: never
@@ -14333,3 +14421,38 @@ export type PtyConnectResponses = {
 }
 
 export type PtyConnectResponse = PtyConnectResponses[keyof PtyConnectResponses]
+
+export type ExternalAgentConnectData = {
+  body?: never
+  path: {
+    handle: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+    ticket?: string
+  }
+  url: "/external-agent/sessions/{handle}/connect"
+}
+
+export type ExternalAgentConnectErrors = {
+  /**
+   * Forbidden
+   */
+  403: EffectHttpApiErrorForbidden
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type ExternalAgentConnectError = ExternalAgentConnectErrors[keyof ExternalAgentConnectErrors]
+
+export type ExternalAgentConnectResponses = {
+  /**
+   * Connected session
+   */
+  200: boolean
+}
+
+export type ExternalAgentConnectResponse = ExternalAgentConnectResponses[keyof ExternalAgentConnectResponses]

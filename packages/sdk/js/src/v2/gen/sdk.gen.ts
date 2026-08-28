@@ -89,8 +89,14 @@ import type {
   ExperimentalWorkspaceSyncListResponses,
   ExperimentalWorkspaceWarpErrors,
   ExperimentalWorkspaceWarpResponses,
+  ExternalAgentConnectErrors,
+  ExternalAgentConnectResponses,
+  ExternalAgentConnectTokenErrors,
+  ExternalAgentConnectTokenResponses,
   ExternalAgentDetectErrors,
   ExternalAgentDetectResponses,
+  ExternalAgentListSessionsErrors,
+  ExternalAgentListSessionsResponses,
   ExternalAgentSetSkillErrors,
   ExternalAgentSetSkillResponses,
   FileListErrors,
@@ -2302,6 +2308,114 @@ export class ExternalAgent extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * List active external agent PTY sessions
+   *
+   * Get a list of currently running external agent worker sessions for this instance.
+   */
+  public listSessions<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ExternalAgentListSessionsResponses,
+      ExternalAgentListSessionsErrors,
+      ThrowOnError
+    >({
+      url: "/external-agent/sessions",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create external agent session WebSocket token
+   *
+   * Create a short-lived ticket for opening an external agent session WebSocket connection.
+   */
+  public connectToken<ThrowOnError extends boolean = false>(
+    parameters: {
+      handle: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "handle" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExternalAgentConnectTokenResponses,
+      ExternalAgentConnectTokenErrors,
+      ThrowOnError
+    >({
+      url: "/external-agent/sessions/{handle}/connect-token",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Connect to an external agent session
+   *
+   * Establish a WebSocket connection to observe (and, once #108 lands, control) an external agent worker's PTY in real-time.
+   */
+  public connect<ThrowOnError extends boolean = false>(
+    parameters: {
+      handle: string
+      directory?: string
+      workspace?: string
+      ticket?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "handle" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "ticket" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ExternalAgentConnectResponses,
+      ExternalAgentConnectErrors,
+      ThrowOnError
+    >({
+      url: "/external-agent/sessions/{handle}/connect",
+      ...options,
+      ...params,
     })
   }
 }

@@ -13,7 +13,7 @@ import { ControlApi } from "./groups/control"
 import { ControlPlaneApi } from "./groups/control-plane"
 import { EventApi } from "./groups/event"
 import { ExperimentalApi } from "./groups/experimental"
-import { ExternalAgentApi } from "./groups/external-agent"
+import { ExternalAgentApi, ExternalAgentConnectApi } from "./groups/external-agent"
 import { FileApi } from "./groups/file"
 import { InstanceApi } from "./groups/instance"
 import { McpApi } from "./groups/mcp"
@@ -86,6 +86,7 @@ export const OpenCodeHttpApi = HttpApi.make("opencode")
   .addHttpApi(InstanceHttpApi)
   .addHttpApi(ServerApi)
   .addHttpApi(PtyConnectApi)
+  .addHttpApi(ExternalAgentConnectApi)
   .annotate(HttpApi.AdditionalSchemas, [
     EventSchema,
     Question.Replied,

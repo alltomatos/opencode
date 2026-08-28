@@ -62,6 +62,8 @@ import { PermissionSaved } from "@opencode-ai/core/permission/saved"
 import { ProjectV2 } from "@opencode-ai/core/project"
 import { ProjectCopy } from "@opencode-ai/core/project/copy"
 import { PtyTicket } from "@opencode-ai/core/pty/ticket"
+import { ExternalAgent } from "@/external-agent"
+import { ExternalAgentTicket } from "@/external-agent/ticket"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { SessionProjector } from "@opencode-ai/core/session/projector"
 import { SessionV2 } from "@opencode-ai/core/session"
@@ -82,13 +84,14 @@ import {
 } from "./middleware/authorization"
 import { EventApi } from "./groups/event"
 import { PtyConnectApi } from "./groups/pty"
+import { ExternalAgentConnectApi } from "./groups/external-agent"
 import { eventHandlers } from "./handlers/event"
 import { batutaHandlers } from "./handlers/batuta"
 import { configHandlers } from "./handlers/config"
 import { controlHandlers } from "./handlers/control"
 import { controlPlaneHandlers } from "./handlers/control-plane"
 import { experimentalHandlers } from "./handlers/experimental"
-import { externalAgentHandlers } from "./handlers/external-agent"
+import { externalAgentHandlers, externalAgentConnectHandlers } from "./handlers/external-agent"
 import { fileHandlers } from "./handlers/file"
 import { globalHandlers } from "./handlers/global"
 import { instanceHandlers } from "./handlers/instance"
@@ -152,6 +155,10 @@ const eventApiRoutes = HttpApiBuilder.layer(EventApi).pipe(
 )
 const ptyConnectApiRoutes = HttpApiBuilder.layer(PtyConnectApi).pipe(
   Layer.provide(ptyConnectHandlers),
+  Layer.provide([ptyConnectHttpApiAuthLayer, workspaceRoutingLive, instanceContextLayer]),
+)
+const externalAgentConnectApiRoutes = HttpApiBuilder.layer(ExternalAgentConnectApi).pipe(
+  Layer.provide(externalAgentConnectHandlers),
   Layer.provide([ptyConnectHttpApiAuthLayer, workspaceRoutingLive, instanceContextLayer]),
 )
 const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
@@ -272,6 +279,8 @@ const app = LayerNode.group([
   ProjectV2.node,
   ProjectCopy.node,
   PtyTicket.node,
+  ExternalAgent.node,
+  ExternalAgentTicket.node,
 ])
 
 export function createRoutes(
@@ -283,6 +292,7 @@ export function createRoutes(
     rootApiRoutes,
     eventApiRoutes,
     ptyConnectApiRoutes,
+    externalAgentConnectApiRoutes,
     instanceRoutes,
     serverRoutes,
     docRoute,
