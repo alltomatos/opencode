@@ -218,4 +218,12 @@ export const dict: Record<Keys, string> = {
   "ui.sessionTurn.diffs.showAll": "Vis alle",
   "ui.sessionTurn.diffs.showLess": "Vis færre",
   "ui.sessionTurn.diffs.more": "+{{count}} filer til",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

@@ -8,6 +8,7 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { spawn as ptySpawn } from "@opencode-ai/core/pty/runtime"
 import type { Proc } from "@opencode-ai/core/pty/pty"
 import { Context, Effect, Layer, Schema } from "effect"
+import * as NodeChildProcess from "node:child_process"
 
 /**
  * Minimal terminal-automation layer for Batuta V2 external workers (claude,
@@ -31,6 +32,7 @@ export type SpawnInput = {
   readonly command: string
   readonly args?: readonly string[]
   readonly cwd: string
+  readonly env?: Readonly<Record<string, string>>
 }
 
 export type WaitIdleInput = {
@@ -81,6 +83,7 @@ const layer = Layer.effect(
           ptySpawn(input.command, [...(input.args ?? [])], {
             name: "xterm-256color",
             cwd: input.cwd,
+            ...(input.env ? { env: { ...process.env, ...input.env } as Record<string, string> } : {}),
           }),
         catch: (e) => new SpawnFailedError({ message: e instanceof Error ? e.message : String(e) }),
       })
@@ -143,10 +146,20 @@ const layer = Layer.effect(
     const kill = Effect.fn("ExternalAgent.kill")(function* (handle: Handle) {
       const session = sessions.get(handle)
       if (!session) return
+      sessions.delete(handle)
+      // On Windows, ConPTY's kill() only signals the pty's own process — it leaves
+      // any child processes spawned under it (and their handles) running, which
+      // pins the host event loop open. taskkill /T walks the whole process tree.
+      if (process.platform === "win32") {
+        yield* Effect.callback<void>((resume) => {
+          NodeChildProcess.exec(`taskkill /pid ${session.proc.pid} /T /F`, { windowsHide: true }, () => {
+            resume(Effect.void)
+          })
+        })
+      }
       try {
         session.proc.kill()
       } catch {}
-      sessions.delete(handle)
     })
 
     return Service.of({ spawn, send, waitIdle, kill })

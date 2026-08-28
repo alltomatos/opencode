@@ -1,5 +1,5 @@
 import { createMemo, createSignal, startTransition } from "solid-js"
-import { useNavigate, useParams } from "@solidjs/router"
+import { useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
@@ -12,6 +12,7 @@ import { SettingsModelsV2 } from "@/components/settings-v2/models"
 import { SettingsServersV2 } from "@/components/settings-v2/servers"
 import { SettingsSkillsV2 } from "@/components/settings-v2/skills"
 import { SettingsMcpV2 } from "@/components/settings-v2/mcp"
+import { SettingsExternalAgentsV2 } from "@/components/settings-v2/external-agents"
 import "@/components/settings-v2/settings-v2.css"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -23,6 +24,7 @@ export function SettingsPage() {
   const platform = usePlatform()
   const navigate = useNavigate()
   const params = useParams<{ tab?: string }>()
+  const [searchParams] = useSearchParams<{ session?: string }>()
   const layout = useLayout()
   const tabs = useTabs()
   const serverSync = useServerSync()
@@ -39,10 +41,16 @@ export function SettingsPage() {
     if (route.type === "session") return serverSync().session.get(route.sessionId)?.directory
     return home.project.selected()?.worktree ?? home.project.newSession()?.worktree
   })
+  // The settings route has no session segment of its own — the session
+  // that was active when settings were opened travels here as a query
+  // param instead (see useSettingsDialog), so the per-session permission
+  // toggle stays scoped to it even after navigating off the session URL.
+  const sessionID = createMemo(() => searchParams.session)
 
   const changeTab = (value: string) => {
     void startTransition(() => setTab(value))
-    navigate(`/settings/${value}`, { replace: true })
+    const search = searchParams.session ? `?session=${encodeURIComponent(searchParams.session)}` : ""
+    navigate(`/settings/${value}${search}`, { replace: true })
   }
 
   const showProviders = () => changeTab("providers")
@@ -126,6 +134,10 @@ export function SettingsPage() {
                         <Icon name="link" />
                         {language.t("settings.mcp.title")}
                       </TabsV2.Trigger>
+                      <TabsV2.Trigger value="externalAgents">
+                        <Icon name="terminal" />
+                        {language.t("settings.externalAgents.title")}
+                      </TabsV2.Trigger>
                     </div>
                   </div>
                 </div>
@@ -145,7 +157,7 @@ export function SettingsPage() {
             </div>
           </TabsV2.List>
           <TabsV2.Content value="general" class="settings-v2-panel">
-            <SettingsGeneralV2 />
+            <SettingsGeneralV2 sessionID={sessionID()} />
           </TabsV2.Content>
           <TabsV2.Content value="shortcuts" class="settings-v2-panel">
             <SettingsKeybinds v2 />
@@ -164,6 +176,9 @@ export function SettingsPage() {
           </TabsV2.Content>
           <TabsV2.Content value="mcp" class="settings-v2-panel">
             <SettingsMcpV2 />
+          </TabsV2.Content>
+          <TabsV2.Content value="externalAgents" class="settings-v2-panel">
+            <SettingsExternalAgentsV2 />
           </TabsV2.Content>
         </TabsV2>
       </div>

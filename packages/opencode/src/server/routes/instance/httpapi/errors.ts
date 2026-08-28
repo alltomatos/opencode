@@ -158,6 +158,16 @@ export class BatutaActivityNotFoundError extends Schema.TaggedErrorClass<BatutaA
   { httpApiStatus: 404 },
 ) {}
 
+export class BatutaWorkerNotFoundError extends Schema.TaggedErrorClass<BatutaWorkerNotFoundError>()(
+  "BatutaWorkerNotFoundError",
+  {
+    id: Schema.String,
+    label: Schema.String,
+    message: Schema.String,
+  },
+  { httpApiStatus: 404 },
+) {}
+
 export class PtyNotFoundError extends Schema.TaggedErrorClass<PtyNotFoundError>()(
   "PtyNotFoundError",
   {

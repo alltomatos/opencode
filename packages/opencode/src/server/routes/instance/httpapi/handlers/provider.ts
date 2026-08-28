@@ -1,3 +1,4 @@
+import * as InstanceState from "@/effect/instance-state"
 import { ProviderAuth } from "@/provider/auth"
 import { Config } from "@/config/config"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
@@ -5,11 +6,16 @@ import { Provider } from "@/provider/provider"
 import { Auth } from "@/auth"
 
 import { mapValues } from "remeda"
-import { Effect, Schema } from "effect"
+import { Effect, Layer, Schema } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import { ProviderAuthApiError } from "../groups/provider"
+import { Catalog } from "@opencode-ai/core/catalog"
+import { PluginInternal } from "@opencode-ai/core/plugin/internal"
+import { Location } from "@opencode-ai/core/location"
+import { LocationServiceMap, locationServiceMapLayer } from "@opencode-ai/core/location-services"
+import { AbsolutePath } from "@opencode-ai/core/schema"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 
 function mapProviderAuthError<A, R>(self: Effect.Effect<A, ProviderAuth.Error, R>) {
@@ -38,6 +44,38 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
     const provider = yield* Provider.Service
     const svc = yield* ProviderAuth.Service
     const authStore = yield* Auth.Service
+    const locations = yield* LocationServiceMap.Service
+
+    // Providers registered by a Native Provider Plugin (packages/core's
+    // ProviderPlugins — e.g. OmniRoute) live in the v2 Catalog, which is
+    // location-scoped like file.ts/pty.ts's FileSystem/Ripgrep access, not
+    // globally available.
+    const withLocation = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
+      return yield* effect.pipe(
+        Effect.provide(
+          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* InstanceState.context).directory) })),
+        ),
+      )
+    })
+
+    // Catalog discovery failures (offline gateway, bad key) must never break
+    // the rest of the provider list, so this is best-effort. Registering
+    // built-in ProviderPlugins (e.g. OmniRoute) into the Catalog happens in
+    // a forked, non-blocking fiber the first time a location boots
+    // (packages/core/src/plugin/internal.ts) — reading the Catalog before
+    // that fiber settles would silently miss providers that just connected
+    // (the exact bug this handles). Wait for it, bounded, so a slow/hung
+    // plugin can't stall this request indefinitely.
+    const catalogProviders = withLocation(
+      Effect.gen(function* () {
+        const internal = yield* PluginInternal.Service
+        yield* internal.ready.pipe(Effect.timeout("5 seconds"), Effect.catch(() => Effect.void))
+        const catalog = yield* Catalog.Service
+        const all = yield* catalog.provider.all()
+        const models = yield* catalog.model.all()
+        return all.map((item) => Provider.fromCatalog(item, models.filter((model) => model.providerID === item.id)))
+      }),
+    ).pipe(Effect.catch(() => Effect.succeed([] as Provider.Info[])))
 
     const list = Effect.fn("ProviderHttpApi.list")(function* () {
       const config = yield* cfg.get()
@@ -50,14 +88,18 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       }
       const connected = yield* provider.list()
       const credentials = yield* authStore.all().pipe(Effect.orDie)
+      const catalogList = yield* catalogProviders
       const providers = Object.assign(
         mapValues(filtered, (item) => Provider.fromModelsDevProvider(item)),
         connected,
+        Object.fromEntries(catalogList.filter((item) => !(item.id in connected)).map((item) => [item.id, item])),
       )
       return {
         all: Object.values(providers).map(Provider.toPublicInfo),
         default: Provider.defaultModelIDs(providers),
-        connected: Object.keys(providers).filter((id) => id in connected || credentials[id]),
+        connected: Object.keys(providers).filter(
+          (id) => id in connected || credentials[id] || catalogList.some((item) => item.id === id),
+        ),
       }
     })
 
@@ -113,4 +155,4 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       .handleRaw("authorize", authorizeRaw)
       .handle("callback", callback)
   }),
-)
+).pipe(Layer.provide(locationServiceMapLayer))

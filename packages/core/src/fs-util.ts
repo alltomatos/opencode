@@ -1,5 +1,5 @@
 import { NodeFileSystem } from "@effect/platform-node"
-import { dirname, isAbsolute, join, relative, resolve as pathResolve, sep } from "path"
+import { dirname, isAbsolute, join, parse, relative, resolve as pathResolve, sep } from "path"
 import { realpathSync } from "fs"
 import * as NFS from "fs/promises"
 import { lookup } from "mime-types"
@@ -151,13 +151,28 @@ export namespace FSUtil {
         })
       })
 
+      // Callers pass the POSIX literal "/" as a platform-agnostic sentinel for
+      // "no real boundary — walk to the true filesystem root" (e.g. a project
+      // directory with no git worktree). The loop below stops via strict
+      // string equality against the current directory, so on Windows ("/"
+      // never equals a drive-rooted path like "C:\\") that never fires — the
+      // walk only halts once dirname() separately stops changing, by which
+      // point it has already climbed through, and searched, real ancestor
+      // directories the sentinel meant to reach the boundary of, not escape
+      // (observed: a non-git test directory under Windows' user-scoped %TEMP%
+      // picked up config from the real user's home). Resolving "/" to the
+      // actual platform root up front makes the stop condition match
+      // immediately, same as it always has on POSIX.
+      const resolveStop = (start: string, stop?: string) => (stop === "/" ? parse(start).root : stop)
+
       const findUp = Effect.fn("FileSystem.findUp")(function* (target: string, start: string, stop?: string) {
         const result: string[] = []
+        const boundary = resolveStop(start, stop)
         let current = start
         while (true) {
           const search = join(current, target)
           if (yield* fs.exists(search)) result.push(search)
-          if (stop === current) break
+          if (boundary === current) break
           const parent = dirname(current)
           if (parent === current) break
           current = parent
@@ -167,13 +182,14 @@ export namespace FSUtil {
 
       const up = Effect.fn("FileSystem.up")(function* (options: { targets: string[]; start: string; stop?: string }) {
         const result: string[] = []
+        const boundary = resolveStop(options.start, options.stop)
         let current = options.start
         while (true) {
           for (const target of options.targets) {
             const search = join(current, target)
             if (yield* fs.exists(search)) result.push(search)
           }
-          if (options.stop === current) break
+          if (boundary === current) break
           const parent = dirname(current)
           if (parent === current) break
           current = parent
@@ -183,13 +199,14 @@ export namespace FSUtil {
 
       const globUp = Effect.fn("FileSystem.globUp")(function* (pattern: string, start: string, stop?: string) {
         const result: string[] = []
+        const boundary = resolveStop(start, stop)
         let current = start
         while (true) {
           const matches = yield* glob(pattern, { cwd: current, absolute: true, include: "file", dot: true }).pipe(
             Effect.catch(() => Effect.succeed([] as string[])),
           )
           result.push(...matches)
-          if (stop === current) break
+          if (boundary === current) break
           const parent = dirname(current)
           if (parent === current) break
           current = parent

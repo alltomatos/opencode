@@ -2,7 +2,7 @@ import { base64Encode } from "@opencode-ai/core/util/encode"
 import { expect, test, type Page } from "@playwright/test"
 import { mockOpenCodeServer } from "../utils/mock-server"
 import { installSseTransport } from "../utils/sse-transport"
-import { expectSessionTitle } from "../utils/waits"
+import { dismissTabsIntroToast, expectSessionTitle } from "../utils/waits"
 
 const directory = "C:/OpenCode/RequestDocks"
 const projectID = "proj_request_docks"
@@ -31,6 +31,7 @@ test("shows a pending question dock", async ({ page }) => {
 
   await page.goto(`/${base64Encode(directory)}/session/${sessionID}`)
   await expectSessionTitle(page, title)
+  await dismissTabsIntroToast(page)
 
   const question = page.locator('[data-component="dock-prompt"][data-kind="question"]')
   await expect(question).toBeVisible()
@@ -89,6 +90,7 @@ test("shows a pending permission dock", async ({ page }) => {
 
   await page.goto(`/${base64Encode(directory)}/session/${sessionID}`)
   await expectSessionTitle(page, title)
+  await dismissTabsIntroToast(page)
 
   const permission = page.locator('[data-component="dock-prompt"][data-kind="permission"]')
   await expect(permission).toBeVisible()

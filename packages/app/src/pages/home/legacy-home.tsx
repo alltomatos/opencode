@@ -21,11 +21,11 @@ export function LegacyHome() {
   const global = useGlobal()
   const server = useServer()
   const language = useLanguage()
-  const homedir = createMemo(() => sync().data.path.home)
+  const homedir = createMemo(() => sync().data?.path?.home ?? "")
   const serverUnreachable = createMemo(() => global.servers.health[server.key]?.healthy === false)
   const recent = createMemo(() => {
-    return sync()
-      .data.project.slice()
+    return (sync().data?.project ?? [])
+      .slice()
       .sort((a, b) => (b.time.updated ?? b.time.created) - (a.time.updated ?? a.time.created))
       .slice(0, 5)
   })
@@ -83,7 +83,7 @@ export function LegacyHome() {
         {server.name}
       </Button>
       <Switch>
-        <Match when={sync().data.project.length > 0}>
+        <Match when={(sync().data?.project ?? []).length > 0}>
           <div class="mt-20 w-full flex flex-col gap-4">
             <div class="flex gap-2 items-center justify-between pl-3">
               <div class="text-14-medium text-text-strong">{language.t("home.recentProjects")}</div>

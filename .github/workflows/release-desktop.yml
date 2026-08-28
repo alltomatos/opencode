@@ -49,3 +49,9 @@ jobs:
           OPENCODE_CHANNEL: prod
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          # macos-latest (arm64) OOM'd mid-build (V8 heap exhaustion) building
+          # the --universal (arm64+x64) mac target — the main-process bundle
+          # is large (~33MB, the whole opencode server inlined) and Node's
+          # default heap sizing wasn't enough headroom for it. Harmless on
+          # Windows/Linux runners, which have more RAM to begin with.
+          NODE_OPTIONS: --max-old-space-size=6144

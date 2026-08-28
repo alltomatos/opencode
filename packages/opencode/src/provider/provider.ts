@@ -98,6 +98,12 @@ function googleVertexAnthropicBaseURL(project: string | undefined, location: str
   return `https://aiplatform.${location}.rep.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
 }
 
+function googleVertexEndpoint(location: string) {
+  if (location === "global") return "aiplatform.googleapis.com"
+  if (location === "eu" || location === "us") return `aiplatform.${location}.rep.googleapis.com`
+  return `${location}-aiplatform.googleapis.com`
+}
+
 type BundledSDK = {
   languageModel(modelId: string): LanguageModelV3
   chat?: (modelId: string) => LanguageModelV3
@@ -519,11 +525,10 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       return {
         autoload: true,
         vars(_options: Record<string, any>) {
-          const endpoint = location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`
           return {
             ...(project && { GOOGLE_VERTEX_PROJECT: project }),
             GOOGLE_VERTEX_LOCATION: location,
-            GOOGLE_VERTEX_ENDPOINT: endpoint,
+            GOOGLE_VERTEX_ENDPOINT: googleVertexEndpoint(location),
           }
         },
         options: {
@@ -1316,6 +1321,68 @@ export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
   }
 }
 
+// Bridges a Catalog v2 provider (registered by a Native Provider Plugin,
+// e.g. OmniRoute — packages/core/src/plugin/provider/omniroute.ts) into the
+// richer v1 Provider/Model shape this API has always returned. The v2
+// schema only carries what Native Provider Plugins actually produce
+// (ProviderV2.Info has no `env`/`source`, ModelV2.Info has no
+// temperature/reasoning/attachment/interleaved flags) — everything absent
+// here gets the same conservative defaults GithubCopilotPlugin-style native
+// providers ship with elsewhere, mirroring fromModelsDevModel's structure
+// without inventing capabilities the plugin never reported.
+export function fromCatalog(provider: ProviderV2.Info, models: ModelV2.Info[]): Info {
+  const entries: Record<string, Model> = {}
+  for (const model of models) {
+    entries[model.id] = {
+      id: model.id,
+      providerID: provider.id,
+      name: model.name,
+      family: model.family,
+      api: {
+        id: model.api.id,
+        url: model.api.type === "aisdk" ? (model.api.url ?? provider.api.url ?? "") : (model.api.url ?? ""),
+        npm: model.api.type === "aisdk" ? model.api.package : "@ai-sdk/openai-compatible",
+      },
+      status: model.status,
+      headers: model.request.headers,
+      options: {},
+      cost: model.cost[0] ?? { input: 0, output: 0, cache: { read: 0, write: 0 } },
+      limit: model.limit,
+      capabilities: {
+        temperature: true,
+        reasoning: false,
+        attachment: model.capabilities.input.includes("image") || model.capabilities.input.includes("pdf"),
+        toolcall: model.capabilities.tools,
+        input: {
+          text: model.capabilities.input.includes("text"),
+          audio: model.capabilities.input.includes("audio"),
+          image: model.capabilities.input.includes("image"),
+          video: model.capabilities.input.includes("video"),
+          pdf: model.capabilities.input.includes("pdf"),
+        },
+        output: {
+          text: model.capabilities.output.includes("text"),
+          audio: model.capabilities.output.includes("audio"),
+          image: model.capabilities.output.includes("image"),
+          video: model.capabilities.output.includes("video"),
+          pdf: model.capabilities.output.includes("pdf"),
+        },
+        interleaved: false,
+      },
+      release_date: model.time.released ? new Date(model.time.released).toISOString().slice(0, 10) : "",
+      variants: {},
+    }
+  }
+  return {
+    id: provider.id,
+    source: "custom",
+    name: provider.name,
+    env: [],
+    options: {},
+    models: entries,
+  }
+}
+
 function modeOptions(model: Model, body: Record<string, unknown> | undefined) {
   if (!body) return model.options
   const options = Object.fromEntries(
@@ -1488,30 +1555,34 @@ const layer = Layer.effect(
               name,
               providerID: ProviderV2.ID.make(providerID),
               capabilities: {
-                temperature: model.temperature ?? existingModel?.capabilities.temperature ?? false,
-                reasoning: model.reasoning ?? existingModel?.capabilities.reasoning ?? false,
-                attachment: model.attachment ?? existingModel?.capabilities.attachment ?? false,
-                toolcall: model.tool_call ?? existingModel?.capabilities.toolcall ?? true,
+                temperature: model.temperature ?? existingModel?.capabilities?.temperature ?? false,
+                reasoning: model.reasoning ?? existingModel?.capabilities?.reasoning ?? false,
+                attachment: model.attachment ?? existingModel?.capabilities?.attachment ?? false,
+                toolcall: model.tool_call ?? existingModel?.capabilities?.toolcall ?? true,
                 input: {
-                  text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities.input.text ?? true,
-                  audio: model.modalities?.input?.includes("audio") ?? existingModel?.capabilities.input.audio ?? false,
-                  image: model.modalities?.input?.includes("image") ?? existingModel?.capabilities.input.image ?? false,
-                  video: model.modalities?.input?.includes("video") ?? existingModel?.capabilities.input.video ?? false,
-                  pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities.input.pdf ?? false,
+                  text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities?.input?.text ?? true,
+                  audio:
+                    model.modalities?.input?.includes("audio") ?? existingModel?.capabilities?.input?.audio ?? false,
+                  image:
+                    model.modalities?.input?.includes("image") ?? existingModel?.capabilities?.input?.image ?? false,
+                  video:
+                    model.modalities?.input?.includes("video") ?? existingModel?.capabilities?.input?.video ?? false,
+                  pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities?.input?.pdf ?? false,
                 },
                 output: {
-                  text: model.modalities?.output?.includes("text") ?? existingModel?.capabilities.output.text ?? true,
+                  text:
+                    model.modalities?.output?.includes("text") ?? existingModel?.capabilities?.output?.text ?? true,
                   audio:
-                    model.modalities?.output?.includes("audio") ?? existingModel?.capabilities.output.audio ?? false,
+                    model.modalities?.output?.includes("audio") ?? existingModel?.capabilities?.output?.audio ?? false,
                   image:
-                    model.modalities?.output?.includes("image") ?? existingModel?.capabilities.output.image ?? false,
+                    model.modalities?.output?.includes("image") ?? existingModel?.capabilities?.output?.image ?? false,
                   video:
-                    model.modalities?.output?.includes("video") ?? existingModel?.capabilities.output.video ?? false,
-                  pdf: model.modalities?.output?.includes("pdf") ?? existingModel?.capabilities.output.pdf ?? false,
+                    model.modalities?.output?.includes("video") ?? existingModel?.capabilities?.output?.video ?? false,
+                  pdf: model.modalities?.output?.includes("pdf") ?? existingModel?.capabilities?.output?.pdf ?? false,
                 },
                 interleaved:
                   (typeof model.interleaved === "string" ? { field: model.interleaved } : model.interleaved) ??
-                  existingModel?.capabilities.interleaved ??
+                  existingModel?.capabilities?.interleaved ??
                   (!existingModel && apiNpm === "@ai-sdk/openai-compatible" && apiID.includes("deepseek")
                     ? { field: "reasoning_content" }
                     : false),
@@ -1520,8 +1591,8 @@ const layer = Layer.effect(
                 input: model?.cost?.input ?? existingModel?.cost?.input ?? 0,
                 output: model?.cost?.output ?? existingModel?.cost?.output ?? 0,
                 cache: {
-                  read: model?.cost?.cache_read ?? existingModel?.cost?.cache.read ?? 0,
-                  write: model?.cost?.cache_write ?? existingModel?.cost?.cache.write ?? 0,
+                  read: model?.cost?.cache_read ?? existingModel?.cost?.cache?.read ?? 0,
+                  write: model?.cost?.cache_write ?? existingModel?.cost?.cache?.write ?? 0,
                 },
               },
               options: mergeDeep(existingModel?.options ?? {}, model.options ?? {}),

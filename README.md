@@ -8,12 +8,23 @@
   </a>
 </p>
 <p align="center">OpenCode by Alltomatos — a fork of the open source AI coding agent.</p>
+<p align="center">Grupo de Apoio: https://chat.whatsapp.com/DOLzfQ4aPZ12R7ZRbLabNh</p>
+
 <p align="center">
   <a href="https://github.com/alltomatos/opencode/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/alltomatos/opencode?style=flat-square" /></a>
   <a href="https://github.com/alltomatos/opencode/actions"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/alltomatos/opencode/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://github.com/alltomatos/opencode)
+[![OpenCode Desktop](packages/web/src/assets/lander/screenshot-splash.png)](https://github.com/alltomatos/opencode)
+
+---
+
+### Screenshots
+
+<p align="center">
+  <img src="packages/web/src/assets/lander/t2.png" alt="Modos de permissão (Automático, Manual, Aceitar edições, Planejar)" width="49%">
+  <img src="packages/web/src/assets/lander/config.png" alt="Tela de Configurações, com suporte a português" width="49%">
+</p>
 
 ---
 
@@ -119,7 +130,7 @@ Este fork existe graças ao trabalho da equipe original do **[OpenCode](https://
 - Site oficial: [opencode.ai](https://opencode.ai)
 - Discord oficial: [opencode.ai/discord](https://opencode.ai/discord)
 
-Se você não está procurando especificamente por este fork, use o [projeto original](https://github.com/anomalyco/opencode) — ele recebe atualizações com muito mais frequência e é o software com suporte oficial.
+Se você não está procurando especificamente por este fork, use o [projeto original](https://github.com/anomalyco/opencode)
 
 ### Building on OpenCode
 

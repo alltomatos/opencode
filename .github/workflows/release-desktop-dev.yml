@@ -1,0 +1,86 @@
+name: release-desktop-dev
+
+# Builds and publishes a "dev" channel desktop build for Windows, macOS, and
+# Linux on every push to dev — same executables as prod, but installed
+# side-by-side (separate app id/product name) and auto-updating from a
+# separate "dev" release channel in the same GitHub repo, never mixing with
+# the "latest" (prod) feed. Version is the base version from
+# packages/desktop/package.json plus "-dev.<run number>", a semver
+# prerelease tag electron-updater already knows how to compare — it is
+# never committed back, just applied for the duration of this build.
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.repository == 'alltomatos/opencode'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: package:win
+          - os: macos-latest
+            script: package:mac
+            extra_args: --universal
+          - os: ubuntu-latest
+            script: package:linux
+    runs-on: ${{ matrix.os }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install rpm (linux only, needed by electron-builder's fpm packaging)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends rpm
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Set dev build version
+        id: version
+        working-directory: packages/desktop
+        shell: bash
+        run: |
+          base=$(node -p "require('./package.json').version")
+          version="${base}-dev.${{ github.run_number }}"
+          npm pkg set version="$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish
+        working-directory: packages/desktop
+        # package:* scripts run `bun run build` themselves — see
+        # ORCHESTRATOR-ROADMAP.md for why (running package:win standalone
+        # used to silently ship whatever stale/incomplete out/ happened to
+        # be on disk, missing out/renderer entirely if the last local build
+        # was `dev`, which never writes it there).
+        run: bun run ${{ matrix.script }} -- ${{ matrix.extra_args }} --publish always
+        env:
+          OPENCODE_CHANNEL: dev
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # See release-desktop.yml — same OOM fix for the --universal mac build.
+          NODE_OPTIONS: --max-old-space-size=6144
+
+  publish-release:
+    # electron-builder's GitHub publisher always creates the release as a
+    # draft (no config knob flips this per-run, and three parallel matrix
+    # jobs racing to finalize the same release is unreliable — see the
+    # commit that added this job). electron-updater ignores draft releases
+    # regardless of allowPrerelease, so without this step the dev channel
+    # silently stops auto-updating. Un-draft only after all three platform
+    # builds succeed, so a partial/failed build never ships as if complete.
+    needs: build
+    if: github.repository == 'alltomatos/opencode'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the dev-channel release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "v${{ needs.build.outputs.version }}" --draft=false --prerelease --repo alltomatos/opencode

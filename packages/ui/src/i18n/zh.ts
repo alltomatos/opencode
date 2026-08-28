@@ -216,4 +216,12 @@ export const dict = {
   "ui.toolErrorCard.copyError": "复制错误",
   "ui.message.duration.seconds": "{{count}} 秒",
   "ui.message.duration.minutesSeconds": "{{minutes}} 分钟 {{seconds}} 秒",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 } satisfies Partial<Record<Keys, string>>

@@ -461,7 +461,12 @@ it.instance("connect and disconnect fail for unknown servers", () =>
         expect(Cause.squash(exit.cause)).toMatchObject({ _tag: "MCP.NotFoundError", name: "missing" })
       }
     }
-    expect(yield* mcp.status()).toEqual({})
+    // Not asserting mcp.status() is {} here: updateGlobal() persists to the
+    // process-wide XDG_CONFIG_HOME the test preload sets up once for the
+    // whole file/run (see test/preload.ts), so other it.instance tests in
+    // this file that call mcp.add() leave entries other tests observe too.
+    // This test only cares that an unknown server never appears.
+    expect(yield* mcp.status()).not.toHaveProperty("missing")
     expect(yield* mcp.tools()).toEqual({})
   }),
 )

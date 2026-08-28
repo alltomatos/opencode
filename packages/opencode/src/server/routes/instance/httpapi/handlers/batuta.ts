@@ -6,8 +6,9 @@ import * as InstanceState from "@/effect/instance-state"
 import type { ConfigBatutaV1 } from "@opencode-ai/core/v1/config/batuta"
 import { Effect, Scope } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { HttpServerRequest } from "effect/unstable/http"
 import { InstanceHttpApi } from "../api"
-import { BatutaActivityNotFoundError } from "../errors"
+import { BatutaActivityNotFoundError, BatutaWorkerNotFoundError } from "../errors"
 
 export const batutaHandlers = HttpApiBuilder.group(InstanceHttpApi, "batuta", (handlers) =>
   Effect.gen(function* () {
@@ -64,13 +65,53 @@ export const batutaHandlers = HttpApiBuilder.group(InstanceHttpApi, "batuta", (h
     })
 
     const start = Effect.fn("BatutaHttpApi.start")(function* (ctx: { params: { id: string } }) {
-      const result = yield* batuta.start(ctx.params.id).pipe(
+      const request = yield* HttpServerRequest.HttpServerRequest
+      const host = request.headers.host
+      // External orchestrators spawn on the same machine as the server (never
+      // the desktop client) and need a URL to call back into for delegation —
+      // the Host header of the request that started them is the right one.
+      const serverURL = host ? `${request.headers["x-forwarded-proto"] ? "https" : "http"}://${host}` : undefined
+      const result = yield* batuta.start(ctx.params.id, { serverURL }).pipe(
         Effect.catchTag("Batuta.NotFoundError", (error) =>
           Effect.fail(new BatutaActivityNotFoundError({ id: error.id, message: `Activity not found: ${error.id}` })),
         ),
       )
-      yield* fireInitialPrompt({ sessionID: result.sessionID, instructions: result.instructions })
+      // start() returns instructions:"" as a sentinel for an external
+      // orchestrator — it was already sent its prompt directly via PTY, not
+      // through SessionPrompt (there's no session to prompt against).
+      if (result.instructions) {
+        yield* fireInitialPrompt({ sessionID: result.sessionID, instructions: result.instructions })
+      }
       return { sessionID: result.sessionID }
+    })
+
+    const delegate = Effect.fn("BatutaHttpApi.delegate")(function* (ctx: {
+      params: { id: string }
+      payload: { label: string; prompt: string }
+    }) {
+      const result = yield* batuta.delegate(ctx.params.id, ctx.payload.label, ctx.payload.prompt).pipe(
+        Effect.catchTags({
+          "Batuta.NotFoundError": (error) =>
+            Effect.fail(new BatutaActivityNotFoundError({ id: error.id, message: `Activity not found: ${error.id}` })),
+          "Batuta.WorkerNotFoundError": (error) =>
+            Effect.fail(
+              new BatutaWorkerNotFoundError({
+                id: error.id,
+                label: error.label,
+                message: `Worker not found: ${error.label}`,
+              }),
+            ),
+        }),
+      )
+      if (result.kind === "external") return { output: result.output }
+      const message = yield* promptSvc
+        .prompt({
+          sessionID: result.sessionID,
+          parts: [{ type: "text", text: result.prompt }],
+        })
+        .pipe(Effect.orDie)
+      const output = message.parts.findLast((item) => item.type === "text")?.text ?? ""
+      return { output }
     })
 
     const sync = Effect.fn("BatutaHttpApi.sync")(function* (ctx: { params: { id: string } }) {
@@ -137,6 +178,7 @@ export const batutaHandlers = HttpApiBuilder.group(InstanceHttpApi, "batuta", (h
       .handle("add", add)
       .handle("remove", remove)
       .handle("start", start)
+      .handle("delegate", delegate)
       .handle("sync", sync)
       .handle("dispatch", dispatch)
       .handle("branches", branches)
