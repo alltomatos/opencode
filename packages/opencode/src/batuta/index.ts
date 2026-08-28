@@ -194,6 +194,11 @@ export interface Interface {
     label: string,
     prompt: string,
   ) => Effect.Effect<DelegateResult, NotFoundError | WorkerNotFoundError, never>
+  /** Worker id/label/worktree-directory triples for an activity's currently running instance (used
+   * by the live terminal panel, #107, to correlate a worker with its ExternalAgent session by cwd —
+   * ExternalAgent handles are never persisted/exposed on the worker itself). Empty if the activity
+   * isn't currently running, or ran without worktrees. */
+  readonly runningWorkers: (activityID: string) => Effect.Effect<Array<{ id: string; label: string; directory?: string }>>
   /** Reads docs/batuta-pipeline.md for the activity's project directory (shared across all activities in that project) — used by the editor UI. */
   readonly readPipelineDefinition: (id: string) => Effect.Effect<string | undefined, NotFoundError>
   /** Overwrites docs/batuta-pipeline.md — the user can edit the flow at any point, including while the Orchestrator is already dispatching. */
@@ -476,6 +481,18 @@ Leia o arquivo atual primeiro (se existir) antes de propor mudanças, e converse
       return { worker, directory: entry.workerDirectories.get(worker.id) }
     })
 
+    const runningWorkers = Effect.fn("Batuta.runningWorkers")(function* (activityID: string) {
+      const entry =
+        runningExternal.get(activityID) ??
+        Array.from(running.values()).find((item) => item.activity.id === activityID)
+      if (!entry) return []
+      return entry.activity.workers.map((worker) => ({
+        id: worker.id,
+        label: worker.label,
+        directory: entry.workerDirectories.get(worker.id),
+      }))
+    })
+
     const delegate = Effect.fn("Batuta.delegate")(function* (activityID: string, label: string, prompt: string) {
       const entry = runningExternal.get(activityID)
       if (!entry) return yield* new NotFoundError({ id: activityID })
@@ -526,6 +543,7 @@ Leia o arquivo atual primeiro (se existir) antes de propor mudanças, e converse
       checkHandoff,
       dispatch,
       resolveWorker,
+      runningWorkers,
       delegate,
       readPipelineDefinition,
       writePipelineDefinition,

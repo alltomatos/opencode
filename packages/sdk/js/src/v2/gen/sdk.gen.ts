@@ -30,6 +30,8 @@ import type {
   BatutaListResponses,
   BatutaRemoveErrors,
   BatutaRemoveResponses,
+  BatutaRunningWorkersErrors,
+  BatutaRunningWorkersResponses,
   BatutaSetPipelineDefinitionErrors,
   BatutaSetPipelineDefinitionResponses,
   BatutaStartErrors,
@@ -1877,6 +1879,42 @@ export class Batuta extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * List worker worktree directories for a running activity
+   *
+   * Used to correlate a worker with its ExternalAgent PTY session by matching worktree directory to session cwd — empty if the activity isn't currently running.
+   */
+  public runningWorkers<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      BatutaRunningWorkersResponses,
+      BatutaRunningWorkersErrors,
+      ThrowOnError
+    >({
+      url: "/batuta/{id}/workers",
+      ...options,
+      ...params,
     })
   }
 

@@ -932,6 +932,7 @@ export const dict = {
   "batuta.panel.tab.graph": "Graph",
   "batuta.panel.tab.pipeline": "Pipeline",
   "batuta.panel.tab.kanban": "Kanban",
+  "batuta.panel.tab.terminals": "Terminals",
   "batuta.pipeline.kanban.pending": "Pending",
   "batuta.pipeline.kanban.inProgress": "In progress",
   "batuta.pipeline.kanban.completed": "Completed",

@@ -114,6 +114,10 @@ export const batutaHandlers = HttpApiBuilder.group(InstanceHttpApi, "batuta", (h
       return { output }
     })
 
+    const runningWorkers = Effect.fn("BatutaHttpApi.runningWorkers")(function* (ctx: { params: { id: string } }) {
+      return yield* batuta.runningWorkers(ctx.params.id)
+    })
+
     const sync = Effect.fn("BatutaHttpApi.sync")(function* (ctx: { params: { id: string } }) {
       const result = yield* batuta.checkHandoff(ctx.params.id).pipe(
         Effect.catchTag("Batuta.NotFoundError", (error) =>
@@ -179,6 +183,7 @@ export const batutaHandlers = HttpApiBuilder.group(InstanceHttpApi, "batuta", (h
       .handle("remove", remove)
       .handle("start", start)
       .handle("delegate", delegate)
+      .handle("runningWorkers", runningWorkers)
       .handle("sync", sync)
       .handle("dispatch", dispatch)
       .handle("branches", branches)

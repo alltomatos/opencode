@@ -1365,4 +1365,5 @@ export const dict = {
   "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
   "provider.omniroute.mcp.retry": "Test again",
   "provider.omniroute.mcp.skip": "Skip MCP",
+  "batuta.panel.tab.terminals": "Terminals",
 }

@@ -7855,6 +7855,40 @@ export type BatutaDelegateResponses = {
 
 export type BatutaDelegateResponse = BatutaDelegateResponses[keyof BatutaDelegateResponses]
 
+export type BatutaRunningWorkersData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/workers"
+}
+
+export type BatutaRunningWorkersErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BatutaRunningWorkersError = BatutaRunningWorkersErrors[keyof BatutaRunningWorkersErrors]
+
+export type BatutaRunningWorkersResponses = {
+  /**
+   * Worker worktree directories for the running activity
+   */
+  200: Array<{
+    id: string
+    label: string
+    directory?: string
+  }>
+}
+
+export type BatutaRunningWorkersResponse = BatutaRunningWorkersResponses[keyof BatutaRunningWorkersResponses]
+
 export type BatutaStartPipelineChatData = {
   body?: never
   path: {

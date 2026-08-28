@@ -33,6 +33,12 @@ export const DelegatePayload = Schema.Struct({
 export const DelegateResponse = Schema.Struct({
   output: Schema.String,
 })
+export const RunningWorker = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  directory: Schema.optional(Schema.String),
+})
+export const RunningWorkersResponse = Schema.Array(RunningWorker)
 
 export const BatutaApi = HttpApi.make("batuta")
   .add(
@@ -158,6 +164,18 @@ export const BatutaApi = HttpApi.make("batuta")
             summary: "Delegate a task to a worker (for external-CLI orchestrators)",
             description:
               "Called by an external-CLI orchestrator (no task tool available) to delegate a task to one of its pre-configured workers by label. Synchronous — the response only arrives once the worker finishes.",
+          }),
+        ),
+        HttpApiEndpoint.get("runningWorkers", `${root}/:id/workers`, {
+          params: { id: Schema.String },
+          query: WorkspaceRoutingQuery,
+          success: described(RunningWorkersResponse, "Worker worktree directories for the running activity"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "batuta.runningWorkers",
+            summary: "List worker worktree directories for a running activity",
+            description:
+              "Used to correlate a worker with its ExternalAgent PTY session by matching worktree directory to session cwd — empty if the activity isn't currently running.",
           }),
         ),
         HttpApiEndpoint.post("startPipelineChat", `${root}/:id/pipeline-chat`, {

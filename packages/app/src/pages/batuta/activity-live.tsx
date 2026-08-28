@@ -27,6 +27,7 @@ import { sessionHref } from "@/utils/session-route"
 import { detectGpuSupport } from "@/utils/gpu"
 import { showToast } from "@/utils/toast"
 import { BatutaActivityPanel2D } from "@/components/batuta/activity-panel-2d"
+import { ExternalAgentTerminal } from "@/components/batuta/external-agent-terminal"
 import { ArchitectIcon } from "@/components/batuta/role-icons"
 import { PipelineVerticalList, PipelineKanban } from "@/components/batuta/pipeline-timeline"
 import type { BatutaActivity } from "@opencode-ai/sdk/v2"
@@ -401,6 +402,44 @@ export function BatutaActivityLivePage() {
     return result.data ?? []
   })
   const activity = createMemo(() => activities()?.find((item) => item.id === params.id))
+
+  // Correlates the activity's worker worktree directories (#107, batuta.runningWorkers)
+  // with active ExternalAgent PTY sessions (#106, externalAgent.listSessions) by cwd —
+  // ExternalAgent handles aren't persisted on the worker itself, so this is the only
+  // link between "worker X of this activity" and "PTY session with handle Y".
+  // Keyed by id+directory (not the activity object itself) so an unrelated refetch of the
+  // activities list — which always produces a fresh object reference — doesn't retrigger this.
+  const externalWorkersKey = createMemo(
+    () => {
+      const current = activity()
+      if (current?.phase !== "orchestrating") return undefined
+      return { id: current.id, directory: current.directory }
+    },
+    undefined,
+    { equals: (a, b) => a?.id === b?.id && a?.directory === b?.directory },
+  )
+  const [externalWorkers, { refetch: refetchExternalWorkers }] = createResource(
+    externalWorkersKey,
+    async (current) => {
+      const [workers, sessions] = await Promise.all([
+        serverSDK().client.batuta.runningWorkers({ id: current.id, directory: current.directory }),
+        serverSDK().client.externalAgent.listSessions({ directory: current.directory }),
+      ])
+      const byDirectory = new Map((sessions.data ?? []).map((session) => [session.cwd, session]))
+      return (workers.data ?? [])
+        .filter((worker) => worker.directory)
+        .map((worker) => ({ ...worker, session: byDirectory.get(worker.directory!) }))
+        .filter((worker): worker is typeof worker & { session: NonNullable<typeof worker.session> } =>
+          Boolean(worker.session),
+        )
+    },
+  )
+
+  createEffect(() => {
+    if (activity()?.phase !== "orchestrating") return
+    const timer = setInterval(() => void refetchExternalWorkers(), SYNC_INTERVAL_MS)
+    onCleanup(() => clearInterval(timer))
+  })
   const pipelineText = usePipelineText(() => activity()?.directory)
   const pipelineDefinitionText = usePipelineDefinitionText({
     id: params.id,
@@ -548,6 +587,32 @@ export function BatutaActivityLivePage() {
                     </TabsV2.Content>
                   </TabsV2>
                 )}
+              </Show>
+
+              <Show when={(externalWorkers()?.length ?? 0) > 0}>
+                <div class="flex flex-col gap-2">
+                  <span class="text-13-medium text-v2-text-text-base">{language.t("batuta.panel.tab.terminals")}</span>
+                  <TabsV2 defaultValue={externalWorkers()?.[0]?.id ?? ""} class="flex w-full flex-col gap-3">
+                    <TabsV2.List>
+                      <For each={externalWorkers()}>
+                        {(worker) => <TabsV2.Trigger value={worker.id}>{worker.label}</TabsV2.Trigger>}
+                      </For>
+                    </TabsV2.List>
+                    <For each={externalWorkers()}>
+                      {(worker) => (
+                        <TabsV2.Content value={worker.id}>
+                          <div class="h-[420px] overflow-hidden rounded-[10px] border border-v2-border-border-base">
+                            <ExternalAgentTerminal
+                              handle={worker.session.handle}
+                              directory={current().directory ?? ""}
+                              class="h-full"
+                            />
+                          </div>
+                        </TabsV2.Content>
+                      )}
+                    </For>
+                  </TabsV2>
+                </div>
               </Show>
 
               <Show when={current().phase === "ready"}>
