@@ -231,6 +231,11 @@ export const dict = {
   "provider.omniroute.toast.importedFiltered": "Imported {{count}} models ({{skipped}} skipped)",
   "provider.omniroute.field.combosOnly.label": "Import combos only",
   "provider.omniroute.field.combosOnly.description": "Skip plain provider/model entries and only import combo models",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 
   "provider.disconnect.toast.disconnected.title": "{{provider}} disconnected",
   "provider.disconnect.toast.disconnected.description": "{{provider}} models are no longer available.",

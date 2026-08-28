@@ -1,4 +1,4 @@
-import { Show } from "solid-js"
+import { Show, createSignal } from "solid-js"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
@@ -13,6 +13,8 @@ import { useProviders } from "@/hooks/use-providers"
 import { useLanguage } from "@/context/language"
 
 export const OMNIROUTE_PROVIDER_ID = "omnrt"
+
+type McpTestState = "idle" | "testing" | "connected" | "failed"
 
 export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   const dialog = useDialog()
@@ -32,6 +34,22 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   const setField = (key: "baseURL" | "apiKey", value: string) => {
     setForm(key, value)
     setForm("err", key, undefined)
+  }
+
+  const [mcpState, setMcpState] = createSignal<McpTestState>("idle")
+
+  const testMcp = async () => {
+    setMcpState("testing")
+    let connected = false
+    try {
+      await serverSDK().client.mcp.connect({ name: OMNIROUTE_PROVIDER_ID })
+      const status = await serverSDK().client.mcp.status()
+      connected = status.data?.[OMNIROUTE_PROVIDER_ID]?.status === "connected"
+    } catch {
+      connected = false
+    }
+    setMcpState(connected ? "connected" : "failed")
+    if (connected) dialog.close()
   }
 
   const validate = () => {
@@ -66,12 +84,12 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
         .catch(() => undefined)
     },
     onSuccess: () => {
-      dialog.close()
       showToast({
         variant: "success",
         icon: "circle-check",
         title: language.t("provider.connect.toast.connected.title", { provider: "Omniroute" }),
       })
+      void testMcp()
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
@@ -129,15 +147,37 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
           </Field>
         </div>
 
-        <ButtonV2
-          class="w-auto self-start"
-          type="submit"
-          size="large"
-          variant="contrast"
-          disabled={connectMutation.isPending}
-        >
-          {connectMutation.isPending ? language.t("provider.omniroute.importing") : language.t("common.submit")}
-        </ButtonV2>
+        <Show when={mcpState() === "idle"}>
+          <ButtonV2
+            class="w-auto self-start"
+            type="submit"
+            size="large"
+            variant="contrast"
+            disabled={connectMutation.isPending}
+          >
+            {connectMutation.isPending ? language.t("provider.omniroute.importing") : language.t("common.submit")}
+          </ButtonV2>
+        </Show>
+
+        <Show when={mcpState() === "testing"}>
+          <div class="text-14-regular text-text-base">{language.t("provider.omniroute.mcp.testing")}</div>
+        </Show>
+
+        <Show when={mcpState() === "failed"}>
+          <div class="flex flex-col gap-3">
+            <div class="text-14-regular text-v2-state-fg-danger">
+              {language.t("provider.omniroute.mcp.failed", { url: form.baseURL.trim() + "/dashboard/mcp" })}
+            </div>
+            <div class="flex gap-2">
+              <ButtonV2 type="button" size="large" variant="contrast" onClick={() => void testMcp()}>
+                {language.t("provider.omniroute.mcp.retry")}
+              </ButtonV2>
+              <ButtonV2 type="button" size="large" variant="outline" onClick={() => dialog.close()}>
+                {language.t("provider.omniroute.mcp.skip")}
+              </ButtonV2>
+            </div>
+          </div>
+        </Show>
       </form>
     </div>
   )
