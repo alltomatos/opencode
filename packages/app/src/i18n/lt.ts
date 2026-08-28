@@ -1367,4 +1367,9 @@ export const dict = {
   "server.remove.title": "Pašalinti serverį",
   "server.remove.confirm": "Pašalinti serverį „{{name}}“? Jame esantys projektai ir sesijos čia daugiau nebus rodomi.",
   "server.remove.button": "Pašalinti serverį",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 }

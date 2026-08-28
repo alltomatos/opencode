@@ -1364,4 +1364,9 @@ export const dict = {
   "server.remove.title": "Szerver eltávolítása",
   "server.remove.confirm": 'Eltávolítja a(z) "{{name}}" szervert? Az azon lévő projektek és munkamenetek többé nem jelennek meg itt.',
   "server.remove.button": "Szerver eltávolítása",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 }
