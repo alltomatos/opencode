@@ -1351,4 +1351,9 @@ export const dict = {
   "server.remove.title": "Fjarlægja þjón",
   "server.remove.confirm": 'Fjarlægja þjóninn "{{name}}"? Verkefni og lotur á honum munu ekki lengur birtast hér.',
   "server.remove.button": "Fjarlægja þjón",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 }

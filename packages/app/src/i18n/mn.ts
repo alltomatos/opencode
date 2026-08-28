@@ -1362,4 +1362,9 @@ export const dict = {
   "server.remove.title": "Remove server",
   "server.remove.confirm": "Remove server \"{{name}}\"? Projects and sessions on it will no longer show here.",
   "server.remove.button": "Remove server",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 }

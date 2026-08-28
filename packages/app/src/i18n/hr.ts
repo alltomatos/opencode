@@ -1362,4 +1362,9 @@ export const dict = {
   "server.remove.title": "Ukloni poslužitelj",
   "server.remove.confirm": 'Ukloniti poslužitelj "{{name}}"? Projekti i sesije na njemu se više neće prikazivati ovdje.',
   "server.remove.button": "Ukloni poslužitelj",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 }
