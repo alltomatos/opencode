@@ -114,9 +114,19 @@ const SessionRoute = () => {
 function TargetServerRoute(props: ParentProps) {
   const params = useParams<{ serverKey: string; id: string }>()
   const global = useGlobal()
+  const server = useServer()
   const conn = createMemo(() => {
     const key = requireServerKey(params.serverKey)
     return global.servers.list().find((item) => ServerConnection.key(item) === key)
+  })
+
+  // Keep the global "active server" signal in sync with the routed server.
+  // Sibling routes that aren't nested under this one (e.g. /settings) have no
+  // :serverKey of their own and fall back to this signal — without syncing
+  // it here, navigating to one of them from a remote server's session loses
+  // that server's context entirely.
+  createEffect(() => {
+    server.setActive(requireServerKey(params.serverKey))
   })
 
   return (
