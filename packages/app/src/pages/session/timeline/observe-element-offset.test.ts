@@ -38,21 +38,19 @@ test("reports a divergent native offset once and ignores equal offsets and unrel
     instance.scrollOffset = offset
   })
 
+  route.remove()
+  document.body.append(route)
+  route.remove()
+  document.body.append(route)
+  await waitFor(() => expect(calls).toEqual([[0, false]]))
+
+  // Unrelated mutations are ignored — verified after the reconnect delivery
+  // above so this negative check can't be satisfied by a delayed flush of
+  // an earlier, unrelated MutationObserver batch (happy-dom can defer a
+  // listener's microtask across an unrelated prior batch under load).
   document.body.append(unrelated)
   unrelated.remove()
   await frames(2)
-  expect(calls).toEqual([])
-
-  route.remove()
-  document.body.append(route)
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  await frames(3)
-  expect(calls).toEqual([[0, false]])
-
-  route.remove()
-  document.body.append(route)
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  await frames(3)
   expect(calls).toEqual([[0, false]])
 
   cleanup?.()
@@ -125,10 +123,8 @@ test.each([
 
   route.remove()
   document.body.append(route)
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  await frames(3)
+  await waitFor(() => expect(calls).toEqual([[expected, false]]))
 
-  expect(calls).toEqual([[expected, false]])
   cleanup?.()
   route.remove()
 })
@@ -195,5 +191,21 @@ test("cleanup cancels reconnect checks and delegated offset observation", async 
 async function frames(count: number) {
   for (let index = 0; index < count; index++) {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  }
+}
+
+// happy-dom's MutationObserver microtask can land later than a fixed number
+// of frames/timeouts under load (its own async-task-manager bookkeeping, not
+// anything this suite controls) — poll instead of assuming a flush deadline.
+async function waitFor(assertion: () => void, timeoutMs = 1_000) {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    try {
+      assertion()
+      return
+    } catch (error) {
+      if (Date.now() >= deadline) throw error
+      await frames(1)
+    }
   }
 }

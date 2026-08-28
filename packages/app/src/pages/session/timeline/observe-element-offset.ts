@@ -44,18 +44,28 @@ export function observeElementOffsetReconnectAware<TScrollElement extends Elemen
     }
     frame = targetWindow.requestAnimationFrame(check)
   }
+  // A single callback can batch multiple childList mutations together, and
+  // browsers don't guarantee the records arrive in the order the mutations
+  // happened (observed in practice under happy-dom) — so decide from the
+  // aggregate of the batch plus the current DOM state, not by folding state
+  // across records in array order.
   const observer = new targetWindow.MutationObserver((records) => {
     if (!active) return
-    records.forEach((record) => {
-      if (record.target === element || element.contains(record.target)) return
-      if (mutationNodesContainElement(record.removedNodes, element)) {
-        removed = true
-        clearCheck()
-      }
-      if (!removed || !element.isConnected || !mutationNodesContainElement(record.addedNodes, element)) return
+    let wasRemoved = false
+    let wasAdded = false
+    for (const record of records) {
+      if (record.target === element || element.contains(record.target)) continue
+      if (mutationNodesContainElement(record.removedNodes, element)) wasRemoved = true
+      if (mutationNodesContainElement(record.addedNodes, element)) wasAdded = true
+    }
+    if (wasRemoved) {
+      removed = true
+      clearCheck()
+    }
+    if (wasAdded && removed && element.isConnected) {
       removed = false
       startCheck()
-    })
+    }
   })
   // Session routes are replaced below persistent main; body is the fallback for isolated hosts.
   observer.observe(root, { childList: true, subtree: true })
