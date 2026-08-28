@@ -29,7 +29,6 @@ import type { SessionReviewLineComment } from "@opencode-ai/session-ui/session-r
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Select } from "@opencode-ai/ui/select"
 import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
-import { isScrollKeyTarget, scrollKey, scrollKeyOwner } from "@opencode-ai/ui/scroll-view"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { createAutoScroll } from "@opencode-ai/ui/hooks"
@@ -60,8 +59,6 @@ import { TerminalProvider, useTerminal } from "@/context/terminal"
 import { PromptInput } from "@/components/prompt-input"
 import { PromptInputV2Composer, usePromptInputV2Controller } from "@/components/prompt-input-v2"
 import { useSettingsCommand } from "@/components/settings-dialog"
-import { setCursorPosition } from "@/components/prompt-input/editor-dom"
-import { promptLength } from "@/components/prompt-input/history"
 import {
   createPromptInputController,
   createSessionComposerController,
@@ -103,6 +100,7 @@ import { createSessionLineage } from "./session/session-lineage"
 import { createRevertRestore } from "./session/session-revert-restore"
 import { createFollowupQueue, type FollowupItem, type FollowupEdit } from "./session/session-followup-queue"
 import { createReviewComments } from "./session/session-review-comments"
+import { createGlobalKeydownHandler } from "./session/session-global-keydown"
 
 type ChangeMode = "git" | "branch" | "turn"
 type VcsMode = "git" | "branch"
@@ -771,57 +769,15 @@ export default function Page() {
   const { selectionPreview, addCommentToContext, updateCommentInContext, removeCommentFromContext, reviewCommentActions } =
     createReviewComments({ file, comments, prompt, language })
 
-  const isEditableTarget = (target: EventTarget | null | undefined) => {
-    if (!(target instanceof HTMLElement)) return false
-    return /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName) || target.isContentEditable
-  }
-
-  const deepActiveElement = () => {
-    let current: Element | null = document.activeElement
-    while (current instanceof HTMLElement && current.shadowRoot?.activeElement) {
-      current = current.shadowRoot.activeElement
-    }
-    return current instanceof HTMLElement ? current : undefined
-  }
-
-  const handleKeyDown = (event: KeyboardEvent) => {
-    const path = event.composedPath()
-    const target = path.find((item): item is HTMLElement => item instanceof HTMLElement)
-    const activeElement = deepActiveElement()
-
-    const protectedTarget = path.some(
-      (item) => item instanceof HTMLElement && item.closest("[data-prevent-autofocus]") !== null,
-    )
-    if (protectedTarget || isEditableTarget(target)) return
-
-    if (activeElement) {
-      const isProtected = activeElement.closest("[data-prevent-autofocus]")
-      const isInput = isEditableTarget(activeElement)
-      if (isProtected || isInput) return
-    }
-    if (dialog.active) return
-
-    if (activeElement === inputRef) {
-      if (event.key === "Escape") inputRef?.blur()
-      return
-    }
-
-    const key = scrollKey(event)
-    if (key) {
-      if (!scroller || !isScrollKeyTarget(target ?? null, key)) return
-      if (scrollKeyOwner(scroller, target ?? null, key) !== scroller) return
-      markScrollGesture(scroller)
-      return
-    }
-
-    if (event.key.length === 1 && event.key !== "Unidentified" && !(event.ctrlKey || event.metaKey)) {
-      if (composer.blocked() || isChildSession()) return
-      const input = inputRef
-      if (!input) return
-      input.focus()
-      setCursorPosition(input, prompt.cursor() ?? promptLength(prompt.current()))
-    }
-  }
+  const handleKeyDown = createGlobalKeydownHandler({
+    inputRef: () => inputRef,
+    scroller: () => scroller,
+    markScrollGesture,
+    dialogActive: () => dialog.active,
+    composerBlocked: () => composer.blocked(),
+    isChildSession,
+    prompt,
+  })
 
   createEffect(() => {
     if (!layout.ready()) return
