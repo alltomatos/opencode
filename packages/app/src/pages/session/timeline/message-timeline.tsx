@@ -11,12 +11,9 @@ import {
   type Accessor,
   type JSX,
 } from "solid-js"
-import { createStore, produce } from "solid-js/store"
-import { Dynamic } from "solid-js/web"
+import { createStore } from "solid-js/store"
 import { useNavigate } from "@solidjs/router"
-import { useMutation } from "@tanstack/solid-query"
 import { createVirtualizer, defaultRangeExtractor, elementScroll, type VirtualItem } from "@tanstack/solid-virtual"
-import { Accordion } from "@opencode-ai/ui/accordion"
 import { Button } from "@opencode-ai/ui/button"
 import { Card } from "@opencode-ai/ui/card"
 import {
@@ -27,7 +24,6 @@ import {
   partDefaultOpen,
   type UserActions,
 } from "@opencode-ai/session-ui/message-part"
-import { DiffChanges } from "@opencode-ai/ui/diff-changes"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -40,11 +36,8 @@ import { DialogFooter, DialogHeader, DialogTitleGroup, DialogV2 } from "@opencod
 import { InlineInput } from "@opencode-ai/ui/inline-input"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { SessionRetry } from "@opencode-ai/session-ui/session-retry"
-import { isScrollKeyTarget, scrollKey, scrollKeyOwner, ScrollView } from "@opencode-ai/ui/scroll-view"
-import { StickyAccordionHeader } from "@opencode-ai/ui/sticky-accordion-header"
+import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { TextField } from "@opencode-ai/ui/text-field"
-import { TextReveal } from "@opencode-ai/ui/text-reveal"
-import { TextShimmer } from "@opencode-ai/ui/text-shimmer"
 import type {
   AssistantMessage,
   Message as MessageType,
@@ -52,13 +45,8 @@ import type {
   ToolPart,
   UserMessage,
 } from "@opencode-ai/sdk/v2"
-import { showToast } from "@/utils/toast"
-import { downloadSessionExport, fetchSessionExport, sessionExportFilename } from "@/utils/session-export"
-import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
+import { getFilename } from "@opencode-ai/core/util/path"
 import { Popover as KobaltePopover } from "@kobalte/core/popover"
-import { normalize } from "@opencode-ai/session-ui/session-diff"
-import { useFileComponent } from "@opencode-ai/ui/context/file"
-import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { isBrowserPanelAvailable, isBrowserPanelOpen, toggleBrowserPanel } from "@/components/browser-panel"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
@@ -68,10 +56,8 @@ import { useSessionArchive } from "@/pages/session/session-archive"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
-import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
-import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
 import { sessionTitle } from "@/utils/session-title"
 import { DialogDeleteSession } from "./dialog-delete-session"
 import { DialogBackgroundTasks } from "@/components/session/dialog-background-tasks"
@@ -79,6 +65,9 @@ import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
 import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
+import { TimelineThinkingRow, TimelineDiffSummaryRow } from "./timeline-static-rows"
+import { createSessionHeaderActions } from "./timeline-session-actions"
+import { createScrollAnchor } from "./timeline-scroll-anchor"
 import { filterVirtualIndexes } from "./virtual-items"
 
 const emptyMessages: MessageType[] = []
@@ -99,170 +88,6 @@ const taskDescription = (part: PartType, sessionID: string) => {
   if (metadata?.sessionId !== sessionID) return
   const value = part.state.input?.description
   if (typeof value === "string" && value) return value
-}
-
-const boundaryTarget = (root: HTMLElement, target: EventTarget | null) => {
-  const current = target instanceof Element ? target : undefined
-  const nested = current?.closest("[data-scrollable]")
-  if (!nested || nested === root) return root
-  if (!(nested instanceof HTMLElement)) return root
-  return nested
-}
-
-const markBoundaryGesture = (input: {
-  root: HTMLDivElement
-  target: EventTarget | null
-  delta: number
-  onMarkScrollGesture: (target?: EventTarget | null) => void
-}) => {
-  const target = boundaryTarget(input.root, input.target)
-  if (target === input.root) {
-    input.onMarkScrollGesture(input.root)
-    return
-  }
-  if (
-    shouldMarkBoundaryGesture({
-      delta: input.delta,
-      scrollTop: target.scrollTop,
-      scrollHeight: target.scrollHeight,
-      clientHeight: target.clientHeight,
-    })
-  ) {
-    input.onMarkScrollGesture(input.root)
-  }
-}
-
-function ThinkingFaceIcon() {
-  return (
-    <div class="thinking-face-icon size-10 shrink-0">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="size-full">
-        {/* face */}
-        <circle cx="12" cy="12" r="9.5" fill="#FFCC4D" stroke="#E8A500" stroke-width="0.5" />
-        {/* eyebrows: left flat, right raised — the asymmetry reads as "considering" */}
-        <path d="M7.4 9.2L10 8.9" stroke="#664500" stroke-width="1.1" stroke-linecap="round" />
-        <path
-          class="thinking-face-eyebrow"
-          d="M13.9 8.1C14.7 7.2 16 6.9 17 7.4"
-          stroke="#664500"
-          stroke-width="1.1"
-          stroke-linecap="round"
-        />
-        {/* eyes */}
-        <circle cx="9.2" cy="11.4" r="0.95" fill="#664500" />
-        <circle cx="14.9" cy="10.9" r="0.95" fill="#664500" />
-        {/* small, off-centered pursed mouth */}
-        <path d="M9.3 16.2C10.9 15.8 12.7 15.8 14.1 16.2" stroke="#664500" stroke-width="1.1" stroke-linecap="round" />
-      </svg>
-    </div>
-  )
-}
-
-function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSummaries: boolean; executing: boolean }) {
-  const language = useLanguage()
-  const statusKey = () => (props.executing ? "ui.sessionTurn.status.runningCommands" : "ui.sessionTurn.status.thinking")
-
-  return (
-    <div data-slot="session-turn-thinking">
-      <ThinkingFaceIcon />
-      <TextShimmer text={`${language.t(statusKey())}...`} />
-      <Show when={!props.executing && !props.showReasoningSummaries}>
-        <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
-      </Show>
-    </div>
-  )
-}
-
-function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
-  const language = useLanguage()
-  const maxFiles = 10
-  const [state, setState] = createStore({
-    showAll: false,
-    expanded: [] as string[],
-  })
-  const showAll = () => state.showAll
-  const expanded = () => state.expanded
-  const overflow = createMemo(() => Math.max(0, props.diffs.length - maxFiles))
-  const visible = createMemo(() => (showAll() ? props.diffs : props.diffs.slice(0, maxFiles)))
-
-  return (
-    <div
-      data-slot="session-turn-diffs"
-      data-component="session-turn-diffs-group"
-      data-show-all={showAll() || undefined}
-    >
-      <div data-slot="session-turn-diffs-header">
-        <span data-slot="session-turn-diffs-label">
-          {language.plural("ui.sessionTurn.diffs.changed", props.diffs.length)}
-        </span>
-        <DiffChanges changes={props.diffs} />
-        <Show when={overflow() > 0}>
-          <span data-slot="session-turn-diffs-toggle" onClick={() => setState("showAll", !showAll())}>
-            {showAll() ? language.t("ui.sessionTurn.diffs.showLess") : language.t("ui.sessionTurn.diffs.showAll")}
-          </span>
-        </Show>
-      </div>
-      <div data-component="session-turn-diffs-content">
-        <Accordion
-          multiple
-          style={{ "--sticky-accordion-offset": "44px" }}
-          value={expanded()}
-          onChange={(value) => setState("expanded", Array.isArray(value) ? value : value ? [value] : [])}
-        >
-          <For each={visible()}>
-            {(diff) => {
-              const opened = createMemo(() => expanded().includes(diff.file))
-
-              return (
-                <Accordion.Item value={diff.file}>
-                  <StickyAccordionHeader>
-                    <Accordion.Trigger>
-                      <div data-slot="session-turn-diff-trigger">
-                        <span data-slot="session-turn-diff-path">
-                          <Show when={diff.file.includes("/")}>
-                            <span data-slot="session-turn-diff-directory">{`\u202A${getDirectory(diff.file)}\u202C`}</span>
-                          </Show>
-                          <span data-slot="session-turn-diff-filename">{getFilename(diff.file)}</span>
-                        </span>
-                        <div data-slot="session-turn-diff-meta">
-                          <span data-slot="session-turn-diff-changes">
-                            <DiffChanges changes={diff} />
-                          </span>
-                          <span data-slot="session-turn-diff-chevron">
-                            <Icon name="chevron-down" size="small" />
-                          </span>
-                        </div>
-                      </div>
-                    </Accordion.Trigger>
-                  </StickyAccordionHeader>
-                  <Accordion.Content>
-                    <Show when={opened()}>
-                      <TimelineDiffView diff={diff} />
-                    </Show>
-                  </Accordion.Content>
-                </Accordion.Item>
-              )
-            }}
-          </For>
-        </Accordion>
-        <Show when={!showAll() && overflow() > 0}>
-          <div data-slot="session-turn-diffs-more" onClick={() => setState("showAll", true)}>
-            {language.t("ui.sessionTurn.diffs.more", { count: String(overflow()) })}
-          </div>
-        </Show>
-      </div>
-    </div>
-  )
-}
-
-function TimelineDiffView(props: { diff: SummaryDiff }) {
-  const fileComponent = useFileComponent()
-  const view = normalize(props.diff)
-
-  return (
-    <div data-slot="session-turn-diff-view" data-scrollable>
-      <Dynamic component={fileComponent} mode="diff" virtualize={false} fileDiff={view.fileDiff} />
-    </div>
-  )
 }
 
 export function MessageTimeline(props: {
@@ -286,8 +111,6 @@ export function MessageTimeline(props: {
   setScrollToEnd?: (fn: () => void) => void
   setHistoryAnchor?: (handlers: { capture: () => void; restore: (done: boolean) => void }) => void
 }) {
-  let touchGesture: number | undefined
-
   const navigate = useNavigate()
   const serverSDK = useServerSDK()
   const sdk = useSDK()
@@ -378,65 +201,28 @@ export function MessageTimeline(props: {
   const timelineRowByKey = projection.rowByKey
   const timelineRows = projection.rows
 
-  let prependAnchor: { key: string; offset: number } | undefined
-  let prependAnchorFrame: number | undefined
-  let prependLoading = false
-  const clearPrependAnchor = () => {
-    prependLoading = false
-    prependAnchor = undefined
-    if (prependAnchorFrame === undefined) return
-    cancelAnimationFrame(prependAnchorFrame)
-    prependAnchorFrame = undefined
-  }
-  const capturePrependAnchor = () => {
-    prependLoading = true
-    updatePrependAnchor()
-  }
-  const updatePrependAnchor = () => {
-    const root = listRoot()
-    if (!root) return
-    const view = root.getBoundingClientRect()
-    const anchor = [...root.querySelectorAll<HTMLElement>("[data-timeline-key]")]
-      .map((element) => ({ element, rect: element.getBoundingClientRect() }))
-      .filter((item) => item.rect.bottom > view.top && item.rect.top < view.bottom)
-      .sort((a, b) => a.rect.top - b.rect.top)[0]
-    if (!anchor) return
-    if (!anchor.element.dataset.timelineKey) return
-    prependAnchor = { key: anchor.element.dataset.timelineKey, offset: anchor.rect.top - view.top }
-  }
-  const restorePrependAnchor = (done: boolean) => {
-    if (done) prependLoading = false
-    applyPrependAnchor()
-  }
-  const applyPrependAnchor = () => {
-    const root = listRoot()
-    if (!root || !prependAnchor) return
-    if (prependAnchorFrame !== undefined) cancelAnimationFrame(prependAnchorFrame)
-    let frames = 0
-    let stable = 0
-    const apply = () => {
-      prependAnchorFrame = undefined
-      const anchor = prependAnchor
-      if (!anchor) return
-      const element = root.querySelector<HTMLElement>(`[data-timeline-key="${CSS.escape(anchor.key)}"]`)
-      const delta = element
-        ? element.getBoundingClientRect().top - root.getBoundingClientRect().top - anchor.offset
-        : undefined
-      if (delta !== undefined && Math.abs(delta) > 0.5) {
-        root.scrollTop += delta
-        stable = 0
-      } else {
-        stable += 1
-      }
-      frames += 1
-      if (stable >= 30 || frames >= 180) {
-        if (!prependLoading) prependAnchor = undefined
-        return
-      }
-      prependAnchorFrame = requestAnimationFrame(apply)
-    }
-    prependAnchorFrame = requestAnimationFrame(apply)
-  }
+  const {
+    clearPrependAnchor,
+    cancelPendingApply,
+    capturePrependAnchor,
+    restorePrependAnchor,
+    handleListWheel,
+    handleListTouchStart,
+    handleListTouchMove,
+    handleListTouchEnd,
+    handleListPointerDown,
+    handleListPointerMove,
+    handleListKeyDown,
+    handleListScroll,
+  } = createScrollAnchor({
+    listRoot,
+    onMarkScrollGesture: props.onMarkScrollGesture,
+    onScheduleScrollState: props.onScheduleScrollState,
+    onHistoryScroll: props.onHistoryScroll,
+    hasScrollGesture: props.hasScrollGesture,
+    onUserScroll: props.onUserScroll,
+    onAutoScrollHandleScroll: props.onAutoScrollHandleScroll,
+  })
 
   const [toolOpen, setToolOpen] = createStore<Record<string, boolean | undefined>>(cached?.toolOpen ?? {})
   const [renderOverscan, setRenderOverscan] = createSignal(initialMeasurements?.length || coldBottomMount ? 6 : 20)
@@ -554,7 +340,7 @@ export function MessageTimeline(props: {
     if (!props.shouldAnchorBottom() || props.hasScrollGesture()) return
     if (resizePinFrame !== undefined) cancelAnimationFrame(resizePinFrame)
     clearPrependAnchor()
-    if (prependAnchorFrame !== undefined) cancelAnimationFrame(prependAnchorFrame)
+    cancelPendingApply()
     virtualizer.scrollToEnd()
   }
 
@@ -581,18 +367,41 @@ export function MessageTimeline(props: {
     props.setHistoryAnchor?.({ capture: () => {}, restore: () => {} })
   })
 
-  const [title, setTitle] = createStore({
-    draft: "",
-    editing: false,
-    menuOpen: false,
-    pendingRename: false,
-    pendingShare: false,
-  })
-  let titleRef: HTMLInputElement | undefined
-
-  const [share, setShare] = createStore({
-    open: false,
-    dismiss: null as "escape" | "outside" | null,
+  const {
+    title,
+    setTitle,
+    bindTitleRef,
+    share,
+    setShare,
+    shareMutation,
+    unshareMutation,
+    titleMutation,
+    viewShare,
+    shareSession,
+    unshareSession,
+    copyShareUrl,
+    selectShareUrlText,
+    openTitleEditor,
+    closeTitleEditor,
+    saveTitleEditor,
+    exportSession,
+    deleteSession,
+    navigateParent,
+  } = createSessionHeaderActions({
+    sessionID,
+    sessionKey,
+    parentID,
+    titleLabel,
+    shareUrl,
+    shareEnabled,
+    sync,
+    sdk,
+    serverSDK,
+    platform,
+    language,
+    sessionArchive,
+    navigate,
+    params,
   })
   let more: HTMLButtonElement | undefined
 
@@ -602,182 +411,9 @@ export function MessageTimeline(props: {
     props.setScrollRef(root)
   }
 
-  const handleListWheel = (event: WheelEvent & { currentTarget: HTMLDivElement }) => {
-    if (!prependLoading) clearPrependAnchor()
-    const root = event.currentTarget
-    const delta = normalizeWheelDelta({
-      deltaY: event.deltaY,
-      deltaMode: event.deltaMode,
-      rootHeight: root.clientHeight,
-    })
-    if (!delta) return
-    markBoundaryGesture({ root, target: event.target, delta, onMarkScrollGesture: props.onMarkScrollGesture })
-  }
-
-  const handleListTouchStart = (event: TouchEvent) => {
-    if (!prependLoading) clearPrependAnchor()
-    touchGesture = event.touches[0]?.clientY
-  }
-
-  const handleListTouchMove = (event: TouchEvent & { currentTarget: HTMLDivElement }) => {
-    const next = event.touches[0]?.clientY
-    const prev = touchGesture
-    touchGesture = next
-    if (next === undefined || prev === undefined) return
-
-    const delta = prev - next
-    if (!delta) return
-
-    markBoundaryGesture({
-      root: event.currentTarget,
-      target: event.target,
-      delta,
-      onMarkScrollGesture: props.onMarkScrollGesture,
-    })
-  }
-
-  const handleListTouchEnd = () => {
-    touchGesture = undefined
-  }
-
-  const handleListPointerDown = (event: PointerEvent & { currentTarget: HTMLDivElement }) => {
-    if (!prependLoading) clearPrependAnchor()
-    props.onMarkScrollGesture(event.target)
-  }
-
-  const handleListPointerMove = (event: PointerEvent) => {
-    if (event.buttons !== 1) return
-    props.onMarkScrollGesture(event.target)
-  }
-
-  const handleListKeyDown = (event: KeyboardEvent & { currentTarget: HTMLDivElement }) => {
-    const key = scrollKey(event)
-    if (!key) return
-    if (!isScrollKeyTarget(event.target, key)) return
-    if (scrollKeyOwner(event.currentTarget, event.target, key) !== event.currentTarget) return
-    if (!prependLoading) clearPrependAnchor()
-    props.onMarkScrollGesture(event.currentTarget)
-  }
-
-  const handleListScroll = (event: Event & { currentTarget: HTMLDivElement }) => {
-    if (prependLoading) updatePrependAnchor()
-    props.onScheduleScrollState(event.currentTarget)
-    props.onHistoryScroll()
-    if (!props.hasScrollGesture()) return
-    props.onUserScroll()
-    props.onAutoScrollHandleScroll()
-    props.onMarkScrollGesture(event.currentTarget)
-  }
-
   onCleanup(() => {
     props.setScrollRef(undefined)
   })
-
-  const viewShare = () => {
-    const url = shareUrl()
-    if (!url) return
-    platform.openExternal(url)
-  }
-
-  const errorMessage = (err: unknown) => {
-    if (err && typeof err === "object" && "data" in err) {
-      const data = (err as { data?: { message?: string } }).data
-      if (data?.message) return data.message
-    }
-    if (err instanceof Error) return err.message
-    return language.t("common.requestFailed")
-  }
-
-  const shareMutation = useMutation(() => ({
-    mutationFn: (id: string) => serverSDK().client.session.share({ sessionID: id }),
-    onError: (err) => {
-      console.error("Failed to share session", err)
-    },
-  }))
-
-  const unshareMutation = useMutation(() => ({
-    mutationFn: (id: string) => serverSDK().client.session.unshare({ sessionID: id }),
-    onError: (err) => {
-      console.error("Failed to unshare session", err)
-    },
-  }))
-
-  const titleMutation = useMutation(() => ({
-    mutationFn: (input: { id: string; title: string }) =>
-      sdk().api.session.rename({ sessionID: input.id, title: input.title }),
-    onSuccess: (_, input) => {
-      sync().set(
-        produce((draft) => {
-          const index = draft.session.findIndex((s) => s.id === input.id)
-          if (index !== -1) draft.session[index].title = input.title
-        }),
-      )
-      setTitle("editing", false)
-    },
-    onError: (err) => {
-      showToast({
-        title: language.t("common.requestFailed"),
-        description: errorMessage(err),
-      })
-    },
-  }))
-
-  const shareSession = () => {
-    const id = sessionID()
-    if (!id || shareMutation.isPending) return
-    if (!shareEnabled()) return
-    shareMutation.mutate(id)
-  }
-
-  const unshareSession = () => {
-    const id = sessionID()
-    if (!id || unshareMutation.isPending) return
-    if (!shareEnabled()) return
-    unshareMutation.mutate(id)
-  }
-  const copyShareUrl = () => {
-    const url = shareUrl()
-    if (!url) return
-    void navigator.clipboard
-      .writeText(url)
-      .then(() =>
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("session.share.copy.copied"),
-          description: url,
-        }),
-      )
-      .catch((err: unknown) =>
-        showToast({
-          title: language.t("common.requestFailed"),
-          description: errorMessage(err),
-        }),
-      )
-  }
-  const selectShareUrlText: JSX.EventHandler<HTMLDivElement, MouseEvent> = (event) => {
-    const selection = window.getSelection()
-    if (!selection) return
-    const range = document.createRange()
-    range.selectNodeContents(event.currentTarget)
-    selection.removeAllRanges()
-    selection.addRange(range)
-  }
-
-  createEffect(
-    on(
-      sessionKey,
-      () =>
-        setTitle({
-          draft: "",
-          editing: false,
-          menuOpen: false,
-          pendingRename: false,
-          pendingShare: false,
-        }),
-      { defer: true },
-    ),
-  )
 
   createEffect(
     on(
@@ -790,130 +426,6 @@ export function MessageTimeline(props: {
       { defer: true },
     ),
   )
-
-  const openTitleEditor = () => {
-    if (!sessionID() || parentID()) return
-    setTitle({ editing: true, draft: titleLabel() ?? "" })
-    requestAnimationFrame(() => {
-      if (!titleRef) return
-      titleRef.focus()
-      titleRef.select()
-    })
-  }
-
-  const closeTitleEditor = () => {
-    if (titleMutation.isPending) return
-    setTitle("editing", false)
-  }
-
-  const saveTitleEditor = () => {
-    const id = sessionID()
-    if (!id) return
-    if (titleMutation.isPending) return
-
-    const next = title.draft.trim()
-    if (!next || next === (titleLabel() ?? "")) {
-      setTitle("editing", false)
-      return
-    }
-
-    titleMutation.mutate({ id, title: next })
-  }
-
-  const exportSession = async (sessionID: string) => {
-    try {
-      const data = await fetchSessionExport({
-        sessionID,
-        client: sdk().client,
-      })
-      const filename = sessionExportFilename(data.info)
-      downloadSessionExport(filename, data)
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("toast.session.export.success.title"),
-        description: language.t("toast.session.export.success.description", { filename }),
-      })
-    } catch (err) {
-      showToast({
-        variant: "error",
-        title: language.t("toast.session.export.failed.title"),
-        description: err instanceof Error ? err.message : language.t("toast.session.export.failed.description"),
-      })
-    }
-  }
-
-  const deleteSession = async (sessionID: string) => {
-    const session = sync().session.get(sessionID)
-    if (!session) return false
-
-    const sessions = (sync().data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
-    const index = sessions.findIndex((s) => s.id === sessionID)
-    const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
-
-    const result = await sdk()
-      .api.session.remove({ sessionID })
-      .then(() => true)
-      .catch((err) => {
-        showToast({
-          title: language.t("session.delete.failed.title"),
-          description: errorMessage(err),
-        })
-        return false
-      })
-
-    if (!result) return false
-
-    const removed = new Set<string>([sessionID])
-    const byParent = new Map<string, string[]>()
-    for (const item of sync().data.session) {
-      const parentID = item.parentID
-      if (!parentID) continue
-      const existing = byParent.get(parentID)
-      if (existing) {
-        existing.push(item.id)
-        continue
-      }
-      byParent.set(parentID, [item.id])
-    }
-
-    const stack = [sessionID]
-    while (stack.length) {
-      const parentID = stack.pop()
-      if (!parentID) continue
-
-      const children = byParent.get(parentID)
-      if (!children) continue
-
-      for (const child of children) {
-        if (removed.has(child)) continue
-        removed.add(child)
-        stack.push(child)
-      }
-    }
-
-    sessionArchive.navigateAfterRemoval(sessionID, session.parentID, nextSession?.id)
-
-    sync().set(
-      produce((draft) => {
-        draft.session = draft.session.filter((s) => !removed.has(s.id))
-      }),
-    )
-
-    for (const id of removed) {
-      sync().session.evict(id)
-    }
-    notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [...removed] })
-    return true
-  }
-
-  const navigateParent = () => {
-    const id = parentID()
-    if (!id) return
-    navigate(
-      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(sdk().directory, id),
-    )
-  }
 
   const workingTurn = (userMessageID: string) => sessionStatus().type !== "idle" && activeMessageID() === userMessageID
 
@@ -1408,9 +920,7 @@ export function MessageTimeline(props: {
                       }
                     >
                       <InlineInput
-                        ref={(el) => {
-                          titleRef = el
-                        }}
+                        ref={bindTitleRef}
                         data-slot="session-title-child"
                         value={title.draft}
                         disabled={titleMutation.isPending}
