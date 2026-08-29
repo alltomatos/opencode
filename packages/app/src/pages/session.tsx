@@ -3,9 +3,7 @@ import { getFilename } from "@opencode-ai/core/util/path"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useMutation, useQueryClient } from "@tanstack/solid-query"
 import {
-  ErrorBoundary,
   onCleanup,
-  Suspense,
   Show,
   Match,
   Switch,
@@ -23,15 +21,13 @@ import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLocal } from "@/context/local"
 import { FileProvider, useFile } from "@/context/file"
 import { createStore } from "solid-js/store"
-import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { createAutoScroll } from "@opencode-ai/ui/hooks"
 import { showToast } from "@/utils/toast"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
-import { NewSessionView, SessionHeader } from "@/components/session"
-import { BrowserPanelOverlay } from "@/components/browser-panel"
+import { NewSessionView } from "@/components/session"
 import { ErrorPage } from "@/pages/error"
 import { CommentsProvider, useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
@@ -64,12 +60,7 @@ import { MessageTimeline } from "@/pages/session/timeline/message-timeline"
 import { createTimelineModel } from "@/pages/session/timeline/model"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
-import { SESSION_PANEL_WIDTH_MIN } from "@/pages/session/session-panel-width"
-import { SessionSidePanel } from "@/pages/session/session-side-panel"
-import { SessionReviewV2SidebarToggle } from "@opencode-ai/session-ui/v2/session-review-v2"
 import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-state"
-import { TerminalPanel } from "@/pages/session/terminal-panel"
-import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
@@ -88,6 +79,7 @@ import { createPanelGeometry } from "./session/session-panel-geometry"
 import { createVcsReview, type ChangeMode } from "./session/session-vcs-review"
 import { createReviewDiffScroll } from "./session/session-review-diff-scroll"
 import { createReviewPanels } from "./session/session-review-panels"
+import { SessionPanelsLayout } from "./session/session-panels-layout"
 
 const sessionViewState = () => ({
   messageId: undefined as string | undefined,
@@ -1391,152 +1383,43 @@ export default function Page() {
   )
 
   return (
-    <SessionRouteFrame>
-      <SessionHeader />
-      <div
-        ref={bindPanelRow}
-        class="flex-1 min-h-0 flex flex-col md:flex-row"
-        classList={{
-          "gap-2 p-2": settings.general.newLayoutDesigns(),
-        }}
-      >
-        <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
-
-        <div
-          classList={{
-            "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none transition-[width]": true,
-            "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
-              !size.active() && !ui.reviewSnap && !desktopInlineTerminalOnlyOpen(),
-          }}
-          style={{
-            width: sessionPanelWidth(),
-          }}
-        >
-          {settings.general.newLayoutDesigns() ? (
-            <Show when={sessionPanelKey()} keyed>
-              {(_) => (
-                <SessionPanelFrame newLayout raised={!!params.id}>
-                  <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
-                </SessionPanelFrame>
-              )}
-            </Show>
-          ) : (
-            <SessionPanelFrame newLayout={false} raised={!!params.id}>
-              {sessionPanelContent()}
-            </SessionPanelFrame>
-          )}
-
-          <Show when={desktopSessionResizeOpen()}>
-            <div onPointerDown={() => size.start()}>
-              <ResizeHandle
-                classList={{
-                  "-end-1": settings.general.newLayoutDesigns(),
-                }}
-                direction="horizontal"
-                size={sessionPanelResizedWidth()}
-                min={SESSION_PANEL_WIDTH_MIN}
-                max={sessionPanelMax()}
-                onResize={(width) => {
-                  size.touch()
-                  layout.session.resize(width)
-                }}
-              />
-            </div>
-          </Show>
-        </div>
-
-        <Show when={!browserPanelStacked()}>
-          <BrowserPanelOverlay />
-        </Show>
-
-        <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
-          <Suspense>
-            <SessionSidePanel
-              canReview={canReview}
-              diffs={reviewDiffs}
-              diffsReady={reviewReady}
-              empty={reviewEmptyText}
-              hasReview={hasReview}
-              reviewHasFocusableContent={hasReview}
-              reviewCount={reviewCount}
-              reviewPanel={reviewPanel}
-              activeDiff={activeReviewFile()}
-              focusReviewDiff={focusReviewDiff}
-              reviewSnap={ui.reviewSnap}
-              size={size}
-            />
-          </Suspense>
-        </Show>
-        <Show when={newSessionDesign()}>
-          <Show when={terminalRegionOpen()}>
-            <div class="min-w-0 h-full flex flex-1 flex-col">
-              <Show when={browserPanelStacked()}>
-                <BrowserPanelOverlay stacked />
-              </Show>
-              <Show when={isDesktop() && (desktopV2ReviewOpen() || desktopFileTreeOpen())}>
-                <div class="min-h-0 flex-1">
-                  <Suspense>
-                    <SessionSidePanel
-                      canReview={canReview}
-                      diffs={reviewDiffs}
-                      diffsReady={reviewReady}
-                      empty={reviewEmptyText}
-                      hasReview={hasReview}
-                      reviewHasFocusableContent={() => hasReview() || reviewV2State.sidebarOpened()}
-                      reviewCount={reviewCount}
-                      reviewPanel={reviewPanelV2}
-                      reviewSidebarToggle={(disabled) => (
-                        <SessionReviewV2SidebarToggle
-                          opened={reviewV2State.sidebarOpened()}
-                          disabled={disabled}
-                          onToggle={reviewV2State.toggleSidebar}
-                        />
-                      )}
-                      fileBrowserState={reviewV2State}
-                      activeDiff={activeReviewFile()}
-                      focusReviewDiff={focusReviewDiff}
-                      reviewSnap={ui.reviewSnap}
-                      size={size}
-                      stacked={desktopV2PanelLayout().stacked}
-                    />
-                  </Suspense>
-                </div>
-              </Show>
-              <Show when={desktopV2PanelLayout().stacked}>
-                <div class="relative h-2 shrink-0" onPointerDown={() => size.start()}>
-                  <ResizeHandle
-                    class="!relative !inset-auto !h-full !w-full !transform-none"
-                    direction="vertical"
-                    size={layout.terminal.height()}
-                    min={100}
-                    max={typeof window === "undefined" ? 600 : window.innerHeight * 0.6}
-                    collapseThreshold={50}
-                    onResize={(height) => {
-                      size.touch()
-                      layout.terminal.resize(height)
-                    }}
-                    onCollapse={() => view().terminal.close()}
-                  />
-                </div>
-              </Show>
-              <Show when={terminalOpen()}>
-                <div
-                  classList={{
-                    "min-h-0 shrink-0": desktopV2PanelLayout().stacked,
-                    "min-h-0 flex-1": !desktopV2PanelLayout().stacked,
-                  }}
-                >
-                  <TerminalPanelV2 stacked={desktopV2PanelLayout().stacked} />
-                </div>
-              </Show>
-            </div>
-          </Show>
-        </Show>
-      </div>
-
-      <Show when={!newSessionDesign()}>
-        <TerminalPanel />
-      </Show>
-    </SessionRouteFrame>
+    <SessionPanelsLayout
+      bindPanelRow={bindPanelRow}
+      settings={settings}
+      isDesktop={isDesktop}
+      hasSessionID={!!params.id}
+      mobileTabs={mobileTabs}
+      size={size}
+      reviewSnap={ui.reviewSnap}
+      desktopInlineTerminalOnlyOpen={desktopInlineTerminalOnlyOpen}
+      sessionPanelWidth={sessionPanelWidth}
+      sessionPanelKey={sessionPanelKey}
+      sessionErrorFallback={sessionErrorFallback}
+      sessionPanelContent={sessionPanelContent}
+      desktopSessionResizeOpen={desktopSessionResizeOpen}
+      sessionPanelResizedWidth={sessionPanelResizedWidth}
+      sessionPanelMax={sessionPanelMax}
+      layout={layout}
+      browserPanelStacked={browserPanelStacked}
+      newSessionDesign={newSessionDesign}
+      desktopSidePanelOpen={desktopSidePanelOpen}
+      canReview={canReview}
+      reviewDiffs={reviewDiffs}
+      reviewReady={reviewReady}
+      reviewEmptyText={reviewEmptyText}
+      hasReview={hasReview}
+      reviewCount={reviewCount}
+      reviewPanel={reviewPanel}
+      reviewPanelV2={reviewPanelV2}
+      activeReviewFile={activeReviewFile}
+      focusReviewDiff={focusReviewDiff}
+      terminalRegionOpen={terminalRegionOpen}
+      desktopV2ReviewOpen={desktopV2ReviewOpen}
+      desktopFileTreeOpen={desktopFileTreeOpen}
+      reviewV2State={reviewV2State}
+      desktopV2PanelLayout={desktopV2PanelLayout}
+      terminalOpen={terminalOpen}
+      view={view}
+    />
   )
 }
