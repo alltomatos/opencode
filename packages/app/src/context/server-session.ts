@@ -23,6 +23,7 @@ import { dropSessionCaches, pickSessionCacheEvictions, SESSION_CACHE_LIMIT } fro
 import { createV2SessionReducer, type V2SessionReduction } from "./server-session-v2-reducer"
 import { createLegacyEventApplier } from "@/context/server-session-events"
 import { createMessageLoader } from "@/context/server-session-messages"
+import { createOptimisticUpdates } from "@/context/server-session-optimistic"
 import {
   cmp,
   legacyMessageSource,
@@ -206,64 +207,16 @@ export function createServerSession(
     return { session, root }
   }
 
-  const clearOptimistic = (sessionID: string, messageID?: string) => {
-    if (!messageID) {
-      optimistic.delete(sessionID)
-      return
-    }
-    const items = optimistic.get(sessionID)
-    if (!items) return
-    items.delete(messageID)
-    if (items.size === 0) optimistic.delete(sessionID)
-  }
-
-  const clearOptimisticPart = (sessionID: string, messageID: string, partID: string) => {
-    const items = optimistic.get(sessionID)
-    const item = items?.get(messageID)
-    if (!items || !item) return
-    const parts = item.parts.filter((part) => part.id !== partID)
-    const confirmedParts = item.confirmedParts?.filter((part) => part.id !== partID)
-    if (parts.length === 0) {
-      clearOptimistic(sessionID, messageID)
-      return
-    }
-    items.set(messageID, { ...item, parts, confirmedParts, confirmedMessage: true })
-  }
-
-  const confirmOptimisticPart = (sessionID: string, messageID: string, part: Part) => {
-    const items = optimistic.get(sessionID)
-    const item = items?.get(messageID)
-    if (!items || !item) return
-    const parts = item.parts.filter((value) => value.id !== part.id)
-    if (parts.length === 0) {
-      clearOptimistic(sessionID, messageID)
-      return
-    }
-    items.set(messageID, {
-      ...item,
-      parts,
-      confirmedParts: merge(item.confirmedParts ?? [], [part]),
-      confirmedMessage: true,
+  const { clearOptimistic, clearOptimisticPart, confirmOptimisticPart, confirmOptimistic, add, remove } =
+    createOptimisticUpdates({
+      data,
+      setData: setData as unknown as SetStoreFunction<Parameters<typeof createOptimisticUpdates>[0]["data"]>,
+      optimistic,
+      messageLoads,
+      removedMessages,
+      deltaBases,
+      deleteMessageParts,
     })
-  }
-
-  const confirmOptimistic = (sessionID: string, messageID: string, confirmedParts: Part[]) => {
-    const items = optimistic.get(sessionID)
-    const item = items?.get(messageID)
-    if (!items || !item) return
-    const confirmed = new Set(confirmedParts.map((part) => part.id))
-    const parts = item.parts.filter((part) => !confirmed.has(part.id))
-    if (parts.length === 0) {
-      clearOptimistic(sessionID, messageID)
-      return
-    }
-    items.set(messageID, {
-      ...item,
-      parts,
-      confirmedParts: merge(item.confirmedParts ?? [], confirmedParts),
-      confirmedMessage: true,
-    })
-  }
 
   const trackPartChange = (sessionID: string, messageID: string, partID: string) => {
     const load = messageLoads.get(sessionID)
@@ -534,65 +487,7 @@ export function createServerSession(
     fresh(sessionID: string, ttl: number) {
       return Date.now() - (meta.at[sessionID] ?? 0) <= ttl
     },
-    optimistic: {
-      add(input: { sessionID: string; message: Message; parts: Part[] }) {
-        const parts = input.parts
-          .filter((part) => !!part?.id && !SKIP_PARTS.has(part.type))
-          .sort((a, b) => cmp(a.id, b.id))
-        const load = messageLoads.get(input.sessionID)
-        if (load?.clearedMessageParts.has(input.message.id)) {
-          const touched = load.touchedParts.get(input.message.id) ?? new Set<string>()
-          parts.forEach((part) => touched.add(part.id))
-          load.touchedParts.set(input.message.id, touched)
-        }
-        if (load) {
-          load.removedMessages.delete(input.message.id)
-          load.optimisticParts.set(input.message.id, new Set(parts.map((part) => part.id)))
-        }
-        const items = optimistic.get(input.sessionID)
-        const removedMessagesForSession = removedMessages.get(input.sessionID)
-        removedMessagesForSession?.delete(input.message.id)
-        if (removedMessagesForSession?.size === 0) removedMessages.delete(input.sessionID)
-        if (items) items.set(input.message.id, { ...input, parts, confirmedParts: [] })
-        if (!items)
-          optimistic.set(input.sessionID, new Map([[input.message.id, { ...input, parts, confirmedParts: [] }]]))
-        setData("message", input.sessionID, (messages = []) => merge(messages, [input.message]).sort(compareMessages))
-        setData(
-          "part_text_accum_delta",
-          produce((draft) => {
-            for (const part of [...(data.part[input.message.id] ?? []), ...parts]) {
-              delete draft[part.id]
-              deltaBases.delete(part.id)
-            }
-          }),
-        )
-        setData("part", input.message.id, parts)
-      },
-      remove(input: { sessionID: string; messageID: string }) {
-        const item = optimistic.get(input.sessionID)?.get(input.messageID)
-        if (!item) return
-        messageLoads.get(input.sessionID)?.optimisticParts.delete(input.messageID)
-        clearOptimistic(input.sessionID, input.messageID)
-        if (item.confirmedMessage) {
-          const partIDs = new Set(item.parts.map((part) => part.id))
-          setData(
-            produce((draft) => {
-              for (const part of item.parts) {
-                delete draft.part_text_accum_delta[part.id]
-                deltaBases.delete(part.id)
-              }
-              const parts = draft.part[input.messageID]
-              if (!parts) return
-              draft.part[input.messageID] = parts.filter((part) => !partIDs.has(part.id))
-              if (draft.part[input.messageID]?.length === 0) delete draft.part[input.messageID]
-            }),
-          )
-          return
-        }
-        setData("message", input.sessionID, (messages) => messages?.filter((message) => message.id !== input.messageID))
-        setData(produce((draft) => deleteMessageParts(draft, input.messageID)))
-      },
-    },
+    optimistic: { add, remove },
     async todo(sessionID: string, request?: { force?: boolean }) {
       touch(sessionID)
       if (data.todo[sessionID] !== undefined && !request?.force) return
