@@ -36,7 +36,7 @@ export const TargetSessionRouteContent = () => {
     <TargetServerScopedProviders directory={directory} sessionID={() => params.id}>
       <TargetSessionSettingsCommand />
       <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)} padded>
-        <ResolvedTargetSessionRoute directory={directory} serverKey={requireServerKey(params.serverKey)} />
+        <ResolvedTargetSessionRoute sessionID={() => params.id} serverKey={requireServerKey(params.serverKey)} />
       </SessionRouteErrorBoundary>
     </TargetServerScopedProviders>
   )
@@ -113,12 +113,15 @@ export const SessionErrorFallback = (props: { error: unknown; sessionID?: string
   return <ErrorPage error={props.error} />
 }
 
-function ResolvedTargetSessionRoute(props: {
-  directory: () => string | undefined
-  serverKey: ServerConnection.Key
-}) {
+function ResolvedTargetSessionRoute(props: { sessionID: () => string; serverKey: ServerConnection.Key }) {
+  const serverSync = useServerSync()
+  // Read through the lineage (not a raw peek) so a session that resolves as
+  // deleted while viewed throws inside this boundary instead of the route
+  // silently rendering nothing (see session-lineage.ts).
+  const lineage = createSessionLineage(props.sessionID, () => serverSync().session.lineage)
+  const directory = createMemo(() => lineage()?.session.directory)
   return (
-    <Show when={props.directory()}>
+    <Show when={directory()}>
       {(directory) => (
         <SDKProvider directory={directory}>
           <DirectoryDataProvider directory={directory} server={() => props.serverKey}>
