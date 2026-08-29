@@ -42,6 +42,8 @@ test("session settings use the remote server context", async ({ page }) => {
   expect(permissionRequests.every((request) => new URL(request).origin === serverB)).toBe(true)
 
   await dialog.getByRole("tab", { name: "Models" }).click()
+  // Provider groups render collapsed by default; expand before asserting on a model row.
+  await dialog.getByRole("button", { name: "Server B Provider" }).click()
   await expect(dialog.getByRole("switch", { name: "Server B Model" })).toBeEnabled()
   await expect(dialog.getByRole("switch", { name: "Server A Model" })).toHaveCount(0)
 })
@@ -216,6 +218,8 @@ async function mockServers(page: Page, permissionRequests: string[], permissionR
     if (currentSessionInfo) return json(route, { data: currentSession(currentSessionInfo) })
     if (sessions.some((session) => url.pathname === `/api/session/${session.id}/message`))
       return json(route, { data: [], cursor: {} })
+    if (url.pathname === "/session") return json(route, sessions)
+    if (url.pathname === "/session/status") return json(route, {})
     const current = sessions.find((session) => url.pathname === `/session/${session.id}`)
     if (current) return json(route, current)
     if (/^\/session\/[^/]+$/.test(url.pathname)) return json(route, { name: "NotFoundError" }, 404)
