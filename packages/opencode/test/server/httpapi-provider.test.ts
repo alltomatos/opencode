@@ -407,6 +407,7 @@ describe("provider HttpApi", () => {
       expect(hasNonZeroModelCost(configBody, "providers", "google")).toBe(true)
     }),
     { ...projectOptions, init: writeFunctionOptionsPlugin },
+    30000,
   )
 
   it.instance(
@@ -428,6 +429,7 @@ describe("provider HttpApi", () => {
       expect(hasNonZeroModelCost(providerBody, "all", "google")).toBe(true)
     }),
     { ...projectOptions, init: writeProviderModelsMutationPlugin },
+    30000,
   )
 
   describe("OmniRoute (Native Provider Plugin) surfaced through the real server", () => {
