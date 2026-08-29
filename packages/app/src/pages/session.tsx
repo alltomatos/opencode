@@ -1,9 +1,8 @@
 import type { FilePart, Project, UserMessage, VcsFileDiff } from "@opencode-ai/sdk/v2"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { createQuery, skipToken, useMutation, useQueryClient } from "@tanstack/solid-query"
+import { useMutation, useQueryClient } from "@tanstack/solid-query"
 import {
-  batch,
   ErrorBoundary,
   onCleanup,
   Suspense,
@@ -20,27 +19,23 @@ import {
   untrack,
 } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { createMediaQuery } from "@solid-primitives/media"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
-import { debounce } from "@solid-primitives/scheduled"
 import { useLocal } from "@/context/local"
-import { FileProvider, selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
+import { FileProvider, useFile } from "@/context/file"
 import { createStore } from "solid-js/store"
 import type { SessionReviewLineComment } from "@opencode-ai/session-ui/session-review"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Select } from "@opencode-ai/ui/select"
 import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
-import { isScrollKeyTarget, scrollKey, scrollKeyOwner } from "@opencode-ai/ui/scroll-view"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { createAutoScroll } from "@opencode-ai/ui/hooks"
-import { previewSelectedLines } from "@opencode-ai/session-ui/pierre/selection-bridge"
 import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@/utils/toast"
-import { base64Encode, checksum } from "@opencode-ai/core/util/encode"
+import { base64Encode } from "@opencode-ai/core/util/encode"
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
-import { BrowserPanelOverlay, isBrowserPanelAvailable, isBrowserPanelOpen } from "@/components/browser-panel"
+import { BrowserPanelOverlay } from "@/components/browser-panel"
 import { ErrorPage } from "@/pages/error"
 import { CommentsProvider, useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
@@ -62,41 +57,30 @@ import { TerminalProvider, useTerminal } from "@/context/terminal"
 import { PromptInput } from "@/components/prompt-input"
 import { PromptInputV2Composer, usePromptInputV2Controller } from "@/components/prompt-input-v2"
 import { useSettingsCommand } from "@/components/settings-dialog"
-import { setCursorPosition } from "@/components/prompt-input/editor-dom"
-import { promptLength } from "@/components/prompt-input/history"
-import { type FollowupDraft, sendFollowupDraft } from "@/components/prompt-input/submit"
 import {
   createPromptInputController,
   createSessionComposerController,
   createSessionComposerRegionController,
   SessionComposerRegion,
 } from "@/pages/session/composer"
-import { createOpenReviewFile, createSessionTabs, createSizing, shouldShowFileTree } from "@/pages/session/helpers"
+import { createOpenReviewFile, createSessionTabs } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/timeline/message-timeline"
 import { createTimelineModel } from "@/pages/session/timeline/model"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
-import {
-  clampSessionPanelWidth,
-  SESSION_PANEL_WIDTH_MIN,
-  sessionPanelWidthMax,
-} from "@/pages/session/session-panel-width"
+import { SESSION_PANEL_WIDTH_MIN } from "@/pages/session/session-panel-width"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
-import { sessionPanelLayout } from "@/pages/session/session-panel-layout"
 import { SessionReviewEmptyChangesV2 } from "@opencode-ai/session-ui/v2/session-review-empty-changes-v2"
 import { SessionReviewEmptyNoGitV2 } from "@opencode-ai/session-ui/v2/session-review-empty-no-git-v2"
 import { SessionReviewV2SidebarToggle } from "@opencode-ai/session-ui/v2/session-review-v2"
 import { ReviewPanelV2 } from "@/pages/session/v2/review-panel-v2"
 import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-state"
-import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@/pages/session/v2/review-diff-kinds"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
-import { Identifier } from "@/utils/id"
-import { diffs as list } from "@/utils/diffs"
 import { Persist, persisted } from "@/utils/persist"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { formatServerError } from "@/utils/server-errors"
@@ -104,41 +88,18 @@ import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/sessio
 import { useUsageExceededDialogs } from "./session/usage-exceeded-dialogs"
 import { createSessionOwnership } from "./session/session-ownership"
 import { createSessionLineage } from "./session/session-lineage"
-
-type FollowupItem = FollowupDraft & { id: string }
-type FollowupEdit = Pick<FollowupItem, "id" | "prompt" | "context">
-const emptyFollowups: FollowupItem[] = []
-
-type ChangeMode = "git" | "branch" | "turn"
-type VcsMode = "git" | "branch"
+import { createRevertRestore } from "./session/session-revert-restore"
+import { createFollowupQueue, type FollowupItem, type FollowupEdit } from "./session/session-followup-queue"
+import { createReviewComments } from "./session/session-review-comments"
+import { createGlobalKeydownHandler } from "./session/session-global-keydown"
+import { createPanelGeometry } from "./session/session-panel-geometry"
+import { createVcsReview, type ChangeMode } from "./session/session-vcs-review"
+import { createReviewDiffScroll } from "./session/session-review-diff-scroll"
 
 const sessionViewState = () => ({
   messageId: undefined as string | undefined,
   mobileTab: "session" as "session" | "changes",
 })
-
-async function runPromptRollbackMutation<T, R>(input: {
-  capturePrompt: () => { current: () => T[]; set: (value: T[]) => void; reset: () => void }
-  optimistic: (prompt: { set: (value: T[]) => void; reset: () => void }) => void
-  request: () => Promise<R>
-  complete: (result: R) => void
-  rollback: () => void
-  fail: (error: unknown) => void
-}) {
-  const prompt = input.capturePrompt()
-  const previous = prompt.current().slice()
-  batch(() => input.optimistic(prompt))
-  await input
-    .request()
-    .then(input.complete)
-    .catch((error) => {
-      batch(() => {
-        input.rollback()
-        prompt.set(previous)
-      })
-      input.fail(error)
-    })
-}
 
 import {
   TargetSessionRouteContent,
@@ -263,75 +224,36 @@ export default function Page() {
     ),
   )
 
-  const isDesktop = createMediaQuery("(min-width: 768px)")
-  const size = createSizing()
-  const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
-  const desktopV2ReviewOpen = createMemo(() => newSessionDesign() && desktopReviewOpen() && !!params.id)
-  const terminalOpen = createMemo(() => view().terminal.opened())
-  const desktopTerminalOpen = createMemo(() => isDesktop() && terminalOpen())
-  const desktopInlineTerminalOnlyOpen = createMemo(
-    () => newSessionDesign() && desktopTerminalOpen() && !desktopV2ReviewOpen(),
-  )
-  const desktopFileTreeOpen = createMemo(
-    () =>
-      isDesktop() &&
-      shouldShowFileTree({
-        visible: settings.visibility.fileTree(),
-        opened: layout.fileTree.opened(),
-      }),
-  )
-  const desktopSessionResizeOpen = createMemo(() =>
-    newSessionDesign() ? desktopV2ReviewOpen() || desktopTerminalOpen() : desktopReviewOpen(),
-  )
-  const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
-  let panelRow: HTMLDivElement | undefined
-  const [panelRowWidth, setPanelRowWidth] = createSignal<number>()
-  createResizeObserver(
-    () => panelRow,
-    ({ width }) => setPanelRowWidth(width),
-  )
-  const splitReview = createMemo(
-    () => (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()) && layout.review.diffStyle() === "split",
-  )
-  // The observer reports the content-box width, which already excludes the row
-  // padding; only the flex gap between the panels remains to subtract.
-  const sessionPanelAvailable = createMemo(() => {
-    const width = panelRowWidth()
-    if (width === undefined) return undefined
-    return width - (settings.general.newLayoutDesigns() ? 8 : 0)
+  const {
+    isDesktop,
+    size,
+    desktopReviewOpen,
+    desktopV2ReviewOpen,
+    terminalOpen,
+    desktopTerminalOpen,
+    desktopInlineTerminalOnlyOpen,
+    desktopFileTreeOpen,
+    desktopSessionResizeOpen,
+    desktopSidePanelOpen,
+    bindPanelRow,
+    splitReview,
+    sessionPanelAvailable,
+    sessionPanelMax,
+    sessionPanelResizedWidth,
+    sessionPanelWidth,
+    centered,
+    desktopV2PanelLayout,
+    browserPanelOpen,
+    terminalRegionOpen,
+    browserPanelStacked,
+    openReviewPanel,
+  } = createPanelGeometry({
+    view,
+    newSessionDesign,
+    settings,
+    layout,
+    sessionID: () => params.id,
   })
-  const sessionPanelMax = createMemo(() => {
-    const available = sessionPanelAvailable()
-    if (available === undefined) return 1000
-    return sessionPanelWidthMax({ available, split: splitReview() })
-  })
-  // Clamp at render time so window or sidebar resizes squeeze the chat panel
-  // instead of the review pane, without overwriting the persisted width.
-  const sessionPanelResizedWidth = createMemo(() =>
-    clampSessionPanelWidth({
-      width: layout.session.width(),
-      available: sessionPanelAvailable(),
-      split: splitReview(),
-    }),
-  )
-  const sessionPanelWidth = createMemo(() => {
-    if (!desktopSidePanelOpen()) return "100%"
-    if (desktopSessionResizeOpen()) return `${sessionPanelResizedWidth()}px`
-    return `calc(100% - ${layout.fileTree.width()}px)`
-  })
-  const centered = createMemo(() => isDesktop() && (newSessionDesign() || !desktopReviewOpen()))
-  const desktopV2PanelLayout = createMemo(() =>
-    sessionPanelLayout({
-      review: desktopV2ReviewOpen(),
-      terminal: desktopTerminalOpen(),
-      files: desktopFileTreeOpen(),
-    }),
-  )
-  const browserPanelOpen = createMemo(() => isBrowserPanelAvailable() && isBrowserPanelOpen())
-  const terminalRegionOpen = createMemo(
-    () => newSessionDesign() && (isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()),
-  )
-  const browserPanelStacked = createMemo(() => browserPanelOpen() && terminalRegionOpen())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
@@ -348,10 +270,6 @@ export default function Page() {
       next.push(value)
     }
     return next
-  }
-
-  const openReviewPanel = () => {
-    if (!view().reviewPanel.opened()) view().reviewPanel.open()
   }
 
   const info = createMemo(() => (params.id ? sync().session.get(params.id) : undefined))
@@ -472,119 +390,39 @@ export default function Page() {
     return open
   }, desktopReviewOpen())
 
-  const turnDiffs = createMemo(() => list(lastUserMessage()?.summary?.diffs))
-  const nogit = createMemo(() => {
-    const project = sync().project
-    return !!project && project.vcs !== "git"
+  const {
+    turnDiffs,
+    nogit,
+    changesOptions,
+    mobileChanges,
+    wantsReview,
+    vcsMode,
+    vcsKey,
+    vcsQuery,
+    refreshVcs,
+    reviewDiffs,
+    activeReviewFile,
+    reviewCount,
+    hasReview,
+    reviewReady,
+    loadReviewDiff,
+    stopVcs,
+  } = createVcsReview({
+    sync,
+    sdk,
+    serverSDK,
+    queryClient,
+    isDesktop,
+    desktopFileTreeOpen,
+    desktopReviewOpen,
+    newSessionDesign,
+    activeTab,
+    activeFileTab,
+    mobileTab: () => store.mobileTab,
+    reviewMode,
+    reviewFile,
+    lastUserMessage,
   })
-  const changesOptions = createMemo<ChangeMode[]>(() => {
-    const list: ChangeMode[] = []
-    const project = sync().project
-    const vcs = sync().data.vcs
-    if (project?.vcs === "git") list.push("git")
-    if (project?.vcs === "git" && vcs?.branch && vcs?.default_branch && vcs.branch !== vcs.default_branch) {
-      list.push("branch")
-    }
-    list.push("turn")
-    return list
-  })
-  const mobileChanges = createMemo(() => !isDesktop() && store.mobileTab === "changes")
-  const wantsReview = createMemo(() =>
-    isDesktop()
-      ? desktopFileTreeOpen() ||
-        (desktopReviewOpen() && (activeTab() === "review" || (newSessionDesign() && !!activeFileTab())))
-      : store.mobileTab === "changes",
-  )
-  const vcsMode = createMemo<VcsMode | undefined>(() => {
-    const mode = reviewMode()
-    if (mode === "git" || mode === "branch") return mode
-  })
-  const vcsKey = createMemo(
-    () =>
-      ["session-vcs", sdk().directory, sync().data.vcs?.branch ?? "", sync().data.vcs?.default_branch ?? ""] as const,
-  )
-  const vcsQuery = createQuery(() => {
-    const mode = vcsMode()
-    const enabled = wantsReview() && sync().project?.vcs === "git"
-
-    return {
-      queryKey: [...vcsKey(), mode] as const,
-      enabled,
-      queryFn: mode
-        ? () =>
-            sdk()
-              .api.vcs.diff({ location: { directory: sdk().directory }, mode: mode === "git" ? "working" : mode })
-              .then((result) => result.data)
-              .catch((error) => {
-                console.debug("[session-review] failed to load vcs diff", { mode, error })
-                return []
-              })
-        : skipToken,
-    }
-  })
-  const refreshVcs = debounce(() => void queryClient.invalidateQueries({ queryKey: vcsKey() }), 100)
-  const reviewDiffs = () => {
-    if (reviewMode() === "git" || reviewMode() === "branch")
-      // avoids suspense
-      return vcsQuery.isFetched ? (vcsQuery.data ?? []) : []
-    return turnDiffs()
-  }
-  const activeReviewFile = () => {
-    const diffs = reviewDiffs()
-    const selected = reviewFile()
-    if (selected && diffs.some((diff) => diff.file === selected)) return selected
-    return diffs[0]?.file
-  }
-  const reviewCount = () => reviewDiffs().length
-  const hasReview = () => reviewCount() > 0
-  const reviewReady = () => {
-    if (reviewMode() === "git" || reviewMode() === "branch") return !vcsQuery.isPending
-    return true
-  }
-  const loadReviewDiff = async (file: string, version?: number): Promise<VcsFileDiff | undefined> => {
-    const mode = vcsMode()
-    if (!mode) return
-    const root = reviewRootDirectory(sync().project?.worktree ?? sdk().directory)
-    const directory = reviewDiffDirectory(root, file)
-    const source = reviewDiffs().find((diff) => diff.file === file)
-    const valid = (diff: VcsFileDiff | undefined) => {
-      if (!diff || !source) return
-      if (diff.additions !== source.additions || diff.deletions !== source.deletions) return
-      if (reviewDiffNeedsLoad(diff)) return
-      return diff
-    }
-    const request = (scope: string, context?: number) =>
-      queryClient
-        .fetchQuery({
-          queryKey: [serverSDK().scope, ...vcsKey(), mode, "directory", scope, context, version] as const,
-          staleTime: Number.POSITIVE_INFINITY,
-          retry: 2,
-          queryFn: () =>
-            sdk()
-              .api.vcs.diff({
-                location: { directory: scope },
-                mode: mode === "git" ? "working" : mode,
-                context,
-              })
-              .then((result) => result.data),
-        })
-        .then((diffs) => diffs.find((diff) => diff.file === file))
-
-    if (directory !== root) {
-      try {
-        const scoped = valid(await request(directory))
-        if (scoped) return scoped
-      } catch (error) {
-        console.debug("[session-review] failed to load scoped vcs diff", { mode, file, directory, error })
-      }
-    }
-    try {
-      const bounded = valid(await request(root, 3))
-      if (bounded) return bounded
-    } catch (error) {
-      console.debug("[session-review] failed to load bounded vcs diff", { mode, file, root, error })
-    }
-  }
 
   const newSessionWorktree = createMemo(() => {
     if (store.newSessionWorktree === "create") return "create"
@@ -772,17 +610,6 @@ export default function Page() {
     ),
   )
 
-  const stopVcs = sdk().event.listen((evt) => {
-    const details = evt.details as { type: string; properties?: unknown }
-    if (details.type !== "file.watcher.updated" && details.type !== "filesystem.changed") return
-    const props =
-      typeof details.properties === "object" && details.properties
-        ? (details.properties as Record<string, unknown>)
-        : undefined
-    const file = typeof props?.file === "string" ? props.file : undefined
-    if (!file || file.startsWith(".git/")) return
-    refreshVcs()
-  })
   onCleanup(stopVcs)
 
   createEffect(
@@ -796,114 +623,18 @@ export default function Page() {
     ),
   )
 
-  const selectionPreview = (path: string, selection: FileSelection) => {
-    const content = file.get(path)?.content?.content
-    if (!content) return undefined
-    return previewSelectedLines(content, { start: selection.startLine, end: selection.endLine })
-  }
+  const { selectionPreview, addCommentToContext, updateCommentInContext, removeCommentFromContext, reviewCommentActions } =
+    createReviewComments({ file, comments, prompt, language })
 
-  const addCommentToContext = (input: {
-    file: string
-    selection: SelectedLineRange
-    comment: string
-    preview?: string
-    origin?: "review" | "file"
-  }) => {
-    const selection = selectionFromLines(input.selection)
-    const preview = input.preview ?? selectionPreview(input.file, selection)
-    const saved = comments.add({
-      file: input.file,
-      selection: input.selection,
-      comment: input.comment,
-    })
-    prompt.context.add({
-      type: "file",
-      path: input.file,
-      selection,
-      comment: input.comment,
-      commentID: saved.id,
-      commentOrigin: input.origin,
-      preview,
-    })
-  }
-
-  const updateCommentInContext = (input: {
-    id: string
-    file: string
-    selection: SelectedLineRange
-    comment: string
-    preview?: string
-  }) => {
-    comments.update(input.file, input.id, input.comment)
-    prompt.context.updateComment(input.file, input.id, {
-      comment: input.comment,
-      ...(input.preview ? { preview: input.preview } : {}),
-    })
-  }
-
-  const removeCommentFromContext = (input: { id: string; file: string }) => {
-    comments.remove(input.file, input.id)
-    prompt.context.removeComment(input.file, input.id)
-  }
-
-  const reviewCommentActions = createMemo(() => ({
-    moreLabel: language.t("common.moreOptions"),
-    editLabel: language.t("common.edit"),
-    deleteLabel: language.t("common.delete"),
-    saveLabel: language.t("common.save"),
-  }))
-
-  const isEditableTarget = (target: EventTarget | null | undefined) => {
-    if (!(target instanceof HTMLElement)) return false
-    return /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName) || target.isContentEditable
-  }
-
-  const deepActiveElement = () => {
-    let current: Element | null = document.activeElement
-    while (current instanceof HTMLElement && current.shadowRoot?.activeElement) {
-      current = current.shadowRoot.activeElement
-    }
-    return current instanceof HTMLElement ? current : undefined
-  }
-
-  const handleKeyDown = (event: KeyboardEvent) => {
-    const path = event.composedPath()
-    const target = path.find((item): item is HTMLElement => item instanceof HTMLElement)
-    const activeElement = deepActiveElement()
-
-    const protectedTarget = path.some(
-      (item) => item instanceof HTMLElement && item.closest("[data-prevent-autofocus]") !== null,
-    )
-    if (protectedTarget || isEditableTarget(target)) return
-
-    if (activeElement) {
-      const isProtected = activeElement.closest("[data-prevent-autofocus]")
-      const isInput = isEditableTarget(activeElement)
-      if (isProtected || isInput) return
-    }
-    if (dialog.active) return
-
-    if (activeElement === inputRef) {
-      if (event.key === "Escape") inputRef?.blur()
-      return
-    }
-
-    const key = scrollKey(event)
-    if (key) {
-      if (!scroller || !isScrollKeyTarget(target ?? null, key)) return
-      if (scrollKeyOwner(scroller, target ?? null, key) !== scroller) return
-      markScrollGesture(scroller)
-      return
-    }
-
-    if (event.key.length === 1 && event.key !== "Unidentified" && !(event.ctrlKey || event.metaKey)) {
-      if (composer.blocked() || isChildSession()) return
-      const input = inputRef
-      if (!input) return
-      input.focus()
-      setCursorPosition(input, prompt.cursor() ?? promptLength(prompt.current()))
-    }
-  }
+  const handleKeyDown = createGlobalKeydownHandler({
+    inputRef: () => inputRef,
+    scroller: () => scroller,
+    markScrollGesture,
+    dialogActive: () => dialog.active,
+    composerBlocked: () => composer.blocked(),
+    isChildSession,
+    prompt,
+  })
 
   createEffect(() => {
     if (!layout.ready()) return
@@ -1210,86 +941,12 @@ export default function Page() {
     ),
   )
 
-  const reviewDiffId = (path: string) => {
-    const sum = checksum(path)
-    if (!sum) return
-    return `session-review-diff-${sum}`
-  }
-
-  const reviewDiffTop = (path: string) => {
-    const root = tree.reviewScroll
-    if (!root) return
-
-    const id = reviewDiffId(path)
-    if (!id) return
-
-    const el = document.getElementById(id)
-    if (!(el instanceof HTMLElement)) return
-    if (!root.contains(el)) return
-
-    const a = el.getBoundingClientRect()
-    const b = root.getBoundingClientRect()
-    return a.top - b.top + root.scrollTop
-  }
-
-  const scrollToReviewDiff = (path: string) => {
-    const root = tree.reviewScroll
-    if (!root) return false
-
-    const top = reviewDiffTop(path)
-    if (top === undefined) return false
-
-    view().setScroll("review", { x: root.scrollLeft, y: top })
-    root.scrollTo({ top, behavior: "auto" })
-    return true
-  }
-
-  const focusReviewDiff = (path: string) => {
-    openReviewPanel()
-    view().review.openPath(path)
-    view().review.setFile(path)
-    setTree("pendingDiff", path)
-  }
-
-  createEffect(() => {
-    const pending = tree.pendingDiff
-    if (!pending) return
-    if (!tree.reviewScroll) return
-    if (!reviewReady()) return
-
-    const attempt = (count: number) => {
-      if (tree.pendingDiff !== pending) return
-      if (count > 60) {
-        setTree("pendingDiff", undefined)
-        return
-      }
-
-      const root = tree.reviewScroll
-      if (!root) {
-        requestAnimationFrame(() => attempt(count + 1))
-        return
-      }
-
-      if (!scrollToReviewDiff(pending)) {
-        requestAnimationFrame(() => attempt(count + 1))
-        return
-      }
-
-      const top = reviewDiffTop(pending)
-      if (top === undefined) {
-        requestAnimationFrame(() => attempt(count + 1))
-        return
-      }
-
-      if (Math.abs(root.scrollTop - top) <= 1) {
-        setTree("pendingDiff", undefined)
-        return
-      }
-
-      requestAnimationFrame(() => attempt(count + 1))
-    }
-
-    requestAnimationFrame(() => attempt(0))
+  const { reviewDiffId, reviewDiffTop, scrollToReviewDiff, focusReviewDiff } = createReviewDiffScroll({
+    tree,
+    setTree,
+    view,
+    openReviewPanel,
+    reviewReady,
   })
 
   let treeDir: string | undefined
@@ -1525,202 +1182,46 @@ export default function Page() {
 
   const busy = (sessionID: string) => sync().data.session_working(sessionID)
 
-  const queuedFollowups = createMemo(() => {
-    const id = params.id
-    if (!id) return emptyFollowups
-    return followup.items[id] ?? emptyFollowups
+  const {
+    queuedFollowups,
+    editingFollowup,
+    followupMutation,
+    followupBusy,
+    sendingFollowup,
+    queueEnabled,
+    followupText,
+    queueFollowup,
+    followupDock,
+    sendFollowup,
+    editFollowup,
+    clearFollowupEdit,
+  } = createFollowupQueue({
+    sessionID: () => params.id,
+    followup,
+    setFollowup,
+    sessionOwnership,
+    sdk,
+    sync,
+    serverSync,
+    language,
+    fail,
+    resumeScroll,
+    followupQueueEnabled: () => settings.general.followup() === "queue",
+    busy,
+    composerBlocked: () => composer.blocked(),
+    isChildSession,
   })
 
-  const editingFollowup = createMemo(() => {
-    const id = params.id
-    if (!id) return
-    return followup.edit[id]
-  })
-
-  const followupMutation = useMutation(() => ({
-    mutationFn: async (input: { sessionID: string; id: string; manual?: boolean }) => {
-      const owner = sessionOwnership.capture()
-      const item = (followup.items[input.sessionID] ?? []).find((entry) => entry.id === input.id)
-      if (!item) return
-
-      if (input.manual) setFollowup("paused", input.sessionID, undefined)
-      setFollowup("failed", input.sessionID, undefined)
-
-      const ok = await sendFollowupDraft({
-        api: sdk().api.session,
-        sync: sync(),
-        serverSync: serverSync(),
-        draft: item,
-        optimisticBusy: item.sessionDirectory === sdk().directory,
-      }).catch((err) => {
-        setFollowup("failed", input.sessionID, input.id)
-        fail(err)
-        return false
-      })
-      if (!ok) return
-
-      setFollowup("items", input.sessionID, (items) => (items ?? []).filter((entry) => entry.id !== input.id))
-      if (input.manual) owner.run(resumeScroll)
-    },
-  }))
-
-  const followupBusy = (sessionID: string) =>
-    followupMutation.isPending && followupMutation.variables?.sessionID === sessionID
-
-  const sendingFollowup = createMemo(() => {
-    const id = params.id
-    if (!id) return
-    if (!followupBusy(id)) return
-    return followupMutation.variables?.id
-  })
-
-  const queueEnabled = createMemo(() => {
-    const id = params.id
-    if (!id) return false
-    return settings.general.followup() === "queue" && busy(id) && !composer.blocked() && !isChildSession()
-  })
-
-  const followupText = (item: FollowupDraft) => {
-    const text = item.prompt
-      .map((part) => {
-        if (part.type === "image") return `[image:${part.filename}]`
-        if (part.type === "file") return `[file:${part.path}]`
-        if (part.type === "agent") return `@${part.name}`
-        return part.content
-      })
-      .join("")
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => !!line)
-
-    if (text) return text
-    return `[${language.t("common.attachment")}]`
-  }
-
-  const queueFollowup = (draft: FollowupDraft) => {
-    setFollowup("items", draft.sessionID, (items) => [
-      ...(items ?? []),
-      { id: Identifier.ascending("message"), ...draft },
-    ])
-    setFollowup("failed", draft.sessionID, undefined)
-    setFollowup("paused", draft.sessionID, undefined)
-  }
-
-  const followupDock = createMemo(() => queuedFollowups().map((item) => ({ id: item.id, text: followupText(item) })))
-
-  const sendFollowup = (sessionID: string, id: string, opts?: { manual?: boolean }) => {
-    if (sync().session.get(sessionID)?.parentID) return Promise.resolve()
-    const item = (followup.items[sessionID] ?? []).find((entry) => entry.id === id)
-    if (!item) return Promise.resolve()
-    if (followupBusy(sessionID)) return Promise.resolve()
-
-    return followupMutation.mutateAsync({ sessionID, id, manual: opts?.manual })
-  }
-
-  const editFollowup = (id: string) => {
-    const sessionID = params.id
-    if (!sessionID) return
-    if (followupBusy(sessionID)) return
-
-    const item = queuedFollowups().find((entry) => entry.id === id)
-    if (!item) return
-
-    setFollowup("items", sessionID, (items) => (items ?? []).filter((entry) => entry.id !== id))
-    setFollowup("failed", sessionID, (value) => (value === id ? undefined : value))
-    setFollowup("edit", sessionID, {
-      id: item.id,
-      prompt: item.prompt,
-      context: item.context,
-    })
-  }
-
-  const clearFollowupEdit = () => {
-    const id = params.id
-    if (!id) return
-    setFollowup("edit", id, undefined)
-  }
-
-  const halt = (sessionID: string) =>
-    busy(sessionID)
-      ? sdk()
-          .api.session.interrupt({ sessionID })
-          .catch(() => {})
-      : Promise.resolve()
-
-  const revertMutation = useMutation(() => ({
-    mutationFn: async (input: { sessionID: string; messageID: string }) => {
-      const session = sdk().api.session
-      const target = sync()
-      const last = target.session.get(input.sessionID)?.revert
-      const value = draft(input.messageID)
-      await runPromptRollbackMutation({
-        capturePrompt: prompt.capture,
-        optimistic: (prompt) => {
-          roll(input.sessionID, { messageID: input.messageID }, target)
-          prompt.set(value)
-        },
-        request: () => halt(input.sessionID).then(() => session.revert.stage(input)),
-        complete: () => undefined,
-        rollback: () => roll(input.sessionID, last, target),
-        fail,
-      })
-    },
-  }))
-
-  const restoreMutation = useMutation(() => ({
-    mutationFn: async (id: string) => {
-      const sessionID = params.id
-      if (!sessionID) return
-
-      const session = sdk().api.session
-      const target = sync()
-      const index = userMessages().findIndex((item) => item.id === id)
-      if (index < 0) return
-      const next = userMessages()[index + 1]
-      const last = target.session.get(sessionID)?.revert
-
-      await runPromptRollbackMutation({
-        capturePrompt: prompt.capture,
-        optimistic: (promptSession) => {
-          roll(sessionID, next ? { messageID: next.id } : undefined, target)
-          if (next) {
-            promptSession.set(draft(next.id))
-            return
-          }
-          promptSession.reset()
-        },
-        request: () =>
-          !next
-            ? halt(sessionID).then(() => session.revert.clear({ sessionID }))
-            : halt(sessionID).then(() => session.revert.stage({ sessionID, messageID: next.id }).then(() => undefined)),
-        complete: () => undefined,
-        rollback: () => roll(sessionID, last, target),
-        fail,
-      })
-    },
-  }))
-
-  const reverting = createMemo(() => revertMutation.isPending || restoreMutation.isPending)
-  const restoring = createMemo(() => (restoreMutation.isPending ? restoreMutation.variables : undefined))
-
-  const revert = (input: { sessionID: string; messageID: string }) => {
-    if (reverting()) return
-    return revertMutation.mutateAsync(input)
-  }
-
-  const restore = (id: string) => {
-    if (!params.id || reverting()) return
-    return restoreMutation.mutateAsync(id)
-  }
-
-  const rolled = createMemo(() => {
-    const id = revertMessageID()
-    if (!id) return []
-    const index = userMessages().findIndex((item) => item.id === id)
-    if (index < 0) return []
-    return userMessages()
-      .slice(index)
-      .map((item) => ({ id: item.id, text: line(item.id) }))
+  const { revertMutation, restoreMutation, reverting, restoring, revert, restore, rolled } = createRevertRestore({
+    sessionID: () => params.id,
+    sync,
+    sdk,
+    prompt,
+    userMessages,
+    revertMessageID,
+    draft,
+    line,
+    fail,
   })
 
   // attachment bytes are embedded as a data URL, so downloading always works;
@@ -2083,7 +1584,7 @@ export default function Page() {
     <SessionRouteFrame>
       <SessionHeader />
       <div
-        ref={panelRow}
+        ref={bindPanelRow}
         class="flex-1 min-h-0 flex flex-col md:flex-row"
         classList={{
           "gap-2 p-2": settings.general.newLayoutDesigns(),
