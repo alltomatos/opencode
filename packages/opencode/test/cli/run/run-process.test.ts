@@ -67,22 +67,25 @@ describe("opencode run (non-interactive subprocess)", () => {
   // makes the SDK call surface an error promptly so the process exits nonzero.
   // We assert nonzero exit AND wall-clock under the harness timeout — a hang
   // would expire the timeout and produce a different (signal-killed) failure.
-  // The bound is generous (45s) rather than tight to the ~13s observed
+  // The bound is generous (25s) rather than tight to the ~13s observed
   // locally: bun's transpile + plugin init dominates startup time and varies
-  // a lot under CI load, so a tight bound flakes without indicating a real
+  // under CI load, so a tight bound flakes without indicating a real
   // regression (a genuine hang would still expire this and fail loudly).
+  // Kept well under 30s (rather than 45s+) so this .concurrent test doesn't
+  // hog the shared runner long enough to push sibling concurrent tests in
+  // this file past their own timeouts.
   cliIt.concurrent(
     "exits nonzero promptly when the model is unknown (regression for #27371)",
     ({ opencode }) =>
       Effect.gen(function* () {
         const result = yield* opencode.run("say hi", {
           model: "test/nonexistent-model",
-          timeoutMs: 45_000,
+          timeoutMs: 25_000,
         })
         expect(result.exitCode).not.toBe(0)
-        expect(result.durationMs).toBeLessThan(45_000)
+        expect(result.durationMs).toBeLessThan(25_000)
       }),
-    60_000,
+    40_000,
   )
 
   // The test provider's SSE error item is interpreted by the SDK as an unknown
