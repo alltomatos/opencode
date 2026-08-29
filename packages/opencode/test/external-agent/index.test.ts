@@ -8,20 +8,24 @@ const layer = LayerNode.compile(LayerNode.group([ExternalAgent.node]))
 const it = testEffect(layer)
 
 describe("ExternalAgent.Service", () => {
-  it.effect("spawns a command, captures its output, and goes idle", () =>
-    Effect.gen(function* () {
-      const externalAgent = yield* ExternalAgent.Service
-      const handle = yield* externalAgent.spawn({
-        command: "bun",
-        args: ["-e", "process.stdout.write('external-worker-ok')"],
-        cwd: process.cwd(),
-      })
+  // node-pty spawn is unreliable on GitHub's Windows runners (fails before
+  // any output is captured) — same constraint as httpapi-pty.test.ts.
+  ;(process.platform === "win32" ? it.effect.skip : it.effect)(
+    "spawns a command, captures its output, and goes idle",
+    () =>
+      Effect.gen(function* () {
+        const externalAgent = yield* ExternalAgent.Service
+        const handle = yield* externalAgent.spawn({
+          command: "bun",
+          args: ["-e", "process.stdout.write('external-worker-ok')"],
+          cwd: process.cwd(),
+        })
 
-      const output = yield* externalAgent.waitIdle(handle, { idleMs: 1_500, timeoutMs: 15_000 })
-      expect(output).toContain("external-worker-ok")
+        const output = yield* externalAgent.waitIdle(handle, { idleMs: 1_500, timeoutMs: 15_000 })
+        expect(output).toContain("external-worker-ok")
 
-      yield* externalAgent.kill(handle)
-    }),
+        yield* externalAgent.kill(handle)
+      }),
     20_000,
   )
 
