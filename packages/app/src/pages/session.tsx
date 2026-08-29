@@ -3,9 +3,7 @@ import { getFilename } from "@opencode-ai/core/util/path"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useMutation, useQueryClient } from "@tanstack/solid-query"
 import {
-  ErrorBoundary,
   onCleanup,
-  Suspense,
   Show,
   Match,
   Switch,
@@ -23,19 +21,13 @@ import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLocal } from "@/context/local"
 import { FileProvider, useFile } from "@/context/file"
 import { createStore } from "solid-js/store"
-import type { SessionReviewLineComment } from "@opencode-ai/session-ui/session-review"
-import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
-import { Select } from "@opencode-ai/ui/select"
-import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { createAutoScroll } from "@opencode-ai/ui/hooks"
-import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@/utils/toast"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
-import { NewSessionView, SessionHeader } from "@/components/session"
-import { BrowserPanelOverlay } from "@/components/browser-panel"
+import { NewSessionView } from "@/components/session"
 import { ErrorPage } from "@/pages/error"
 import { CommentsProvider, useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
@@ -66,18 +58,9 @@ import {
 import { createOpenReviewFile, createSessionTabs } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/timeline/message-timeline"
 import { createTimelineModel } from "@/pages/session/timeline/model"
-import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
-import { SESSION_PANEL_WIDTH_MIN } from "@/pages/session/session-panel-width"
-import { SessionSidePanel } from "@/pages/session/session-side-panel"
-import { SessionReviewEmptyChangesV2 } from "@opencode-ai/session-ui/v2/session-review-empty-changes-v2"
-import { SessionReviewEmptyNoGitV2 } from "@opencode-ai/session-ui/v2/session-review-empty-no-git-v2"
-import { SessionReviewV2SidebarToggle } from "@opencode-ai/session-ui/v2/session-review-v2"
-import { ReviewPanelV2 } from "@/pages/session/v2/review-panel-v2"
 import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-state"
-import { TerminalPanel } from "@/pages/session/terminal-panel"
-import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
@@ -95,6 +78,8 @@ import { createGlobalKeydownHandler } from "./session/session-global-keydown"
 import { createPanelGeometry } from "./session/session-panel-geometry"
 import { createVcsReview, type ChangeMode } from "./session/session-vcs-review"
 import { createReviewDiffScroll } from "./session/session-review-diff-scroll"
+import { createReviewPanels } from "./session/session-review-panels"
+import { SessionPanelsLayout } from "./session/session-panels-layout"
 
 const sessionViewState = () => ({
   messageId: undefined as string | undefined,
@@ -715,219 +700,7 @@ export default function Page() {
     loadFile: file.load,
   })
 
-  const changesLabel = (option: ChangeMode) => {
-    if (option === "git") return language.t("ui.sessionReview.title.git")
-    if (option === "branch") return language.t("ui.sessionReview.title.branch")
-    return language.t("ui.sessionReview.title.lastTurn")
-  }
-
-  const changesTitle = () => {
-    if (!canReview()) {
-      return null
-    }
-
-    return (
-      <Select
-        options={changesOptions()}
-        current={reviewMode()}
-        label={changesLabel}
-        onSelect={(option) => option && view().review.setMode(option)}
-        variant="ghost"
-        size="small"
-        valueClass="text-14-medium"
-      />
-    )
-  }
-
-  const changesTitleV2 = () => {
-    if (!canReview()) {
-      return null
-    }
-
-    return (
-      <SelectV2
-        appearance="inline"
-        options={changesOptions()}
-        current={reviewMode()}
-        label={changesLabel}
-        placement="bottom-start"
-        gutter={6}
-        onSelect={(option) => option && view().review.setMode(option)}
-      />
-    )
-  }
-
-  const empty = (text: string) => (
-    <div class="h-full pb-64 -mt-4 flex flex-col items-center justify-center text-center gap-6">
-      <div class="text-14-regular text-text-weak max-w-56">{text}</div>
-    </div>
-  )
-
-  const createGit = (input: { emptyClass: string }) => (
-    <div class={input.emptyClass}>
-      <div class="flex flex-col gap-3">
-        <div class="text-14-medium text-text-strong">{language.t("session.review.noVcs.createGit.title")}</div>
-        <div class="text-14-regular text-text-base max-w-md" style={{ "line-height": "var(--line-height-normal)" }}>
-          {language.t("session.review.noVcs.createGit.description")}
-        </div>
-      </div>
-      <Button size="large" disabled={gitMutation.isPending} onClick={initGit}>
-        {gitMutation.isPending
-          ? language.t("session.review.noVcs.createGit.actionLoading")
-          : language.t("session.review.noVcs.createGit.action")}
-      </Button>
-    </div>
-  )
-
-  const reviewEmptyText = createMemo(() => {
-    if (reviewMode() === "git") return language.t("session.review.noUncommittedChanges")
-    if (reviewMode() === "branch") return language.t("session.review.noBranchChanges")
-    return language.t("session.review.noChanges")
-  })
-
-  const reviewEmpty = (input: { loadingClass: string; emptyClass: string }) => {
-    if (reviewMode() === "git" || reviewMode() === "branch") {
-      if (!reviewReady()) return <div class={input.loadingClass}>{language.t("session.review.loadingChanges")}</div>
-      return empty(reviewEmptyText())
-    }
-
-    if (reviewMode() === "turn") {
-      if (nogit()) return createGit(input)
-      return empty(reviewEmptyText())
-    }
-
-    return (
-      <div class={input.emptyClass}>
-        <div class="text-14-regular text-text-weak max-w-56">{reviewEmptyText()}</div>
-      </div>
-    )
-  }
-
-  const reviewEmptyV2 = () => {
-    if ((reviewMode() === "git" || reviewMode() === "branch") && !reviewReady()) {
-      return <div class="px-6 py-4 text-text-weak">{language.t("session.review.loadingChanges")}</div>
-    }
-    if (reviewMode() === "turn" && nogit()) {
-      return <SessionReviewEmptyNoGitV2 pending={gitMutation.isPending} onInitGit={initGit} />
-    }
-    return <SessionReviewEmptyChangesV2 />
-  }
-
-  const reviewContent = (input: {
-    diffStyle: DiffStyle
-    onDiffStyleChange?: (style: DiffStyle) => void
-    classes?: SessionReviewTabProps["classes"]
-    loadingClass: string
-    emptyClass: string
-  }) => (
-    <Show when={!store.deferRender}>
-      <SessionReviewTab
-        title={changesTitle()}
-        empty={reviewEmpty(input)}
-        diffs={reviewDiffs}
-        view={view}
-        diffStyle={input.diffStyle}
-        onDiffStyleChange={input.onDiffStyleChange}
-        onScrollRef={(el) => setTree("reviewScroll", el)}
-        focusedFile={activeReviewFile()}
-        onLineComment={(comment) => addCommentToContext({ ...comment, origin: "review" })}
-        onLineCommentUpdate={updateCommentInContext}
-        onLineCommentDelete={removeCommentFromContext}
-        lineCommentActions={reviewCommentActions()}
-        commentMentions={{
-          items: file.searchFilesAndDirectories,
-        }}
-        comments={comments.all()}
-        focusedComment={comments.focus()}
-        onFocusedCommentChange={comments.setFocus}
-        onViewFile={openReviewFile}
-        classes={input.classes}
-      />
-    </Show>
-  )
-
   const reviewV2State = createReviewPanelV2State()
-
-  // Getters defer reactive reads to the consuming scope. Eager reads here ran inside
-  // the side panel's Show children and remounted the whole review panel on unrelated
-  // updates such as session switches.
-  const reviewPanelV2Props = () => ({
-    get title() {
-      return changesTitleV2()
-    },
-    get empty() {
-      return reviewEmptyV2()
-    },
-    diffs: reviewDiffs,
-    diffsReady: reviewReady,
-    get diffVersion() {
-      return vcsQuery.dataUpdatedAt
-    },
-    loadDiff: loadReviewDiff,
-    get activeFile() {
-      return activeReviewFile()
-    },
-    onSelectFile: focusReviewDiff,
-    get diffStyle() {
-      return layout.review.diffStyle()
-    },
-    onDiffStyleChange: layout.review.setDiffStyle,
-    state: reviewV2State,
-    onLineComment: (comment: SessionReviewLineComment) => addCommentToContext({ ...comment, origin: "review" }),
-    onLineCommentUpdate: updateCommentInContext,
-    onLineCommentDelete: removeCommentFromContext,
-    get lineCommentActions() {
-      return reviewCommentActions()
-    },
-    get comments() {
-      return comments.all()
-    },
-    get focusedComment() {
-      return comments.focus()
-    },
-    onFocusedCommentChange: (focus: { file: string; id: string } | null) => {
-      // The preview clears the focus once it has opened the comment; persist the
-      // focused file as the active selection so the preview stays on it. Skip
-      // files outside the current diff set (their focus is cleared unhandled).
-      if (!focus) {
-        const current = comments.focus()
-        if (current && reviewDiffs().some((diff) => diff.file === current.file)) focusReviewDiff(current.file)
-      }
-      comments.setFocus(focus)
-    },
-  })
-
-  // Latch: defer only the first diff render off the mount critical path. This Page
-  // stays mounted across same-workspace session tab switches, so gating on every
-  // deferRender flip tore down and remounted the whole review pane on tab switch.
-  const reviewPanelV2Rendered = createMemo<boolean>((prev) => prev || !store.deferRender, false)
-
-  const reviewPanelV2 = () => (
-    <div class="flex flex-col h-full overflow-hidden bg-v2-background-bg-base contain-strict">
-      <Show when={reviewPanelV2Rendered()}>
-        <ReviewPanelV2 {...reviewPanelV2Props()} />
-      </Show>
-    </div>
-  )
-
-  const reviewPanel = () => (
-    <div
-      classList={{
-        "flex flex-col h-full overflow-hidden contain-strict": true,
-        "bg-v2-background-bg-base": settings.general.newLayoutDesigns(),
-        "bg-background-stronger": !settings.general.newLayoutDesigns(),
-      }}
-    >
-      <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-        {reviewContent({
-          diffStyle: layout.review.diffStyle(),
-          onDiffStyleChange: layout.review.setDiffStyle,
-          loadingClass: "px-6 py-4 text-text-weak",
-          emptyClass: "h-full pb-64 -mt-4 flex flex-col items-center justify-center text-center gap-6",
-        })}
-      </div>
-    </div>
-  )
 
   createEffect(
     on(
@@ -947,6 +720,35 @@ export default function Page() {
     view,
     openReviewPanel,
     reviewReady,
+  })
+
+  const { reviewContent, reviewPanel, reviewPanelV2, reviewEmptyText } = createReviewPanels({
+    language,
+    settings,
+    layout,
+    comments,
+    file,
+    canReview,
+    reviewMode,
+    changesOptions,
+    view,
+    gitMutation,
+    initGit,
+    reviewReady,
+    nogit,
+    deferRender: () => store.deferRender,
+    reviewDiffs,
+    activeReviewFile,
+    addCommentToContext,
+    updateCommentInContext,
+    removeCommentFromContext,
+    reviewCommentActions,
+    openReviewFile,
+    vcsQuery,
+    loadReviewDiff,
+    focusReviewDiff,
+    reviewV2State,
+    onScrollRef: (el) => setTree("reviewScroll", el),
   })
 
   let treeDir: string | undefined
@@ -1581,152 +1383,43 @@ export default function Page() {
   )
 
   return (
-    <SessionRouteFrame>
-      <SessionHeader />
-      <div
-        ref={bindPanelRow}
-        class="flex-1 min-h-0 flex flex-col md:flex-row"
-        classList={{
-          "gap-2 p-2": settings.general.newLayoutDesigns(),
-        }}
-      >
-        <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
-
-        <div
-          classList={{
-            "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none transition-[width]": true,
-            "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
-              !size.active() && !ui.reviewSnap && !desktopInlineTerminalOnlyOpen(),
-          }}
-          style={{
-            width: sessionPanelWidth(),
-          }}
-        >
-          {settings.general.newLayoutDesigns() ? (
-            <Show when={sessionPanelKey()} keyed>
-              {(_) => (
-                <SessionPanelFrame newLayout raised={!!params.id}>
-                  <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
-                </SessionPanelFrame>
-              )}
-            </Show>
-          ) : (
-            <SessionPanelFrame newLayout={false} raised={!!params.id}>
-              {sessionPanelContent()}
-            </SessionPanelFrame>
-          )}
-
-          <Show when={desktopSessionResizeOpen()}>
-            <div onPointerDown={() => size.start()}>
-              <ResizeHandle
-                classList={{
-                  "-end-1": settings.general.newLayoutDesigns(),
-                }}
-                direction="horizontal"
-                size={sessionPanelResizedWidth()}
-                min={SESSION_PANEL_WIDTH_MIN}
-                max={sessionPanelMax()}
-                onResize={(width) => {
-                  size.touch()
-                  layout.session.resize(width)
-                }}
-              />
-            </div>
-          </Show>
-        </div>
-
-        <Show when={!browserPanelStacked()}>
-          <BrowserPanelOverlay />
-        </Show>
-
-        <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
-          <Suspense>
-            <SessionSidePanel
-              canReview={canReview}
-              diffs={reviewDiffs}
-              diffsReady={reviewReady}
-              empty={reviewEmptyText}
-              hasReview={hasReview}
-              reviewHasFocusableContent={hasReview}
-              reviewCount={reviewCount}
-              reviewPanel={reviewPanel}
-              activeDiff={activeReviewFile()}
-              focusReviewDiff={focusReviewDiff}
-              reviewSnap={ui.reviewSnap}
-              size={size}
-            />
-          </Suspense>
-        </Show>
-        <Show when={newSessionDesign()}>
-          <Show when={terminalRegionOpen()}>
-            <div class="min-w-0 h-full flex flex-1 flex-col">
-              <Show when={browserPanelStacked()}>
-                <BrowserPanelOverlay stacked />
-              </Show>
-              <Show when={isDesktop() && (desktopV2ReviewOpen() || desktopFileTreeOpen())}>
-                <div class="min-h-0 flex-1">
-                  <Suspense>
-                    <SessionSidePanel
-                      canReview={canReview}
-                      diffs={reviewDiffs}
-                      diffsReady={reviewReady}
-                      empty={reviewEmptyText}
-                      hasReview={hasReview}
-                      reviewHasFocusableContent={() => hasReview() || reviewV2State.sidebarOpened()}
-                      reviewCount={reviewCount}
-                      reviewPanel={reviewPanelV2}
-                      reviewSidebarToggle={(disabled) => (
-                        <SessionReviewV2SidebarToggle
-                          opened={reviewV2State.sidebarOpened()}
-                          disabled={disabled}
-                          onToggle={reviewV2State.toggleSidebar}
-                        />
-                      )}
-                      fileBrowserState={reviewV2State}
-                      activeDiff={activeReviewFile()}
-                      focusReviewDiff={focusReviewDiff}
-                      reviewSnap={ui.reviewSnap}
-                      size={size}
-                      stacked={desktopV2PanelLayout().stacked}
-                    />
-                  </Suspense>
-                </div>
-              </Show>
-              <Show when={desktopV2PanelLayout().stacked}>
-                <div class="relative h-2 shrink-0" onPointerDown={() => size.start()}>
-                  <ResizeHandle
-                    class="!relative !inset-auto !h-full !w-full !transform-none"
-                    direction="vertical"
-                    size={layout.terminal.height()}
-                    min={100}
-                    max={typeof window === "undefined" ? 600 : window.innerHeight * 0.6}
-                    collapseThreshold={50}
-                    onResize={(height) => {
-                      size.touch()
-                      layout.terminal.resize(height)
-                    }}
-                    onCollapse={() => view().terminal.close()}
-                  />
-                </div>
-              </Show>
-              <Show when={terminalOpen()}>
-                <div
-                  classList={{
-                    "min-h-0 shrink-0": desktopV2PanelLayout().stacked,
-                    "min-h-0 flex-1": !desktopV2PanelLayout().stacked,
-                  }}
-                >
-                  <TerminalPanelV2 stacked={desktopV2PanelLayout().stacked} />
-                </div>
-              </Show>
-            </div>
-          </Show>
-        </Show>
-      </div>
-
-      <Show when={!newSessionDesign()}>
-        <TerminalPanel />
-      </Show>
-    </SessionRouteFrame>
+    <SessionPanelsLayout
+      bindPanelRow={bindPanelRow}
+      settings={settings}
+      isDesktop={isDesktop}
+      hasSessionID={!!params.id}
+      mobileTabs={mobileTabs}
+      size={size}
+      reviewSnap={ui.reviewSnap}
+      desktopInlineTerminalOnlyOpen={desktopInlineTerminalOnlyOpen}
+      sessionPanelWidth={sessionPanelWidth}
+      sessionPanelKey={sessionPanelKey}
+      sessionErrorFallback={sessionErrorFallback}
+      sessionPanelContent={sessionPanelContent}
+      desktopSessionResizeOpen={desktopSessionResizeOpen}
+      sessionPanelResizedWidth={sessionPanelResizedWidth}
+      sessionPanelMax={sessionPanelMax}
+      layout={layout}
+      browserPanelStacked={browserPanelStacked}
+      newSessionDesign={newSessionDesign}
+      desktopSidePanelOpen={desktopSidePanelOpen}
+      canReview={canReview}
+      reviewDiffs={reviewDiffs}
+      reviewReady={reviewReady}
+      reviewEmptyText={reviewEmptyText}
+      hasReview={hasReview}
+      reviewCount={reviewCount}
+      reviewPanel={reviewPanel}
+      reviewPanelV2={reviewPanelV2}
+      activeReviewFile={activeReviewFile}
+      focusReviewDiff={focusReviewDiff}
+      terminalRegionOpen={terminalRegionOpen}
+      desktopV2ReviewOpen={desktopV2ReviewOpen}
+      desktopFileTreeOpen={desktopFileTreeOpen}
+      reviewV2State={reviewV2State}
+      desktopV2PanelLayout={desktopV2PanelLayout}
+      terminalOpen={terminalOpen}
+      view={view}
+    />
   )
 }
