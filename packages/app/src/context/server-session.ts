@@ -18,170 +18,31 @@ import { message as cleanMessage } from "@/utils/diffs"
 import { sessionNotFoundError } from "@/utils/server-errors"
 import { rootSession } from "@/utils/session-route"
 import { normalizeSessionInfo } from "@/utils/session"
-import { compareMessages, messageKey, normalizeSessionMessages } from "@/utils/session-message"
+import { compareMessages, normalizeSessionMessages } from "@/utils/session-message"
 import { dropSessionCaches, pickSessionCacheEvictions, SESSION_CACHE_LIMIT } from "./global-sync/session-cache"
 import { createV2SessionReducer, type V2SessionReduction } from "./server-session-v2-reducer"
+import { createLegacyEventApplier } from "@/context/server-session-events"
+import {
+  cmp,
+  legacyMessageSource,
+  merge,
+  mergeOptimisticPage,
+  needsOlderTurnRoot,
+  reconcileFetched,
+  runInflight,
+  SKIP_PARTS,
+  type MessageLoadBaseline,
+  type MessageLoadState,
+  type MessagePage,
+  type OptimisticItem,
+} from "@/context/server-session-helpers"
 import type { ServerApi } from "@/utils/server"
 
 type MessageApi = ServerApi["message"]
 
-const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
-const SKIP_PARTS = new Set(["patch", "step-start", "step-finish"])
 const initialMessagePageSize = 20
 const historyMessagePageSize = 200
 const sessionInfoLimit = 2_048
-const emptyIDs: ReadonlySet<string> = new Set()
-
-function needsOlderTurnRoot(source: readonly SessionMessageInfo[]) {
-  const boundary = source.find(
-    (message) =>
-      message.type === "user" ||
-      message.type === "shell" ||
-      message.type === "assistant" ||
-      (message.type === "synthetic" && message.description?.trim()),
-  )
-  return boundary?.type === "assistant"
-}
-
-type OptimisticItem = {
-  message: Message
-  parts: Part[]
-  confirmedParts?: Part[]
-  confirmedMessage?: boolean
-}
-
-type MessagePage = {
-  session: Message[]
-  part: { id: string; part: Part[] }[]
-  source?: SessionMessageInfo[]
-  sourceMode?: "latest" | "older"
-  projectSource?: boolean
-  cursor?: string
-  complete: boolean
-}
-
-function legacyMessageSource(items: { info: Message; parts: Part[] }[]): SessionMessageInfo[] {
-  return items
-    .slice()
-    .sort((a, b) => compareMessages(a.info, b.info))
-    .map((item) => {
-      if (item.info.role === "user") {
-        return {
-          id: item.info.id,
-          type: "user" as const,
-          text: item.parts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n"),
-          time: item.info.time,
-        }
-      }
-      return {
-        id: item.info.id,
-        type: "assistant" as const,
-        agent: item.info.agent ?? item.info.mode,
-        model: { id: item.info.modelID, providerID: item.info.providerID, variant: item.info.variant },
-        content: [],
-        time: item.info.time,
-      }
-    })
-}
-
-// Most markers describe the current HTTP attempt; deltaParts persists non-durable stream state across retries.
-type MessageLoadState = {
-  touchedMessages: Set<string>
-  removedMessages: Set<string>
-  retainedMessages: Set<string>
-  touchedParts: Map<string, Set<string>>
-  deltaParts: Map<string, Set<string>>
-  carriedDeltaParts: Map<string, Set<string>>
-  removedParts: Map<string, Set<string>>
-  optimisticParts: Map<string, Set<string>>
-  orphanParents: Set<string>
-  clearedMessageParts: Set<string>
-  touchedSource: Set<string>
-}
-
-type MessageLoadBaseline = Pick<
-  MessageLoadState,
-  "touchedMessages" | "retainedMessages" | "touchedParts" | "clearedMessageParts"
->
-
-function mergeOptimisticPage(page: MessagePage, items: OptimisticItem[]) {
-  if (items.length === 0) return { ...page, observed: [] as { messageID: string; parts: Part[] }[] }
-  const session = [...page.session]
-  const part = new Map(page.part.map((item) => [item.id, item.part]))
-  const observed: { messageID: string; parts: Part[] }[] = []
-  for (const item of items) {
-    const result = Binary.search(session, messageKey(item.message), messageKey)
-    const found = result.found
-    if (!found) session.splice(result.index, 0, item.message)
-    const current = part.get(item.message.id)
-    const confirmed = found ? item.parts.filter((part) => current?.some((value) => value.id === part.id)) : []
-    if (found) observed.push({ messageID: item.message.id, parts: confirmed })
-    part.set(
-      item.message.id,
-      merge(
-        found ? (current ?? []) : merge(item.confirmedParts ?? [], current ?? []),
-        item.parts.filter((part) => !confirmed.includes(part)),
-      ),
-    )
-  }
-  return {
-    ...page,
-    session,
-    part: [...part.entries()].sort((a, b) => cmp(a[0], b[0])).map(([id, parts]) => ({ id, part: parts })),
-    observed,
-  }
-}
-
-function runInflight(map: Map<string, Promise<void>>, key: string, task: () => Promise<void>) {
-  const pending = map.get(key)
-  if (pending) return pending
-  const promise = task().finally(() => {
-    if (map.get(key) === promise) map.delete(key)
-  })
-  map.set(key, promise)
-  return promise
-}
-
-function merge<T extends { id: string }>(a: readonly T[], b: readonly T[]) {
-  const items = new Map(a.map((item) => [item.id, item] as const))
-  for (const item of b) items.set(item.id, item)
-  return [...items.values()].sort((x, y) => cmp(x.id, y.id))
-}
-
-function reconcileFetched<T extends { id: string }>(
-  fetched: T[],
-  current: readonly T[],
-  options: {
-    touched?: ReadonlySet<string>
-    retained?: ReadonlySet<string>
-    removed?: ReadonlySet<string>
-    preserveUnfetched?: boolean | ((item: T) => boolean)
-    compare?: (a: T, b: T) => number
-  } = {},
-) {
-  const result = new Map(fetched.map((item) => [item.id, item]))
-  const live = new Map(current.map((item) => [item.id, item]))
-  if (options.preserveUnfetched) {
-    for (const item of current) {
-      if (!result.has(item.id) && (options.preserveUnfetched === true || options.preserveUnfetched(item)))
-        result.set(item.id, item)
-    }
-  }
-  for (const id of options.retained ?? emptyIDs) {
-    if (result.has(id)) continue
-    const item = live.get(id)
-    if (item) result.set(id, item)
-  }
-  // Events observed while the request is pending are the freshest client state for those identities.
-  for (const id of options.touched ?? emptyIDs) {
-    const item = live.get(id)
-    if (item) result.set(id, item)
-    if (!item) result.delete(id)
-  }
-  for (const id of options.removed ?? emptyIDs) result.delete(id)
-  const items = [...result.values()]
-  return options.compare ? items.sort(options.compare) : items
-}
 
 type ServerSessionOptions = { retry?: typeof retry; protocol?: Promise<"v1" | "v2"> }
 
@@ -858,28 +719,6 @@ export function createServerSession(
     await runInflight(inflight, sessionID, () => loadMessages(sessionID, limit))
   }
 
-  const eventSessionID = (event: { type: string; properties?: unknown }) => {
-    const properties = event.properties
-    if (!properties || typeof properties !== "object") return
-    if ("sessionID" in properties && typeof properties.sessionID === "string") return properties.sessionID
-    if (
-      "info" in properties &&
-      properties.info &&
-      typeof properties.info === "object" &&
-      "sessionID" in properties.info &&
-      typeof properties.info.sessionID === "string"
-    )
-      return properties.info.sessionID
-    if (
-      "part" in properties &&
-      properties.part &&
-      typeof properties.part === "object" &&
-      "sessionID" in properties.part &&
-      typeof properties.part.sessionID === "string"
-    )
-      return properties.part.sessionID
-  }
-
   const projectV2 = (reduction: V2SessionReduction) => {
     reduction.touched.forEach((messageID) => messageLoads.get(reduction.sessionID)?.touchedSource.add(messageID))
     setData("session_message", reduction.sessionID, reconcile(reduction.messages))
@@ -983,315 +822,26 @@ export function createServerSession(
       void resolve(sessionID, { force: true }).catch(() => {})
   }
 
-  const apply = (event: { type: string; properties?: unknown }) => {
-    const eventID = eventSessionID(event)
-    if (eventID) {
-      touch(eventID)
-      if (
-        !data.info[eventID] &&
-        event.type !== "session.created" &&
-        event.type !== "session.updated" &&
-        event.type !== "session.deleted"
-      )
-        void resolve(eventID).catch(() => {})
-    }
-    switch (event.type) {
-      case "session.created":
-        remember((event.properties as { info: Session }).info)
-        return
-      case "session.updated": {
-        const info = (event.properties as { info: Session }).info
-        remember(info)
-        if (info.time.archived) evict([info.id])
-        return
-      }
-      case "session.deleted": {
-        const properties = event.properties as { sessionID?: string; info?: Session }
-        const sessionID = properties.info?.id ?? properties.sessionID
-        if (!sessionID) return
-        infoSeen.delete(sessionID)
-        setData(
-          "info",
-          produce((draft) => void delete draft[sessionID]),
-        )
-        evict([sessionID])
-        return
-      }
-      case "todo.updated": {
-        const props = event.properties as { sessionID: string; todos: Todo[] }
-        setData("todo", props.sessionID, reconcile(props.todos, { key: "id" }))
-        return
-      }
-      case "session.status": {
-        const props = event.properties as { sessionID: string; status: SessionStatus }
-        setData("session_status", props.sessionID, reconcile(props.status))
-        return
-      }
-      case "message.updated": {
-        const info = cleanMessage((event.properties as { info: Message }).info)
-        indexLegacyMessage(info)
-        const load = messageLoads.get(info.sessionID)
-        load?.touchedMessages.add(info.id)
-        load?.removedMessages.delete(info.id)
-        const items = optimistic.get(info.sessionID)
-        const item = items?.get(info.id)
-        if (items && item) {
-          if (item.parts.length === 0) clearOptimistic(info.sessionID, info.id)
-          if (item.parts.length > 0) items.set(info.id, { ...item, confirmedMessage: true })
-        }
-        const orphans = orphanParts.get(info.sessionID)
-        orphans?.delete(info.id)
-        if (orphans?.size === 0) orphanParts.delete(info.sessionID)
-        const removedMessagesForSession = removedMessages.get(info.sessionID)
-        removedMessagesForSession?.delete(info.id)
-        if (removedMessagesForSession?.size === 0) removedMessages.delete(info.sessionID)
-        const messages = data.message[info.sessionID]
-        if (!messages) {
-          setData("message", info.sessionID, [info])
-          return
-        }
-        const result = Binary.search(messages, messageKey(info), messageKey)
-        if (result.found) setData("message", info.sessionID, result.index, reconcile(info))
-        if (!result.found)
-          setData("message", info.sessionID, (value = []) => {
-            const next = value.slice()
-            next.splice(result.index, 0, info)
-            return next
-          })
-        return
-      }
-      case "message.removed": {
-        const props = event.properties as { sessionID: string; messageID: string }
-        setData("session_message", props.sessionID, (messages) =>
-          messages?.filter((message) => message.id !== props.messageID),
-        )
-        const load = messageLoads.get(props.sessionID)
-        load?.touchedMessages.add(props.messageID)
-        load?.removedMessages.add(props.messageID)
-        load?.clearedMessageParts.add(props.messageID)
-        load?.deltaParts.delete(props.messageID)
-        load?.carriedDeltaParts.delete(props.messageID)
-        load?.removedParts.delete(props.messageID)
-        load?.optimisticParts.delete(props.messageID)
-        pendingParts.get(props.sessionID)?.delete(props.messageID)
-        if (pendingParts.get(props.sessionID)?.size === 0) pendingParts.delete(props.sessionID)
-        const removedMessagesForSession = removedMessages.get(props.sessionID) ?? new Set<string>()
-        removedMessagesForSession.add(props.messageID)
-        removedMessages.set(props.sessionID, removedMessagesForSession)
-        clearOptimistic(props.sessionID, props.messageID)
-        setData(
-          produce((draft) => {
-            const messages = draft.message[props.sessionID]
-            if (messages) {
-              const index = messages.findIndex((message) => message.id === props.messageID)
-              if (index >= 0) messages.splice(index, 1)
-            }
-            deleteMessageParts(draft, props.messageID)
-          }),
-        )
-        return
-      }
-      case "message.part.updated": {
-        const part = (event.properties as { part: Part }).part
-        if (SKIP_PARTS.has(part.type)) return
-        const messages = data.message[part.sessionID]
-        const load = messageLoads.get(part.sessionID)
-        const missing = !messages?.some((message) => message.id === part.messageID)
-        // Outside a page load, accepting a part without its ordered parent event would create an unbounded orphan.
-        if (
-          missing &&
-          (!load ||
-            load.clearedMessageParts.has(part.messageID) ||
-            removedMessages.get(part.sessionID)?.has(part.messageID))
-        )
-          return
-        if (missing) {
-          const orphans = orphanParts.get(part.sessionID) ?? new Set<string>()
-          orphans.add(part.messageID)
-          orphanParts.set(part.sessionID, orphans)
-          load?.orphanParents.add(part.messageID)
-        }
-        const deltas = load?.deltaParts.get(part.messageID)
-        deltas?.delete(part.id)
-        if (deltas?.size === 0) load?.deltaParts.delete(part.messageID)
-        const carried = load?.carriedDeltaParts.get(part.messageID)
-        carried?.delete(part.id)
-        if (carried?.size === 0) load?.carriedDeltaParts.delete(part.messageID)
-        const removed = load?.removedParts.get(part.messageID)
-        removed?.delete(part.id)
-        if (removed?.size === 0) load?.removedParts.delete(part.messageID)
-        const pending = pendingParts.get(part.sessionID)?.get(part.messageID)
-        pending?.delete(part.id)
-        if (pending?.size === 0) pendingParts.get(part.sessionID)?.delete(part.messageID)
-        if (pendingParts.get(part.sessionID)?.size === 0) pendingParts.delete(part.sessionID)
-        const optimistic = load?.optimisticParts.get(part.messageID)
-        optimistic?.delete(part.id)
-        if (optimistic?.size === 0) load?.optimisticParts.delete(part.messageID)
-        deltaBases.delete(part.id)
-        trackPartChange(part.sessionID, part.messageID, part.id)
-        confirmOptimisticPart(part.sessionID, part.messageID, part)
-        setData(
-          "part_text_accum_delta",
-          produce((draft) => void delete draft[part.id]),
-        )
-        const parts = data.part[part.messageID]
-        if (!parts) {
-          setData("part", part.messageID, [part])
-          return
-        }
-        const result = Binary.search(parts, part.id, (item) => item.id)
-        if (result.found) setData("part", part.messageID, result.index, reconcile(part))
-        if (!result.found)
-          setData("part", part.messageID, (value = []) => {
-            const next = value.slice()
-            next.splice(result.index, 0, part)
-            return next
-          })
-        return
-      }
-      case "message.part.removed": {
-        const props = event.properties as { sessionID: string; messageID: string; partID: string }
-        // Part removal is event-only on the server, so its tombstone lasts until a later update or eviction.
-        const pending = pendingParts.get(props.sessionID) ?? new Map<string, Set<string>>()
-        const parts = pending.get(props.messageID) ?? new Set<string>()
-        parts.add(props.partID)
-        pending.set(props.messageID, parts)
-        pendingParts.set(props.sessionID, pending)
-        const deltas = messageLoads.get(props.sessionID)?.deltaParts.get(props.messageID)
-        deltas?.delete(props.partID)
-        if (deltas?.size === 0) messageLoads.get(props.sessionID)?.deltaParts.delete(props.messageID)
-        const load = messageLoads.get(props.sessionID)
-        const carried = load?.carriedDeltaParts.get(props.messageID)
-        carried?.delete(props.partID)
-        if (carried?.size === 0) load?.carriedDeltaParts.delete(props.messageID)
-        if (load) {
-          const parts = load.removedParts.get(props.messageID) ?? new Set<string>()
-          parts.add(props.partID)
-          load.removedParts.set(props.messageID, parts)
-          const optimistic = load.optimisticParts.get(props.messageID)
-          optimistic?.delete(props.partID)
-          if (optimistic?.size === 0) load.optimisticParts.delete(props.messageID)
-        }
-        trackPartChange(props.sessionID, props.messageID, props.partID)
-        clearOptimisticPart(props.sessionID, props.messageID, props.partID)
-        setData(
-          produce((draft) => {
-            delete draft.part_text_accum_delta[props.partID]
-            deltaBases.delete(props.partID)
-            const parts = draft.part[props.messageID]
-            if (!parts) return
-            const result = Binary.search(parts, props.partID, (part) => part.id)
-            if (result.found) parts.splice(result.index, 1)
-            if (parts.length === 0) delete draft.part[props.messageID]
-          }),
-        )
-        return
-      }
-      case "message.part.delta": {
-        const props = event.properties as {
-          sessionID: string
-          messageID: string
-          partID: string
-          field: string
-          delta: string
-        }
-        const parts = data.part[props.messageID]
-        if (!parts) return
-        const result = Binary.search(parts, props.partID, (part) => part.id)
-        if (!result.found) return
-        trackPartChange(props.sessionID, props.messageID, props.partID)
-        const load = messageLoads.get(props.sessionID)
-        if (load) {
-          const parts = load.deltaParts.get(props.messageID) ?? new Set<string>()
-          parts.add(props.partID)
-          load.deltaParts.set(props.messageID, parts)
-          const carried = load.carriedDeltaParts.get(props.messageID)
-          carried?.delete(props.partID)
-          if (carried?.size === 0) load.carriedDeltaParts.delete(props.messageID)
-        }
-        const field = props.field as keyof (typeof parts)[number]
-        const current = parts[result.index]?.[field]
-        if (!deltaBases.has(props.partID) && typeof current === "string")
-          deltaBases.set(props.partID, { base: current, sessionID: props.sessionID })
-        setData(
-          "part_text_accum_delta",
-          props.partID,
-          (value) => (value ?? (typeof current === "string" ? current : "")) + props.delta,
-        )
-        setData(
-          "part",
-          props.messageID,
-          produce((draft) => {
-            if (!draft) return
-            const part = draft[result.index]
-            const field = props.field as keyof typeof part
-            ;(part[field] as string) = ((part[field] as string | undefined) ?? "") + props.delta
-          }),
-        )
-        return
-      }
-      case "permission.asked": {
-        const permission = event.properties as PermissionRequest
-        const permissions = data.permission[permission.sessionID]
-        if (!permissions) {
-          setData("permission", permission.sessionID, [permission])
-          return
-        }
-        const result = Binary.search(permissions, permission.id, (item) => item.id)
-        if (result.found) setData("permission", permission.sessionID, result.index, reconcile(permission))
-        if (!result.found)
-          setData(
-            "permission",
-            permission.sessionID,
-            produce((draft) => void draft.splice(result.index, 0, permission)),
-          )
-        return
-      }
-      case "permission.replied": {
-        const props = event.properties as { sessionID: string; requestID: string }
-        setData(
-          "permission",
-          props.sessionID,
-          produce((draft) => {
-            if (!draft) return
-            const result = Binary.search(draft, props.requestID, (item) => item.id)
-            if (result.found) draft.splice(result.index, 1)
-          }),
-        )
-        return
-      }
-      case "question.asked": {
-        const question = event.properties as QuestionRequest
-        const questions = data.question[question.sessionID]
-        if (!questions) {
-          setData("question", question.sessionID, [question])
-          return
-        }
-        const result = Binary.search(questions, question.id, (item) => item.id)
-        if (result.found) setData("question", question.sessionID, result.index, reconcile(question))
-        if (!result.found)
-          setData(
-            "question",
-            question.sessionID,
-            produce((draft) => void draft.splice(result.index, 0, question)),
-          )
-        return
-      }
-      case "question.replied":
-      case "question.rejected": {
-        const props = event.properties as { sessionID: string; requestID: string }
-        setData(
-          "question",
-          props.sessionID,
-          produce((draft) => {
-            if (!draft) return
-            const result = Binary.search(draft, props.requestID, (item) => item.id)
-            if (result.found) draft.splice(result.index, 1)
-          }),
-        )
-      }
-    }
-  }
+  const apply = createLegacyEventApplier({
+    data,
+    setData,
+    messageLoads,
+    optimistic,
+    orphanParts,
+    removedMessages,
+    pendingParts,
+    deltaBases,
+    touch,
+    resolve,
+    remember,
+    evict,
+    indexLegacyMessage,
+    clearOptimistic,
+    clearOptimisticPart,
+    confirmOptimisticPart,
+    trackPartChange,
+    deleteMessageParts,
+  })
 
   return {
     data,
