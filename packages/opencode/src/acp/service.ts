@@ -31,6 +31,7 @@ import {
 } from "@agentclientprotocol/sdk"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
+import { AppNodeBuilderV1 } from "@/effect/app-node-builder-v1"
 import type { AssistantMessage, Message, OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
 import { Context, Effect, Layer, ManagedRuntime } from "effect"
 import * as ACPError from "./error"
@@ -585,7 +586,7 @@ function makeSessionService() {
 
 function makeDirectoryService(sdk: OpencodeClient) {
   return ManagedRuntime.make(
-    AppNodeBuilder.build(Directory.node, [
+    AppNodeBuilderV1.build(Directory.node, [
       [
         Directory.loaderNode,
         Layer.succeed(
