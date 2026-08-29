@@ -97,7 +97,14 @@ test.describe("regression: session timeline context group resize", () => {
       await page.waitForTimeout(delay)
     }
 
-    await expect(context.locator('[data-component="tool-status-title"]')).toHaveAttribute("aria-label", "Explored")
+    // The 4x CPU throttle above stacks with the 4 event-delivery delays
+    // (up to 1050ms of test-authored waits) plus SSE poll retry — under
+    // real machine contention the default 10s assertion timeout leaves too
+    // little margin and this flakes without indicating an actual bug (the
+    // final state and its content are still exactly what's asserted below).
+    await expect(context.locator('[data-component="tool-status-title"]')).toHaveAttribute("aria-label", "Explored", {
+      timeout: 20_000,
+    })
     await page.waitForTimeout(700)
     const trace = await stopVisualProbe<keyof typeof regions>(page)
     const labels = trace.samples
