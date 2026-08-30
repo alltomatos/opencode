@@ -1,9 +1,21 @@
+import fs from "fs/promises"
 import path from "path"
+import { Global } from "@opencode-ai/core/global"
 import { Process } from "@/util/process"
 import { resolvePortablePython } from "./python"
+import { RELAY_PY_SOURCE } from "./relay-source"
 
 export const DEFAULT_PORT = 7187
-const RELAY_SCRIPT = path.join(import.meta.dirname, "relay.py")
+
+// Written out from an embedded string (relay-source.ts), not resolved via
+// import.meta.dirname — the packaged desktop app bundles this module into
+// out/main/chunks/*.js inside app.asar, and a co-located relay.py never
+// makes it into that bundle, so a path-based lookup 404s at runtime.
+async function relayScriptPath(): Promise<string> {
+  const dest = path.join(Global.Path.bin, "agentrouter-relay.py")
+  await fs.writeFile(dest, RELAY_PY_SOURCE)
+  return dest
+}
 
 export class AgentRouterRelayError extends Error {}
 
@@ -83,8 +95,9 @@ async function start(apiKey: string, port: number): Promise<RelayHandle> {
 
   const python = await findPython()
   await ensureAnthropicPackage(python)
+  const relayScript = await relayScriptPath()
 
-  const child = Process.spawn([...python.split(" "), RELAY_SCRIPT], {
+  const child = Process.spawn([...python.split(" "), relayScript], {
     env: { AGENTROUTER_API_KEY: apiKey, AGENTROUTER_PORT: String(port) },
     stdout: "pipe",
     stderr: "pipe",

@@ -1,12 +1,23 @@
-#!/usr/bin/env python3
+// Embedded as a plain string (not a co-located .py file loaded via
+// import.meta.dirname) because the packaged desktop app bundles this module
+// into out/main/chunks/*.js inside app.asar — raw non-JS files sitting next
+// to the source never make it into that bundle, so a path-based lookup
+// resolves to a file that doesn't exist at runtime. Keeping the Python
+// source as a string here means it ships wherever this module ships, with
+// no separate asset-copy step required.
+//
+// Source of truth for what this runs: see relay.py in this same directory,
+// which is kept in sync manually and is what you should edit — copy changes
+// here after editing there (or vice versa) and keep the two identical.
+export const RELAY_PY_SOURCE = `#!/usr/bin/env python3
 """Local relay that re-issues OpenCode's Anthropic-shaped requests through the
-synchronous `anthropic` Python SDK, which is the only HTTP client shape that
+synchronous \`anthropic\` Python SDK, which is the only HTTP client shape that
 passes AgentRouter's (agentrouter.org) connection-fingerprint WAF check.
 
 Generic clients (Node fetch/undici, curl, async httpx) get rejected with
-`unauthorized client detected` regardless of a valid API key. This is a
+\`unauthorized client detected\` regardless of a valid API key. This is a
 stdlib-only HTTP server (no FastAPI/uvicorn) so the only extra dependency
-opencode needs to manage is the `anthropic` package itself.
+opencode needs to manage is the \`anthropic\` package itself.
 
 Env vars:
   AGENTROUTER_API_KEY  required, the user's AgentRouter API key
@@ -55,7 +66,7 @@ def clean_payload(payload):
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
-        sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
+        sys.stderr.write("%s - %s\\n" % (self.address_string(), fmt % args))
 
     def _send_json(self, status, obj):
         body = json.dumps(obj).encode("utf-8")
@@ -107,9 +118,9 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_stream(self, payload):
         # Deliberately use the low-level create(stream=True) call, not the
         # messages.stream() convenience helper: the helper (a) rejects some
-        # normal params (observed: TypeError on `temperature` for non-Claude
+        # normal params (observed: TypeError on \`temperature\` for non-Claude
         # models bridged through AgentRouter) and (b) synthesizes extra
-        # SDK-only event shapes (e.g. a `type: "text"` snapshot event) on top
+        # SDK-only event shapes (e.g. a \`type: "text"\` snapshot event) on top
         # of the real wire protocol, which OpenCode's Anthropic stream parser
         # doesn't recognize and rejects the whole stream over. create()'s
         # stream yields exactly the documented Anthropic SSE event types.
@@ -128,7 +139,7 @@ class Handler(BaseHTTPRequestHandler):
                 if event_type in DROP_SSE_EVENTS:
                     continue
                 data = event.model_dump_json()
-                chunk = f"event: {event_type}\ndata: {data}\n\n".encode("utf-8")
+                chunk = f"event: {event_type}\\ndata: {data}\\n\\n".encode("utf-8")
                 try:
                     self.wfile.write(chunk)
                     self.wfile.flush()
@@ -137,7 +148,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             try:
                 err = json.dumps({"type": "error", "error": {"type": "api_error", "message": str(e)}})
-                self.wfile.write(f"event: error\ndata: {err}\n\n".encode("utf-8"))
+                self.wfile.write(f"event: error\\ndata: {err}\\n\\n".encode("utf-8"))
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
@@ -152,3 +163,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+`
