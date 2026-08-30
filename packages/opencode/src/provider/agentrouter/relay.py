@@ -105,7 +105,15 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json(200, result.model_dump())
 
     def _handle_stream(self, payload):
-        payload = {k: v for k, v in payload.items() if k != "stream"}
+        # Deliberately use the low-level create(stream=True) call, not the
+        # messages.stream() convenience helper: the helper (a) rejects some
+        # normal params (observed: TypeError on `temperature` for non-Claude
+        # models bridged through AgentRouter) and (b) synthesizes extra
+        # SDK-only event shapes (e.g. a `type: "text"` snapshot event) on top
+        # of the real wire protocol, which OpenCode's Anthropic stream parser
+        # doesn't recognize and rejects the whole stream over. create()'s
+        # stream yields exactly the documented Anthropic SSE event types.
+        payload = {**payload, "stream": True}
         self.send_response(200)
         self.send_header("content-type", "text/event-stream")
         self.send_header("cache-control", "no-cache")
@@ -114,18 +122,18 @@ class Handler(BaseHTTPRequestHandler):
         self.close_connection = True
 
         try:
-            with client.messages.stream(**payload) as stream:
-                for event in stream:
-                    event_type = getattr(event, "type", None)
-                    if event_type in DROP_SSE_EVENTS:
-                        continue
-                    data = event.model_dump_json()
-                    chunk = f"event: {event_type}\ndata: {data}\n\n".encode("utf-8")
-                    try:
-                        self.wfile.write(chunk)
-                        self.wfile.flush()
-                    except (BrokenPipeError, ConnectionResetError):
-                        return
+            stream = client.messages.create(**payload)
+            for event in stream:
+                event_type = getattr(event, "type", None)
+                if event_type in DROP_SSE_EVENTS:
+                    continue
+                data = event.model_dump_json()
+                chunk = f"event: {event_type}\ndata: {data}\n\n".encode("utf-8")
+                try:
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    return
         except Exception as e:
             try:
                 err = json.dumps({"type": "error", "error": {"message": str(e)}})

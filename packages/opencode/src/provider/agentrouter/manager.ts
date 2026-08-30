@@ -33,23 +33,49 @@ async function healthy(baseURL: string, timeoutMs = 800): Promise<boolean> {
   }
 }
 
+async function hasWorkingPip(bin: string): Promise<boolean> {
+  const out = await Process.run([bin, "-m", "pip", "--version"], { nothrow: true })
+  return out.code === 0
+}
+
+async function hasAnthropic(bin: string): Promise<boolean> {
+  const out = await Process.run([bin, "-c", "import anthropic"], { nothrow: true })
+  return out.code === 0
+}
+
+// Windows commonly has multiple `python3`/`python` on PATH — Git Bash/MSYS2's
+// stripped-down interpreter (no pip module) frequently sorts ahead of the
+// real installation. Accepting the first one that merely answers `--version`
+// silently breaks the relay later at pip-install time. Walk every candidate
+// and pick the first that's actually usable (already has anthropic, or has a
+// working pip to install it with); only fall back to "first that runs at
+// all" if none of them clear that bar, so the error message is still useful.
 async function findPython(): Promise<string> {
-  for (const bin of ["python3", "python"]) {
-    const out = await Process.run([bin, "--version"], { nothrow: true })
-    if (out.code === 0) return bin
+  const candidates = ["python3", "python", "py -3"]
+  const runnable: string[] = []
+
+  for (const bin of candidates) {
+    const parts = bin.split(" ")
+    const out = await Process.run([...parts, "--version"], { nothrow: true })
+    if (out.code !== 0) continue
+    runnable.push(bin)
+    if ((await hasAnthropic(bin)) || (await hasWorkingPip(bin))) return bin
   }
+
+  if (runnable.length > 0) return runnable[0]
+
   throw new AgentRouterRelayError(
-    "AgentRouter relay requires Python 3.9+ on PATH (checked `python3` and `python`), but none was found. Install Python to use the AgentRouter provider.",
+    "AgentRouter relay requires Python 3.9+ on PATH (checked `python3`, `python`, `py -3`), but none was found. Install Python to use the AgentRouter provider.",
   )
 }
 
 async function ensureAnthropicPackage(python: string): Promise<void> {
-  const check = await Process.run([python, "-c", "import anthropic"], { nothrow: true })
-  if (check.code === 0) return
-  const install = await Process.run([python, "-m", "pip", "install", "--quiet", "anthropic"], { nothrow: true })
+  const parts = python.split(" ")
+  if (await hasAnthropic(python)) return
+  const install = await Process.run([...parts, "-m", "pip", "install", "--quiet", "anthropic"], { nothrow: true })
   if (install.code !== 0) {
     throw new AgentRouterRelayError(
-      `Failed to install the Python "anthropic" package needed by the AgentRouter relay:\n${install.stderr.toString().trim()}`,
+      `Failed to install the Python "anthropic" package needed by the AgentRouter relay (tried "${python}"):\n${install.stderr.toString().trim()}`,
     )
   }
 }
@@ -62,7 +88,7 @@ async function start(apiKey: string, port: number): Promise<RelayHandle> {
   const python = await findPython()
   await ensureAnthropicPackage(python)
 
-  const child = Process.spawn([python, RELAY_SCRIPT], {
+  const child = Process.spawn([...python.split(" "), RELAY_SCRIPT], {
     env: { AGENTROUTER_API_KEY: apiKey, AGENTROUTER_PORT: String(port) },
     stdout: "pipe",
     stderr: "pipe",
