@@ -97,20 +97,16 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       return {
         all: Object.values(providers).map(Provider.toPublicInfo),
         default: Provider.defaultModelIDs(providers),
-        // catalogList membership alone is NOT proof of a real connection:
-        // ModelsDevPlugin (packages/core/src/plugin/models-dev.ts) registers
-        // every known models.dev provider into the same v2 Catalog
-        // unconditionally, purely as reference metadata for other plugins to
-        // read — it is not gated on any credential. Only fork-specific
-        // catalog plugins (e.g. OmniRoute, whose own credential lives outside
-        // the shared `authStore` this handler already checks) should be
-        // trusted via catalog presence, and those never coincide with a
-        // models.dev-known id — hence excluding anything already in
-        // `filtered` here instead of trusting catalogList unconditionally.
-        connected: Object.keys(providers).filter(
-          (id) =>
-            id in connected || credentials[id] || (catalogList.some((item) => item.id === id) && !(id in filtered)),
-        ),
+        // catalogList membership is NOT proof of a real connection: both
+        // ModelsDevPlugin (every known models.dev provider) and OmniRoute's
+        // own plugin (packages/core/src/plugin/provider/omniroute.ts —
+        // registers "omnrt" into the catalog before it even checks for a
+        // stored credential) populate the same v2 Catalog unconditionally.
+        // OmniRoute's credential lives in the exact same auth.json file
+        // `authStore` reads (see readAuthCredential there), so
+        // credentials[id] already reflects it live — catalogList adds
+        // nothing but false positives here.
+        connected: Object.keys(providers).filter((id) => id in connected || credentials[id]),
       }
     })
 
