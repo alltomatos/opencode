@@ -66,6 +66,14 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
     // that fiber settles would silently miss providers that just connected
     // (the exact bug this handles). Wait for it, bounded, so a slow/hung
     // plugin can't stall this request indefinitely.
+    //
+    // NOTE: profiled the ~2.3s first-call cost of this whole endpoint —
+    // it's NOT this wait (shortening the timeout here to 250ms made no
+    // measurable difference). The actual cost is inside catalog.provider
+    // .all()/catalog.model.all() below, which appears to synchronously run
+    // ModelsDevPlugin's full catalog transform (~207 providers × their
+    // models) on first call. Fixing that is a packages/core Catalog-service
+    // change, out of scope for this pass — left as a follow-up.
     const catalogProviders = withLocation(
       Effect.gen(function* () {
         const internal = yield* PluginInternal.Service
