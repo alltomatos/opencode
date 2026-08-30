@@ -66,4 +66,10 @@ export const invalidate = <A, E, R>(self: InstanceState<A, E, R>) =>
     return yield* ScopedCache.invalidate(self.cache, yield* directory)
   })
 
+// Unlike `invalidate`, this doesn't need an InstanceRef in context — useful
+// from root-level (non-instance-scoped) routes like the global auth
+// endpoints, where a credential change should invalidate every directory's
+// cached computation, not just one.
+export const invalidateAll = <A, E, R>(self: InstanceState<A, E, R>) => ScopedCache.invalidateAll(self.cache)
+
 export * as InstanceState from "./instance-state"

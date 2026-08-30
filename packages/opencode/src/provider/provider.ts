@@ -1272,6 +1272,13 @@ export interface Interface {
   ) => Effect.Effect<{ providerID: ProviderV2.ID; modelID: string } | undefined>
   readonly getSmallModel: (providerID: ProviderV2.ID) => Effect.Effect<Model | undefined>
   readonly defaultModel: () => Effect.Effect<{ providerID: ProviderV2.ID; modelID: ModelV2.ID }, DefaultModelError>
+  // Forces the next list()/getModel()/getLanguage() call to recompute the
+  // provider set from scratch instead of reusing the cached one. Needed
+  // after auth.set/auth.remove — without this, connecting or disconnecting
+  // a provider (e.g. AgentRouter, Omniroute) has no effect until the whole
+  // instance/session is torn down and recreated, since InstanceState caches
+  // this computation indefinitely per directory (see instance-state.ts).
+  readonly invalidate: () => Effect.Effect<void>
 }
 
 interface State {
@@ -2175,7 +2182,9 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel })
+    const invalidate = () => InstanceState.invalidateAll(state)
+
+    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, invalidate })
   }),
 )
 

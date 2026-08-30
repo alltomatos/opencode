@@ -157,6 +157,11 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
           code: ctx.payload.code,
         }),
       )
+      // OAuth connect (e.g. Anthropic Max, GitHub Copilot) writes the
+      // credential directly via ProviderAuth.Service, bypassing control.ts's
+      // authSet — invalidate here too so the provider list picks it up
+      // immediately instead of only after the instance is recreated.
+      yield* provider.invalidate()
       return true
     })
 
