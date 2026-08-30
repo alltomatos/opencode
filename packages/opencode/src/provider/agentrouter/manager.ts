@@ -1,5 +1,6 @@
 import path from "path"
 import { Process } from "@/util/process"
+import { resolvePortablePython } from "./python"
 
 const DEFAULT_PORT = 7187
 const RELAY_SCRIPT = path.join(import.meta.dirname, "relay.py")
@@ -48,25 +49,20 @@ async function hasAnthropic(bin: string): Promise<boolean> {
 // real installation. Accepting the first one that merely answers `--version`
 // silently breaks the relay later at pip-install time. Walk every candidate
 // and pick the first that's actually usable (already has anthropic, or has a
-// working pip to install it with); only fall back to "first that runs at
-// all" if none of them clear that bar, so the error message is still useful.
+// working pip to install it with). If nothing on PATH clears that bar,
+// download a portable CPython (python.ts) instead of guessing further —
+// this is what makes AgentRouter work without depending on the system at all.
 async function findPython(): Promise<string> {
   const candidates = ["python3", "python", "py -3"]
-  const runnable: string[] = []
 
   for (const bin of candidates) {
     const parts = bin.split(" ")
     const out = await Process.run([...parts, "--version"], { nothrow: true })
     if (out.code !== 0) continue
-    runnable.push(bin)
     if ((await hasAnthropic(bin)) || (await hasWorkingPip(bin))) return bin
   }
 
-  if (runnable.length > 0) return runnable[0]
-
-  throw new AgentRouterRelayError(
-    "AgentRouter relay requires Python 3.9+ on PATH (checked `python3`, `python`, `py -3`), but none was found. Install Python to use the AgentRouter provider.",
-  )
+  return resolvePortablePython()
 }
 
 async function ensureAnthropicPackage(python: string): Promise<void> {
