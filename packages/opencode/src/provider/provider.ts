@@ -31,6 +31,7 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
+import { ensureRelay } from "./agentrouter/manager"
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 300_000
 
@@ -169,6 +170,49 @@ function selectBedrockMantleLanguageModel(sdk: BundledSDK, modelID: string) {
   if (modelID === "openai.gpt-oss-safeguard-20b" || modelID === "openai.gpt-oss-safeguard-120b")
     return sdk.chat?.(modelID) ?? sdk.languageModel(modelID)
   return sdk.responses?.(modelID) ?? sdk.languageModel(modelID)
+}
+
+// Static list — AgentRouter's real /v1/models is blocked by the same WAF that
+// blocks generic HTTP clients from /v1/messages, so there's no dynamic
+// discovery endpoint to call. Mirrors the console's model list at time of
+// writing; cost/limit are placeholders (AgentRouter is prepaid credits, no
+// published per-token pricing or context/output limits per model).
+const AGENTROUTER_MODELS: Array<{ id: string; name: string }> = [
+  { id: "claude-opus-4-8", name: "claude-opus-4-8" },
+  { id: "claude-opus-5", name: "claude-opus-5" },
+  { id: "deepseek-v4-flash", name: "deepseek-v4-flash" },
+  { id: "glm-5.3", name: "glm-5.3" },
+  { id: "gpt-5.6-sol", name: "gpt-5.6-sol" },
+]
+
+function agentRouterModel(id: string, name: string, baseURL: string): Model {
+  return {
+    id: ModelV2.ID.make(id),
+    providerID: ProviderV2.ID.make("agentrouter"),
+    name,
+    family: "",
+    api: {
+      id,
+      url: baseURL,
+      npm: "@ai-sdk/anthropic",
+    },
+    status: "active",
+    headers: {},
+    options: {},
+    cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+    limit: { context: 200_000, output: 8_192 },
+    capabilities: {
+      temperature: true,
+      reasoning: false,
+      attachment: false,
+      toolcall: true,
+      input: { text: true, audio: false, image: false, video: false, pdf: false },
+      output: { text: true, audio: false, image: false, video: false, pdf: false },
+      interleaved: false,
+    },
+    release_date: "",
+    variants: {},
+  }
 }
 
 function custom(dep: CustomDep): Record<string, CustomLoader> {
@@ -866,6 +910,51 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           },
         },
       }),
+    // AgentRouter (agentrouter.org) sits behind a WAF that fingerprints the
+    // HTTP client connection itself, not just the bearer token — generic
+    // clients (Node fetch/undici, curl, async httpx) get rejected with
+    // "unauthorized client detected" even with a valid key. Only a handful
+    // of clients pass, including the synchronous Python `anthropic` SDK. We
+    // spin up a small local relay (packages/opencode/src/provider/agentrouter)
+    // that re-issues requests through that SDK, and point this provider at it.
+    agentrouter: Effect.fnUntraced(function* (input: Info) {
+      const env = yield* dep.env()
+      const auth = yield* dep.auth(input.id)
+      const key =
+        env["AGENTROUTER_API_KEY"] ?? (auth?.type === "api" ? auth.key : undefined) ?? input.options?.apiKey
+
+      if (!key) return { autoload: false }
+
+      const relay = yield* Effect.promise(async () => {
+        try {
+          return await ensureRelay(key)
+        } catch {
+          return undefined
+        }
+      })
+
+      if (!relay) return { autoload: false }
+
+      // models.dev already registers agentrouter (and 3 of these 5 models)
+      // pointed straight at https://agentrouter.org/v1 with @ai-sdk/anthropic
+      // — the same broken direct config the official docs describe. Force
+      // every known model's transport onto the local relay instead of only
+      // filling in gaps, so upstream catalog data doesn't leave some models
+      // silently pointed at the URL that trips the WAF.
+      for (const { id, name } of AGENTROUTER_MODELS) {
+        const existing = input.models[id]
+        if (existing) {
+          existing.api = { id, url: relay.baseURL, npm: "@ai-sdk/anthropic" }
+        } else {
+          input.models[id] = agentRouterModel(id, name, relay.baseURL)
+        }
+      }
+
+      return {
+        autoload: true,
+        options: { baseURL: relay.baseURL },
+      }
+    }),
     kilo: () =>
       Effect.succeed({
         autoload: false,
