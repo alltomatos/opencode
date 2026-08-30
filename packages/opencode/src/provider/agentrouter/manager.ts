@@ -2,7 +2,7 @@ import path from "path"
 import { Process } from "@/util/process"
 import { resolvePortablePython } from "./python"
 
-const DEFAULT_PORT = 7187
+export const DEFAULT_PORT = 7187
 const RELAY_SCRIPT = path.join(import.meta.dirname, "relay.py")
 
 export class AgentRouterRelayError extends Error {}

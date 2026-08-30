@@ -31,7 +31,7 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
-import { ensureRelay } from "./agentrouter/manager"
+import { ensureRelay, DEFAULT_PORT as AGENTROUTER_DEFAULT_PORT } from "./agentrouter/manager"
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 300_000
 
@@ -925,15 +925,14 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
 
       if (!key) return { autoload: false }
 
-      const relay = yield* Effect.promise(async () => {
-        try {
-          return await ensureRelay(key)
-        } catch {
-          return undefined
-        }
-      })
-
-      if (!relay) return { autoload: false }
+      // The relay's port is fixed and known ahead of time, so listing
+      // providers/models never needs to wait on it — only actually spawning
+      // the Python process (ensureRelay) is deferred to getModel below,
+      // which only runs when a model is really about to be used. Doing that
+      // spawn-and-health-check synchronously here used to block every
+      // provider list computation (Settings page, model pickers, etc.) by
+      // several seconds even when the user was just browsing, not chatting.
+      const baseURL = `http://127.0.0.1:${AGENTROUTER_DEFAULT_PORT}`
 
       // models.dev already registers agentrouter (and 3 of these 5 models)
       // pointed straight at https://agentrouter.org/v1 with @ai-sdk/anthropic
@@ -944,15 +943,19 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       for (const { id, name } of AGENTROUTER_MODELS) {
         const existing = input.models[id]
         if (existing) {
-          existing.api = { id, url: relay.baseURL, npm: "@ai-sdk/anthropic" }
+          existing.api = { id, url: baseURL, npm: "@ai-sdk/anthropic" }
         } else {
-          input.models[id] = agentRouterModel(id, name, relay.baseURL)
+          input.models[id] = agentRouterModel(id, name, baseURL)
         }
       }
 
       return {
         autoload: true,
-        options: { baseURL: relay.baseURL },
+        options: { baseURL },
+        async getModel(sdk: any, modelID: string) {
+          await ensureRelay(key)
+          return sdk.languageModel(modelID)
+        },
       }
     }),
     kilo: () =>
