@@ -3,6 +3,7 @@ import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
@@ -24,9 +25,9 @@ export type ProviderView = "list" | "grid"
 function loadProviderView(): ProviderView {
   try {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY)
-    return stored === "grid" ? "grid" : "list"
+    return stored === "list" ? "list" : "grid"
   } catch {
-    return "list"
+    return "grid"
   }
 }
 
@@ -112,6 +113,7 @@ export const SettingsProvidersV2: Component<{
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
   const [view, setView] = createSignal<ProviderView>(loadProviderView())
   const [query, setQuery] = createSignal("")
+  const [disconnecting, setDisconnecting] = createSignal<Set<string>>(new Set())
 
   const changeView = (next: ProviderView) => {
     setView(next)
@@ -235,6 +237,19 @@ export const SettingsProvidersV2: Component<{
       })
   }
 
+  const handleDisconnect = async (providerID: string, name: string) => {
+    setDisconnecting((prev) => new Set(prev).add(providerID))
+    try {
+      await disconnect(providerID, name)
+    } finally {
+      setDisconnecting((prev) => {
+        const next = new Set(prev)
+        next.delete(providerID)
+        return next
+      })
+    }
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header">
@@ -278,8 +293,12 @@ export const SettingsProvidersV2: Component<{
                         size="normal"
                         variant="ghost-muted"
                         class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
-                        onClick={() => void disconnect(item.id, item.name)}
+                        disabled={disconnecting().has(item.id)}
+                        onClick={() => void handleDisconnect(item.id, item.name)}
                       >
+                        <Show when={disconnecting().has(item.id)}>
+                          <Spinner class="size-4" />
+                        </Show>
                         {language.t("common.disconnect")}
                       </ButtonV2>
                     </Show>

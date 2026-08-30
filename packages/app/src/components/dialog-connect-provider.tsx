@@ -830,6 +830,7 @@ function ProviderConnection(props: {
     const [formStore, setFormStore] = createStore({
       value: "",
       error: undefined as string | undefined,
+      submitting: false,
     })
 
     onMount(() => {
@@ -850,12 +851,19 @@ function ProviderConnection(props: {
       }
 
       setFormStore("error", undefined)
-      await serverSDK().api.integration.connect.key({
-        integrationID: props.provider,
-        location: location(),
-        key: apiKey,
-      })
-      await complete()
+      setFormStore("submitting", true)
+      try {
+        await serverSDK().api.integration.connect.key({
+          integrationID: props.provider,
+          location: location(),
+          key: apiKey,
+        })
+        await complete()
+      } catch (err) {
+        setFormStore("error", formatError(err, language.t("common.requestFailed")))
+      } finally {
+        setFormStore("submitting", false)
+      }
     }
 
     if (newLayout())
@@ -894,6 +902,7 @@ function ProviderConnection(props: {
                 aria-describedby={formStore.error ? errorID : undefined}
                 autocomplete="off"
                 spellcheck={false}
+                disabled={formStore.submitting}
                 onInput={(event) => setFormStore("value", event.currentTarget.value)}
               />
             </label>
@@ -904,8 +913,16 @@ function ProviderConnection(props: {
                 </div>
               )}
             </Show>
-            <ButtonV2 type="submit" variant="contrast" data-action="provider-connect-submit">
-              {language.t("common.continue")}
+            <ButtonV2
+              type="submit"
+              variant="contrast"
+              data-action="provider-connect-submit"
+              disabled={formStore.submitting}
+            >
+              <Show when={formStore.submitting}>
+                <Spinner class="size-4" />
+              </Show>
+              {language.t("common.connect")}
             </ButtonV2>
           </form>
         </div>
