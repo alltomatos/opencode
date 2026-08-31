@@ -193,6 +193,21 @@ def append_pt_instruction(system):
     return [{"type": "text", "text": PT_REPLY_INSTRUCTION.strip()}]
 
 
+# anthropic's APIStatusError (and generic exceptions raised while parsing a
+# response) stringify with the raw response body appended to the message.
+# Normally that's a small, useful JSON snippet — but AgentRouter's WAF
+# occasionally blocks even this relay's synchronous Python client (rare, but
+# observed 2026-08-31 during heavy testing) and returns a full HTML error
+# page instead of JSON, which then gets dumped verbatim into the error
+# message shown in OpenCode's UI as an unreadable wall of markup. Detect
+# that shape and report a short, actionable message instead.
+def describe_error(e):
+    text = str(e)
+    if "<html" in text.lower() or "<!doctype html" in text.lower():
+        return "AgentRouter returned an HTML error page instead of a JSON response (likely blocked by their WAF or rate limiting) — try again in a moment."
+    return text[:500]
+
+
 def clean_payload(payload):
     payload = {k: v for k, v in payload.items() if k not in STRIP_KEYS}
     if isinstance(payload.get("messages"), list):
@@ -247,10 +262,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             result = client.messages.create(**payload)
         except anthropic.APIStatusError as e:
-            self._send_json(e.status_code, e.body if isinstance(e.body, dict) else {"error": str(e)})
+            self._send_json(
+                e.status_code,
+                e.body if isinstance(e.body, dict) else {"type": "error", "error": {"type": "api_error", "message": describe_error(e)}},
+            )
             return
         except Exception as e:
-            self._send_json(502, {"type": "error", "error": {"type": "api_error", "message": str(e)}})
+            self._send_json(502, {"type": "error", "error": {"type": "api_error", "message": describe_error(e)}})
             return
         self._send_json(200, result.model_dump(exclude_none=True))
 
@@ -293,7 +311,7 @@ class Handler(BaseHTTPRequestHandler):
                     return
         except Exception as e:
             try:
-                err = json.dumps({"type": "error", "error": {"type": "api_error", "message": str(e)}})
+                err = json.dumps({"type": "error", "error": {"type": "api_error", "message": describe_error(e)}})
                 self.wfile.write(f"event: error\ndata: {err}\n\n".encode("utf-8"))
             except (BrokenPipeError, ConnectionResetError):
                 pass
