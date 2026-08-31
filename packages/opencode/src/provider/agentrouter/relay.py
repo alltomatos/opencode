@@ -82,6 +82,12 @@ DROP_SSE_EVENTS = {"billing_summary"}
 # known, recoverable-by-retry failure mode; don't trade it for an unrelated
 # hard failure.
 TRANSLATE_ENDPOINT = "https://translate.googleapis.com/translate_a/single"
+# Fallback used when the primary endpoint above is unavailable or rate
+# limits us (observed 2026-08-31: Google's unofficial gtx endpoint started
+# returning 429 Too Many Requests after the volume of testing this session
+# did from one IP). MyMemory is a separate free/keyless service — different
+# infrastructure, different limits — so it stays up when Google doesn't.
+MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get"
 
 PT_REPLY_INSTRUCTION = (
     "\n\nIMPORTANT: The user's messages below were machine-translated from "
@@ -112,18 +118,41 @@ _TRANSLATE_CACHE = {}
 _TRANSLATE_POOL = ThreadPoolExecutor(max_workers=8)
 
 
+def _fetch_from_google(text):
+    params = urllib.parse.urlencode({"client": "gtx", "sl": "auto", "tl": "en", "dt": "t", "q": text})
+    req = urllib.request.Request(
+        f"{TRANSLATE_ENDPOINT}?{params}",
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
+    with urllib.request.urlopen(req, timeout=6) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    return "".join(chunk[0] for chunk in data[0] if chunk[0])
+
+
+def _fetch_from_mymemory(text):
+    # MyMemory caps queries around 500 chars on the free tier; longer text
+    # just fails and we fall through to un-translated, same as any other
+    # translate failure.
+    params = urllib.parse.urlencode({"q": text[:490], "langpair": "pt|en"})
+    req = urllib.request.Request(
+        f"{MYMEMORY_ENDPOINT}?{params}",
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
+    with urllib.request.urlopen(req, timeout=6) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    translated = data.get("responseData", {}).get("translatedText")
+    if not translated:
+        raise ValueError("empty MyMemory response")
+    return translated
+
+
 def _fetch_translation(text):
-    try:
-        params = urllib.parse.urlencode({"client": "gtx", "sl": "auto", "tl": "en", "dt": "t", "q": text})
-        req = urllib.request.Request(
-            f"{TRANSLATE_ENDPOINT}?{params}",
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
-        with urllib.request.urlopen(req, timeout=6) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        return "".join(chunk[0] for chunk in data[0] if chunk[0])
-    except Exception:
-        return text
+    for fetch in (_fetch_from_google, _fetch_from_mymemory):
+        try:
+            return fetch(text)
+        except Exception:
+            continue
+    return text
 
 
 def warm_translate(texts):
