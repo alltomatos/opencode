@@ -52,16 +52,54 @@ STUB_MODELS = [
     {"id": "gpt-5.6-sol", "name": "gpt-5.6-sol"},
 ]
 
-# Fields AgentRouter's content filter rejects outright.
+# Top-level fields AgentRouter's content filter rejects outright.
 STRIP_KEYS = ("thinking", "output_config")
+
+# Multi-turn conversations with a reasoning-capable model (e.g. claude-opus)
+# put a "thinking" (and, for redacted reasoning, "redacted_thinking") block
+# in the assistant's prior message content array, sent back verbatim as
+# context on the next turn. Stripping only the top-level \`thinking\` request
+# param (STRIP_KEYS above) never touched this. Strip it defensively — it's
+# a real difference between turn 1 and turn 2 payloads, and the analogous
+# top-level field is already known to trip AgentRouter's filter — but it
+# alone did NOT reproduce/fix a specific "content-blocked" 400 seen in
+# testing (2026-08-31): a deterministic block on turn 2+ of a real
+# multi-turn conversation, reproduced consistently across retries, that
+# persisted even with this stripping AND with cache_control also stripped
+# (see strip_cache_control below). Root cause for that specific case is
+# still unconfirmed — most likely a per-key throttle/abuse flag on
+# AgentRouter's side from heavy testing, not a payload content issue.
+STRIP_BLOCK_TYPES = ("thinking", "redacted_thinking")
 
 # SSE event types AgentRouter injects that OpenCode's Zod-based stream parser
 # doesn't recognize and rejects the whole stream over.
 DROP_SSE_EVENTS = {"billing_summary"}
 
 
+def strip_cache_control(block):
+    if "cache_control" not in block:
+        return block
+    return {k: v for k, v in block.items() if k != "cache_control"}
+
+
+def clean_messages(messages):
+    cleaned = []
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, list):
+            content = [strip_cache_control(block) for block in content if block.get("type") not in STRIP_BLOCK_TYPES]
+            message = {**message, "content": content}
+        cleaned.append(message)
+    return cleaned
+
+
 def clean_payload(payload):
-    return {k: v for k, v in payload.items() if k not in STRIP_KEYS}
+    payload = {k: v for k, v in payload.items() if k not in STRIP_KEYS}
+    if isinstance(payload.get("messages"), list):
+        payload["messages"] = clean_messages(payload["messages"])
+    if isinstance(payload.get("system"), list):
+        payload["system"] = [strip_cache_control(block) for block in payload["system"]]
+    return payload
 
 
 class Handler(BaseHTTPRequestHandler):
