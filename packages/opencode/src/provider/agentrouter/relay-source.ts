@@ -61,15 +61,18 @@ STRIP_KEYS = ("thinking", "output_config")
 # context on the next turn. Stripping only the top-level \`thinking\` request
 # param (STRIP_KEYS above) never touched this. Strip it defensively — it's
 # a real difference between turn 1 and turn 2 payloads, and the analogous
-# top-level field is already known to trip AgentRouter's filter — but it
-# alone did NOT reproduce/fix a specific "content-blocked" 400 seen in
-# testing (2026-08-31): a deterministic block on turn 2+ of a real
-# multi-turn conversation, reproduced consistently across retries, that
-# persisted even with this stripping AND with cache_control also stripped
-# (see strip_cache_control below). Root cause for that specific case is
-# still unconfirmed — most likely a per-key throttle/abuse flag on
-# AgentRouter's side from heavy testing, not a payload content issue.
+# top-level field is already known to trip AgentRouter's filter.
 STRIP_BLOCK_TYPES = ("thinking", "redacted_thinking")
+
+# Confirmed 2026-08-31 by isolating with curl directly against this relay,
+# across all 5 models, with a fresh never-used API key: a deterministic
+# "content-blocked" 400 is AgentRouter's own content filter flagging
+# non-English (specifically Portuguese) message text — reproduced with
+# trivial, benign prompts ("analise o codigo") on turn 1, single message, no
+# tools. Not caused by thinking blocks, cache_control, payload size, key
+# throttling, or a specific model — those were all ruled out first. This is
+# on AgentRouter's side; nothing in this relay can work around it short of
+# translating the user's message before sending, which isn't done here.
 
 # SSE event types AgentRouter injects that OpenCode's Zod-based stream parser
 # doesn't recognize and rejects the whole stream over.
@@ -151,7 +154,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send_json(502, {"type": "error", "error": {"type": "api_error", "message": str(e)}})
             return
-        self._send_json(200, result.model_dump())
+        self._send_json(200, result.model_dump(exclude_none=True))
 
     def _handle_stream(self, payload):
         # Deliberately use the low-level create(stream=True) call, not the
@@ -176,7 +179,14 @@ class Handler(BaseHTTPRequestHandler):
                 event_type = getattr(event, "type", None)
                 if event_type in DROP_SSE_EVENTS:
                     continue
-                data = event.model_dump_json()
+                # AgentRouter sends fields the Anthropic SDK types as optional
+                # objects (e.g. content_block.caller on tool_use blocks) with
+                # an explicit \`null\` instead of omitting them. OpenCode's Zod
+                # stream parser has no branch for "object field is null" (only
+                # "object" or "absent"), so it rejects the whole event with an
+                # invalid_union error. exclude_none drops those keys entirely
+                # instead of serializing them as null, which validates fine.
+                data = json.dumps(event.model_dump(exclude_none=True))
                 chunk = f"event: {event_type}\\ndata: {data}\\n\\n".encode("utf-8")
                 try:
                     self.wfile.write(chunk)
