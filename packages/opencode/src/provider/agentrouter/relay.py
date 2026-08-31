@@ -19,6 +19,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import anthropic
@@ -98,25 +99,47 @@ PT_REPLY_INSTRUCTION = (
 # long-running server, so there's no realistic growth concern within one run.
 _TRANSLATE_CACHE = {}
 
+# Each translate call is a real network round-trip (~0.8-1.5s measured
+# against the live endpoint). A growing conversation resends its whole
+# history every turn, so translating blocks one at a time serially — as the
+# first version of this did — stacks that latency linearly (10 uncached
+# blocks ≈ 10-15s before the response even starts streaming), long enough to
+# trip OpenCode's own request timeout and abort the turn with pending tool
+# calls still in flight (observed 2026-08-31: real conversations looping,
+# re-planning from scratch after "Tool execution aborted"). warm_translate
+# fetches every not-yet-cached text concurrently first so the total added
+# latency is roughly the slowest single call, not the sum of all of them.
+_TRANSLATE_POOL = ThreadPoolExecutor(max_workers=8)
 
-def translate_to_english(text):
-    if not text or not text.strip():
-        return text
-    if text in _TRANSLATE_CACHE:
-        return _TRANSLATE_CACHE[text]
+
+def _fetch_translation(text):
     try:
         params = urllib.parse.urlencode({"client": "gtx", "sl": "auto", "tl": "en", "dt": "t", "q": text})
         req = urllib.request.Request(
             f"{TRANSLATE_ENDPOINT}?{params}",
             headers={"User-Agent": "Mozilla/5.0"},
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        translated = "".join(chunk[0] for chunk in data[0] if chunk[0])
+        return "".join(chunk[0] for chunk in data[0] if chunk[0])
     except Exception:
-        translated = text
-    _TRANSLATE_CACHE[text] = translated
-    return translated
+        return text
+
+
+def warm_translate(texts):
+    pending = list(dict.fromkeys(t for t in texts if t and t.strip() and t not in _TRANSLATE_CACHE))
+    if not pending:
+        return
+    for text, translated in zip(pending, _TRANSLATE_POOL.map(_fetch_translation, pending)):
+        _TRANSLATE_CACHE[text] = translated
+
+
+def translate_to_english(text):
+    if not text or not text.strip():
+        return text
+    if text not in _TRANSLATE_CACHE:
+        _TRANSLATE_CACHE[text] = _fetch_translation(text)
+    return _TRANSLATE_CACHE[text]
 
 
 def strip_cache_control(block):
@@ -131,7 +154,21 @@ def translate_block(block):
     return block
 
 
+def message_texts(messages):
+    texts = []
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if block.get("type") == "text" and isinstance(block.get("text"), str):
+                    texts.append(block["text"])
+        elif isinstance(content, str):
+            texts.append(content)
+    return texts
+
+
 def clean_messages(messages):
+    warm_translate(message_texts(messages))
     cleaned = []
     for message in messages:
         content = message.get("content")
