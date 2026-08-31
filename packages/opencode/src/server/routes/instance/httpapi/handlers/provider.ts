@@ -58,6 +58,19 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       )
     })
 
+    // Building this instance's location layer (Catalog, PluginInternal, and
+    // ~28 other location-scoped services) is a real, measured ~2s of
+    // synchronous work — see the NOTE below. It happens once per directory
+    // and is cached (LocationServiceMap's LayerMap), but until now nothing
+    // triggered it until the first request that actually needed it, which
+    // in practice was usually the user opening Settings > Providers —
+    // making that specific screen pay the full cost on first open every
+    // session. Kick it off here instead, in the background, as soon as this
+    // instance's HTTP routes are wired up (well before the user could
+    // plausibly click into Settings), so it's already warm by request time.
+    // Best-effort: swallow all errors, this must never affect route setup.
+    yield* withLocation(Effect.void).pipe(Effect.ignore, Effect.forkScoped)
+
     // Catalog discovery failures (offline gateway, bad key) must never break
     // the rest of the provider list, so this is best-effort. Registering
     // built-in ProviderPlugins (e.g. OmniRoute) into the Catalog happens in
@@ -67,13 +80,18 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
     // (the exact bug this handles). Wait for it, bounded, so a slow/hung
     // plugin can't stall this request indefinitely.
     //
-    // NOTE: profiled the ~2.3s first-call cost of this whole endpoint —
-    // it's NOT this wait (shortening the timeout here to 250ms made no
-    // measurable difference). The actual cost is inside catalog.provider
-    // .all()/catalog.model.all() below, which appears to synchronously run
-    // ModelsDevPlugin's full catalog transform (~207 providers × their
-    // models) on first call. Fixing that is a packages/core Catalog-service
-    // change, out of scope for this pass — left as a follow-up.
+    // NOTE: profiled the ~2s first-call cost of this whole endpoint. It's
+    // NOT this wait (shortening the timeout to 250ms made no difference)
+    // and NOT ModelsDevPlugin's transform loop (measured directly: ~270ms
+    // for 207 providers / 7500+ models). Isolated it with an A/B test —
+    // skipping this `withLocation` call entirely dropped total request
+    // time from ~4.3s to ~2.2s. So the cost is genuinely in constructing
+    // packages/core's ~30-node location-services Layer graph itself
+    // (Catalog, PluginInternal, FileSystem, Watcher, Pty, SkillV2, ...) —
+    // framework-level Layer/Context resolution overhead, not any single
+    // plugin. See the forkScoped warm-up above, which pays this cost in
+    // the background before the user can reach this endpoint instead of
+    // blocking on it here.
     const catalogProviders = withLocation(
       Effect.gen(function* () {
         const internal = yield* PluginInternal.Service
