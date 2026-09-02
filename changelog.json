@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.13",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: ferramentas customizadas travavam a resposta do agente",
+              "description": "Qualquer tool própria (ex.: das skills de engenharia) que importasse @opencode-ai/plugin quebrava silenciosamente ao ser chamada, matando a resposta do agente sem aviso nenhum. Causa: a instalação dessa dependência em segundo plano sempre falhava fora de builds locais. Corrigido."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.12",
       "highlights": [
         {
