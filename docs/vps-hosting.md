@@ -128,6 +128,35 @@ Ficam de fora, por serem conceitos específicos de janela desktop:
 - O ajuste de **zoom por pinça/Ctrl+scroll** — é um recurso da janela do
   Electron, não da UI em si.
 
+## 5. Bot do Telegram numa VPS
+
+O bot do Telegram (Configurações → Integrações) é um serviço do próprio
+servidor `opencode` (`packages/opencode`), não do app desktop — funciona
+idêntico rodando local ou numa VPS, sem nenhuma configuração extra além de
+alcançar a UI onde estiver rodando:
+
+1. Suba o servidor na VPS normalmente (seção 3 acima, `opencode web` ou
+   `opencode serve`).
+2. Acesse **Configurações → Integrações** — pela **web UI**
+   (`opencode web`) direto no navegador, ou pelo **desktop conectado como
+   servidor remoto** (seção 4, "Pelo OpenCode Desktop"). As duas telas
+   batem no mesmo servidor, então tanto faz por qual delas você conecta o
+   bot.
+3. Cole o token do bot (criado com [@BotFather](https://t.me/BotFather)) e
+   conecte.
+
+A partir daí o servidor mantém um loop de long-polling (`getUpdates`) ativo
+enquanto estiver no ar — não precisa de porta extra aberta nem HTTPS
+público, o próprio `opencode` puxa as mensagens do Telegram. Cada
+conversa do Telegram vira uma sessão do opencode no projeto/diretório que
+estava ativo quando você conectou o bot; a próxima mensagem da mesma
+conversa reaproveita a mesma sessão (o mapeamento é persistido em disco,
+sobrevive a um restart do processo).
+
+**Rodando como serviço (systemd)**: nenhuma unidade extra é necessária — o
+bot vive dentro do mesmo processo `opencode` da seção 3; reiniciar o
+serviço reconecta o bot automaticamente se havia um token salvo.
+
 ## Segurança — checklist rápido
 
 - [ ] `OPENCODE_SERVER_PASSWORD` definido (senha forte, não reaproveitada)
@@ -135,3 +164,5 @@ Ficam de fora, por serem conceitos específicos de janela desktop:
       `opencode` exposta diretamente
 - [ ] Firewall da VPS liberando só 22 (SSH) e 80/443 (proxy)
 - [ ] `opencode` rodando como usuário sem privilégios de root
+- [ ] Token do bot do Telegram tratado como credencial sensível — quem
+      tiver o token consegue conversar com o agente na sua VPS
