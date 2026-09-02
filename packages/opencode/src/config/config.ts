@@ -11,7 +11,6 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
-import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
@@ -441,7 +440,21 @@ const layer = Layer.effect(
               add: [
                 {
                   name: "@opencode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
+                  // Pinning to the exact running InstallationVersion only works
+                  // upstream, where every build (including snapshots) is
+                  // actually published to npm under that same tag. This fork's
+                  // own build pipeline tags releases as "0.0.0-prod-<timestamp>"
+                  // / "0.0.0-dev-<timestamp>" without publishing a matching
+                  // @opencode-ai/plugin version, so pinning to InstallationVersion
+                  // here 404s on every single non-local install — silently, since
+                  // this whole install is best-effort background — and any custom
+                  // tool/plugin a user writes that imports @opencode-ai/plugin at
+                  // runtime (not just for types) then crashes with
+                  // ERR_MODULE_NOT_FOUND the moment it's invoked, killing the
+                  // whole agent turn. Falling back to latest (same as the local
+                  // dev-checkout case) trades exact version matching for the
+                  // install actually succeeding.
+                  version: undefined,
                 },
               ],
             })
