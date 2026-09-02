@@ -1,4 +1,5 @@
 import { Telegram } from "@/telegram"
+import { InstanceState } from "@/effect/instance-state"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
@@ -13,7 +14,8 @@ export const telegramHandlers = HttpApiBuilder.group(InstanceHttpApi, "telegram"
     })
 
     const connect = Effect.fn("TelegramHttpApi.connect")(function* (ctx: { payload: typeof ConnectPayload.Type }) {
-      return yield* telegram.connect(ctx.payload.token)
+      const instance = yield* InstanceState.context
+      return yield* telegram.connect(ctx.payload.token, instance.directory)
     })
 
     const disconnect = Effect.fn("TelegramHttpApi.disconnect")(function* () {
