@@ -41,6 +41,10 @@ export function isBrowserPanelOpen() {
   return open()
 }
 
+export function openBrowserPanel() {
+  setOpen(true)
+}
+
 export function toggleBrowserPanel() {
   setOpen((value) => !value)
 }
@@ -71,9 +75,14 @@ export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => 
   onMount(() => {
     const api = browserPanelAPI()
     if (!api) return
+    let lastUrl = ""
     const unsubscribe = api.onStateChanged((next) => {
       setState(next)
       setAddressInput(next.url)
+      if (next.url && next.url !== "about:blank" && (next.url !== lastUrl || next.isLoading)) {
+        lastUrl = next.url
+        setOpen(true)
+      }
     })
     const resizeObserver = new ResizeObserver(syncBounds)
     if (placeholder) resizeObserver.observe(placeholder)
@@ -145,9 +154,14 @@ export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => 
                 onInput={(e) => setAddressInput(e.currentTarget.value)}
               />
             </form>
-            <ButtonV2 type="button" variant="ghost-muted" size="small" onClick={() => setOpen(false)}>
-              {language.t("common.close")}
-            </ButtonV2>
+            <IconButtonV2
+              type="button"
+              variant="ghost-muted"
+              size="small"
+              icon={<Icon name="close" />}
+              aria-label={language.t("common.close")}
+              onClick={() => setOpen(false)}
+            />
           </div>
           <div ref={placeholder} class="flex-1 min-h-0" />
         </div>

@@ -109,6 +109,30 @@ export function SessionSidePanelTabsV2(props: {
                 value="review"
                 id={reviewTabID}
                 aria-controls={props.activeTab() === "review" ? reviewTabPanelID : undefined}
+                closeButton={
+                  <TooltipV2
+                    value={
+                      <>
+                        {language.t("common.closeTab")}
+                        <Show when={closeTabKeybind().length > 0}>
+                          <KeybindV2 keys={closeTabKeybind()} variant="neutral" />
+                        </Show>
+                      </>
+                    }
+                    placement="bottom"
+                    gutter={10}
+                  >
+                    <IconButton
+                      icon="close-small"
+                      variant="ghost"
+                      class="h-5 w-5"
+                      onClick={() => props.onTabClose("review")}
+                      aria-label={language.t("common.closeTab")}
+                    />
+                  </TooltipV2>
+                }
+                hideCloseButton
+                onMiddleClick={() => props.onTabClose("review")}
               >
                 {props.hasReview()
                   ? language.t("session.review.filesChanged", { count: props.reviewCount() })
