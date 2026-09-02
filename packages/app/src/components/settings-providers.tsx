@@ -1,10 +1,11 @@
 import { Button } from "@opencode-ai/ui/button"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tag } from "@opencode-ai/ui/tag"
 import { showToast } from "@/utils/toast"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { createMemo, type Component, For, Show } from "solid-js"
+import { createMemo, createSignal, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -43,6 +44,7 @@ const SettingsProvidersContent: Component<{ onBack?: () => void }> = (props) => 
   const serverSync = useServerSync()
   const providers = useProviders(() => undefined)
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
+  const [disconnecting, setDisconnecting] = createSignal<Set<string>>(new Set())
 
   const connect = (provider?: string) => {
     providerConnect.select(provider)
@@ -145,6 +147,19 @@ const SettingsProvidersContent: Component<{ onBack?: () => void }> = (props) => 
       })
   }
 
+  const handleDisconnect = async (providerID: string, name: string) => {
+    setDisconnecting((prev) => new Set(prev).add(providerID))
+    try {
+      await disconnect(providerID, name)
+    } finally {
+      setDisconnecting((prev) => {
+        const next = new Set(prev)
+        next.delete(providerID)
+        return next
+      })
+    }
+  }
+
   return (
     <div class="flex flex-col h-full overflow-y-auto no-scrollbar px-4 pb-10 sm:px-10 sm:pb-10">
       <div class="sticky top-0 z-10 bg-[linear-gradient(to_bottom,var(--surface-stronger-non-alpha)_calc(100%_-_24px),transparent)]">
@@ -182,7 +197,15 @@ const SettingsProvidersContent: Component<{ onBack?: () => void }> = (props) => 
                         </span>
                       }
                     >
-                      <Button size="large" variant="ghost" onClick={() => void disconnect(item.id, item.name)}>
+                      <Button
+                        size="large"
+                        variant="ghost"
+                        disabled={disconnecting().has(item.id)}
+                        onClick={() => void handleDisconnect(item.id, item.name)}
+                      >
+                        <Show when={disconnecting().has(item.id)}>
+                          <Spinner class="size-4" />
+                        </Show>
                         {language.t("common.disconnect")}
                       </Button>
                     </Show>

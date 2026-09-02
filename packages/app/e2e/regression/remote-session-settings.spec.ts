@@ -20,7 +20,10 @@ test("session settings use the remote server context", async ({ page }) => {
   await expect(page.getByText(sessionB.title).first()).toBeVisible()
   await page.keyboard.press("Control+,")
 
-  const dialog = page.locator(".settings-v2-dialog")
+  // newLayoutDesigns routes settings to a full page (.settings-v2-page)
+  // instead of the modal dialog (.settings-v2-dialog) — match either
+  // surface since both render the same underlying settings components.
+  const dialog = page.locator(".settings-v2-dialog, .settings-v2-page")
   const autoAccept = dialog.locator('[data-action="settings-auto-accept-permissions"]')
   const input = autoAccept.getByRole("switch")
   await expect(autoAccept).toBeVisible()
@@ -39,6 +42,8 @@ test("session settings use the remote server context", async ({ page }) => {
   expect(permissionRequests.every((request) => new URL(request).origin === serverB)).toBe(true)
 
   await dialog.getByRole("tab", { name: "Models" }).click()
+  // Provider groups render collapsed by default; expand before asserting on a model row.
+  await dialog.getByRole("button", { name: "Server B Provider" }).click()
   await expect(dialog.getByRole("switch", { name: "Server B Model" })).toBeEnabled()
   await expect(dialog.getByRole("switch", { name: "Server A Model" })).toHaveCount(0)
 })
@@ -60,7 +65,9 @@ test("auto-accept responds for an unfocused server session", async ({ page }) =>
   await page.goto(`/server/${base64Encode(serverA)}/session/${sessionA.id}`)
   await expect(page.getByText(sessionA.title).first()).toBeVisible()
   await page.keyboard.press("Control+,")
-  const autoAccept = page.locator(".settings-v2-dialog").locator('[data-action="settings-auto-accept-permissions"]')
+  const autoAccept = page
+    .locator(".settings-v2-dialog, .settings-v2-page")
+    .locator('[data-action="settings-auto-accept-permissions"]')
   await autoAccept.locator('[data-slot="switch-control"]').click()
   await expect(autoAccept.getByRole("switch")).toBeChecked()
   await expect
@@ -211,6 +218,8 @@ async function mockServers(page: Page, permissionRequests: string[], permissionR
     if (currentSessionInfo) return json(route, { data: currentSession(currentSessionInfo) })
     if (sessions.some((session) => url.pathname === `/api/session/${session.id}/message`))
       return json(route, { data: [], cursor: {} })
+    if (url.pathname === "/session") return json(route, sessions)
+    if (url.pathname === "/session/status") return json(route, {})
     const current = sessions.find((session) => url.pathname === `/session/${session.id}`)
     if (current) return json(route, current)
     if (/^\/session\/[^/]+$/.test(url.pathname)) return json(route, { name: "NotFoundError" }, 404)

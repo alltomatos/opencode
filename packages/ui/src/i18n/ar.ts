@@ -230,4 +230,12 @@ export const dict = {
   "ui.toolErrorCard.copyError": "نسخ الخطأ",
   "ui.message.duration.seconds": "{{count}}ث",
   "ui.message.duration.minutesSeconds": "{{minutes}}د {{seconds}}ث",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

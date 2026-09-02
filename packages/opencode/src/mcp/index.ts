@@ -16,6 +16,7 @@ import {
   ToolListChangedNotificationSchema,
 } from "@modelcontextprotocol/sdk/types.js"
 import { Config } from "@/config/config"
+import { Auth as AuthStore } from "@/auth"
 import { ConfigMCPV1 } from "@opencode-ai/core/v1/config/mcp"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
@@ -36,6 +37,9 @@ import { McpEvent } from "@opencode-ai/schema/mcp-event"
 import { McpBrowser } from "./browser"
 
 const DEFAULT_TIMEOUT = 30_000
+// Matches OMNIROUTE_PROVIDER_ID in packages/app/src/components/dialog-connect-omniroute.tsx —
+// the OmniRoute gateway exposes both a provider API and an MCP endpoint under the same credential.
+const OMNIROUTE_MCP_NAME = "omnrt"
 const CLIENT_OPTIONS = {
   capabilities: {
     // https://github.com/anomalyco/opencode/issues/11948
@@ -422,6 +426,7 @@ const layer = Layer.effect(
       }),
     )
     const cfgSvc = yield* Config.Service
+    const credentials = yield* AuthStore.Service
 
     const descendants = Effect.fnUntraced(
       function* (pid: number) {
@@ -829,14 +834,51 @@ const layer = Layer.effect(
       )
     })
 
+    // OmniRoute's MCP endpoint lives at the same gateway as its provider API,
+    // keyed by the same credential (see dialog-connect-omniroute.tsx). There's
+    // no persisted mcp config entry for it — synthesize one from the stored
+    // provider credential, and cache it into s.config so later status() polls
+    // (which iterate Object.keys(s.config), not the persisted config) see it.
+    const omnirouteMcpConfig = Effect.fnUntraced(function* () {
+      const info = yield* credentials.get(OMNIROUTE_MCP_NAME).pipe(Effect.orElseSucceed(() => undefined))
+      if (!info || info.type !== "api") return undefined
+      const baseURL = info.metadata?.baseURL
+      if (!baseURL) return undefined
+      // The MCP endpoint lives at the gateway's origin, not under the API
+      // base path (e.g. baseURL "https://gateway.example.com/v1" but the
+      // MCP server at "https://gateway.example.com/api/mcp/sse").
+      let mcpUrl: string
+      try {
+        mcpUrl = new URL("/api/mcp/sse", baseURL).toString()
+      } catch {
+        mcpUrl = baseURL.replace(/\/+$/, "") + "/api/mcp/sse"
+      }
+      const config: ConfigMCPV1.Info = {
+        type: "remote",
+        url: mcpUrl,
+        headers: { Authorization: `Bearer ${info.key}` },
+      }
+      const s = yield* InstanceState.get(state)
+      s.config[OMNIROUTE_MCP_NAME] = config
+      return config
+    })
+
     const getMcpConfig = Effect.fnUntraced(function* (mcpName: string) {
+      const cfg = yield* cfgSvc.get()
+      const mcpConfig = cfg.mcp?.[mcpName]
+      if (mcpConfig && isMcpConfigured(mcpConfig)) return mcpConfig
+
+      // Omniroute's config is derived from the stored provider credential
+      // (baseURL/key), which can change after a bad connect attempt cached
+      // a stale (or wrong) URL into s.config — always recompute it fresh
+      // instead of trusting that cache, so a fixed/updated credential is
+      // picked up without needing an instance restart.
+      if (mcpName === OMNIROUTE_MCP_NAME) return yield* omnirouteMcpConfig()
+
       const s = yield* InstanceState.get(state)
       if (s.config[mcpName]) return s.config[mcpName]
 
-      const cfg = yield* cfgSvc.get()
-      const mcpConfig = cfg.mcp?.[mcpName]
-      if (!mcpConfig || !isMcpConfigured(mcpConfig)) return undefined
-      return mcpConfig
+      return undefined
     })
 
     const requireMcpConfig = Effect.fnUntraced(function* (mcpName: string) {
@@ -1042,7 +1084,7 @@ export type AuthStatus = "authenticated" | "expired" | "not_authenticated"
 export const node = LayerNode.make({
   service: Service,
   layer: layer,
-  deps: [CrossSpawnSpawner.node, McpAuth.node, EventV2Bridge.node, Config.node, McpBrowser.node],
+  deps: [CrossSpawnSpawner.node, McpAuth.node, EventV2Bridge.node, Config.node, McpBrowser.node, AuthStore.node],
 })
 
 export * as MCP from "."

@@ -194,4 +194,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Veldu öll svör sem eiga við",
   "ui.question.singleHint": "Veldu eitt svar",
   "ui.question.custom.placeholder": "Sláðu inn svarið þitt...",
+  "ui.backgroundTasks.title": "Bakgrunnsverk",
+  "ui.backgroundTasks.empty": "Engin bakgrunnsverk",
+  "ui.backgroundTasks.running": "Í gangi",
+  "ui.backgroundTasks.completed": "Lokið",
+  "ui.backgroundTasks.cancel": "Hætta við",
+  "ui.backgroundTasks.status.completed": "Lokið",
+  "ui.backgroundTasks.status.error": "Mistókst",
+  "ui.backgroundTasks.status.cancelled": "Hætt við",
 }

@@ -20,6 +20,8 @@ import type {
   BatutaAddResponses,
   BatutaBranchesErrors,
   BatutaBranchesResponses,
+  BatutaDelegateErrors,
+  BatutaDelegateResponses,
   BatutaDispatchErrors,
   BatutaDispatchResponses,
   BatutaGetPipelineDefinitionErrors,
@@ -87,6 +89,10 @@ import type {
   ExperimentalWorkspaceSyncListResponses,
   ExperimentalWorkspaceWarpErrors,
   ExperimentalWorkspaceWarpResponses,
+  ExternalAgentDetectErrors,
+  ExternalAgentDetectResponses,
+  ExternalAgentSetSkillErrors,
+  ExternalAgentSetSkillResponses,
   FileListErrors,
   FileListResponses,
   FilePartInput,
@@ -103,6 +109,10 @@ import type {
   FindTextResponses,
   FormatterStatusErrors,
   FormatterStatusResponses,
+  GlobalBugRelayTelemetryGetErrors,
+  GlobalBugRelayTelemetryGetResponses,
+  GlobalBugRelayTelemetrySetErrors,
+  GlobalBugRelayTelemetrySetResponses,
   GlobalConfigGetErrors,
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
@@ -1423,6 +1433,49 @@ export class Config extends HeyApiClient {
   }
 }
 
+export class BugRelayTelemetry extends HeyApiClient {
+  /**
+   * Get bug-relay telemetry setting
+   *
+   * Whether crashes are automatically reported to the bug-relay service.
+   */
+  public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalBugRelayTelemetryGetResponses,
+      GlobalBugRelayTelemetryGetErrors,
+      ThrowOnError
+    >({ url: "/global/bug-relay/telemetry", ...options })
+  }
+
+  /**
+   * Set bug-relay telemetry setting
+   *
+   * Enable or disable automatic crash reporting to the bug-relay service.
+   */
+  public set<ThrowOnError extends boolean = false>(
+    parameters?: {
+      enabled?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "enabled" }] }])
+    return (options?.client ?? this.client).put<
+      GlobalBugRelayTelemetrySetResponses,
+      GlobalBugRelayTelemetrySetErrors,
+      ThrowOnError
+    >({
+      url: "/global/bug-relay/telemetry",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -1487,6 +1540,11 @@ export class Global extends HeyApiClient {
   private _config?: Config
   get config(): Config {
     return (this._config ??= new Config({ client: this.client }))
+  }
+
+  private _bugRelayTelemetry?: BugRelayTelemetry
+  get bugRelayTelemetry(): BugRelayTelemetry {
+    return (this._bugRelayTelemetry ??= new BugRelayTelemetry({ client: this.client }))
   }
 }
 
@@ -1817,6 +1875,47 @@ export class Batuta extends HeyApiClient {
       ThrowOnError
     >({
       url: "/batuta/{id}/pipeline-definition",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Delegate a task to a worker (for external-CLI orchestrators)
+   *
+   * Called by an external-CLI orchestrator (no task tool available) to delegate a task to one of its pre-configured workers by label. Synchronous — the response only arrives once the worker finishes.
+   */
+  public delegate<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      label?: string
+      prompt?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "label" },
+            { in: "body", key: "prompt" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BatutaDelegateResponses, BatutaDelegateErrors, ThrowOnError>({
+      url: "/batuta/{id}/delegate",
       ...options,
       ...params,
       headers: {
@@ -2173,6 +2272,81 @@ export class Worktree extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<WorktreeResetResponses, WorktreeResetErrors, ThrowOnError>({
       url: "/experimental/worktree/reset",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class ExternalAgent extends HeyApiClient {
+  /**
+   * Detect installed external agent CLIs
+   *
+   * Scans the connected server's PATH for every agent in the known registry (claude, codex, ...) without spawning any subprocess.
+   */
+  public detect<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ExternalAgentDetectResponses, ExternalAgentDetectErrors, ThrowOnError>({
+      url: "/external-agent/detect",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Install or remove the batuta-cli skill for an agent
+   *
+   * Writes or removes ~/<agent skills dir>/batuta-cli/SKILL.md on the connected server for the given known agent id.
+   */
+  public setSkill<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      install?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "install" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExternalAgentSetSkillResponses,
+      ExternalAgentSetSkillErrors,
+      ThrowOnError
+    >({
+      url: "/external-agent/{id}/skill",
       ...options,
       ...params,
       headers: {
@@ -7651,6 +7825,11 @@ export class OpencodeClient extends HeyApiClient {
   private _worktree?: Worktree
   get worktree(): Worktree {
     return (this._worktree ??= new Worktree({ client: this.client }))
+  }
+
+  private _externalAgent?: ExternalAgent
+  get externalAgent(): ExternalAgent {
+    return (this._externalAgent ??= new ExternalAgent({ client: this.client }))
   }
 
   private _find?: Find

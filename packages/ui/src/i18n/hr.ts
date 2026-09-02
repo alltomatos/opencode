@@ -199,4 +199,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Odaberite sve primjenjive odgovore",
   "ui.question.singleHint": "Odaberite jedan odgovor",
   "ui.question.custom.placeholder": "Upišite svoj odgovor...",
+  "ui.backgroundTasks.title": "Pozadinski zadaci",
+  "ui.backgroundTasks.empty": "Nema pozadinskih zadataka",
+  "ui.backgroundTasks.running": "U tijeku",
+  "ui.backgroundTasks.completed": "Dovršeno",
+  "ui.backgroundTasks.cancel": "Otkaži",
+  "ui.backgroundTasks.status.completed": "Dovršeno",
+  "ui.backgroundTasks.status.error": "Neuspjelo",
+  "ui.backgroundTasks.status.cancelled": "Otkazano",
 }

@@ -127,6 +127,9 @@ export type ElectronAPI = {
   getDebugModeEnabled: () => Promise<boolean>
   setDebugModeEnabled: (enabled: boolean) => Promise<void>
   onDebugModeEnabledChanged: (cb: (enabled: boolean) => void) => () => void
+  getComputerUseEnabled: () => Promise<boolean>
+  setComputerUseEnabled: (enabled: boolean) => Promise<void>
+  onComputerUseEnabledChanged: (cb: (enabled: boolean) => void) => () => void
   setTitlebar: (theme: TitlebarTheme) => Promise<void>
   runDesktopMenuAction: (action: DesktopMenuAction) => Promise<void>
   setBackgroundColor: (color: string) => Promise<void>

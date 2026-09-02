@@ -135,6 +135,46 @@ V1 usa só providers já configurados no app. V2 (orquestrar CLIs externos como 
 
 Executando em fila, sem paralelismo, um commit por issue, verificado antes de seguir pra próxima. Merge pra `dev` só depois das 3 fases funcionando de ponta a ponta.
 
+### V2: orquestração de CLIs externos (`claude`, `codex`) via PTY
+
+**Status:** Fase 1 (backend) concluída em 2026-08-23, em fila sem paralelismo, um commit por issue. Todas as 4 issues fechadas na branch `batuta`.
+**Origem:** estudo do modelo do Orca (`orca-cli` skill) — orquestrador de terminal que controla CLIs de agentes de terceiros via PTY dentro de git worktrees, sem motor de LLM próprio. Pesquisa completa em `docs/research/external-agent-orchestration.md`.
+
+Insight de arquitetura: o `node-pty` (já dependência do projeto, usado no empacotamento do `.exe`) roda em qualquer processo Node/Bun — não precisa ser o Electron main. O `ExternalAgent.Service` vive em `packages/opencode`, o mesmo processo que já roda `task.ts`, evitando IPC com o desktop. Pra quem chama a tool `task`, delegar a um worker interno (V1) ou externo (V2) é indistinguível — a interface não muda, só a implementação por trás do `kind` do worker.
+
+4 issues em fila, com `Blocked by` entre elas:
+
+| Issue | O quê |
+|---|---|
+| [#49](https://github.com/alltomatos/opencode/issues/49) | Schema de Worker externo (`kind`/`command`/`args`/`idleTimeoutMs`) |
+| [#50](https://github.com/alltomatos/opencode/issues/50) | `ExternalAgent.Service` (spawn/write/read/waitIdle/kill de PTY) |
+| [#51](https://github.com/alltomatos/opencode/issues/51) | Permission gate dedicado antes de spawnar CLI externo |
+| [#52](https://github.com/alltomatos/opencode/issues/52) | `task.ts` delega pro worker externo via PTY quando `kind === "external"` |
+
+Fora de escopo desta fase: UI de seleção `kind`/`command` no form de worker, handoff/DAG entre múltiplos workers externos, painel de terminal ao vivo (xterm.js) — tudo isso fica pra fases seguintes, só depois do backend funcionar ponta a ponta com um worker externo controlado por request/response (sem UI de terminal).
+
+Desvios de implementação registrados nos comentários de fechamento de cada issue (vale ler antes de continuar o V2):
+- `ExternalAgent.Service` (#50) não depende do `Pty.Service` do core (é location-scoped, `task.ts`/`Batuta.Service` rodam no grafo global do opencode) — ficou self-contained, reaproveitando só o wrapper de baixo nível `@opencode-ai/core/pty/pty.bun`.
+- O tipo público de metadata do `task` tool (`ExecuteResult<M>`) é inferido como um único shape a partir de todos os `return`s da função — a branch de worker externo usa um cast documentado (`as unknown as typeof metadata`) pra não virar union e forçar 20+ call sites de teste a adicionar narrowing por um shape que nunca veem em runtime.
+- Cobertura de teste do caminho externo ponta-a-ponta via `TaskTool.execute` ficou faltando: exigiria rodar o ciclo completo do Batuta (architect → handoff.md → dispatch), e o teste equivalente já existente pra worker **interno** no mesmo arquivo já falha sem nenhuma mudança desta fase (lacuna pré-existente, confirmada via `git stash` antes de cada commit) — testei `ExternalAgent.Service` isoladamente em vez disso (`test/external-agent/index.test.ts`).
+
+### V2 fase 2 (UI mínima) + débito técnico descoberto
+
+**Status:** Concluída em 2026-08-23, branch `batuta`.
+
+| Issue | O quê |
+|---|---|
+| [#53](https://github.com/alltomatos/opencode/issues/53) | Seletor `kind` + campos `command`/`args` no form de worker (SDK regenerado) |
+| [#54](https://github.com/alltomatos/opencode/issues/54) | Badge/ícone de terminal pra worker externo na lista de workers |
+| [#55](https://github.com/alltomatos/opencode/issues/55) | Corrigido teste de delegação a worker interno — não passava pelo ciclo real (`start`→`checkHandoff`→`dispatch`), passava por acidente num fallback errado. Suite completa de `task.test.ts` (21/21) verde agora |
+
+Achado durante a #55, registrado como issue própria — **não corrigido nesta rodada**:
+- [#58](https://github.com/alltomatos/opencode/issues/58) — no Windows, o PTY spawnado por `ExternalAgent.Service` não termina de verdade após `kill()` (ConPTY), prendendo o processo que o usa. Bloqueou um teste de integração ponta-a-ponta pro worker externo (revertido antes de commitar pra não travar CI).
+
+Backlog de fase 3 (decisão de produto pendente antes de iniciar):
+- [#56](https://github.com/alltomatos/opencode/issues/56) — painel de terminal ao vivo (xterm.js) pro worker externo.
+- [#57](https://github.com/alltomatos/opencode/issues/57) — handoff/DAG entre múltiplos workers externos.
+
 ## Epic: Descontinuar o layout legado
 
 **Status:** Decisão tomada em 2026-08-19 (issue #25), execução não iniciada.

@@ -38,8 +38,18 @@ export function createSessionComposerController(options?: { closeMs?: number | (
   })
 
   const permissionRequest = createMemo((): PermissionRequest | undefined => {
+    // A permission can belong to a child/sub-agent session running in a
+    // different directory than the one currently open in this tab (e.g. an
+    // external repo the agent was asked to touch). Checking auto-respond
+    // eligibility against sdk().directory instead of that session's own
+    // directory is what let the UI decide "this will auto-respond" and hide
+    // the request, while the actual auto-respond check server-side (keyed
+    // by the event's own directory) correctly declined and left it pending
+    // — a permission stuck forever with no visible toast to act on.
+    const directoryOf = (sessionID: string) =>
+      sync().data.session.find((s) => s.id === sessionID)?.directory ?? sdk().directory
     return sessionPermissionRequest(sync().data.session, sync().data.permission, params.id, (item) => {
-      return !permission.autoResponds(item, sdk().directory)
+      return !permission.autoResponds(item, directoryOf(item.sessionID))
     })
   })
 

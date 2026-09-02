@@ -88,6 +88,19 @@ O instalador gerado fica em `packages/desktop/dist/`.
 
 **Publicação real é automática**: assim que a branch `prod` recebe um push (a promoção `dev` → `prod`), o workflow [`release-desktop.yml`](./.github/workflows/release-desktop.yml) dispara sozinho e builda Windows/macOS/Linux em paralelo (`windows-latest`/`macos-latest`/`ubuntu-latest`), publicando os três num único release do GitHub com a versão que estiver em `packages/desktop/package.json` no momento do push. Não precisa mais buildar nada manualmente nesta máquina — só bumpar a versão, commitar, e promover. Pra reexecutar manualmente (ex: retry de uma plataforma que falhou), use `gh workflow run release-desktop.yml`.
 
+### Rodando numa VPS (servidor remoto)
+
+O OpenCode também roda como servidor puro, sem o app desktop — útil pra manter sessões ativas 24/7 e acessar de qualquer lugar.
+
+```bash
+export OPENCODE_SERVER_PASSWORD="uma-senha-forte-aqui"
+opencode web --hostname 0.0.0.0 --port 4096      # UI web embutida, acessível pelo navegador
+# ou
+opencode serve --hostname 0.0.0.0 --port 4096    # só a API, pra conectar via app desktop ou TUI
+```
+
+Depois é só adicionar esse endereço como servidor remoto em **Configurações → Servidores** no app desktop, ou abrir a URL direto no navegador. Guia completo (systemd, proxy reverso/TLS, segurança) em [`docs/vps-hosting.md`](./docs/vps-hosting.md).
+
 ### Agents
 
 OpenCode includes two built-in agents you can switch between with the `Tab` key.
@@ -117,7 +130,7 @@ Este fork existe graças ao trabalho da equipe original do **[OpenCode](https://
 - Site oficial: [opencode.ai](https://opencode.ai)
 - Discord oficial: [opencode.ai/discord](https://opencode.ai/discord)
 
-Se você não está procurando especificamente por este fork, use o [projeto original](https://github.com/anomalyco/opencode) — ele recebe atualizações com muito mais frequência e é o software com suporte oficial.
+Se você não está procurando especificamente por este fork, use o [projeto original](https://github.com/anomalyco/opencode)
 
 ### Building on OpenCode
 

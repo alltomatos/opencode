@@ -8,6 +8,8 @@ import { getStore } from "./store"
 import { DEFAULT_SERVER_URL_KEY } from "./store-keys"
 import { startBrowserBridge } from "./browser-bridge"
 import { getActiveBrowserPanel } from "./browser-panel"
+import { startComputerBridge } from "./computer-bridge"
+import { getComputerUseEnabled } from "./computer-use-settings"
 
 export type HealthCheck = { wait: Promise<void> }
 
@@ -73,6 +75,24 @@ export async function spawnLocalServer(
       OPENCODE_EXPERIMENTAL_BROWSER_TOOL: "true",
     })
     options.onStdout?.(`browser bridge started on port ${bridge.port}`)
+  }
+
+  // On by default, opt-out via Settings > Experimental. Toggling the setting
+  // takes effect on the next app restart — this env var is only read once,
+  // at sidecar spawn time.
+  if (getComputerUseEnabled()) {
+    const computerBridge = await startComputerBridge().catch((error) => {
+      options.onStderr?.(`computer bridge failed to start: ${String(error)}`)
+      return undefined
+    })
+    if (computerBridge) {
+      Object.assign(process.env, {
+        OPENCODE_COMPUTER_BRIDGE_PORT: String(computerBridge.port),
+        OPENCODE_COMPUTER_BRIDGE_TOKEN: computerBridge.token,
+        OPENCODE_EXPERIMENTAL_COMPUTER_TOOL: "true",
+      })
+      options.onStdout?.(`computer bridge started on port ${computerBridge.port}`)
+    }
   }
 
   const sidecar = join(dirname(fileURLToPath(import.meta.url)), "sidecar.js")

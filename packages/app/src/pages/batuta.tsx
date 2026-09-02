@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/solid-query"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Tag } from "@opencode-ai/ui/v2/badge-v2"
@@ -208,10 +209,20 @@ export function BatutaPage() {
                               <ModelTag value={activity.orchestratorModel} />
                               <For each={activity.workers}>
                                 {(worker) => (
-                                  <Tag title={worker.model}>
-                                    <IconV2 name="subagent" size="small" class="text-v2-icon-icon-muted" />
-                                    <span class="truncate">{worker.label}</span>
-                                  </Tag>
+                                  <Show
+                                    when={worker.kind === "external"}
+                                    fallback={
+                                      <Tag title={worker.model}>
+                                        <IconV2 name="subagent" size="small" class="text-v2-icon-icon-muted" />
+                                        <span class="truncate">{worker.label}</span>
+                                      </Tag>
+                                    }
+                                  >
+                                    <Tag variant="accent" title={worker.command}>
+                                      <Icon name="terminal-active" class="size-3.5 shrink-0" />
+                                      <span class="truncate">{worker.label}</span>
+                                    </Tag>
+                                  </Show>
                                 )}
                               </For>
                               <Show when={activity.useWorktree}>

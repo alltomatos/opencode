@@ -197,4 +197,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Barcha tegishli javoblarni tanlang",
   "ui.question.singleHint": "Bitta javobni tanlang",
   "ui.question.custom.placeholder": "Javobingizni yozing...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

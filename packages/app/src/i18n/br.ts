@@ -872,7 +872,12 @@ export const dict = {
   "batuta.form.field.workers.label": "Workers",
   "batuta.form.field.workers.label.placeholder": "Nome do worker",
   "batuta.form.field.workers.add": "Adicionar worker",
-  "batuta.form.field.workers.error.required": "Adicione ao menos um worker com nome e modelo",
+  "batuta.form.field.workers.error.required": "Adicione ao menos um worker com nome e modelo ou comando",
+  "batuta.form.field.workers.kind.internal": "Interno",
+  "batuta.form.field.workers.kind.external": "CLI externo",
+  "batuta.form.field.workers.command.placeholder": "Comando (ex: claude, codex)",
+  "batuta.form.field.workers.command.needsSkill": "Instale a skill batuta-cli para este agente em Settings > Agentes primeiro",
+  "batuta.form.field.workers.args.placeholder": "Argumentos (separados por espaço)",
   "batuta.form.field.worktree.label": "Worktree isolado por worker",
   "batuta.form.field.worktree.description": "Cada worker sempre recebe seu próprio worktree git, isolado do seu checkout principal — o orquestrador revisa e mescla o resultado de cada worker. Isso não é configurável.",
   "batuta.form.field.directory.label": "Projeto",
@@ -1027,6 +1032,15 @@ export const dict = {
   "settings.general.row.debugMode.descriptionOn":
     "Ativado — reinicie o app para a porta de depuração remota entrar em vigor.",
   "settings.general.row.debugMode.restart": "Reiniciar agora",
+  "settings.general.row.computerUse.title": "Controle do computador",
+  "settings.general.row.computerUse.description":
+    "Permite que o agente controle este computador diretamente — mouse, teclado e tela — não só o browser embutido. Ativado por padrão; toda ação ainda pede confirmação antes. Requer reiniciar o app para entrar em vigor.",
+  "settings.general.row.computerUse.descriptionOn":
+    "Ativado — reinicie o app para o controle do computador entrar em vigor.",
+  "settings.general.row.computerUse.restart": "Reiniciar agora",
+  "settings.general.row.bugReports.title": "Relatórios de erro automáticos",
+  "settings.general.row.bugReports.description":
+    "Envia relatórios de falha (só mensagem de erro e stack trace — nunca seus arquivos, conversas ou variáveis de ambiente) pra ajudar a corrigir bugs mais rápido. Relatórios são checados contra issues já existentes no GitHub antes de abrir uma nova. Ativado por padrão.",
   "settings.general.row.newInterface.title": "Novo layout",
   "settings.general.row.newInterface.badge": "Novo",
   "settings.general.row.newInterface.description":
@@ -1194,6 +1208,14 @@ export const dict = {
   "settings.skills.sources.codex.title": "Enxergar skills do Codex",
   "settings.skills.sources.codex.description": "Descobre skills em ~/.codex/skills",
   "settings.skills.installed.title": "Skills descobertas",
+
+  "settings.externalAgents.title": "Agentes",
+  "settings.externalAgents.refresh": "Atualizar",
+  "settings.externalAgents.selectAll.title": "Selecionar todos os detectados",
+  "settings.externalAgents.selectAll.description":
+    "Instala a skill batuta-cli em todo agente detectado. Desligue para escolher agentes individualmente.",
+  "settings.externalAgents.status.detected": "Detectado no servidor conectado",
+  "settings.externalAgents.status.notDetected": "Não detectado — instale o CLI e clique em Atualizar",
 
   "settings.marketplace.title": "Marketplace",
   "settings.marketplace.add.button": "Adicionar",
@@ -1376,4 +1398,12 @@ export const dict = {
   "error.childStore.persistedProjectIconCreateFailed": "Falha ao criar ícone de projeto persistente",
   "error.childStore.storeCreateFailed": "Falha ao criar armazenamento",
   "terminal.connectionLost.abnormalClose": "WebSocket fechado anormalmente: {{code}}",
+  "dialog.model.selectProvider.title": "Selecionar provedor",
+  "dialog.model.provider.label": "Provedor",
+  "provider.omniroute.mcp.autoconfig": "Ao conectar, o servidor MCP do Omniroute será configurado automaticamente para você.",
+  "provider.omniroute.mcp.testing": "Testando conexão com o MCP...",
+  "provider.omniroute.mcp.connected": "MCP conectado",
+  "provider.omniroute.mcp.failed": "Não foi possível conectar ao servidor MCP. Acesse {{url}} e habilite-o, depois teste novamente.",
+  "provider.omniroute.mcp.retry": "Testar novamente",
+  "provider.omniroute.mcp.skip": "Pular MCP",
 }

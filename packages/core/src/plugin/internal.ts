@@ -3,7 +3,7 @@ export * as PluginInternal from "./internal"
 import { makeLocationNode } from "../effect/app-node"
 import { httpClient } from "../effect/app-node-platform"
 import type { PluginContext } from "@opencode-ai/plugin/v2/effect"
-import { Effect, Layer, Scope } from "effect"
+import { Context, Deferred, Effect, Layer, Scope } from "effect"
 import { AgentV2 } from "../agent"
 import { Catalog } from "../catalog"
 import { CommandV2 } from "../command"
@@ -60,8 +60,23 @@ export function define<R>(plugin: Plugin<R>) {
   return plugin
 }
 
-const layer = Layer.effectDiscard(
+// The initial plugin registration (below) is forked and never awaited by
+// this node's own layer — booting a location must not block on every
+// built-in/npm plugin's load time. That leaves a real window right after a
+// location is first built where Catalog.Service.provider.all() can still be
+// empty: nothing has registered ProviderPlugins (e.g. OmniRoute) into it
+// yet. Consumers that need the Catalog to reflect all built-in plugins
+// (not just whatever happened to finish registering already) should await
+// `Service.ready` first — bounded by their own timeout, since a slow
+// third-party plugin must not be able to hang a caller indefinitely.
+export class Service extends Context.Service<Service, { readonly ready: Effect.Effect<void> }>()(
+  "@opencode/PluginInternal",
+) {}
+
+const layer = Layer.effect(
+  Service,
   Effect.gen(function* () {
+    const ready = yield* Deferred.make<void>()
     const catalog = yield* Catalog.Service
     const commands = yield* CommandV2.Service
     const plugin = yield* PluginV2.Service
@@ -120,7 +135,11 @@ const layer = Layer.effectDiscard(
         yield* add(ConfigProviderPlugin.Plugin)
         yield* add(VariantPlugin.Plugin)
       }),
-    ).pipe(Effect.withSpan("PluginInternal.boot"), Effect.forkScoped({ startImmediately: true }))
+    )
+      .pipe(Effect.ensuring(Deferred.succeed(ready, undefined)), Effect.withSpan("PluginInternal.boot"))
+      .pipe(Effect.forkScoped({ startImmediately: true }))
+
+    return Service.of({ ready: Deferred.await(ready) })
   }),
 )
 

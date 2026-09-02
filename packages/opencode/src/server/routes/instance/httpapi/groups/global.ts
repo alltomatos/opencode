@@ -62,12 +62,17 @@ const GlobalUpgradeResult = Schema.Union([
   }),
 ])
 
+const BugRelayTelemetry = Schema.Struct({
+  enabled: Schema.Boolean,
+})
+
 export const GlobalPaths = {
   health: "/global/health",
   event: "/global/event",
   config: "/global/config",
   dispose: "/global/dispose",
   upgrade: "/global/upgrade",
+  bugRelayTelemetry: "/global/bug-relay/telemetry",
 } as const
 
 export const GlobalApi = HttpApi.make("global").add(
@@ -129,6 +134,25 @@ export const GlobalApi = HttpApi.make("global").add(
           identifier: "global.upgrade",
           summary: "Upgrade opencode",
           description: "Upgrade opencode to the specified version or latest if not specified.",
+        }),
+      ),
+      HttpApiEndpoint.get("bugRelayTelemetryGet", GlobalPaths.bugRelayTelemetry, {
+        success: described(BugRelayTelemetry, "Bug-relay telemetry setting"),
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "global.bugRelayTelemetry.get",
+          summary: "Get bug-relay telemetry setting",
+          description: "Whether crashes are automatically reported to the bug-relay service.",
+        }),
+      ),
+      HttpApiEndpoint.put("bugRelayTelemetrySet", GlobalPaths.bugRelayTelemetry, {
+        payload: BugRelayTelemetry,
+        success: described(BugRelayTelemetry, "Updated bug-relay telemetry setting"),
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "global.bugRelayTelemetry.set",
+          summary: "Set bug-relay telemetry setting",
+          description: "Enable or disable automatic crash reporting to the bug-relay service.",
         }),
       ),
     )

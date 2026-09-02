@@ -5,6 +5,8 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { UsageService } from "@/acp/usage"
 import { Provider } from "@/provider/provider"
+import { InstanceBootstrap } from "@/project/bootstrap"
+import { InstanceStore } from "@/project/instance-store"
 import { Effect, Layer } from "effect"
 import { it } from "../lib/effect"
 
@@ -99,6 +101,7 @@ const fakeLayer = (input: {
   readonly providers?: (directory: string) => Effect.Effect<Record<ProviderV2.ID, Provider.Info>, unknown>
 }) =>
   LayerNode.compile(UsageService.node, [
+    [InstanceStore.bootstrapNode, InstanceBootstrap.node],
     [
       UsageService.messageLoaderNode,
       Layer.succeed(

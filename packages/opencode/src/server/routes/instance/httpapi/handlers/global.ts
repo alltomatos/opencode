@@ -12,6 +12,7 @@ import { HttpApiBuilder } from "effect/unstable/httpapi"
 import * as Sse from "effect/unstable/encoding/Sse"
 import { RootHttpApi } from "../api"
 import { GlobalUpgradeInput } from "../groups/global"
+import { isTelemetryEnabled, setTelemetryEnabled } from "@/bug-relay/report"
 
 function eventData(data: unknown): Sse.Event {
   return {
@@ -145,6 +146,15 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       return HttpServerResponse.jsonUnsafe(result.body, { status: result.status })
     })
 
+    const bugRelayTelemetryGet = Effect.fn("GlobalHttpApi.bugRelayTelemetryGet")(function* () {
+      return { enabled: yield* Effect.promise(() => isTelemetryEnabled()) }
+    })
+
+    const bugRelayTelemetrySet = Effect.fn("GlobalHttpApi.bugRelayTelemetrySet")(function* (ctx) {
+      yield* Effect.promise(() => setTelemetryEnabled(ctx.payload.enabled))
+      return { enabled: ctx.payload.enabled }
+    })
+
     return handlers
       .handle("health", health)
       .handleRaw("event", event)
@@ -152,5 +162,7 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       .handle("configUpdate", configUpdate)
       .handle("dispose", dispose)
       .handleRaw("upgrade", upgradeRaw)
+      .handle("bugRelayTelemetryGet", bugRelayTelemetryGet)
+      .handle("bugRelayTelemetrySet", bugRelayTelemetrySet)
   }),
 )

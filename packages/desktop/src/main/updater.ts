@@ -1,6 +1,6 @@
 import { app, dialog } from "electron"
 import pkg from "electron-updater"
-import { UPDATER_ENABLED } from "./constants"
+import { CHANNEL, UPDATER_ENABLED } from "./constants"
 import { createUpdaterController, type UpdaterReadyRecord } from "./updater-controller"
 import { getLogger } from "./logging"
 import { getStore } from "./store"
@@ -13,8 +13,12 @@ const key = "ready"
 export function setupAutoUpdater(stop: () => Promise<void>) {
   const logger = getLogger()
   autoUpdater.logger = logger
-  autoUpdater.channel = "latest"
-  autoUpdater.allowPrerelease = false
+  // dev builds publish to their own "dev" electron-updater channel (see
+  // electron-builder.config.ts) and are versioned as semver prereleases
+  // (e.g. 1.21.8-dev.42) — beta/prod both keep publishing under "latest"
+  // regardless of app channel, only the target repo differs between them.
+  autoUpdater.channel = CHANNEL === "dev" ? "dev" : "latest"
+  autoUpdater.allowPrerelease = CHANNEL === "dev"
   autoUpdater.allowDowngrade = true
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false

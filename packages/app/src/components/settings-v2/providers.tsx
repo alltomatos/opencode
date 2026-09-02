@@ -3,6 +3,7 @@ import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
@@ -24,9 +25,9 @@ export type ProviderView = "list" | "grid"
 function loadProviderView(): ProviderView {
   try {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY)
-    return stored === "grid" ? "grid" : "list"
+    return stored === "list" ? "list" : "grid"
   } catch {
-    return "list"
+    return "grid"
   }
 }
 
@@ -112,6 +113,7 @@ export const SettingsProvidersV2: Component<{
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
   const [view, setView] = createSignal<ProviderView>(loadProviderView())
   const [query, setQuery] = createSignal("")
+  const [disconnecting, setDisconnecting] = createSignal<Set<string>>(new Set())
 
   const changeView = (next: ProviderView) => {
     setView(next)
@@ -177,6 +179,12 @@ export const SettingsProvidersV2: Component<{
   const canDisconnect = (item: ProviderItem) =>
     source(item) !== "env" && (protocol() === "v1" || !isConfigCustom(item.id))
 
+  // Omniroute's credential (baseURL + key) can be edited in place — the
+  // dialog upserts via auth.set, so there's no need to disconnect first
+  // (disconnect+reconnect is a lossy, error-prone round trip: it tears down
+  // the MCP client and re-derives its config from scratch).
+  const canEdit = (item: ProviderItem) => item.id === OMNIROUTE_PROVIDER_ID
+
   const note = (id: string) => PROVIDER_NOTES.find((item) => item.match(id))?.key
 
   const isConfigCustom = (providerID: string) => {
@@ -235,6 +243,19 @@ export const SettingsProvidersV2: Component<{
       })
   }
 
+  const handleDisconnect = async (providerID: string, name: string) => {
+    setDisconnecting((prev) => new Set(prev).add(providerID))
+    try {
+      await disconnect(providerID, name)
+    } finally {
+      setDisconnecting((prev) => {
+        const next = new Set(prev)
+        next.delete(providerID)
+        return next
+      })
+    }
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header">
@@ -274,14 +295,25 @@ export const SettingsProvidersV2: Component<{
                         </span>
                       }
                     >
-                      <ButtonV2
-                        size="normal"
-                        variant="ghost-muted"
-                        class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
-                        onClick={() => void disconnect(item.id, item.name)}
-                      >
-                        {language.t("common.disconnect")}
-                      </ButtonV2>
+                      <div class="flex items-center gap-2">
+                        <Show when={canEdit(item)}>
+                          <ButtonV2 size="normal" variant="ghost-muted" onClick={() => connect(item.id)}>
+                            {language.t("common.edit")}
+                          </ButtonV2>
+                        </Show>
+                        <ButtonV2
+                          size="normal"
+                          variant="ghost-muted"
+                          class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                          disabled={disconnecting().has(item.id)}
+                          onClick={() => void handleDisconnect(item.id, item.name)}
+                        >
+                          <Show when={disconnecting().has(item.id)}>
+                            <Spinner class="size-4" />
+                          </Show>
+                          {language.t("common.disconnect")}
+                        </ButtonV2>
+                      </div>
                     </Show>
                   </div>
                 )}

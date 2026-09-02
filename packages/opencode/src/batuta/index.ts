@@ -7,6 +7,7 @@ import { Session } from "@/session/session"
 import type { SessionID } from "@/session/schema"
 import { Worktree } from "@/worktree"
 import { Git } from "@/git"
+import { ExternalAgent } from "@/external-agent"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
@@ -55,7 +56,13 @@ ${skills}
 function orchestratorInstructions(activity: ConfigBatutaV1.Activity, handoff: string) {
   const skills = ConfigBatutaSkillsV1.SKILLS.map((skill) => `- ${skill.slug}: ${skill.description}`).join("\n")
   const workers = activity.workers.length
-    ? activity.workers.map((worker) => `- ${worker.label} (model: ${worker.model})`).join("\n")
+    ? activity.workers
+        .map((worker) =>
+          worker.kind === "external"
+            ? `- ${worker.label} (external: ${worker.command})`
+            : `- ${worker.label} (model: ${worker.model})`,
+        )
+        .join("\n")
     : "(nenhum worker pré-configurado)"
   return `Você é o Orquestrador da atividade "${activity.name}". O Arquiteto concluiu a preparação e entregou o seguinte pacote (documentos + issues):
 
@@ -82,6 +89,43 @@ A cada delegação, atualize o arquivo "${PIPELINE_RELATIVE(activity.id)}" (rela
 Crie o arquivo se ele não existir, e mantenha-o atualizado conforme cada issue é despachada, revisada e mesclada.`
 }
 
+function workerList(activity: ConfigBatutaV1.Activity) {
+  return activity.workers.length
+    ? activity.workers
+        .map((worker) =>
+          worker.kind === "external"
+            ? `- ${worker.label} (external: ${worker.command})`
+            : `- ${worker.label} (model: ${worker.model})`,
+        )
+        .join("\n")
+    : "(nenhum worker pré-configurado)"
+}
+
+// Fed to an external-CLI orchestrator's PTY as its first message. Unlike the
+// internal orchestrator, it has no task tool and never ran the Architect/
+// handoff flow — it delegates over plain HTTP instead (see the "delegate"
+// route in the batuta HTTP group), and starts straight from the goal.
+function externalOrchestratorInstructions(activity: ConfigBatutaV1.Activity, serverURL: string) {
+  return `Você é o Orquestrador (CLI externo) da atividade "${activity.name}".
+
+Objetivo:
+${activity.goal}
+
+Workers disponíveis (delegue por label):
+${workerList(activity)}
+
+Você não tem uma tool "task" neste ambiente — delegue fazendo uma chamada HTTP síncrona para cada tarefa:
+
+POST ${serverURL}/batuta/${activity.id}/delegate
+Content-Type: application/json
+
+{"label": "<label do worker>", "prompt": "<a tarefa para esse worker>"}
+
+A resposta é {"output": "<resultado do worker>"}. A chamada só retorna depois que o worker termina — não precisa fazer polling.
+
+Cada worker sempre trabalha isolado em seu próprio git worktree. Revise o resultado de cada delegação antes de decidir a próxima (aceitar, pedir ajuste, ou seguir para a próxima etapa). Decida a sequência sozinho, sem esperar aprovação do usuário para prosseguir.`
+}
+
 export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Batuta.NotFoundError", {
   id: Schema.String,
 }) {}
@@ -90,6 +134,20 @@ export class HandoffNotFoundError extends Schema.TaggedErrorClass<HandoffNotFoun
   "Batuta.HandoffNotFoundError",
   { id: Schema.String },
 ) {}
+
+export class WorkerNotFoundError extends Schema.TaggedErrorClass<WorkerNotFoundError>()(
+  "Batuta.WorkerNotFoundError",
+  { id: Schema.String, label: Schema.String },
+) {}
+
+export type DelegateResult =
+  | { readonly kind: "external"; readonly output: string }
+  | {
+      readonly kind: "internal"
+      readonly sessionID: SessionID
+      readonly model: { readonly providerID: ProviderV2.ID; readonly modelID: ModelV2.ID }
+      readonly prompt: string
+    }
 
 export function parseModel(model: string) {
   const index = model.indexOf("/")
@@ -107,8 +165,11 @@ export interface Interface {
   readonly list: () => Effect.Effect<ConfigBatutaV1.Activity[]>
   readonly add: (activity: ConfigBatutaV1.Activity) => Effect.Effect<ConfigBatutaV1.Activity>
   readonly remove: (id: string) => Effect.Effect<void>
-  /** Creates the dedicated Architect session and returns its ID plus the instructions the caller (HTTP handler) should send as the first prompt — Batuta.Service can't depend on SessionPrompt.Service itself (ToolRegistry, a dep of SessionPrompt, already depends on Batuta). */
-  readonly start: (id: string) => Effect.Effect<{ sessionID: SessionID; instructions: string }, NotFoundError>
+  /** Creates the dedicated Architect session and returns its ID plus the instructions the caller (HTTP handler) should send as the first prompt — Batuta.Service can't depend on SessionPrompt.Service itself (ToolRegistry, a dep of SessionPrompt, already depends on Batuta). When orchestratorKind is "external", it spawns the CLI directly instead (no session, no Architect/handoff), returns `instructions: ""` as a sentinel the caller should NOT send as a prompt, and `sessionID` is the activity id, not a real session. `serverURL` is required for that case — the base URL the external CLI should call back into for /batuta/:id/delegate. */
+  readonly start: (
+    id: string,
+    opts?: { serverURL?: string },
+  ) => Effect.Effect<{ sessionID: SessionID; instructions: string }, NotFoundError, never>
   /** Polled by the frontend while an activity is in the "architecting" phase: checks for the Architect's handoff file, and if found, moves the activity to "ready" and returns the handoff content for the user to review before dispatching. */
   readonly checkHandoff: (
     id: string,
@@ -122,6 +183,17 @@ export interface Interface {
     orchestratorSessionID: string,
     label: string,
   ) => Effect.Effect<{ worker: ConfigBatutaV1.Worker; directory?: string } | undefined>
+  /** Delegation entry point for an external-CLI orchestrator (POST /batuta/:id/delegate) — it has no
+   * task tool, so it calls this over HTTP instead. Resolves the worker by label against the activity's
+   * running external-orchestrator registration, then either runs it directly (external worker: spawn a
+   * PTY, send the prompt, wait for it to go idle, return the output) or hands back enough info for the
+   * HTTP handler to run it (internal worker: Batuta.Service can't depend on SessionPrompt.Service, same
+   * reason as `start`/`dispatch`). */
+  readonly delegate: (
+    activityID: string,
+    label: string,
+    prompt: string,
+  ) => Effect.Effect<DelegateResult, NotFoundError | WorkerNotFoundError, never>
   /** Reads docs/batuta-pipeline.md for the activity's project directory (shared across all activities in that project) — used by the editor UI. */
   readonly readPipelineDefinition: (id: string) => Effect.Effect<string | undefined, NotFoundError>
   /** Overwrites docs/batuta-pipeline.md — the user can edit the flow at any point, including while the Orchestrator is already dispatching. */
@@ -137,7 +209,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Ba
 const layer: Layer.Layer<
   Service,
   never,
-  Config.Service | Session.Service | Worktree.Service | Git.Service
+  Config.Service | Session.Service | Worktree.Service | Git.Service | ExternalAgent.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -145,6 +217,7 @@ const layer: Layer.Layer<
     const sessions = yield* Session.Service
     const worktree = yield* Worktree.Service
     const git = yield* Git.Service
+    const externalAgent = yield* ExternalAgent.Service
 
     // Orchestrator sessionID -> running activity state. Session IDs are
     // globally unique, so this doesn't need per-project isolation.
@@ -152,6 +225,9 @@ const layer: Layer.Layer<
     // Worker worktrees created at start(), waiting for checkHandoff() to
     // create the orchestrator session they'll be attached to.
     const pendingWorkerDirectories = new Map<string, Map<string, string>>()
+    // Activity id -> running state, for activities whose orchestrator is an
+    // external CLI (no opencode session to key `running` off of).
+    const runningExternal = new Map<string, RunningActivity>()
 
     // In-memory overlay on top of disk config. Config.Service.updateGlobal
     // only invalidates its own global cache, not the per-instance merged
@@ -204,7 +280,7 @@ const layer: Layer.Layer<
       )
     })
 
-    const start = Effect.fn("Batuta.start")(function* (id: string) {
+    const start = Effect.fn("Batuta.start")(function* (id: string, opts?: { serverURL?: string }) {
       const activity = yield* requireActivity(id)
 
       if (activity.branch && activity.directory) {
@@ -224,6 +300,46 @@ const layer: Layer.Layer<
           ),
         )
         if (info) workerDirectories.set(worker.id, info.directory)
+      }
+
+      if (activity.orchestratorKind === "external") {
+        if (!activity.orchestratorCommand) {
+          return yield* Effect.die(new Error(`Activity "${activity.name}" has no orchestratorCommand configured`))
+        }
+        const serverURL = opts?.serverURL
+        if (!serverURL) {
+          return yield* Effect.die(new Error("External orchestrator requires a serverURL to delegate back to"))
+        }
+        const updated: ConfigBatutaV1.Activity = {
+          ...activity,
+          phase: "orchestrating",
+          architectSessionID: undefined,
+          orchestratorSessionID: undefined,
+        }
+        yield* add(updated)
+        runningExternal.set(id, { activity: updated, workerDirectories })
+
+        const handle = yield* externalAgent
+          .spawn({
+            command: activity.orchestratorCommand,
+            args: activity.orchestratorArgs,
+            cwd: activity.directory ?? process.cwd(),
+            env: { BATUTA_SERVER_URL: serverURL, BATUTA_ACTIVITY_ID: id },
+          })
+          .pipe(
+            Effect.mapError(
+              (e) =>
+                new Error(`Failed to spawn external orchestrator "${activity.orchestratorCommand}": ${e.message}`),
+            ),
+            Effect.orDie,
+          )
+        // send() only writes to the PTY's stdin and returns — it doesn't wait
+        // for the orchestrator to go idle, so this doesn't block start().
+        yield* externalAgent
+          .send(handle, externalOrchestratorInstructions(updated, serverURL))
+          .pipe(Effect.catch(() => Effect.void))
+
+        return { sessionID: id as SessionID, instructions: "" }
       }
 
       const orchestratorModel = parseModel(activity.orchestratorModel)
@@ -360,6 +476,48 @@ Leia o arquivo atual primeiro (se existir) antes de propor mudanças, e converse
       return { worker, directory: entry.workerDirectories.get(worker.id) }
     })
 
+    const delegate = Effect.fn("Batuta.delegate")(function* (activityID: string, label: string, prompt: string) {
+      const entry = runningExternal.get(activityID)
+      if (!entry) return yield* new NotFoundError({ id: activityID })
+      const worker = entry.activity.workers.find((item) => item.label === label)
+      if (!worker) return yield* new WorkerNotFoundError({ id: activityID, label })
+      const directory = entry.workerDirectories.get(worker.id) ?? entry.activity.directory ?? process.cwd()
+
+      if (worker.kind === "external") {
+        if (!worker.command) {
+          return yield* Effect.die(new Error(`External worker "${worker.label}" has no command configured`))
+        }
+        const handle = yield* externalAgent
+          .spawn({ command: worker.command, args: worker.args, cwd: directory })
+          .pipe(
+            Effect.mapError(
+              (e) => new Error(`Failed to spawn external worker "${worker.label}" (${worker.command}): ${e.message}`),
+            ),
+            Effect.orDie,
+          )
+        const output = yield* externalAgent
+          .send(handle, prompt)
+          .pipe(Effect.flatMap(() => externalAgent.waitIdle(handle, { idleMs: worker.idleTimeoutMs })))
+          .pipe(
+            Effect.mapError(() => new Error(`External worker "${worker.label}" session vanished before it finished`)),
+            Effect.ensuring(externalAgent.kill(handle)),
+            Effect.orDie,
+          )
+        return { kind: "external" as const, output }
+      }
+
+      if (!worker.model) {
+        return yield* Effect.die(new Error(`Internal worker "${worker.label}" has no model configured`))
+      }
+      const parsed = parseModel(worker.model)
+      const session = yield* sessions.create({
+        title: worker.label,
+        model: { id: parsed.modelID, providerID: parsed.providerID },
+        directory,
+      })
+      return { kind: "internal" as const, sessionID: session.id, model: parsed, prompt }
+    })
+
     return Service.of({
       list,
       add,
@@ -368,6 +526,7 @@ Leia o arquivo atual primeiro (se existir) antes de propor mudanças, e converse
       checkHandoff,
       dispatch,
       resolveWorker,
+      delegate,
       readPipelineDefinition,
       writePipelineDefinition,
       startPipelineChat,
@@ -378,7 +537,7 @@ Leia o arquivo atual primeiro (se existir) antes de propor mudanças, e converse
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node, Session.node, Worktree.node, Git.node],
+  deps: [Config.node, Session.node, Worktree.node, Git.node, ExternalAgent.node],
 })
 
 export * as Batuta from "."

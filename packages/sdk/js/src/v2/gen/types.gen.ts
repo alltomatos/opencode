@@ -1876,10 +1876,14 @@ export type BatutaWorker = {
    * Name the orchestrator uses to delegate to this worker via the task tool
    */
   label: string
+  kind?: "internal" | "external"
+  model?: string
+  command?: string
+  args?: Array<string>
   /**
-   * Model for this worker, in 'providerID/modelID' form
+   * How long the external worker's PTY must be silent before its output is considered a finished turn. Only used when kind is 'external'.
    */
-  model: string
+  idleTimeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type BatutaActivity = {
@@ -1896,9 +1900,16 @@ export type BatutaActivity = {
    */
   goal: string
   /**
-   * Model that drives the orchestrator, in 'providerID/modelID' form
+   * Model that drives the orchestrator, in 'providerID/modelID' form. Required when orchestratorKind is 'internal' (or omitted).
    */
   orchestratorModel: string
+  orchestratorKind?: "internal" | "external"
+  orchestratorCommand?: string
+  orchestratorArgs?: Array<string>
+  /**
+   * How long the external orchestrator's PTY must be silent before a delegate call gives up waiting on it. Only used when orchestratorKind is 'external'.
+   */
+  orchestratorIdleTimeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   /**
    * Workers the orchestrator can delegate to by label
    */
@@ -1951,6 +1962,9 @@ export type Config = {
     urls?: Array<string>
     claude?: boolean
     codex?: boolean
+  }
+  externalAgent?: {
+    selectedAgents?: Array<string>
   }
   references?: {
     [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
@@ -2083,6 +2097,13 @@ export type Config = {
 export type BatutaActivityNotFoundError = {
   _tag: "BatutaActivityNotFoundError"
   id: string
+  message: string
+}
+
+export type BatutaWorkerNotFoundError = {
+  _tag: "BatutaWorkerNotFoundError"
+  id: string
+  label: string
   message: string
 }
 
@@ -7459,6 +7480,64 @@ export type GlobalUpgradeResponses = {
 
 export type GlobalUpgradeResponse = GlobalUpgradeResponses[keyof GlobalUpgradeResponses]
 
+export type GlobalBugRelayTelemetryGetData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/bug-relay/telemetry"
+}
+
+export type GlobalBugRelayTelemetryGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalBugRelayTelemetryGetError = GlobalBugRelayTelemetryGetErrors[keyof GlobalBugRelayTelemetryGetErrors]
+
+export type GlobalBugRelayTelemetryGetResponses = {
+  /**
+   * Bug-relay telemetry setting
+   */
+  200: {
+    enabled: boolean
+  }
+}
+
+export type GlobalBugRelayTelemetryGetResponse =
+  GlobalBugRelayTelemetryGetResponses[keyof GlobalBugRelayTelemetryGetResponses]
+
+export type GlobalBugRelayTelemetrySetData = {
+  body?: {
+    enabled: boolean
+  }
+  path?: never
+  query?: never
+  url: "/global/bug-relay/telemetry"
+}
+
+export type GlobalBugRelayTelemetrySetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalBugRelayTelemetrySetError = GlobalBugRelayTelemetrySetErrors[keyof GlobalBugRelayTelemetrySetErrors]
+
+export type GlobalBugRelayTelemetrySetResponses = {
+  /**
+   * Updated bug-relay telemetry setting
+   */
+  200: {
+    enabled: boolean
+  }
+}
+
+export type GlobalBugRelayTelemetrySetResponse =
+  GlobalBugRelayTelemetrySetResponses[keyof GlobalBugRelayTelemetrySetResponses]
+
 export type EventSubscribeData = {
   body?: never
   path?: never
@@ -7783,6 +7862,45 @@ export type BatutaSetPipelineDefinitionResponses = {
 
 export type BatutaSetPipelineDefinitionResponse =
   BatutaSetPipelineDefinitionResponses[keyof BatutaSetPipelineDefinitionResponses]
+
+export type BatutaDelegateData = {
+  body?: {
+    label: string
+    prompt: string
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/batuta/{id}/delegate"
+}
+
+export type BatutaDelegateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * BatutaActivityNotFoundError | BatutaWorkerNotFoundError
+   */
+  404: BatutaActivityNotFoundError | BatutaWorkerNotFoundError
+}
+
+export type BatutaDelegateError = BatutaDelegateErrors[keyof BatutaDelegateErrors]
+
+export type BatutaDelegateResponses = {
+  /**
+   * Worker delegation result
+   */
+  200: {
+    output: string
+  }
+}
+
+export type BatutaDelegateResponse = BatutaDelegateResponses[keyof BatutaDelegateResponses]
 
 export type BatutaStartPipelineChatData = {
   body?: never
@@ -8392,6 +8510,71 @@ export type ExperimentalResourceListResponses = {
 
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
+
+export type ExternalAgentDetectData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/external-agent/detect"
+}
+
+export type ExternalAgentDetectErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExternalAgentDetectError = ExternalAgentDetectErrors[keyof ExternalAgentDetectErrors]
+
+export type ExternalAgentDetectResponses = {
+  /**
+   * Known external agent CLIs and whether each is installed
+   */
+  200: Array<{
+    id: string
+    installed: boolean
+  }>
+}
+
+export type ExternalAgentDetectResponse = ExternalAgentDetectResponses[keyof ExternalAgentDetectResponses]
+
+export type ExternalAgentSetSkillData = {
+  body?: {
+    install: boolean
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/external-agent/{id}/skill"
+}
+
+export type ExternalAgentSetSkillErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExternalAgentSetSkillError = ExternalAgentSetSkillErrors[keyof ExternalAgentSetSkillErrors]
+
+export type ExternalAgentSetSkillResponses = {
+  /**
+   * Skill installation updated
+   */
+  200: {
+    installed: boolean
+  }
+}
+
+export type ExternalAgentSetSkillResponse = ExternalAgentSetSkillResponses[keyof ExternalAgentSetSkillResponses]
 
 export type FindTextData = {
   body?: never

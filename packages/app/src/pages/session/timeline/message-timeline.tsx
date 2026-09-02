@@ -11,13 +11,9 @@ import {
   type Accessor,
   type JSX,
 } from "solid-js"
-import { createStore, produce } from "solid-js/store"
-import { Dynamic } from "solid-js/web"
+import { createStore } from "solid-js/store"
 import { useNavigate } from "@solidjs/router"
-import { useMutation } from "@tanstack/solid-query"
 import { createVirtualizer, defaultRangeExtractor, elementScroll, type VirtualItem } from "@tanstack/solid-virtual"
-import { Accordion } from "@opencode-ai/ui/accordion"
-import { Button } from "@opencode-ai/ui/button"
 import { Card } from "@opencode-ai/ui/card"
 import {
   ContextToolGroup,
@@ -27,24 +23,10 @@ import {
   partDefaultOpen,
   type UserActions,
 } from "@opencode-ai/session-ui/message-part"
-import { DiffChanges } from "@opencode-ai/ui/diff-changes"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
-import { IconButton } from "@opencode-ai/ui/icon-button"
-import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
-import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
-import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
-import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
-import { Dialog } from "@opencode-ai/ui/dialog"
-import { DialogFooter, DialogHeader, DialogTitleGroup, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
-import { InlineInput } from "@opencode-ai/ui/inline-input"
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { SessionRetry } from "@opencode-ai/session-ui/session-retry"
-import { isScrollKeyTarget, scrollKey, scrollKeyOwner, ScrollView } from "@opencode-ai/ui/scroll-view"
-import { StickyAccordionHeader } from "@opencode-ai/ui/sticky-accordion-header"
-import { TextField } from "@opencode-ai/ui/text-field"
-import { TextReveal } from "@opencode-ai/ui/text-reveal"
-import { TextShimmer } from "@opencode-ai/ui/text-shimmer"
+import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import type {
   AssistantMessage,
   Message as MessageType,
@@ -52,33 +34,24 @@ import type {
   ToolPart,
   UserMessage,
 } from "@opencode-ai/sdk/v2"
-import { showToast } from "@/utils/toast"
-import { downloadSessionExport, fetchSessionExport, sessionExportFilename } from "@/utils/session-export"
-import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
-import { Popover as KobaltePopover } from "@kobalte/core/popover"
-import { normalize } from "@opencode-ai/session-ui/session-diff"
-import { useFileComponent } from "@opencode-ai/ui/context/file"
-import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
-import { SessionContextUsage } from "@/components/session-context-usage"
-import { isBrowserPanelAvailable, isBrowserPanelOpen, toggleBrowserPanel } from "@/components/browser-panel"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { getFilename } from "@opencode-ai/core/util/path"
 import { useLanguage } from "@/context/language"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { useSessionArchive } from "@/pages/session/session-archive"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
-import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
-import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
 import { sessionTitle } from "@/utils/session-title"
-import { DialogDeleteSession } from "./dialog-delete-session"
-import { DialogBackgroundTasks } from "@/components/session/dialog-background-tasks"
 import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
 import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
+import { TimelineThinkingRow, TimelineDiffSummaryRow } from "./timeline-static-rows"
+import { createSessionHeaderActions } from "./timeline-session-actions"
+import { TimelineHeader } from "./timeline-header"
+import { createScrollAnchor } from "./timeline-scroll-anchor"
 import { filterVirtualIndexes } from "./virtual-items"
 
 const emptyMessages: MessageType[] = []
@@ -99,170 +72,6 @@ const taskDescription = (part: PartType, sessionID: string) => {
   if (metadata?.sessionId !== sessionID) return
   const value = part.state.input?.description
   if (typeof value === "string" && value) return value
-}
-
-const boundaryTarget = (root: HTMLElement, target: EventTarget | null) => {
-  const current = target instanceof Element ? target : undefined
-  const nested = current?.closest("[data-scrollable]")
-  if (!nested || nested === root) return root
-  if (!(nested instanceof HTMLElement)) return root
-  return nested
-}
-
-const markBoundaryGesture = (input: {
-  root: HTMLDivElement
-  target: EventTarget | null
-  delta: number
-  onMarkScrollGesture: (target?: EventTarget | null) => void
-}) => {
-  const target = boundaryTarget(input.root, input.target)
-  if (target === input.root) {
-    input.onMarkScrollGesture(input.root)
-    return
-  }
-  if (
-    shouldMarkBoundaryGesture({
-      delta: input.delta,
-      scrollTop: target.scrollTop,
-      scrollHeight: target.scrollHeight,
-      clientHeight: target.clientHeight,
-    })
-  ) {
-    input.onMarkScrollGesture(input.root)
-  }
-}
-
-function ThinkingFaceIcon() {
-  return (
-    <div class="thinking-face-icon size-10 shrink-0">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="size-full">
-        {/* face */}
-        <circle cx="12" cy="12" r="9.5" fill="#FFCC4D" stroke="#E8A500" stroke-width="0.5" />
-        {/* eyebrows: left flat, right raised — the asymmetry reads as "considering" */}
-        <path d="M7.4 9.2L10 8.9" stroke="#664500" stroke-width="1.1" stroke-linecap="round" />
-        <path
-          class="thinking-face-eyebrow"
-          d="M13.9 8.1C14.7 7.2 16 6.9 17 7.4"
-          stroke="#664500"
-          stroke-width="1.1"
-          stroke-linecap="round"
-        />
-        {/* eyes */}
-        <circle cx="9.2" cy="11.4" r="0.95" fill="#664500" />
-        <circle cx="14.9" cy="10.9" r="0.95" fill="#664500" />
-        {/* small, off-centered pursed mouth */}
-        <path d="M9.3 16.2C10.9 15.8 12.7 15.8 14.1 16.2" stroke="#664500" stroke-width="1.1" stroke-linecap="round" />
-      </svg>
-    </div>
-  )
-}
-
-function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSummaries: boolean; executing: boolean }) {
-  const language = useLanguage()
-  const statusKey = () => (props.executing ? "ui.sessionTurn.status.runningCommands" : "ui.sessionTurn.status.thinking")
-
-  return (
-    <div data-slot="session-turn-thinking">
-      <ThinkingFaceIcon />
-      <TextShimmer text={`${language.t(statusKey())}...`} />
-      <Show when={!props.executing && !props.showReasoningSummaries}>
-        <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
-      </Show>
-    </div>
-  )
-}
-
-function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
-  const language = useLanguage()
-  const maxFiles = 10
-  const [state, setState] = createStore({
-    showAll: false,
-    expanded: [] as string[],
-  })
-  const showAll = () => state.showAll
-  const expanded = () => state.expanded
-  const overflow = createMemo(() => Math.max(0, props.diffs.length - maxFiles))
-  const visible = createMemo(() => (showAll() ? props.diffs : props.diffs.slice(0, maxFiles)))
-
-  return (
-    <div
-      data-slot="session-turn-diffs"
-      data-component="session-turn-diffs-group"
-      data-show-all={showAll() || undefined}
-    >
-      <div data-slot="session-turn-diffs-header">
-        <span data-slot="session-turn-diffs-label">
-          {language.plural("ui.sessionTurn.diffs.changed", props.diffs.length)}
-        </span>
-        <DiffChanges changes={props.diffs} />
-        <Show when={overflow() > 0}>
-          <span data-slot="session-turn-diffs-toggle" onClick={() => setState("showAll", !showAll())}>
-            {showAll() ? language.t("ui.sessionTurn.diffs.showLess") : language.t("ui.sessionTurn.diffs.showAll")}
-          </span>
-        </Show>
-      </div>
-      <div data-component="session-turn-diffs-content">
-        <Accordion
-          multiple
-          style={{ "--sticky-accordion-offset": "44px" }}
-          value={expanded()}
-          onChange={(value) => setState("expanded", Array.isArray(value) ? value : value ? [value] : [])}
-        >
-          <For each={visible()}>
-            {(diff) => {
-              const opened = createMemo(() => expanded().includes(diff.file))
-
-              return (
-                <Accordion.Item value={diff.file}>
-                  <StickyAccordionHeader>
-                    <Accordion.Trigger>
-                      <div data-slot="session-turn-diff-trigger">
-                        <span data-slot="session-turn-diff-path">
-                          <Show when={diff.file.includes("/")}>
-                            <span data-slot="session-turn-diff-directory">{`\u202A${getDirectory(diff.file)}\u202C`}</span>
-                          </Show>
-                          <span data-slot="session-turn-diff-filename">{getFilename(diff.file)}</span>
-                        </span>
-                        <div data-slot="session-turn-diff-meta">
-                          <span data-slot="session-turn-diff-changes">
-                            <DiffChanges changes={diff} />
-                          </span>
-                          <span data-slot="session-turn-diff-chevron">
-                            <Icon name="chevron-down" size="small" />
-                          </span>
-                        </div>
-                      </div>
-                    </Accordion.Trigger>
-                  </StickyAccordionHeader>
-                  <Accordion.Content>
-                    <Show when={opened()}>
-                      <TimelineDiffView diff={diff} />
-                    </Show>
-                  </Accordion.Content>
-                </Accordion.Item>
-              )
-            }}
-          </For>
-        </Accordion>
-        <Show when={!showAll() && overflow() > 0}>
-          <div data-slot="session-turn-diffs-more" onClick={() => setState("showAll", true)}>
-            {language.t("ui.sessionTurn.diffs.more", { count: String(overflow()) })}
-          </div>
-        </Show>
-      </div>
-    </div>
-  )
-}
-
-function TimelineDiffView(props: { diff: SummaryDiff }) {
-  const fileComponent = useFileComponent()
-  const view = normalize(props.diff)
-
-  return (
-    <div data-slot="session-turn-diff-view" data-scrollable>
-      <Dynamic component={fileComponent} mode="diff" virtualize={false} fileDiff={view.fileDiff} />
-    </div>
-  )
 }
 
 export function MessageTimeline(props: {
@@ -286,14 +95,11 @@ export function MessageTimeline(props: {
   setScrollToEnd?: (fn: () => void) => void
   setHistoryAnchor?: (handlers: { capture: () => void; restore: (done: boolean) => void }) => void
 }) {
-  let touchGesture: number | undefined
-
   const navigate = useNavigate()
   const serverSDK = useServerSDK()
   const sdk = useSDK()
   const sync = useSync()
   const settings = useSettings()
-  const dialog = useDialog()
   const sessionArchive = useSessionArchive()
   const language = useLanguage()
   const { params, sessionKey, view } = useSessionLayout()
@@ -378,65 +184,28 @@ export function MessageTimeline(props: {
   const timelineRowByKey = projection.rowByKey
   const timelineRows = projection.rows
 
-  let prependAnchor: { key: string; offset: number } | undefined
-  let prependAnchorFrame: number | undefined
-  let prependLoading = false
-  const clearPrependAnchor = () => {
-    prependLoading = false
-    prependAnchor = undefined
-    if (prependAnchorFrame === undefined) return
-    cancelAnimationFrame(prependAnchorFrame)
-    prependAnchorFrame = undefined
-  }
-  const capturePrependAnchor = () => {
-    prependLoading = true
-    updatePrependAnchor()
-  }
-  const updatePrependAnchor = () => {
-    const root = listRoot()
-    if (!root) return
-    const view = root.getBoundingClientRect()
-    const anchor = [...root.querySelectorAll<HTMLElement>("[data-timeline-key]")]
-      .map((element) => ({ element, rect: element.getBoundingClientRect() }))
-      .filter((item) => item.rect.bottom > view.top && item.rect.top < view.bottom)
-      .sort((a, b) => a.rect.top - b.rect.top)[0]
-    if (!anchor) return
-    if (!anchor.element.dataset.timelineKey) return
-    prependAnchor = { key: anchor.element.dataset.timelineKey, offset: anchor.rect.top - view.top }
-  }
-  const restorePrependAnchor = (done: boolean) => {
-    if (done) prependLoading = false
-    applyPrependAnchor()
-  }
-  const applyPrependAnchor = () => {
-    const root = listRoot()
-    if (!root || !prependAnchor) return
-    if (prependAnchorFrame !== undefined) cancelAnimationFrame(prependAnchorFrame)
-    let frames = 0
-    let stable = 0
-    const apply = () => {
-      prependAnchorFrame = undefined
-      const anchor = prependAnchor
-      if (!anchor) return
-      const element = root.querySelector<HTMLElement>(`[data-timeline-key="${CSS.escape(anchor.key)}"]`)
-      const delta = element
-        ? element.getBoundingClientRect().top - root.getBoundingClientRect().top - anchor.offset
-        : undefined
-      if (delta !== undefined && Math.abs(delta) > 0.5) {
-        root.scrollTop += delta
-        stable = 0
-      } else {
-        stable += 1
-      }
-      frames += 1
-      if (stable >= 30 || frames >= 180) {
-        if (!prependLoading) prependAnchor = undefined
-        return
-      }
-      prependAnchorFrame = requestAnimationFrame(apply)
-    }
-    prependAnchorFrame = requestAnimationFrame(apply)
-  }
+  const {
+    clearPrependAnchor,
+    cancelPendingApply,
+    capturePrependAnchor,
+    restorePrependAnchor,
+    handleListWheel,
+    handleListTouchStart,
+    handleListTouchMove,
+    handleListTouchEnd,
+    handleListPointerDown,
+    handleListPointerMove,
+    handleListKeyDown,
+    handleListScroll,
+  } = createScrollAnchor({
+    listRoot,
+    onMarkScrollGesture: props.onMarkScrollGesture,
+    onScheduleScrollState: props.onScheduleScrollState,
+    onHistoryScroll: props.onHistoryScroll,
+    hasScrollGesture: props.hasScrollGesture,
+    onUserScroll: props.onUserScroll,
+    onAutoScrollHandleScroll: props.onAutoScrollHandleScroll,
+  })
 
   const [toolOpen, setToolOpen] = createStore<Record<string, boolean | undefined>>(cached?.toolOpen ?? {})
   const [renderOverscan, setRenderOverscan] = createSignal(initialMeasurements?.length || coldBottomMount ? 6 : 20)
@@ -554,7 +323,7 @@ export function MessageTimeline(props: {
     if (!props.shouldAnchorBottom() || props.hasScrollGesture()) return
     if (resizePinFrame !== undefined) cancelAnimationFrame(resizePinFrame)
     clearPrependAnchor()
-    if (prependAnchorFrame !== undefined) cancelAnimationFrame(prependAnchorFrame)
+    cancelPendingApply()
     virtualizer.scrollToEnd()
   }
 
@@ -581,20 +350,22 @@ export function MessageTimeline(props: {
     props.setHistoryAnchor?.({ capture: () => {}, restore: () => {} })
   })
 
-  const [title, setTitle] = createStore({
-    draft: "",
-    editing: false,
-    menuOpen: false,
-    pendingRename: false,
-    pendingShare: false,
+  const headerActions = createSessionHeaderActions({
+    sessionID,
+    sessionKey,
+    parentID,
+    titleLabel,
+    shareUrl,
+    shareEnabled,
+    sync,
+    sdk,
+    serverSDK,
+    platform,
+    language,
+    sessionArchive,
+    navigate,
+    params,
   })
-  let titleRef: HTMLInputElement | undefined
-
-  const [share, setShare] = createStore({
-    open: false,
-    dismiss: null as "escape" | "outside" | null,
-  })
-  let more: HTMLButtonElement | undefined
 
   const bindListRoot = (root: HTMLDivElement) => {
     if (root === listRoot()) return
@@ -602,182 +373,9 @@ export function MessageTimeline(props: {
     props.setScrollRef(root)
   }
 
-  const handleListWheel = (event: WheelEvent & { currentTarget: HTMLDivElement }) => {
-    if (!prependLoading) clearPrependAnchor()
-    const root = event.currentTarget
-    const delta = normalizeWheelDelta({
-      deltaY: event.deltaY,
-      deltaMode: event.deltaMode,
-      rootHeight: root.clientHeight,
-    })
-    if (!delta) return
-    markBoundaryGesture({ root, target: event.target, delta, onMarkScrollGesture: props.onMarkScrollGesture })
-  }
-
-  const handleListTouchStart = (event: TouchEvent) => {
-    if (!prependLoading) clearPrependAnchor()
-    touchGesture = event.touches[0]?.clientY
-  }
-
-  const handleListTouchMove = (event: TouchEvent & { currentTarget: HTMLDivElement }) => {
-    const next = event.touches[0]?.clientY
-    const prev = touchGesture
-    touchGesture = next
-    if (next === undefined || prev === undefined) return
-
-    const delta = prev - next
-    if (!delta) return
-
-    markBoundaryGesture({
-      root: event.currentTarget,
-      target: event.target,
-      delta,
-      onMarkScrollGesture: props.onMarkScrollGesture,
-    })
-  }
-
-  const handleListTouchEnd = () => {
-    touchGesture = undefined
-  }
-
-  const handleListPointerDown = (event: PointerEvent & { currentTarget: HTMLDivElement }) => {
-    if (!prependLoading) clearPrependAnchor()
-    props.onMarkScrollGesture(event.target)
-  }
-
-  const handleListPointerMove = (event: PointerEvent) => {
-    if (event.buttons !== 1) return
-    props.onMarkScrollGesture(event.target)
-  }
-
-  const handleListKeyDown = (event: KeyboardEvent & { currentTarget: HTMLDivElement }) => {
-    const key = scrollKey(event)
-    if (!key) return
-    if (!isScrollKeyTarget(event.target, key)) return
-    if (scrollKeyOwner(event.currentTarget, event.target, key) !== event.currentTarget) return
-    if (!prependLoading) clearPrependAnchor()
-    props.onMarkScrollGesture(event.currentTarget)
-  }
-
-  const handleListScroll = (event: Event & { currentTarget: HTMLDivElement }) => {
-    if (prependLoading) updatePrependAnchor()
-    props.onScheduleScrollState(event.currentTarget)
-    props.onHistoryScroll()
-    if (!props.hasScrollGesture()) return
-    props.onUserScroll()
-    props.onAutoScrollHandleScroll()
-    props.onMarkScrollGesture(event.currentTarget)
-  }
-
   onCleanup(() => {
     props.setScrollRef(undefined)
   })
-
-  const viewShare = () => {
-    const url = shareUrl()
-    if (!url) return
-    platform.openExternal(url)
-  }
-
-  const errorMessage = (err: unknown) => {
-    if (err && typeof err === "object" && "data" in err) {
-      const data = (err as { data?: { message?: string } }).data
-      if (data?.message) return data.message
-    }
-    if (err instanceof Error) return err.message
-    return language.t("common.requestFailed")
-  }
-
-  const shareMutation = useMutation(() => ({
-    mutationFn: (id: string) => serverSDK().client.session.share({ sessionID: id }),
-    onError: (err) => {
-      console.error("Failed to share session", err)
-    },
-  }))
-
-  const unshareMutation = useMutation(() => ({
-    mutationFn: (id: string) => serverSDK().client.session.unshare({ sessionID: id }),
-    onError: (err) => {
-      console.error("Failed to unshare session", err)
-    },
-  }))
-
-  const titleMutation = useMutation(() => ({
-    mutationFn: (input: { id: string; title: string }) =>
-      sdk().api.session.rename({ sessionID: input.id, title: input.title }),
-    onSuccess: (_, input) => {
-      sync().set(
-        produce((draft) => {
-          const index = draft.session.findIndex((s) => s.id === input.id)
-          if (index !== -1) draft.session[index].title = input.title
-        }),
-      )
-      setTitle("editing", false)
-    },
-    onError: (err) => {
-      showToast({
-        title: language.t("common.requestFailed"),
-        description: errorMessage(err),
-      })
-    },
-  }))
-
-  const shareSession = () => {
-    const id = sessionID()
-    if (!id || shareMutation.isPending) return
-    if (!shareEnabled()) return
-    shareMutation.mutate(id)
-  }
-
-  const unshareSession = () => {
-    const id = sessionID()
-    if (!id || unshareMutation.isPending) return
-    if (!shareEnabled()) return
-    unshareMutation.mutate(id)
-  }
-  const copyShareUrl = () => {
-    const url = shareUrl()
-    if (!url) return
-    void navigator.clipboard
-      .writeText(url)
-      .then(() =>
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("session.share.copy.copied"),
-          description: url,
-        }),
-      )
-      .catch((err: unknown) =>
-        showToast({
-          title: language.t("common.requestFailed"),
-          description: errorMessage(err),
-        }),
-      )
-  }
-  const selectShareUrlText: JSX.EventHandler<HTMLDivElement, MouseEvent> = (event) => {
-    const selection = window.getSelection()
-    if (!selection) return
-    const range = document.createRange()
-    range.selectNodeContents(event.currentTarget)
-    selection.removeAllRanges()
-    selection.addRange(range)
-  }
-
-  createEffect(
-    on(
-      sessionKey,
-      () =>
-        setTitle({
-          draft: "",
-          editing: false,
-          menuOpen: false,
-          pendingRename: false,
-          pendingShare: false,
-        }),
-      { defer: true },
-    ),
-  )
 
   createEffect(
     on(
@@ -790,130 +388,6 @@ export function MessageTimeline(props: {
       { defer: true },
     ),
   )
-
-  const openTitleEditor = () => {
-    if (!sessionID() || parentID()) return
-    setTitle({ editing: true, draft: titleLabel() ?? "" })
-    requestAnimationFrame(() => {
-      if (!titleRef) return
-      titleRef.focus()
-      titleRef.select()
-    })
-  }
-
-  const closeTitleEditor = () => {
-    if (titleMutation.isPending) return
-    setTitle("editing", false)
-  }
-
-  const saveTitleEditor = () => {
-    const id = sessionID()
-    if (!id) return
-    if (titleMutation.isPending) return
-
-    const next = title.draft.trim()
-    if (!next || next === (titleLabel() ?? "")) {
-      setTitle("editing", false)
-      return
-    }
-
-    titleMutation.mutate({ id, title: next })
-  }
-
-  const exportSession = async (sessionID: string) => {
-    try {
-      const data = await fetchSessionExport({
-        sessionID,
-        client: sdk().client,
-      })
-      const filename = sessionExportFilename(data.info)
-      downloadSessionExport(filename, data)
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("toast.session.export.success.title"),
-        description: language.t("toast.session.export.success.description", { filename }),
-      })
-    } catch (err) {
-      showToast({
-        variant: "error",
-        title: language.t("toast.session.export.failed.title"),
-        description: err instanceof Error ? err.message : language.t("toast.session.export.failed.description"),
-      })
-    }
-  }
-
-  const deleteSession = async (sessionID: string) => {
-    const session = sync().session.get(sessionID)
-    if (!session) return false
-
-    const sessions = (sync().data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
-    const index = sessions.findIndex((s) => s.id === sessionID)
-    const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
-
-    const result = await sdk()
-      .api.session.remove({ sessionID })
-      .then(() => true)
-      .catch((err) => {
-        showToast({
-          title: language.t("session.delete.failed.title"),
-          description: errorMessage(err),
-        })
-        return false
-      })
-
-    if (!result) return false
-
-    const removed = new Set<string>([sessionID])
-    const byParent = new Map<string, string[]>()
-    for (const item of sync().data.session) {
-      const parentID = item.parentID
-      if (!parentID) continue
-      const existing = byParent.get(parentID)
-      if (existing) {
-        existing.push(item.id)
-        continue
-      }
-      byParent.set(parentID, [item.id])
-    }
-
-    const stack = [sessionID]
-    while (stack.length) {
-      const parentID = stack.pop()
-      if (!parentID) continue
-
-      const children = byParent.get(parentID)
-      if (!children) continue
-
-      for (const child of children) {
-        if (removed.has(child)) continue
-        removed.add(child)
-        stack.push(child)
-      }
-    }
-
-    sessionArchive.navigateAfterRemoval(sessionID, session.parentID, nextSession?.id)
-
-    sync().set(
-      produce((draft) => {
-        draft.session = draft.session.filter((s) => !removed.has(s.id))
-      }),
-    )
-
-    for (const id of removed) {
-      sync().session.evict(id)
-    }
-    notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [...removed] })
-    return true
-  }
-
-  const navigateParent = () => {
-    const id = parentID()
-    if (!id) return
-    navigate(
-      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(sdk().directory, id),
-    )
-  }
 
   const workingTurn = (userMessageID: string) => sessionStatus().type !== "idle" && activeMessageID() === userMessageID
 
@@ -1348,502 +822,16 @@ export function MessageTimeline(props: {
         }}
       >
         <Show when={showHeader()}>
-          <div
-            data-session-title
-            classList={{
-              "sticky top-0 z-30": true,
-              "bg-[linear-gradient(to_bottom,var(--v2-background-bg-base)_48px,transparent)]":
-                settings.general.newLayoutDesigns(),
-              "bg-[linear-gradient(to_bottom,var(--background-stronger)_48px,transparent)]":
-                !settings.general.newLayoutDesigns(),
-              "w-full": true,
-              "pb-4": true,
-              "pr-3": true,
-              "pl-2.5": settings.general.newLayoutDesigns(),
-              "pl-2 md:pl-4": !settings.general.newLayoutDesigns(),
-              "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !settings.general.newLayoutDesigns(),
-            }}
-          >
-            <div class="h-12 w-full flex items-center justify-between gap-2">
-              <div
-                classList={{
-                  "flex items-center gap-1 min-w-0 flex-1": true,
-                  "pr-3": !settings.general.newLayoutDesigns(),
-                }}
-              >
-                <div class="flex items-center min-w-0 flex-1 w-full">
-                  <Show when={parentID()}>
-                    <button
-                      type="button"
-                      data-slot="session-title-parent"
-                      class="min-w-0 max-w-[40%] truncate pl-2 text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-faint transition-colors hover:text-v2-text-text-muted"
-                      onClick={navigateParent}
-                    >
-                      {parentTitle()}
-                    </button>
-                    <span
-                      data-slot="session-title-separator"
-                      class="-translate-y-[0.5px] pl-2 pr-1 text-[11px] font-medium text-v2-text-text-faint"
-                      aria-hidden="true"
-                    >
-                      /
-                    </span>
-                  </Show>
-                  <Show when={childTitle() || title.editing}>
-                    <Show
-                      when={title.editing}
-                      fallback={
-                        <h1
-                          data-slot="session-title-child"
-                          classList={{
-                            "truncate text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
-                            "w-fit rounded-[6px] px-2 py-1 hover:bg-v2-overlay-simple-overlay-hover":
-                              settings.general.newLayoutDesigns(),
-                            "grow-1 min-w-0": !settings.general.newLayoutDesigns(),
-                          }}
-                          onClick={openTitleEditor}
-                        >
-                          {childTitle()}
-                        </h1>
-                      }
-                    >
-                      <InlineInput
-                        ref={(el) => {
-                          titleRef = el
-                        }}
-                        data-slot="session-title-child"
-                        value={title.draft}
-                        disabled={titleMutation.isPending}
-                        classList={{
-                          "block text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
-                          "w-full flex-1 grow-1 min-w-0 pl-1 -ml-1 rounded-[6px]": !settings.general.newLayoutDesigns(),
-                          "field-sizing-content self-start rounded-[6px] px-2 py-1 ":
-                            settings.general.newLayoutDesigns(),
-                        }}
-                        style={{
-                          "--inline-input-shadow": settings.general.newLayoutDesigns()
-                            ? "none"
-                            : "var(--shadow-xs-border-select)",
-                        }}
-                        onInput={(event) => setTitle("draft", event.currentTarget.value)}
-                        onKeyDown={(event) => {
-                          event.stopPropagation()
-                          if (event.key === "Enter") {
-                            event.preventDefault()
-                            void saveTitleEditor()
-                            return
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault()
-                            closeTitleEditor()
-                          }
-                        }}
-                        onBlur={closeTitleEditor}
-                      />
-                    </Show>
-                  </Show>
-                </div>
-              </div>
-              <Show when={sessionID()} keyed>
-                {(id) => (
-                  <div
-                    classList={{
-                      "shrink-0 flex items-center": true,
-                      "gap-2": settings.general.newLayoutDesigns(),
-                      "gap-3": !settings.general.newLayoutDesigns(),
-                    }}
-                  >
-                    <Show when={platform.platform === "desktop"}>
-                      <IconButtonV2
-                        type="button"
-                        variant="ghost-muted"
-                        size="large"
-                        state={view().terminal.opened() ? "pressed" : undefined}
-                        aria-label={language.t("session.header.open.app.terminal")}
-                        aria-pressed={view().terminal.opened()}
-                        icon={<Icon name="terminal" />}
-                        onClick={() => view().terminal.toggle()}
-                      />
-                    </Show>
-                    <Show when={isBrowserPanelAvailable()}>
-                      <IconButtonV2
-                        type="button"
-                        variant="ghost-muted"
-                        size="large"
-                        state={isBrowserPanelOpen() ? "pressed" : undefined}
-                        aria-label={language.t("browser.panel.toggle")}
-                        aria-pressed={isBrowserPanelOpen()}
-                        icon={<Icon name="square-arrow-top-right" />}
-                        onClick={toggleBrowserPanel}
-                      />
-                    </Show>
-                    <SessionContextUsage
-                      placement="bottom"
-                      buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}
-                    />
-                    <Show when={!parentID()}>
-                      <Show
-                        when={settings.general.newLayoutDesigns()}
-                        fallback={
-                          <DropdownMenu
-                            gutter={4}
-                            placement="bottom-end"
-                            open={title.menuOpen}
-                            onOpenChange={(open) => {
-                              setTitle("menuOpen", open)
-                              if (open) return
-                            }}
-                          >
-                            <DropdownMenu.Trigger
-                              as={IconButton}
-                              icon="dot-grid"
-                              variant="ghost"
-                              class="size-6 rounded-md data-[expanded]:bg-surface-base-active"
-                              classList={{
-                                "bg-surface-base-active": share.open || title.pendingShare,
-                              }}
-                              aria-label={language.t("common.moreOptions")}
-                              aria-expanded={title.menuOpen || share.open || title.pendingShare}
-                              ref={(el: HTMLButtonElement) => {
-                                more = el
-                              }}
-                            />
-                            <DropdownMenu.Portal>
-                              <DropdownMenu.Content
-                                style={{ "min-width": "104px" }}
-                                onCloseAutoFocus={(event) => {
-                                  if (title.pendingRename) {
-                                    event.preventDefault()
-                                    setTitle("pendingRename", false)
-                                    openTitleEditor()
-                                    return
-                                  }
-                                  if (title.pendingShare) {
-                                    event.preventDefault()
-                                    requestAnimationFrame(() => {
-                                      setShare({ open: true, dismiss: null })
-                                      setTitle("pendingShare", false)
-                                    })
-                                  }
-                                }}
-                              >
-                                <DropdownMenu.Item
-                                  onSelect={() => {
-                                    setTitle("pendingRename", true)
-                                    setTitle("menuOpen", false)
-                                  }}
-                                >
-                                  <IconV2 name="edit" size="small" />
-                                  <DropdownMenu.ItemLabel>{language.t("common.rename")}</DropdownMenu.ItemLabel>
-                                </DropdownMenu.Item>
-                                <Show when={shareEnabled()}>
-                                  <DropdownMenu.Item
-                                    onSelect={() => {
-                                      setTitle({ pendingShare: true, menuOpen: false })
-                                    }}
-                                  >
-                                    <IconV2 name="outline-share" size="small" />
-                                    <DropdownMenu.ItemLabel>
-                                      {language.t("session.share.action.share")}
-                                    </DropdownMenu.ItemLabel>
-                                  </DropdownMenu.Item>
-                                </Show>
-                                <DropdownMenu.Item onSelect={() => exportSession(id)}>
-                                  <Icon name="download" size="small" />
-                                  <DropdownMenu.ItemLabel>{language.t("common.export")}</DropdownMenu.ItemLabel>
-                                </DropdownMenu.Item>
-                                <DropdownMenu.Item onSelect={() => void sessionArchive.archive(id)}>
-                                  <IconV2 name="archive" size="small" />
-                                  <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
-                                </DropdownMenu.Item>
-                                <DropdownMenu.Separator />
-                                <DropdownMenu.Item
-                                  class="text-text-on-critical-base hover:bg-surface-critical-weak"
-                                  onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} onDelete={deleteSession} />)}
-                                >
-                                  <Icon name="trash" size="small" />
-                                  <DropdownMenu.ItemLabel>{language.t("common.delete")}</DropdownMenu.ItemLabel>
-                                </DropdownMenu.Item>
-                              </DropdownMenu.Content>
-                            </DropdownMenu.Portal>
-                          </DropdownMenu>
-                        }
-                      >
-                        <MenuV2
-                          gutter={6}
-                          placement="bottom-end"
-                          open={title.menuOpen}
-                          onOpenChange={(open) => {
-                            setTitle("menuOpen", open)
-                            if (open) return
-                          }}
-                        >
-                          <MenuV2.Trigger
-                            as={IconButtonV2}
-                            icon={<IconV2 name="outline-dots" />}
-                            variant="ghost-muted"
-                            size="large"
-                            state={share.open || title.pendingShare ? "pressed" : undefined}
-                            aria-label={language.t("common.moreOptions")}
-                            aria-expanded={title.menuOpen || share.open || title.pendingShare}
-                            ref={(el: HTMLButtonElement) => {
-                              more = el
-                            }}
-                          />
-                          <MenuV2.Portal>
-                            <MenuV2.Content
-                              style={{ width: "180px", "min-width": "180px" }}
-                              onCloseAutoFocus={(event) => {
-                                if (title.pendingRename) {
-                                  event.preventDefault()
-                                  setTitle("pendingRename", false)
-                                  openTitleEditor()
-                                  return
-                                }
-                                if (title.pendingShare) {
-                                  event.preventDefault()
-                                  requestAnimationFrame(() => {
-                                    setShare({ open: true, dismiss: null })
-                                    setTitle("pendingShare", false)
-                                  })
-                                }
-                              }}
-                            >
-                              <MenuV2.Item
-                                onSelect={() => {
-                                  setTitle("pendingRename", true)
-                                  setTitle("menuOpen", false)
-                                }}
-                              >
-                                <IconV2 name="edit" size="small" />
-                                {language.t("common.rename")}
-                              </MenuV2.Item>
-                              <Show when={shareEnabled()}>
-                                <MenuV2.Item
-                                  onSelect={() => {
-                                    setTitle({ pendingShare: true, menuOpen: false })
-                                  }}
-                                >
-                                  <IconV2 name="outline-share" size="small" />
-                                  {language.t("session.share.action.share")}...
-                                </MenuV2.Item>
-                              </Show>
-                              <MenuV2.Item onSelect={() => exportSession(id)}>
-                                <IconV2 name="outline-square-arrow" size="small" />
-                                {language.t("common.export")}...
-                              </MenuV2.Item>
-                              <MenuV2.Item onSelect={() => void sessionArchive.archive(id)}>
-                                <IconV2 name="archive" size="small" />
-                                {language.t("common.archive")}
-                              </MenuV2.Item>
-                              <MenuV2.Item
-                                onSelect={() => {
-                                  setTitle("menuOpen", false)
-                                  dialog.show(() => <DialogBackgroundTasks />)
-                                }}
-                              >
-                                <IconV2 name="grid-plus" size="small" />
-                                {language.t("ui.backgroundTasks.title")}
-                              </MenuV2.Item>
-                              <MenuV2.Separator />
-                              <MenuV2.Item
-                                class="text-v2-state-fg-danger"
-                                onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} onDelete={deleteSession} />)}
-                              >
-                                <Icon name="trash" size="small" />
-                                {language.t("common.delete")}...
-                              </MenuV2.Item>
-                            </MenuV2.Content>
-                          </MenuV2.Portal>
-                        </MenuV2>
-                      </Show>
-
-                      <KobaltePopover
-                        open={share.open}
-                        anchorRef={() => more}
-                        placement="bottom-end"
-                        gutter={settings.general.newLayoutDesigns() ? 6 : 4}
-                        modal={false}
-                        onOpenChange={(open) => {
-                          if (open) setShare("dismiss", null)
-                          setShare("open", open)
-                        }}
-                      >
-                        <KobaltePopover.Portal>
-                          <KobaltePopover.Content
-                            data-component="popover-content"
-                            classList={{
-                              "flex w-80 max-w-none flex-col items-start gap-3 rounded-[10px] border-0 bg-v2-background-bg-layer-01 p-3 shadow-[var(--v2-elevation-floating)]":
-                                settings.general.newLayoutDesigns(),
-                            }}
-                            style={{ "min-width": "320px" }}
-                            onEscapeKeyDown={(event) => {
-                              setShare({ dismiss: "escape", open: false })
-                              event.preventDefault()
-                              event.stopPropagation()
-                            }}
-                            onPointerDownOutside={() => {
-                              setShare({ dismiss: "outside", open: false })
-                            }}
-                            onFocusOutside={() => {
-                              setShare({ dismiss: "outside", open: false })
-                            }}
-                            onCloseAutoFocus={(event) => {
-                              if (share.dismiss === "outside") event.preventDefault()
-                              setShare("dismiss", null)
-                            }}
-                          >
-                            <Show
-                              when={settings.general.newLayoutDesigns()}
-                              fallback={
-                                <div class="flex flex-col p-3">
-                                  <div class="flex flex-col gap-1">
-                                    <div class="text-13-medium text-text-strong">
-                                      {language.t("session.share.popover.title")}
-                                    </div>
-                                    <div class="text-12-regular text-text-weak">
-                                      {shareUrl()
-                                        ? language.t("session.share.popover.description.shared")
-                                        : language.t("session.share.popover.description.unshared")}
-                                    </div>
-                                  </div>
-                                  <div class="mt-3 flex flex-col gap-2">
-                                    <Show
-                                      when={shareUrl()}
-                                      fallback={
-                                        <Button
-                                          size="large"
-                                          variant="primary"
-                                          class="w-full"
-                                          onClick={shareSession}
-                                          disabled={shareMutation.isPending}
-                                        >
-                                          {shareMutation.isPending
-                                            ? language.t("session.share.action.publishing")
-                                            : language.t("session.share.action.publish")}
-                                        </Button>
-                                      }
-                                    >
-                                      <div class="flex flex-col gap-2">
-                                        <TextField
-                                          value={shareUrl() ?? ""}
-                                          readOnly
-                                          copyable
-                                          copyKind="link"
-                                          tabIndex={-1}
-                                          class="w-full"
-                                        />
-                                        <div class="grid grid-cols-2 gap-2">
-                                          <Button
-                                            size="large"
-                                            variant="secondary"
-                                            class="w-full shadow-none border border-border-weak-base"
-                                            onClick={unshareSession}
-                                            disabled={unshareMutation.isPending}
-                                          >
-                                            {unshareMutation.isPending
-                                              ? language.t("session.share.action.unpublishing")
-                                              : language.t("session.share.action.unpublish")}
-                                          </Button>
-                                          <Button
-                                            size="large"
-                                            variant="primary"
-                                            class="w-full"
-                                            onClick={viewShare}
-                                            disabled={unshareMutation.isPending}
-                                          >
-                                            {language.t("session.share.action.view")}
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </Show>
-                                  </div>
-                                </div>
-                              }
-                            >
-                              <div class="flex w-full flex-col gap-1.5 px-0.5 pt-0.5">
-                                <div class="select-none text-[13px] font-[530] leading-none tracking-[-0.04px] text-v2-text-text-base [font-variation-settings:'slnt'_0]">
-                                  {language.t("session.share.popover.title")}
-                                </div>
-                                <div class="select-none text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted [font-variation-settings:'slnt'_0]">
-                                  {shareUrl()
-                                    ? language.t("session.share.popover.description.shared")
-                                    : language.t("session.share.popover.description.unshared")}
-                                </div>
-                              </div>
-                              <div class="flex w-full flex-col gap-2">
-                                <Show
-                                  when={shareUrl()}
-                                  fallback={
-                                    <ButtonV2
-                                      variant="contrast"
-                                      class="w-full"
-                                      onClick={shareSession}
-                                      disabled={shareMutation.isPending}
-                                    >
-                                      {shareMutation.isPending
-                                        ? language.t("session.share.action.publishing")
-                                        : language.t("session.share.action.publish")}
-                                    </ButtonV2>
-                                  }
-                                >
-                                  <div class="flex flex-col gap-2">
-                                    <div
-                                      class="flex h-8 w-full items-center gap-1.5 rounded-[6px] py-1 pl-2.5 pr-1.5 shadow-[var(--v2-elevation-button-neutral)]"
-                                      style={{
-                                        background:
-                                          "linear-gradient(180deg, var(--v2-alpha-light-2) 0%, var(--v2-alpha-light-0) 100%), var(--v2-background-bg-button-neutral)",
-                                      }}
-                                    >
-                                      <div
-                                        class="min-w-0 flex-1 truncate select-text cursor-text text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-base [font-variation-settings:'slnt'_0]"
-                                        onClick={selectShareUrlText}
-                                      >
-                                        {shareUrl()}
-                                      </div>
-                                      <IconButtonV2
-                                        type="button"
-                                        size="small"
-                                        variant="ghost-muted"
-                                        icon={<IconV2 name="outline-copy" />}
-                                        aria-label={language.t("session.share.copy.copyLink")}
-                                        onClick={copyShareUrl}
-                                      />
-                                      <IconButtonV2
-                                        type="button"
-                                        size="small"
-                                        variant="ghost-muted"
-                                        icon={<IconV2 name="outline-square-arrow" />}
-                                        aria-label={language.t("session.share.action.view")}
-                                        onClick={viewShare}
-                                        disabled={unshareMutation.isPending}
-                                      />
-                                    </div>
-                                    <div class="flex w-full">
-                                      <ButtonV2
-                                        variant="outline"
-                                        class="w-full"
-                                        onClick={unshareSession}
-                                        disabled={unshareMutation.isPending}
-                                      >
-                                        {unshareMutation.isPending
-                                          ? language.t("session.share.action.unpublishing")
-                                          : language.t("session.share.action.unpublish")}
-                                      </ButtonV2>
-                                    </div>
-                                  </div>
-                                </Show>
-                              </div>
-                            </Show>
-                          </KobaltePopover.Content>
-                        </KobaltePopover.Portal>
-                      </KobaltePopover>
-                    </Show>
-                  </div>
-                )}
-              </Show>
-            </div>
-          </div>
+          <TimelineHeader
+            parentID={parentID}
+            parentTitle={parentTitle}
+            childTitle={childTitle}
+            shareUrl={shareUrl}
+            shareEnabled={shareEnabled}
+            sessionID={sessionID}
+            centered={props.centered}
+            actions={headerActions}
+          />
         </Show>
         <div
           data-timeline-virtual-content

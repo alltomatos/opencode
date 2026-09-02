@@ -196,4 +196,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "འཇུག་སྤྱོད་འབད་མི་ལན་ཚུ་ཆ་མཉམ་སེལ་འཐུ་འབད།",
   "ui.question.singleHint": "ལན་གཅིག་སེལ་འཐུ་འབད།",
   "ui.question.custom.placeholder": "ཁྱོད་རའི་ལན་ཡིག་དཔར་རྐྱབས།",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

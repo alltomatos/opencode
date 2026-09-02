@@ -71,7 +71,10 @@ for (const profile of profiles) {
 
     await expect(page.locator('[data-timeline-row="Thinking"]')).toHaveCount(profile.thinking ? 1 : 0)
     await expect(page.locator(`[data-timeline-part-id="${reasoningID}"]`)).toHaveCount(profile.body ? 1 : 0)
-    if (!profile.summaries && profile.reasoning.trim()) {
+    // A running tool call replaces the reasoning heading with a "Running
+    // commands..." status (see TimelineThinkingRow's `executing` guard) —
+    // only assert the heading text when no tool is executing alongside it.
+    if (!profile.summaries && profile.reasoning.trim() && !profile.other) {
       await expect(page.getByText("Inspecting stability", { exact: true })).toBeVisible()
     }
   })

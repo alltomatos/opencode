@@ -1,6 +1,56 @@
 {
   "releases": [
     {
+      "tag": "v1.21.11",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Novo provedor: AgentRouter",
+              "description": "Adicione sua chave da AgentRouter (agentrouter.org) em Configurações > Provedores e use direto — o app gerencia sozinho um pequeno relay local necessário pra contornar o bloqueio de conexão do provedor, sem nenhuma instalação manual. Mensagens em português são traduzidas automaticamente por baixo dos panos pra passar no filtro de conteúdo do provedor, mantendo as respostas em português."
+            },
+            {
+              "title": "Novo provedor nativo: OmniRoute",
+              "description": "Suporte nativo ao OmniRoute com descoberta dinâmica de modelos, direto no seletor de provedores."
+            },
+            {
+              "title": "OmniRoute: MCP configurado automaticamente ao conectar",
+              "description": "Corrigido o endereço usado para testar e conectar o servidor MCP do OmniRoute (estava montando a URL errada). Agora o card de conexão avisa que o MCP é configurado junto, automaticamente."
+            },
+            {
+              "title": "OmniRoute: editar conexão sem precisar desconectar",
+              "description": "Novo botão \"Editar\" no provedor OmniRoute conectado, para atualizar URL/chave direto — antes só dava pra desconectar e reconectar do zero."
+            },
+            {
+              "title": "Corrigido: combos do OmniRoute travavam o envio de mensagem",
+              "description": "Modelos descobertos dinamicamente pelo OmniRoute (como combos) apareciam no seletor mas davam erro de \"modelo não encontrado\" ao enviar uma mensagem. Corrigido."
+            },
+            {
+              "title": "Corrigido: pedido de permissão sumia sem aviso",
+              "description": "Quando o agente precisava acessar um diretório fora da sessão atual, o pedido de permissão podia ficar pendente sem nenhum aviso visível na tela, parecendo que o app tinha travado. Corrigido."
+            },
+            {
+              "title": "Detecção automática de CLIs de agente externos",
+              "description": "O app agora detecta CLIs de terceiros (Claude, Codex, etc.) instaladas no servidor conectado e oferece instalar a skill necessária pra elas reportarem progresso ao orquestrador Batuta."
+            },
+            {
+              "title": "Ferramenta de controle do computador (computer-use)",
+              "description": "Habilitada por padrão: mouse, teclado e captura de tela em nível de sistema operacional."
+            },
+            {
+              "title": "Grid como padrão em Configurações > Provedores, com indicadores de carregamento",
+              "description": "A tela de provedores agora abre em modo grade por padrão e mostra spinners claros ao conectar/desconectar um provedor."
+            },
+            {
+              "title": "Correções de estabilidade",
+              "description": "Cache de provedores conectados agora invalida corretamente ao conectar/desconectar; corrigidos falsos positivos de \"provedor conectado\"; correções de sincronização de sessão remota, fallback ao abrir uma sessão deletada, e reconexão SSE mais resiliente."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.10",
       "highlights": [
         {

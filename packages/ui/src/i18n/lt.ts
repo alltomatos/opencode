@@ -202,4 +202,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Pasirinkite visus tinkamus atsakymus",
   "ui.question.singleHint": "Pasirinkite vieną atsakymą",
   "ui.question.custom.placeholder": "Įveskite savo atsakymą...",
+  "ui.backgroundTasks.title": "Fono užduotys",
+  "ui.backgroundTasks.empty": "Nėra fono užduočių",
+  "ui.backgroundTasks.running": "Vykdoma",
+  "ui.backgroundTasks.completed": "Baigta",
+  "ui.backgroundTasks.cancel": "Atšaukti",
+  "ui.backgroundTasks.status.completed": "Baigta",
+  "ui.backgroundTasks.status.error": "Nepavyko",
+  "ui.backgroundTasks.status.cancelled": "Atšaukta",
 }

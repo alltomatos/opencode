@@ -62,6 +62,7 @@ export namespace ProviderTest {
             if (providerID === row.id && modelID === mdl.id) return Effect.succeed(mdl)
             return Effect.die(new Error(`Unknown test model: ${providerID}/${modelID}`))
           }),
+          syncCatalogModel: Effect.fn("TestProvider.syncCatalogModel")(() => Effect.void),
           getLanguage: Effect.fn("TestProvider.getLanguage")(() =>
             Effect.die(new Error("ProviderTest.getLanguage not configured")),
           ),
@@ -74,6 +75,7 @@ export namespace ProviderTest {
           defaultModel: Effect.fn("TestProvider.defaultModel")(() =>
             Effect.succeed({ providerID: row.id, modelID: mdl.id }),
           ),
+          invalidate: Effect.fn("TestProvider.invalidate")(() => Effect.void),
           ...override,
         }),
       ),

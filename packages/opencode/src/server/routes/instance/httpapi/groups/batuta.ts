@@ -1,7 +1,7 @@
 import { ConfigBatutaV1 } from "@opencode-ai/core/v1/config/batuta"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { BatutaActivityNotFoundError } from "../errors"
+import { BatutaActivityNotFoundError, BatutaWorkerNotFoundError } from "../errors"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
@@ -25,6 +25,13 @@ export const PipelineDefinitionResponse = Schema.Struct({
 })
 export const PipelineDefinitionPayload = Schema.Struct({
   content: Schema.String,
+})
+export const DelegatePayload = Schema.Struct({
+  label: Schema.String,
+  prompt: Schema.String,
+})
+export const DelegateResponse = Schema.Struct({
+  output: Schema.String,
 })
 
 export const BatutaApi = HttpApi.make("batuta")
@@ -137,6 +144,20 @@ export const BatutaApi = HttpApi.make("batuta")
             summary: "Edit the project's pipeline definition",
             description:
               "Overwrites docs/batuta-pipeline.md — lets the user edit the flow at any point, including while the Orchestrator is already dispatching (it re-reads the file periodically).",
+          }),
+        ),
+        HttpApiEndpoint.post("delegate", `${root}/:id/delegate`, {
+          params: { id: Schema.String },
+          query: WorkspaceRoutingQuery,
+          payload: DelegatePayload,
+          success: described(DelegateResponse, "Worker delegation result"),
+          error: [BatutaActivityNotFoundError, BatutaWorkerNotFoundError],
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "batuta.delegate",
+            summary: "Delegate a task to a worker (for external-CLI orchestrators)",
+            description:
+              "Called by an external-CLI orchestrator (no task tool available) to delegate a task to one of its pre-configured workers by label. Synchronous — the response only arrives once the worker finishes.",
           }),
         ),
         HttpApiEndpoint.post("startPipelineChat", `${root}/:id/pipeline-chat`, {

@@ -52,6 +52,8 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
+import { createEditorReconciler } from "./prompt-input/editor-reconcile"
+import { createKeyboardHandlers } from "./prompt-input/keyboard"
 import { createPromptAttachments } from "./prompt-input/attachments"
 import { ACCEPTED_FILE_TYPES, pickAttachmentFiles } from "./prompt-input/files"
 import {
@@ -136,6 +138,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let savedCursor: number | null = null
 
   const mirror = { input: false }
+  const editorApi = createEditorReconciler({ editor: () => editorRef, mirror })
   const inset = 56
   const space = `${inset}px`
 
@@ -477,12 +480,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     setStore("savedPrompt", null)
   }
 
-  const clearEditor = () => {
-    editorRef.innerHTML = ""
-  }
-
   const setEditorText = (text: string) => {
-    clearEditor()
+    editorApi.clearEditor()
     editorRef.textContent = text
   }
 
@@ -496,12 +495,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       selection?.removeAllRanges()
       selection?.addRange(range)
     })
-  }
-
-  const currentCursor = () => {
-    const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0 || !editorRef.contains(selection.anchorNode)) return null
-    return getCursorPosition(editorRef)
   }
 
   const restoreFocus = () => {
@@ -523,12 +516,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   }
 
-  const renderEditorWithCursor = (parts: Prompt) => {
-    const cursor = currentCursor()
-    renderEditor(parts)
-    if (cursor !== null) setCursorPosition(editorRef, cursor)
-  }
-
   createEffect(() => {
     props.controls.session.id
     if (props.controls.session.id) return
@@ -543,7 +530,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const isImeComposing = (event: KeyboardEvent) => event.isComposing || composing() || event.keyCode === 229
 
   const handleBlur = () => {
-    const cursor = currentCursor()
+    const cursor = editorApi.currentCursor()
     savedCursor = cursor
     if (cursor !== null && cursor !== prompt.cursor()) prompt.set(prompt.current(), cursor)
     closePopover()
@@ -558,7 +545,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     setComposing(false)
     requestAnimationFrame(() => {
       if (composing()) return
-      reconcile(prompt.current().filter((part) => part.type !== "image"))
+      editorApi.reconcile(prompt.current().filter((part) => part.type !== "image"), isPromptEqual)
     })
   }
 
@@ -741,7 +728,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       return
     }
 
-    clearEditor()
+    editorApi.clearEditor()
     prompt.set([...DEFAULT_PROMPT, ...images], 0)
     command.trigger(cmd.id, "slash")
   }
@@ -758,65 +745,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     filterKeys: ["trigger", "title"],
     onSelect: handleSlashSelect,
   })
-
-  const createPill = (part: FileAttachmentPart | AgentPart) => {
-    const pill = document.createElement("span")
-    pill.textContent = part.content
-    pill.setAttribute("data-type", part.type)
-    if (part.type === "file") {
-      pill.setAttribute("data-path", part.path)
-      if (part.mime) pill.setAttribute("data-mime", part.mime)
-      if (part.filename) pill.setAttribute("data-filename", part.filename)
-      if (part.url) pill.setAttribute("data-url", part.url)
-      if (part.source?.type === "resource") {
-        pill.setAttribute("data-source-type", part.source.type)
-        pill.setAttribute("data-source-client-name", part.source.clientName)
-        pill.setAttribute("data-source-uri", part.source.uri)
-      }
-    }
-    if (part.type === "agent") pill.setAttribute("data-name", part.name)
-    pill.setAttribute("contenteditable", "false")
-    pill.style.userSelect = "text"
-    pill.style.cursor = "default"
-    return pill
-  }
-
-  const isNormalizedEditor = () =>
-    Array.from(editorRef.childNodes).every((node) => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent ?? ""
-        if (!text.includes("\u200B")) return true
-        if (text !== "\u200B") return false
-
-        const prev = node.previousSibling
-        const next = node.nextSibling
-        const prevIsBr = prev?.nodeType === Node.ELEMENT_NODE && (prev as HTMLElement).tagName === "BR"
-        return !!prevIsBr && !next
-      }
-      if (node.nodeType !== Node.ELEMENT_NODE) return false
-      const el = node as HTMLElement
-      if (el.dataset.type === "file") return true
-      if (el.dataset.type === "agent") return true
-      return el.tagName === "BR"
-    })
-
-  const renderEditor = (parts: Prompt) => {
-    clearEditor()
-    for (const part of parts) {
-      if (part.type === "text") {
-        editorRef.appendChild(createTextFragment(part.content))
-        continue
-      }
-      if (part.type === "file" || part.type === "agent") {
-        editorRef.appendChild(createPill(part))
-      }
-    }
-
-    const last = editorRef.lastChild
-    if (last?.nodeType === Node.ELEMENT_NODE && (last as HTMLElement).tagName === "BR") {
-      editorRef.appendChild(document.createTextNode("\u200B"))
-    }
-  }
 
   const scrollSlashActiveIntoView = () => {
     const activeId = slashActive()
@@ -846,132 +774,18 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
   }
 
-  const reconcile = (input: Prompt) => {
-    if (mirror.input) {
-      mirror.input = false
-      if (isNormalizedEditor()) return
-
-      renderEditorWithCursor(input)
-      return
-    }
-
-    const dom = parseFromDOM()
-    if (isNormalizedEditor() && isPromptEqual(input, dom)) return
-
-    renderEditorWithCursor(input)
-  }
-
   createEffect(
     on(
       () => prompt.current(),
       (parts) => {
         if (composing()) return
-        reconcile(parts.filter((part) => part.type !== "image"))
+        editorApi.reconcile(parts.filter((part) => part.type !== "image"), isPromptEqual)
       },
     ),
   )
 
-  const parseFromDOM = (): Prompt => {
-    const parts: Prompt = []
-    let position = 0
-    let buffer = ""
-
-    const flushText = () => {
-      let content = buffer
-      if (content.includes("\r")) content = content.replace(/\r\n?/g, "\n")
-      if (content.includes("\u200B")) content = content.replace(/\u200B/g, "")
-      buffer = ""
-      if (!content) return
-      parts.push({ type: "text", content, start: position, end: position + content.length })
-      position += content.length
-    }
-
-    const pushFile = (file: HTMLElement) => {
-      const content = file.textContent ?? ""
-      const source =
-        file.dataset.sourceType === "resource" && file.dataset.sourceClientName && file.dataset.sourceUri
-          ? {
-              type: "resource" as const,
-              text: {
-                value: content,
-                start: position,
-                end: position + content.length,
-              },
-              clientName: file.dataset.sourceClientName,
-              uri: file.dataset.sourceUri,
-            }
-          : undefined
-      parts.push({
-        type: "file",
-        path: file.dataset.path!,
-        content,
-        start: position,
-        end: position + content.length,
-        ...(file.dataset.mime ? { mime: file.dataset.mime } : {}),
-        ...(file.dataset.filename ? { filename: file.dataset.filename } : {}),
-        ...(file.dataset.url ? { url: file.dataset.url } : {}),
-        ...(source ? { source } : {}),
-      })
-      position += content.length
-    }
-
-    const pushAgent = (agent: HTMLElement) => {
-      const content = agent.textContent ?? ""
-      parts.push({
-        type: "agent",
-        name: agent.dataset.name!,
-        content,
-        start: position,
-        end: position + content.length,
-      })
-      position += content.length
-    }
-
-    const visit = (node: Node) => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        buffer += node.textContent ?? ""
-        return
-      }
-      if (node.nodeType !== Node.ELEMENT_NODE) return
-
-      const el = node as HTMLElement
-      if (el.dataset.type === "file") {
-        flushText()
-        pushFile(el)
-        return
-      }
-      if (el.dataset.type === "agent") {
-        flushText()
-        pushAgent(el)
-        return
-      }
-      if (el.tagName === "BR") {
-        buffer += "\n"
-        return
-      }
-
-      for (const child of Array.from(el.childNodes)) {
-        visit(child)
-      }
-    }
-
-    const children = Array.from(editorRef.childNodes)
-    children.forEach((child, index) => {
-      const isBlock = child.nodeType === Node.ELEMENT_NODE && ["DIV", "P"].includes((child as HTMLElement).tagName)
-      visit(child)
-      if (isBlock && index < children.length - 1) {
-        buffer += "\n"
-      }
-    })
-
-    flushText()
-
-    if (parts.length === 0) parts.push(...DEFAULT_PROMPT)
-    return parts
-  }
-
   const handleInput = () => {
-    const rawParts = parseFromDOM()
+    const rawParts = editorApi.parseFromDOM()
     const images = imageAttachments()
     const cursorPosition = getCursorPosition(editorRef)
     const rawText =
@@ -1044,7 +858,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         .join("")
       const textBeforeCursor = rawText.substring(0, cursorPosition)
       const atMatch = textBeforeCursor.match(/@(\S*)$/)
-      const pill = createPill(part)
+      const pill = editorApi.createPill(part)
       const gap = document.createTextNode(" ")
 
       if (atMatch) {
@@ -1229,193 +1043,35 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       model: props.controls.model.selection,
     })
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "u") {
-      event.preventDefault()
-      if (store.mode !== "normal") return
-      pick()
-      return
-    }
-
-    if (event.key === "Backspace") {
-      const selection = window.getSelection()
-      if (selection && selection.isCollapsed) {
-        const node = selection.anchorNode
-        const offset = selection.anchorOffset
-        if (node && node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent ?? ""
-          if (/^\u200B+$/.test(text) && offset > 0) {
-            const range = document.createRange()
-            range.setStart(node, 0)
-            range.collapse(true)
-            selection.removeAllRanges()
-            selection.addRange(range)
-          }
-        }
-      }
-    }
-
-    if (event.key === "!" && store.mode === "normal") {
-      const cursorPosition = getCursorPosition(editorRef)
-      if (cursorPosition === 0) {
-        setStore("mode", "shell")
-        closePopover()
-        event.preventDefault()
-        return
-      }
-    }
-
-    if (event.key === "Escape") {
-      if (store.popover) {
-        closePopover()
-        event.preventDefault()
-        event.stopPropagation()
-        return
-      }
-
-      if (store.mode === "shell") {
-        setStore("mode", "normal")
-        event.preventDefault()
-        event.stopPropagation()
-        return
-      }
-
-      if (working()) {
-        void abort()
-        event.preventDefault()
-        event.stopPropagation()
-        return
-      }
-
-      if (escBlur()) {
-        editorRef.blur()
-        event.preventDefault()
-        event.stopPropagation()
-        return
-      }
-    }
-
-    if (store.mode === "shell") {
-      const { collapsed, cursorPosition, textLength } = getCaretState()
-      if (event.key === "Backspace" && collapsed && cursorPosition === 0 && textLength === 0) {
-        setStore("mode", "normal")
-        event.preventDefault()
-        return
-      }
-    }
-
-    // Handle Shift+Enter BEFORE IME check - Shift+Enter is never used for IME input
-    // and should always insert a newline regardless of composition state
-    if (event.key === "Enter" && event.shiftKey) {
-      addPart({ type: "text", content: "\n", start: 0, end: 0 })
-      event.preventDefault()
-      return
-    }
-
-    if (event.key === "Enter" && isImeComposing(event)) {
-      return
-    }
-
-    const ctrl = event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
-
-    if (store.popover) {
-      if (event.key === "Tab") {
-        selectPopoverActive()
-        event.preventDefault()
-        return
-      }
-      const nav = event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Enter"
-      const ctrlNav = ctrl && (event.key === "n" || event.key === "p")
-      if (nav || ctrlNav) {
-        if (store.popover === "at") {
-          atOnKeyDown(event)
-          event.preventDefault()
-          return
-        }
-        if (store.popover === "slash") {
-          slashOnKeyDown(event)
-          if (event.key === "ArrowUp" || event.key === "ArrowDown" || ctrlNav) {
-            scrollSlashActiveIntoView()
-          }
-        }
-        event.preventDefault()
-        return
-      }
-    }
-
-    if (ctrl && event.code === "KeyG") {
-      if (store.popover) {
-        closePopover()
-        event.preventDefault()
-        return
-      }
-      if (working()) {
-        void abort()
-        event.preventDefault()
-      }
-      return
-    }
-
-    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-      if (event.altKey || event.ctrlKey || event.metaKey) return
-      const { collapsed } = getCaretState()
-      if (!collapsed) return
-
-      const cursorPosition = getCursorPosition(editorRef)
-      const textContent = prompt
+  const { handleKeyDown, handleSlashMenuKeyDown } = createKeyboardHandlers({
+    editor: () => editorRef,
+    getCursorPosition,
+    mode: () => store.mode,
+    setMode: (mode) => setStore("mode", mode),
+    popover: () => store.popover,
+    closePopover,
+    escBlur,
+    working,
+    abort,
+    getCaretState,
+    pick,
+    addPart,
+    isImeComposing,
+    atOnKeyDown,
+    slashOnKeyDown,
+    selectPopoverActive,
+    scrollSlashActiveIntoView,
+    promptText: () =>
+      prompt
         .current()
         .map((part) => ("content" in part ? part.content : ""))
-        .join("")
-      const direction = event.key === "ArrowUp" ? "up" : "down"
-      if (!canNavigateHistoryAtCursor(direction, textContent, cursorPosition, store.historyIndex >= 0)) return
-      if (navigateHistory(direction)) {
-        event.preventDefault()
-      }
-      return
-    }
-
-    // Note: Shift+Enter is handled earlier, before IME check
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault()
-      if (event.repeat) return
-      if (
-        working() &&
-        prompt
-          .current()
-          .map((part) => ("content" in part ? part.content : ""))
-          .join("")
-          .trim().length === 0 &&
-        imageAttachments().length === 0 &&
-        commentCount() === 0
-      ) {
-        return
-      }
-      void handleSubmit(event)
-    }
-  }
-
-  const handleSlashMenuKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      closePopover()
-      requestAnimationFrame(() => editorRef.focus())
-      event.preventDefault()
-      return
-    }
-
-    if (event.key === "Tab") {
-      selectPopoverActive()
-      event.preventDefault()
-      return
-    }
-
-    const ctrl = event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
-    const nav = event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Enter"
-    const ctrlNav = ctrl && (event.key === "n" || event.key === "p")
-    if (!nav && !ctrlNav) return
-    slashOnKeyDown(event)
-    if (event.key === "ArrowUp" || event.key === "ArrowDown" || ctrlNav) scrollSlashActiveIntoView()
-    event.preventDefault()
-  }
+        .join(""),
+    historyIndex: () => store.historyIndex,
+    navigateHistory,
+    imageAttachmentCount: () => imageAttachments().length,
+    commentCount,
+    handleSubmit,
+  })
 
   const agentsLoading = () => props.controls.agents.loading
   const agentsShouldFadeIn = createMemo<boolean>((prev) => prev ?? agentsLoading())

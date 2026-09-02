@@ -27,6 +27,11 @@ type Row = {
 }
 
 function toRow(absolute: string, home: string, group: Row["group"]): Row {
+  // display-formatted (backslash-normalized on Windows) purely for building the
+  // search index — `absolute` itself must stay the raw value the server gave us,
+  // since it becomes the canonical directory once selected (draft/project state,
+  // provider cache keys, etc.), and those must match the server's own
+  // forward-slash-normalized representation.
   const full = displayPickerPath(absolute, "", "")
   const tilde = displayPickerPath(full, "~", home)
   const withSlash = (value: string) => {
@@ -38,7 +43,7 @@ function toRow(absolute: string, home: string, group: Row["group"]): Row {
   const search = Array.from(
     new Set([full, withSlash(full), tilde, withSlash(tilde), getFilename(full)].filter(Boolean)),
   ).join("\n")
-  return { absolute: full, search, group }
+  return { absolute, search, group }
 }
 
 function uniqueRows(rows: Row[]) {

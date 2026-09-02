@@ -1,4 +1,9 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
+import { Catalog } from "@opencode-ai/core/catalog"
+import { PluginInternal } from "@opencode-ai/core/plugin/internal"
+import { Location } from "@opencode-ai/core/location"
+import { LocationServiceMap } from "@opencode-ai/core/location-services"
+import { AbsolutePath } from "@opencode-ai/core/schema"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import path from "path"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
@@ -140,6 +145,7 @@ const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
+    const locations = yield* LocationServiceMap.Service
     const { db } = database
     const ops = Effect.fn("SessionPrompt.ops")(function* () {
       return {
@@ -591,6 +597,33 @@ const layer = Layer.effect(
       )
     })
 
+    // A model registered by a Native Provider Plugin (e.g. OmniRoute) lives
+    // in the v2 Catalog, which Provider.Service's own state never reads on
+    // its own — see syncCatalogModel's comment in provider.ts for why that
+    // sync has to happen from a location-scoped caller instead of inside
+    // Provider.Service. This is that caller: on a miss, look the model up
+    // in this directory's Catalog, push it into Provider.Service, and
+    // retry once before giving up. A directory that was never a Catalog
+    // hit either (e.g. a genuinely wrong model id) just falls through to
+    // the original error below, unchanged.
+    const syncFromCatalog = Effect.fnUntraced(function* (providerID: ProviderV2.ID, modelID: ModelV2.ID) {
+      const ctx = yield* InstanceState.context
+      return yield* Effect.gen(function* () {
+        const internal = yield* PluginInternal.Service
+        yield* internal.ready.pipe(Effect.timeout("5 seconds"), Effect.catch(() => Effect.void))
+        const catalog = yield* Catalog.Service
+        const model = yield* catalog.model.get(providerID, modelID)
+        if (!model) return false
+        const catalogProvider = yield* catalog.provider.get(providerID)
+        if (!catalogProvider) return false
+        yield* provider.syncCatalogModel(providerID, catalogProvider, [model])
+        return true
+      }).pipe(
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))),
+        Effect.catch(() => Effect.succeed(false)),
+      )
+    })
+
     const getModel = Effect.fn("SessionPrompt.getModel")(function* (
       providerID: ProviderV2.ID,
       modelID: ModelV2.ID,
@@ -598,7 +631,12 @@ const layer = Layer.effect(
     ) {
       const exit = yield* provider.getModel(providerID, modelID).pipe(Effect.exit)
       if (Exit.isSuccess(exit)) return exit.value
-      const err = Cause.squash(exit.cause)
+      let err = Cause.squash(exit.cause)
+      if (Provider.ModelNotFoundError.isInstance(err) && (yield* syncFromCatalog(providerID, modelID))) {
+        const retry = yield* provider.getModel(providerID, modelID).pipe(Effect.exit)
+        if (Exit.isSuccess(retry)) return retry.value
+        err = Cause.squash(retry.cause)
+      }
       if (Provider.ModelNotFoundError.isInstance(err)) {
         const hint = err.suggestions?.length ? ` Did you mean: ${err.suggestions.join(", ")}?` : ""
         yield* events.publish(Session.Event.Error, {
@@ -1627,6 +1665,7 @@ export const node = LayerNode.make({
     EventV2Bridge.node,
     RuntimeFlags.node,
     Database.node,
+    LocationServiceMap.node,
   ],
 })
 

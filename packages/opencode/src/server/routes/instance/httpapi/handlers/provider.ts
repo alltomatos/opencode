@@ -1,3 +1,4 @@
+import * as InstanceState from "@/effect/instance-state"
 import { ProviderAuth } from "@/provider/auth"
 import { Config } from "@/config/config"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
@@ -5,11 +6,16 @@ import { Provider } from "@/provider/provider"
 import { Auth } from "@/auth"
 
 import { mapValues } from "remeda"
-import { Effect, Schema } from "effect"
+import { Effect, Layer, Schema } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import { ProviderAuthApiError } from "../groups/provider"
+import { Catalog } from "@opencode-ai/core/catalog"
+import { PluginInternal } from "@opencode-ai/core/plugin/internal"
+import { Location } from "@opencode-ai/core/location"
+import { LocationServiceMap, locationServiceMapLayer } from "@opencode-ai/core/location-services"
+import { AbsolutePath } from "@opencode-ai/core/schema"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 
 function mapProviderAuthError<A, R>(self: Effect.Effect<A, ProviderAuth.Error, R>) {
@@ -38,6 +44,64 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
     const provider = yield* Provider.Service
     const svc = yield* ProviderAuth.Service
     const authStore = yield* Auth.Service
+    const locations = yield* LocationServiceMap.Service
+
+    // Providers registered by a Native Provider Plugin (packages/core's
+    // ProviderPlugins — e.g. OmniRoute) live in the v2 Catalog, which is
+    // location-scoped like file.ts/pty.ts's FileSystem/Ripgrep access, not
+    // globally available.
+    const withLocation = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
+      return yield* effect.pipe(
+        Effect.provide(
+          locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* InstanceState.context).directory) })),
+        ),
+      )
+    })
+
+    // Building this instance's location layer (Catalog, PluginInternal, and
+    // ~28 other location-scoped services) is a real, measured ~2s of
+    // synchronous work — see the NOTE below. It happens once per directory
+    // and is cached (LocationServiceMap's LayerMap), but until now nothing
+    // triggered it until the first request that actually needed it, which
+    // in practice was usually the user opening Settings > Providers —
+    // making that specific screen pay the full cost on first open every
+    // session. Kick it off here instead, in the background, as soon as this
+    // instance's HTTP routes are wired up (well before the user could
+    // plausibly click into Settings), so it's already warm by request time.
+    // Best-effort: swallow all errors, this must never affect route setup.
+    yield* withLocation(Effect.void).pipe(Effect.ignore, Effect.forkScoped)
+
+    // Catalog discovery failures (offline gateway, bad key) must never break
+    // the rest of the provider list, so this is best-effort. Registering
+    // built-in ProviderPlugins (e.g. OmniRoute) into the Catalog happens in
+    // a forked, non-blocking fiber the first time a location boots
+    // (packages/core/src/plugin/internal.ts) — reading the Catalog before
+    // that fiber settles would silently miss providers that just connected
+    // (the exact bug this handles). Wait for it, bounded, so a slow/hung
+    // plugin can't stall this request indefinitely.
+    //
+    // NOTE: profiled the ~2s first-call cost of this whole endpoint. It's
+    // NOT this wait (shortening the timeout to 250ms made no difference)
+    // and NOT ModelsDevPlugin's transform loop (measured directly: ~270ms
+    // for 207 providers / 7500+ models). Isolated it with an A/B test —
+    // skipping this `withLocation` call entirely dropped total request
+    // time from ~4.3s to ~2.2s. So the cost is genuinely in constructing
+    // packages/core's ~30-node location-services Layer graph itself
+    // (Catalog, PluginInternal, FileSystem, Watcher, Pty, SkillV2, ...) —
+    // framework-level Layer/Context resolution overhead, not any single
+    // plugin. See the forkScoped warm-up above, which pays this cost in
+    // the background before the user can reach this endpoint instead of
+    // blocking on it here.
+    const catalogProviders = withLocation(
+      Effect.gen(function* () {
+        const internal = yield* PluginInternal.Service
+        yield* internal.ready.pipe(Effect.timeout("5 seconds"), Effect.catch(() => Effect.void))
+        const catalog = yield* Catalog.Service
+        const all = yield* catalog.provider.all()
+        const models = yield* catalog.model.all()
+        return all.map((item) => Provider.fromCatalog(item, models.filter((model) => model.providerID === item.id)))
+      }),
+    ).pipe(Effect.catch(() => Effect.succeed([] as Provider.Info[])))
 
     const list = Effect.fn("ProviderHttpApi.list")(function* () {
       const config = yield* cfg.get()
@@ -50,13 +114,24 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       }
       const connected = yield* provider.list()
       const credentials = yield* authStore.all().pipe(Effect.orDie)
+      const catalogList = yield* catalogProviders
       const providers = Object.assign(
         mapValues(filtered, (item) => Provider.fromModelsDevProvider(item)),
         connected,
+        Object.fromEntries(catalogList.filter((item) => !(item.id in connected)).map((item) => [item.id, item])),
       )
       return {
         all: Object.values(providers).map(Provider.toPublicInfo),
         default: Provider.defaultModelIDs(providers),
+        // catalogList membership is NOT proof of a real connection: both
+        // ModelsDevPlugin (every known models.dev provider) and OmniRoute's
+        // own plugin (packages/core/src/plugin/provider/omniroute.ts —
+        // registers "omnrt" into the catalog before it even checks for a
+        // stored credential) populate the same v2 Catalog unconditionally.
+        // OmniRoute's credential lives in the exact same auth.json file
+        // `authStore` reads (see readAuthCredential there), so
+        // credentials[id] already reflects it live — catalogList adds
+        // nothing but false positives here.
         connected: Object.keys(providers).filter((id) => id in connected || credentials[id]),
       }
     })
@@ -104,6 +179,11 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
           code: ctx.payload.code,
         }),
       )
+      // OAuth connect (e.g. Anthropic Max, GitHub Copilot) writes the
+      // credential directly via ProviderAuth.Service, bypassing control.ts's
+      // authSet — invalidate here too so the provider list picks it up
+      // immediately instead of only after the instance is recreated.
+      yield* provider.invalidate()
       return true
     })
 
@@ -113,4 +193,4 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       .handleRaw("authorize", authorizeRaw)
       .handle("callback", callback)
   }),
-)
+).pipe(Layer.provide(locationServiceMapLayer))

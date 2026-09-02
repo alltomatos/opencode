@@ -31,6 +31,7 @@ import { ModelV2 } from "@opencode-ai/core/model"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
+import { ensureRelay, DEFAULT_PORT as AGENTROUTER_DEFAULT_PORT } from "./agentrouter/manager"
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 300_000
 
@@ -169,6 +170,49 @@ function selectBedrockMantleLanguageModel(sdk: BundledSDK, modelID: string) {
   if (modelID === "openai.gpt-oss-safeguard-20b" || modelID === "openai.gpt-oss-safeguard-120b")
     return sdk.chat?.(modelID) ?? sdk.languageModel(modelID)
   return sdk.responses?.(modelID) ?? sdk.languageModel(modelID)
+}
+
+// Static list — AgentRouter's real /v1/models is blocked by the same WAF that
+// blocks generic HTTP clients from /v1/messages, so there's no dynamic
+// discovery endpoint to call. Mirrors the console's model list at time of
+// writing; cost/limit are placeholders (AgentRouter is prepaid credits, no
+// published per-token pricing or context/output limits per model).
+const AGENTROUTER_MODELS: Array<{ id: string; name: string }> = [
+  { id: "claude-opus-4-8", name: "claude-opus-4-8" },
+  { id: "claude-opus-5", name: "claude-opus-5" },
+  { id: "deepseek-v4-flash", name: "deepseek-v4-flash" },
+  { id: "glm-5.3", name: "glm-5.3" },
+  { id: "gpt-5.6-sol", name: "gpt-5.6-sol" },
+]
+
+function agentRouterModel(id: string, name: string, baseURL: string): Model {
+  return {
+    id: ModelV2.ID.make(id),
+    providerID: ProviderV2.ID.make("agentrouter"),
+    name,
+    family: "",
+    api: {
+      id,
+      url: baseURL,
+      npm: "@ai-sdk/anthropic",
+    },
+    status: "active",
+    headers: {},
+    options: {},
+    cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+    limit: { context: 200_000, output: 8_192 },
+    capabilities: {
+      temperature: true,
+      reasoning: false,
+      attachment: false,
+      toolcall: true,
+      input: { text: true, audio: false, image: false, video: false, pdf: false },
+      output: { text: true, audio: false, image: false, video: false, pdf: false },
+      interleaved: false,
+    },
+    release_date: "",
+    variants: {},
+  }
 }
 
 function custom(dep: CustomDep): Record<string, CustomLoader> {
@@ -866,6 +910,54 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           },
         },
       }),
+    // AgentRouter (agentrouter.org) sits behind a WAF that fingerprints the
+    // HTTP client connection itself, not just the bearer token — generic
+    // clients (Node fetch/undici, curl, async httpx) get rejected with
+    // "unauthorized client detected" even with a valid key. Only a handful
+    // of clients pass, including the synchronous Python `anthropic` SDK. We
+    // spin up a small local relay (packages/opencode/src/provider/agentrouter)
+    // that re-issues requests through that SDK, and point this provider at it.
+    agentrouter: Effect.fnUntraced(function* (input: Info) {
+      const env = yield* dep.env()
+      const auth = yield* dep.auth(input.id)
+      const key =
+        env["AGENTROUTER_API_KEY"] ?? (auth?.type === "api" ? auth.key : undefined) ?? input.options?.apiKey
+
+      if (!key) return { autoload: false }
+
+      // The relay's port is fixed and known ahead of time, so listing
+      // providers/models never needs to wait on it — only actually spawning
+      // the Python process (ensureRelay) is deferred to getModel below,
+      // which only runs when a model is really about to be used. Doing that
+      // spawn-and-health-check synchronously here used to block every
+      // provider list computation (Settings page, model pickers, etc.) by
+      // several seconds even when the user was just browsing, not chatting.
+      const baseURL = `http://127.0.0.1:${AGENTROUTER_DEFAULT_PORT}`
+
+      // models.dev already registers agentrouter (and 3 of these 5 models)
+      // pointed straight at https://agentrouter.org/v1 with @ai-sdk/anthropic
+      // — the same broken direct config the official docs describe. Force
+      // every known model's transport onto the local relay instead of only
+      // filling in gaps, so upstream catalog data doesn't leave some models
+      // silently pointed at the URL that trips the WAF.
+      for (const { id, name } of AGENTROUTER_MODELS) {
+        const existing = input.models[id]
+        if (existing) {
+          existing.api = { id, url: baseURL, npm: "@ai-sdk/anthropic" }
+        } else {
+          input.models[id] = agentRouterModel(id, name, baseURL)
+        }
+      }
+
+      return {
+        autoload: true,
+        options: { baseURL },
+        async getModel(sdk: any, modelID: string) {
+          await ensureRelay(key)
+          return sdk.languageModel(modelID)
+        },
+      }
+    }),
     kilo: () =>
       Effect.succeed({
         autoload: false,
@@ -1110,7 +1202,12 @@ export function toPublicInfo(provider: Info): Info {
 }
 
 export function defaultModelIDs<T extends { models: Record<string, { id: string }> }>(providers: Record<string, T>) {
-  return mapValues(providers, (item) => sort(Object.values(item.models))[0].id)
+  return Object.fromEntries(
+    Object.entries(providers).flatMap(([providerID, item]) => {
+      const first = sort(Object.values(item.models))[0]
+      return first ? [[providerID, first.id]] : []
+    }),
+  )
 }
 
 export class ModelNotFoundError extends Schema.TaggedErrorClass<ModelNotFoundError>()("ProviderModelNotFoundError", {
@@ -1171,6 +1268,15 @@ export interface Interface {
   readonly list: () => Effect.Effect<Record<ProviderV2.ID, Info>>
   readonly getProvider: (providerID: ProviderV2.ID) => Effect.Effect<Info>
   readonly getModel: (providerID: ProviderV2.ID, modelID: ModelV2.ID) => Effect.Effect<Model, ModelNotFoundError>
+  // Merges a Catalog v2 model/provider (Native Provider Plugin — e.g.
+  // OmniRoute) into this service's own state, so a subsequent getModel()
+  // call can find it. See syncCatalogModel's comment for why this exists
+  // instead of Provider.Service reading the Catalog itself.
+  readonly syncCatalogModel: (
+    providerID: ProviderV2.ID,
+    catalogProvider: ProviderV2.Info,
+    models: ModelV2.Info[],
+  ) => Effect.Effect<void>
   readonly getLanguage: (model: Model) => Effect.Effect<LanguageModelV3, ModelNotFoundError>
   readonly closest: (
     providerID: ProviderV2.ID,
@@ -1178,6 +1284,13 @@ export interface Interface {
   ) => Effect.Effect<{ providerID: ProviderV2.ID; modelID: string } | undefined>
   readonly getSmallModel: (providerID: ProviderV2.ID) => Effect.Effect<Model | undefined>
   readonly defaultModel: () => Effect.Effect<{ providerID: ProviderV2.ID; modelID: ModelV2.ID }, DefaultModelError>
+  // Forces the next list()/getModel()/getLanguage() call to recompute the
+  // provider set from scratch instead of reusing the cached one. Needed
+  // after auth.set/auth.remove — without this, connecting or disconnecting
+  // a provider (e.g. AgentRouter, Omniroute) has no effect until the whole
+  // instance/session is torn down and recreated, since InstanceState caches
+  // this computation indefinitely per directory (see instance-state.ts).
+  readonly invalidate: () => Effect.Effect<void>
 }
 
 interface State {
@@ -1318,6 +1431,68 @@ export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
     env: [...(provider.env ?? [])],
     options: {},
     models,
+  }
+}
+
+// Bridges a Catalog v2 provider (registered by a Native Provider Plugin,
+// e.g. OmniRoute — packages/core/src/plugin/provider/omniroute.ts) into the
+// richer v1 Provider/Model shape this API has always returned. The v2
+// schema only carries what Native Provider Plugins actually produce
+// (ProviderV2.Info has no `env`/`source`, ModelV2.Info has no
+// temperature/reasoning/attachment/interleaved flags) — everything absent
+// here gets the same conservative defaults GithubCopilotPlugin-style native
+// providers ship with elsewhere, mirroring fromModelsDevModel's structure
+// without inventing capabilities the plugin never reported.
+export function fromCatalog(provider: ProviderV2.Info, models: ModelV2.Info[]): Info {
+  const entries: Record<string, Model> = {}
+  for (const model of models) {
+    entries[model.id] = {
+      id: model.id,
+      providerID: provider.id,
+      name: model.name,
+      family: model.family,
+      api: {
+        id: model.api.id,
+        url: model.api.type === "aisdk" ? (model.api.url ?? provider.api.url ?? "") : (model.api.url ?? ""),
+        npm: model.api.type === "aisdk" ? model.api.package : "@ai-sdk/openai-compatible",
+      },
+      status: model.status,
+      headers: model.request.headers,
+      options: {},
+      cost: model.cost[0] ?? { input: 0, output: 0, cache: { read: 0, write: 0 } },
+      limit: model.limit,
+      capabilities: {
+        temperature: true,
+        reasoning: false,
+        attachment: model.capabilities.input.includes("image") || model.capabilities.input.includes("pdf"),
+        toolcall: model.capabilities.tools,
+        input: {
+          text: model.capabilities.input.includes("text"),
+          audio: model.capabilities.input.includes("audio"),
+          image: model.capabilities.input.includes("image"),
+          video: model.capabilities.input.includes("video"),
+          pdf: model.capabilities.input.includes("pdf"),
+        },
+        output: {
+          text: model.capabilities.output.includes("text"),
+          audio: model.capabilities.output.includes("audio"),
+          image: model.capabilities.output.includes("image"),
+          video: model.capabilities.output.includes("video"),
+          pdf: model.capabilities.output.includes("pdf"),
+        },
+        interleaved: false,
+      },
+      release_date: model.time.released ? new Date(model.time.released).toISOString().slice(0, 10) : "",
+      variants: {},
+    }
+  }
+  return {
+    id: provider.id,
+    source: "custom",
+    name: provider.name,
+    env: [],
+    options: {},
+    models: entries,
   }
 }
 
@@ -1493,30 +1668,34 @@ const layer = Layer.effect(
               name,
               providerID: ProviderV2.ID.make(providerID),
               capabilities: {
-                temperature: model.temperature ?? existingModel?.capabilities.temperature ?? false,
-                reasoning: model.reasoning ?? existingModel?.capabilities.reasoning ?? false,
-                attachment: model.attachment ?? existingModel?.capabilities.attachment ?? false,
-                toolcall: model.tool_call ?? existingModel?.capabilities.toolcall ?? true,
+                temperature: model.temperature ?? existingModel?.capabilities?.temperature ?? false,
+                reasoning: model.reasoning ?? existingModel?.capabilities?.reasoning ?? false,
+                attachment: model.attachment ?? existingModel?.capabilities?.attachment ?? false,
+                toolcall: model.tool_call ?? existingModel?.capabilities?.toolcall ?? true,
                 input: {
-                  text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities.input.text ?? true,
-                  audio: model.modalities?.input?.includes("audio") ?? existingModel?.capabilities.input.audio ?? false,
-                  image: model.modalities?.input?.includes("image") ?? existingModel?.capabilities.input.image ?? false,
-                  video: model.modalities?.input?.includes("video") ?? existingModel?.capabilities.input.video ?? false,
-                  pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities.input.pdf ?? false,
+                  text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities?.input?.text ?? true,
+                  audio:
+                    model.modalities?.input?.includes("audio") ?? existingModel?.capabilities?.input?.audio ?? false,
+                  image:
+                    model.modalities?.input?.includes("image") ?? existingModel?.capabilities?.input?.image ?? false,
+                  video:
+                    model.modalities?.input?.includes("video") ?? existingModel?.capabilities?.input?.video ?? false,
+                  pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities?.input?.pdf ?? false,
                 },
                 output: {
-                  text: model.modalities?.output?.includes("text") ?? existingModel?.capabilities.output.text ?? true,
+                  text:
+                    model.modalities?.output?.includes("text") ?? existingModel?.capabilities?.output?.text ?? true,
                   audio:
-                    model.modalities?.output?.includes("audio") ?? existingModel?.capabilities.output.audio ?? false,
+                    model.modalities?.output?.includes("audio") ?? existingModel?.capabilities?.output?.audio ?? false,
                   image:
-                    model.modalities?.output?.includes("image") ?? existingModel?.capabilities.output.image ?? false,
+                    model.modalities?.output?.includes("image") ?? existingModel?.capabilities?.output?.image ?? false,
                   video:
-                    model.modalities?.output?.includes("video") ?? existingModel?.capabilities.output.video ?? false,
-                  pdf: model.modalities?.output?.includes("pdf") ?? existingModel?.capabilities.output.pdf ?? false,
+                    model.modalities?.output?.includes("video") ?? existingModel?.capabilities?.output?.video ?? false,
+                  pdf: model.modalities?.output?.includes("pdf") ?? existingModel?.capabilities?.output?.pdf ?? false,
                 },
                 interleaved:
                   (typeof model.interleaved === "string" ? { field: model.interleaved } : model.interleaved) ??
-                  existingModel?.capabilities.interleaved ??
+                  existingModel?.capabilities?.interleaved ??
                   (!existingModel && apiNpm === "@ai-sdk/openai-compatible" && apiID.includes("deepseek")
                     ? { field: "reasoning_content" }
                     : false),
@@ -1525,8 +1704,8 @@ const layer = Layer.effect(
                 input: model?.cost?.input ?? existingModel?.cost?.input ?? 0,
                 output: model?.cost?.output ?? existingModel?.cost?.output ?? 0,
                 cache: {
-                  read: model?.cost?.cache_read ?? existingModel?.cost?.cache.read ?? 0,
-                  write: model?.cost?.cache_write ?? existingModel?.cost?.cache.write ?? 0,
+                  read: model?.cost?.cache_read ?? existingModel?.cost?.cache?.read ?? 0,
+                  write: model?.cost?.cache_write ?? existingModel?.cost?.cache?.write ?? 0,
                 },
               },
               options: mergeDeep(existingModel?.options ?? {}, model.options ?? {}),
@@ -1844,6 +2023,39 @@ const layer = Layer.effect(
       InstanceState.use(state, (s) => s.providers[providerID]),
     )
 
+    // Bridges a model registered by a Native Provider Plugin (e.g. OmniRoute,
+    // packages/core/src/plugin/provider/omniroute.ts) into this legacy
+    // Provider.Service's own state. Native Provider Plugins only ever write
+    // into the v2 Catalog — nothing in this service reads that catalog on
+    // its own (fromCatalog above is otherwise only used by the GET
+    // /provider HTTP listing, for display). Without a caller pushing a
+    // sync through this, a model that's never been in models.dev or a
+    // static config snapshot (every model OmniRoute discovers dynamically,
+    // including combos) shows up as selectable in the UI but throws
+    // ModelNotFoundError the instant a chat actually tries to use it.
+    //
+    // Deliberately dependency-free: Provider.Service's LayerNode is an
+    // isolated graph (deps: [...] above) used standalone in tests via
+    // PluginTestLayer, and the v2 Catalog is a location-scoped service
+    // (LocationServiceMap) that only the caller — already inside a
+    // location context, e.g. session/prompt.ts — can reach without
+    // dragging that whole session-runtime graph into this foundational
+    // service. So this just accepts an already-resolved catalog model +
+    // provider and merges it in; the caller does the Catalog lookup.
+    const syncCatalogModel = Effect.fn("Provider.syncCatalogModel")(function* (
+      providerID: ProviderV2.ID,
+      catalogProvider: ProviderV2.Info,
+      models: ModelV2.Info[],
+    ) {
+      const s = yield* InstanceState.get(state)
+      const info = fromCatalog(catalogProvider, models)
+      const credential = yield* auth.get(providerID).pipe(Effect.orElseSucceed(() => undefined))
+      if (credential?.type === "api") info.key = credential.key
+      const existing = s.providers[providerID]
+      if (existing) Object.assign(existing.models, info.models)
+      else s.providers[providerID] = info
+    })
+
     const getModel = Effect.fn("Provider.getModel")(function* (providerID: ProviderV2.ID, modelID: ModelV2.ID) {
       const s = yield* InstanceState.get(state)
       const provider = s.providers[providerID]
@@ -2015,7 +2227,19 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel })
+    const invalidate = () => InstanceState.invalidateAll(state)
+
+    return Service.of({
+      list,
+      getProvider,
+      getModel,
+      syncCatalogModel,
+      getLanguage,
+      closest,
+      getSmallModel,
+      defaultModel,
+      invalidate,
+    })
   }),
 )
 

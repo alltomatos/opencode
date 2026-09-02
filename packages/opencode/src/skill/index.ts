@@ -186,7 +186,7 @@ const discoverSkills = Effect.fnUntraced(function* (
 
   const externalDirs: string[] = []
   if (!disableExternalSkills) {
-    if (!disableClaudeCodeSkills && cfg.skills?.claude === true) externalDirs.push(CLAUDE_EXTERNAL_DIR)
+    if (!disableClaudeCodeSkills && cfg.skills?.claude !== false) externalDirs.push(CLAUDE_EXTERNAL_DIR)
     if (cfg.skills?.codex === true) externalDirs.push(CODEX_EXTERNAL_DIR)
     externalDirs.push(AGENTS_EXTERNAL_DIR)
 

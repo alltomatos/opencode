@@ -231,6 +231,12 @@ export const dict = {
   "provider.omniroute.toast.importedFiltered": "Imported {{count}} models ({{skipped}} skipped)",
   "provider.omniroute.field.combosOnly.label": "Import combos only",
   "provider.omniroute.field.combosOnly.description": "Skip plain provider/model entries and only import combo models",
+  "provider.omniroute.mcp.autoconfig": "Connecting will automatically configure the Omniroute MCP server for you.",
+  "provider.omniroute.mcp.testing": "Testing MCP connection...",
+  "provider.omniroute.mcp.connected": "MCP connected",
+  "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
+  "provider.omniroute.mcp.retry": "Test again",
+  "provider.omniroute.mcp.skip": "Skip MCP",
 
   "provider.disconnect.toast.disconnected.title": "{{provider}} disconnected",
   "provider.disconnect.toast.disconnected.description": "{{provider}} models are no longer available.",
@@ -899,7 +905,12 @@ export const dict = {
   "batuta.form.field.workers.label": "Workers",
   "batuta.form.field.workers.label.placeholder": "Worker label",
   "batuta.form.field.workers.add": "Add worker",
-  "batuta.form.field.workers.error.required": "Add at least one worker with a label and a model",
+  "batuta.form.field.workers.error.required": "Add at least one worker with a label and a model or command",
+  "batuta.form.field.workers.kind.internal": "Internal",
+  "batuta.form.field.workers.kind.external": "External CLI",
+  "batuta.form.field.workers.command.placeholder": "Command (e.g. claude, codex)",
+  "batuta.form.field.workers.command.needsSkill": "Install the batuta-cli skill for this agent in Settings > Agents first",
+  "batuta.form.field.workers.args.placeholder": "Arguments (space-separated)",
   "batuta.form.field.worktree.label": "Isolated worker worktrees",
   "batuta.form.field.worktree.description": "Every worker always gets its own git worktree, isolated from your main checkout — the orchestrator reviews and merges each worker's result. This is not configurable.",
   "batuta.form.field.directory.label": "Project",
@@ -1086,6 +1097,14 @@ export const dict = {
     "Shows a DevTools icon in the titlebar, reachable from any screen, and enables the remote debugging (CDP) port even in packaged/production builds. Requires restarting the app.",
   "settings.general.row.debugMode.descriptionOn": "Enabled — restart the app for the remote debugging port to take effect.",
   "settings.general.row.debugMode.restart": "Restart now",
+  "settings.general.row.computerUse.title": "Computer use",
+  "settings.general.row.computerUse.description":
+    "Lets the agent control this computer directly — mouse, keyboard, and screen — not just the embedded browser. On by default; every action still asks for confirmation first. Requires restarting the app to take effect.",
+  "settings.general.row.bugReports.title": "Automatic bug reports",
+  "settings.general.row.bugReports.description":
+    "Sends crash reports (error message and stack trace only — never your files, conversations, or env vars) to help fix bugs faster. Reports are deduped against existing GitHub issues before a new one is opened. On by default.",
+  "settings.general.row.computerUse.descriptionOn": "Enabled — restart the app for computer use to take effect.",
+  "settings.general.row.computerUse.restart": "Restart now",
   "settings.general.row.newInterface.title": "New layout",
   "settings.general.row.newInterface.badge": "New",
   "settings.general.row.newInterface.description":
@@ -1260,6 +1279,14 @@ export const dict = {
   "settings.skills.sources.codex.title": "See Codex skills",
   "settings.skills.sources.codex.description": "Discover skills from ~/.codex/skills",
   "settings.skills.installed.title": "Discovered skills",
+
+  "settings.externalAgents.title": "Agents",
+  "settings.externalAgents.refresh": "Refresh",
+  "settings.externalAgents.selectAll.title": "Select all detected agents",
+  "settings.externalAgents.selectAll.description":
+    "Installs the batuta-cli skill on every detected agent. Turn off to pick agents individually.",
+  "settings.externalAgents.status.detected": "Detected on the connected server",
+  "settings.externalAgents.status.notDetected": "Not detected — install the CLI and click Refresh",
 
   "settings.marketplace.title": "Marketplace",
   "settings.marketplace.add.button": "Add",

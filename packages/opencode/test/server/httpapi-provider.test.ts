@@ -1,8 +1,10 @@
-import { describe, expect } from "bun:test"
+import { afterEach, describe, expect } from "bun:test"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { FSUtil } from "@opencode-ai/core/fs-util"
+import { Global } from "@opencode-ai/core/global"
 import { Effect, Layer } from "effect"
 import path from "path"
+import { unlink } from "fs/promises"
 import { resetDatabase } from "../fixture/db"
 import { TestInstance } from "../fixture/fixture"
 import { markPluginDependenciesReady } from "../fixture/plugin"
@@ -245,6 +247,35 @@ function writeProviderModelsMutationPlugin(dir: string) {
   })
 }
 
+// Writes into the same auth.json path the OmniRoute plugin reads directly
+// (Global.Path.data — a single path shared by every test in this process,
+// pinned once via OPENCODE_TEST_HOME in test/preload.ts, NOT per-instance),
+// mirroring the real connect dialog's `auth.set` write. Native Provider
+// Plugins bypass Auth.Service (packages/core can't import
+// packages/opencode/src/auth — see the comment in
+// packages/core/src/plugin/provider/omniroute.ts) so OPENCODE_AUTH_CONTENT,
+// used elsewhere in this file, would not reach it. Because the path is
+// shared, this must restore (or delete) whatever was there before —
+// otherwise a leftover "omnrt" entry makes every other test in this file
+// that hits GET /provider try a real network call to this fake gateway.
+function withOmnirouteAuth(baseURL: string, key: string) {
+  const authPath = path.join(Global.Path.data, "auth.json")
+  return Effect.acquireRelease(
+    Effect.gen(function* () {
+      const fs = yield* FSUtil.Service
+      const original = yield* fs.readJson(authPath).pipe(Effect.option)
+      yield* fs.writeJson(authPath, { omnrt: { type: "api", key, metadata: { baseURL } } }, 0o600)
+      return original
+    }),
+    (original) =>
+      Effect.gen(function* () {
+        const fs = yield* FSUtil.Service
+        if (original._tag === "Some") yield* fs.writeJson(authPath, original.value, 0o600)
+        else yield* Effect.promise(() => unlink(authPath))
+      }).pipe(Effect.orDie),
+  )
+}
+
 function setEnvScoped(key: string, value: string) {
   return Effect.acquireRelease(
     Effect.sync(() => {
@@ -376,6 +407,7 @@ describe("provider HttpApi", () => {
       expect(hasNonZeroModelCost(configBody, "providers", "google")).toBe(true)
     }),
     { ...projectOptions, init: writeFunctionOptionsPlugin },
+    30000,
   )
 
   it.instance(
@@ -397,5 +429,51 @@ describe("provider HttpApi", () => {
       expect(hasNonZeroModelCost(providerBody, "all", "google")).toBe(true)
     }),
     { ...projectOptions, init: writeProviderModelsMutationPlugin },
+    30000,
   )
+
+  describe("OmniRoute (Native Provider Plugin) surfaced through the real server", () => {
+    let originalFetch: typeof fetch
+
+    afterEach(() => {
+      if (originalFetch) globalThis.fetch = originalFetch
+    })
+
+    // Regression for the bug where connecting OmniRoute (credential saved,
+    // dialog reports success) never made the provider appear: GET /provider
+    // was served entirely by the v1 Provider.Service, which has no idea the
+    // v2 Catalog (where Native Provider Plugins like OmniRoute register)
+    // exists. The 248 isolated packages/core/test/plugin tests never caught
+    // this because they exercise the plugin against a hand-built
+    // PluginTestLayer, never the real HTTP server — this test hits the
+    // actual GET /provider handler instead.
+    it.instance(
+      "appears in GET /provider once a credential is connected",
+      Effect.gen(function* () {
+        const directory = (yield* TestInstance).directory
+        originalFetch = globalThis.fetch
+        globalThis.fetch = (async (url: string, init?: RequestInit) => {
+          if (!url.startsWith("https://gateway.example.com")) return originalFetch(url, init)
+          if (url.endsWith("/api/pricing/models")) return new Response(JSON.stringify({ data: [] }), { status: 200 })
+          return new Response(JSON.stringify({ data: [{ id: "omni-model", owned_by: "anthropic" }] }), {
+            status: 200,
+          })
+        }) as unknown as typeof fetch
+
+        yield* withOmnirouteAuth("https://gateway.example.com", "sk-test")
+
+        const response = yield* request("/provider", { headers: { "x-opencode-directory": directory } })
+        expect(response.status).toBe(200)
+        const body = yield* response.json
+
+        const omniroute = providerByID(body, "all", "omnrt")
+        expect(omniroute).toBeDefined()
+        expect(providerList(body, "all").some((item) => isRecord(item) && item.id === "omnrt")).toBe(true)
+        expect(isRecord(body) && Array.isArray(body.connected) && body.connected.includes("omnrt")).toBe(true)
+        expect(isRecord(omniroute) && isRecord(omniroute.models) && "omni-model" in omniroute.models).toBe(true)
+      }),
+      projectOptions,
+      30000,
+    )
+  })
 })

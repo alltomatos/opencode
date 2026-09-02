@@ -195,4 +195,12 @@ export const dict = {
   "ui.question.multiHint": "ជ្រើសរើសចម្លើយទាំងអស់ដែលអនុវត្ត",
   "ui.question.singleHint": "ជ្រើសរើសចម្លើយមួយ។",
   "ui.question.custom.placeholder": "វាយបញ្ចូលចម្លើយរបស់អ្នក...",
+  "ui.backgroundTasks.title": "Background tasks",
+  "ui.backgroundTasks.empty": "No background tasks",
+  "ui.backgroundTasks.running": "Running",
+  "ui.backgroundTasks.completed": "Completed",
+  "ui.backgroundTasks.cancel": "Cancel",
+  "ui.backgroundTasks.status.completed": "Completed",
+  "ui.backgroundTasks.status.error": "Failed",
+  "ui.backgroundTasks.status.cancelled": "Cancelled",
 }

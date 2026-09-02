@@ -196,4 +196,12 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Válassza ki az összes megfelelő választ",
   "ui.question.singleHint": "Válasszon ki egy választ",
   "ui.question.custom.placeholder": "Írja be a választ...",
+  "ui.backgroundTasks.title": "Háttérfeladatok",
+  "ui.backgroundTasks.empty": "Nincsenek háttérfeladatok",
+  "ui.backgroundTasks.running": "Fut",
+  "ui.backgroundTasks.completed": "Kész",
+  "ui.backgroundTasks.cancel": "Mégse",
+  "ui.backgroundTasks.status.completed": "Kész",
+  "ui.backgroundTasks.status.error": "Sikertelen",
+  "ui.backgroundTasks.status.cancelled": "Megszakítva",
 }

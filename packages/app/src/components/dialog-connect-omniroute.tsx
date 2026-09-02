@@ -1,87 +1,25 @@
-import { Show } from "solid-js"
+import { Show, createSignal } from "solid-js"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { useMutation } from "@tanstack/solid-query"
 import { Field } from "@opencode-ai/ui/v2/field-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
-import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
 import { showToast } from "@/utils/toast"
 import { createStore } from "solid-js/store"
-import { useModels } from "@/context/models"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
 import { useProviders } from "@/hooks/use-providers"
 import { useLanguage } from "@/context/language"
 
 export const OMNIROUTE_PROVIDER_ID = "omnrt"
-const OMNIROUTE_NPM = "@ai-sdk/openai-compatible"
-const COMBO_CATEGORY = "combo"
 
-type OmnirouteModality = "text" | "audio" | "image" | "video" | "pdf"
-type OmnirouteModel = {
-  id: string
-  owned_by?: string
-  input_modalities?: string[]
-  output_modalities?: string[]
-  capabilities?: {
-    vision?: boolean
-    tool_calling?: boolean
-    reasoning?: boolean
-    thinking?: boolean
-    temperature?: boolean
-  }
-}
-
-const KNOWN_MODALITIES: OmnirouteModality[] = ["text", "audio", "image", "video", "pdf"]
-const asModalities = (values: string[] | undefined): OmnirouteModality[] | undefined =>
-  values?.filter((value): value is OmnirouteModality => (KNOWN_MODALITIES as string[]).includes(value))
-
-function modelConfigEntry(model: OmnirouteModel) {
-  const input = asModalities(model.input_modalities)
-  const output = asModalities(model.output_modalities)
-  return {
-    name: model.id,
-    attachment: model.capabilities?.vision ?? input?.includes("image") ?? false,
-    reasoning: model.capabilities?.reasoning ?? model.capabilities?.thinking ?? false,
-    temperature: model.capabilities?.temperature ?? false,
-    tool_call: model.capabilities?.tool_calling ?? false,
-    modalities: input || output ? { input, output } : undefined,
-  }
-}
-type OmnirouteConnection = { provider: string; isActive?: boolean; testStatus?: string }
-
-async function fetchOmnirouteModels(baseURL: string, apiKey: string) {
-  const url = `${baseURL.replace(/\/+$/, "")}/models`
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } })
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
-  const body = (await response.json()) as { data?: OmnirouteModel[] }
-  if (!body.data?.length) throw new Error("empty model list")
-  return body.data
-}
-
-async function fetchUnhealthyProviders(baseURL: string, apiKey: string) {
-  try {
-    const origin = new URL(baseURL).origin
-    const response = await fetch(`${origin}/api/providers`, { headers: { Authorization: `Bearer ${apiKey}` } })
-    if (!response.ok) return undefined
-    const body = (await response.json().catch(() => undefined)) as { connections?: OmnirouteConnection[] } | undefined
-    if (!body?.connections) return undefined
-    return new Set(
-      body.connections
-        .filter((c) => c.isActive === false || (c.testStatus !== undefined && c.testStatus !== "active"))
-        .map((c) => c.provider),
-    )
-  } catch {
-    return undefined
-  }
-}
+type McpTestState = "idle" | "testing" | "connected" | "failed"
 
 export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   const dialog = useDialog()
   const serverSync = useServerSync()
   const serverSDK = useServerSDK()
-  const models = useModels()
   const providers = useProviders(() => undefined)
   const language = useLanguage()
 
@@ -90,13 +28,39 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
   const [form, setForm] = createStore({
     baseURL: (existing()?.options?.baseURL as string | undefined) ?? "",
     apiKey: existing()?.key ?? "",
-    combosOnly: true,
     err: {} as { baseURL?: string; apiKey?: string },
   })
 
   const setField = (key: "baseURL" | "apiKey", value: string) => {
     setForm(key, value)
     setForm("err", key, undefined)
+  }
+
+  const [mcpState, setMcpState] = createSignal<McpTestState>("idle")
+
+  const testMcp = async () => {
+    setMcpState("testing")
+    let connected = false
+    try {
+      await serverSDK().client.mcp.connect({ name: OMNIROUTE_PROVIDER_ID })
+      const status = await serverSDK().client.mcp.status()
+      connected = status.data?.[OMNIROUTE_PROVIDER_ID]?.status === "connected"
+    } catch {
+      connected = false
+    }
+    setMcpState(connected ? "connected" : "failed")
+    if (connected) dialog.close()
+  }
+
+  // The MCP dashboard lives at the gateway's origin, not under the API
+  // base path (e.g. baseURL "https://gateway.example.com/v1" but dashboard
+  // at "https://gateway.example.com/dashboard/mcp").
+  const mcpDashboardURL = () => {
+    try {
+      return new URL("/dashboard/mcp", form.baseURL.trim()).toString()
+    } catch {
+      return form.baseURL.trim() + "/dashboard/mcp"
+    }
   }
 
   const validate = () => {
@@ -115,62 +79,28 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
     return { baseURL, apiKey }
   }
 
+  // The Native Provider Plugin (packages/core/src/plugin/provider/omniroute.ts)
+  // owns model discovery entirely now — this dialog's only job is to persist
+  // the credential (baseURL + key) the plugin reads to talk to the gateway,
+  // then nudge the server to pick it up. No more client-side model fetch/
+  // parse/snapshot. See ADR 0002, docs/agents/omniroute-native-provider.md.
   const connectMutation = useMutation(() => ({
-    mutationFn: async (input: { baseURL: string; apiKey: string; combosOnly: boolean }) => {
-      const all = await fetchOmnirouteModels(input.baseURL, input.apiKey)
-      const unhealthy = await fetchUnhealthyProviders(input.baseURL, input.apiKey)
-      const healthy = unhealthy ? all.filter((m) => !unhealthy.has(m.owned_by ?? "")) : all
-      const fetched = input.combosOnly ? healthy.filter((m) => m.owned_by === COMBO_CATEGORY) : healthy
-      const skipped = all.length - fetched.length
-      const modelConfig = Object.fromEntries(fetched.map((m) => [m.id, modelConfigEntry(m)]))
-
+    mutationFn: async (input: { baseURL: string; apiKey: string }) => {
       await serverSDK().client.auth.set({
         providerID: OMNIROUTE_PROVIDER_ID,
-        auth: { type: "api", key: input.apiKey },
+        auth: { type: "api", key: input.apiKey, metadata: { baseURL: input.baseURL } },
       })
-
-      const disabledProviders = serverSync().data.config.disabled_providers ?? []
-      await serverSync().updateConfig({
-        provider: {
-          [OMNIROUTE_PROVIDER_ID]: {
-            name: "Omniroute",
-            npm: OMNIROUTE_NPM,
-            options: { baseURL: input.baseURL },
-            models: modelConfig,
-          },
-        },
-        disabled_providers: disabledProviders.filter((id) => id !== OMNIROUTE_PROVIDER_ID),
-      })
-
-      models.setCategories(
-        OMNIROUTE_PROVIDER_ID,
-        fetched.map((m) => ({ id: m.id, category: m.owned_by ?? "other" })),
-      )
-      for (const model of fetched) {
-        if (model.owned_by === COMBO_CATEGORY) continue
-        models.setVisibility({ providerID: OMNIROUTE_PROVIDER_ID, modelID: model.id }, false)
-      }
-
       await serverSync()
         .refreshProviders()
         .catch(() => undefined)
-
-      return { count: fetched.length, skipped }
     },
-    onSuccess: (result) => {
-      dialog.close()
+    onSuccess: () => {
       showToast({
         variant: "success",
         icon: "circle-check",
         title: language.t("provider.connect.toast.connected.title", { provider: "Omniroute" }),
-        description:
-          result.skipped > 0
-            ? language.t("provider.omniroute.toast.importedFiltered", {
-                count: result.count,
-                skipped: result.skipped,
-              })
-            : language.t("provider.omniroute.toast.imported", { count: result.count }),
       })
+      void testMcp()
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
@@ -183,7 +113,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
     if (connectMutation.isPending) return
     const result = validate()
     if (!result) return
-    connectMutation.mutate({ ...result, combosOnly: form.combosOnly })
+    connectMutation.mutate(result)
   }
 
   return (
@@ -195,6 +125,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
 
       <form onSubmit={save} class="px-2.5 pb-6 flex flex-col gap-6">
         <p class="text-14-regular text-text-base">{language.t("provider.omniroute.description")}</p>
+        <p class="text-13-regular text-text-weak">{language.t("provider.omniroute.mcp.autoconfig")}</p>
 
         <div class="flex flex-col gap-4">
           <Field invalid={!!form.err.baseURL}>
@@ -228,27 +159,37 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
           </Field>
         </div>
 
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-14-medium text-text-strong">{language.t("provider.omniroute.field.combosOnly.label")}</span>
-            <span class="text-13-regular text-text-weak">
-              {language.t("provider.omniroute.field.combosOnly.description")}
-            </span>
-          </div>
-          <SwitchV2 hideLabel checked={form.combosOnly} onChange={(checked) => setForm("combosOnly", checked)}>
-            {language.t("provider.omniroute.field.combosOnly.label")}
-          </SwitchV2>
-        </div>
+        <Show when={mcpState() === "idle"}>
+          <ButtonV2
+            class="w-auto self-start"
+            type="submit"
+            size="large"
+            variant="contrast"
+            disabled={connectMutation.isPending}
+          >
+            {connectMutation.isPending ? language.t("provider.omniroute.importing") : language.t("common.submit")}
+          </ButtonV2>
+        </Show>
 
-        <ButtonV2
-          class="w-auto self-start"
-          type="submit"
-          size="large"
-          variant="contrast"
-          disabled={connectMutation.isPending}
-        >
-          {connectMutation.isPending ? language.t("provider.omniroute.importing") : language.t("common.submit")}
-        </ButtonV2>
+        <Show when={mcpState() === "testing"}>
+          <div class="text-14-regular text-text-base">{language.t("provider.omniroute.mcp.testing")}</div>
+        </Show>
+
+        <Show when={mcpState() === "failed"}>
+          <div class="flex flex-col gap-3">
+            <div class="text-14-regular text-v2-state-fg-danger">
+              {language.t("provider.omniroute.mcp.failed", { url: mcpDashboardURL() })}
+            </div>
+            <div class="flex gap-2">
+              <ButtonV2 type="button" size="large" variant="contrast" onClick={() => void testMcp()}>
+                {language.t("provider.omniroute.mcp.retry")}
+              </ButtonV2>
+              <ButtonV2 type="button" size="large" variant="outline" onClick={() => dialog.close()}>
+                {language.t("provider.omniroute.mcp.skip")}
+              </ButtonV2>
+            </div>
+          </div>
+        </Show>
       </form>
     </div>
   )
