@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.12",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: MCP do OmniRoute não reconectava sozinho ao reiniciar o app",
+              "description": "O MCP do OmniRoute ficava \"conectado\" só até você reiniciar o app — depois disso, sumia e precisava reconectar o provedor manualmente pra voltar. Agora ele reconecta automaticamente na inicialização, junto com os outros servidores MCP configurados."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.11",
       "highlights": [
         {
