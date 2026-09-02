@@ -40,6 +40,25 @@ const DEFAULT_TIMEOUT = 30_000
 // Matches OMNIROUTE_PROVIDER_ID in packages/app/src/components/dialog-connect-omniroute.tsx —
 // the OmniRoute gateway exposes both a provider API and an MCP endpoint under the same credential.
 const OMNIROUTE_MCP_NAME = "omnrt"
+
+// The MCP endpoint lives at the gateway's origin, not under the API base
+// path (e.g. baseURL "https://gateway.example.com/v1" but the MCP server at
+// "https://gateway.example.com/api/mcp/sse"). Pure — no state/Effect — so it
+// can run both on-demand (omnirouteMcpConfig) and during instance boot
+// (MCP.state below, to reconnect an already-connected Omniroute MCP after
+// the app restarts, since it's never written to the persisted mcp config).
+function buildOmnirouteRemoteConfig(info: AuthStore.Info): ConfigMCPV1.Info | undefined {
+  if (info.type !== "api") return undefined
+  const baseURL = info.metadata?.baseURL
+  if (!baseURL) return undefined
+  let mcpUrl: string
+  try {
+    mcpUrl = new URL("/api/mcp/sse", baseURL).toString()
+  } catch {
+    mcpUrl = baseURL.replace(/\/+$/, "") + "/api/mcp/sse"
+  }
+  return { type: "remote", url: mcpUrl, headers: { Authorization: `Bearer ${info.key}` } }
+}
 const CLIENT_OPTIONS = {
   capabilities: {
     // https://github.com/anomalyco/opencode/issues/11948
@@ -541,6 +560,29 @@ const layer = Layer.effect(
           { concurrency: "unbounded" },
         )
 
+        // Omniroute's MCP has no persisted config entry (see
+        // omnirouteMcpConfig below) — the loop above, which only iterates
+        // cfg.mcp, never sees it. Without this, a connected Omniroute
+        // credential never reconnects its MCP after an app restart: it only
+        // ever got wired up on-demand by an explicit connect() call, so it
+        // shows "connected" right after the user (re)connects the provider
+        // but silently vanishes the moment the instance is recreated.
+        if (!(OMNIROUTE_MCP_NAME in config)) {
+          const omniInfo = yield* credentials.get(OMNIROUTE_MCP_NAME).pipe(Effect.orElseSucceed(() => undefined))
+          const omniConfig = omniInfo ? buildOmnirouteRemoteConfig(omniInfo) : undefined
+          if (omniConfig) {
+            s.config[OMNIROUTE_MCP_NAME] = omniConfig
+            const result = yield* create(OMNIROUTE_MCP_NAME, omniConfig)
+            s.status[OMNIROUTE_MCP_NAME] = result.status
+            if (result.mcpClient) {
+              s.clients[OMNIROUTE_MCP_NAME] = result.mcpClient
+              s.defs[OMNIROUTE_MCP_NAME] = result.defs!
+              if (result.instructions) s.instructions[OMNIROUTE_MCP_NAME] = result.instructions
+              watch(s, OMNIROUTE_MCP_NAME, result.mcpClient, bridge, omniConfig.timeout)
+            }
+          }
+        }
+
         yield* Effect.addFinalizer(() =>
           Effect.gen(function* () {
             const clients = Object.values(s.clients)
@@ -841,23 +883,8 @@ const layer = Layer.effect(
     // (which iterate Object.keys(s.config), not the persisted config) see it.
     const omnirouteMcpConfig = Effect.fnUntraced(function* () {
       const info = yield* credentials.get(OMNIROUTE_MCP_NAME).pipe(Effect.orElseSucceed(() => undefined))
-      if (!info || info.type !== "api") return undefined
-      const baseURL = info.metadata?.baseURL
-      if (!baseURL) return undefined
-      // The MCP endpoint lives at the gateway's origin, not under the API
-      // base path (e.g. baseURL "https://gateway.example.com/v1" but the
-      // MCP server at "https://gateway.example.com/api/mcp/sse").
-      let mcpUrl: string
-      try {
-        mcpUrl = new URL("/api/mcp/sse", baseURL).toString()
-      } catch {
-        mcpUrl = baseURL.replace(/\/+$/, "") + "/api/mcp/sse"
-      }
-      const config: ConfigMCPV1.Info = {
-        type: "remote",
-        url: mcpUrl,
-        headers: { Authorization: `Bearer ${info.key}` },
-      }
+      const config = info ? buildOmnirouteRemoteConfig(info) : undefined
+      if (!config) return undefined
       const s = yield* InstanceState.get(state)
       s.config[OMNIROUTE_MCP_NAME] = config
       return config
