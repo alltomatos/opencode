@@ -10,12 +10,25 @@ import { Heap } from "@/cli/heap"
 import { AppRuntime } from "@/effect/app-runtime"
 import { Effect } from "effect"
 import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecycle"
+import { reportBug, signatureFromStack } from "@/bug-relay/report"
+import { InstallationVersion } from "@opencode-ai/core/installation/version"
 
 Heap.start()
 
-const onUnhandledRejection = (_error: unknown) => {}
+function reportCrash(error: unknown, source: "unhandledRejection" | "uncaughtException") {
+  const stack = error instanceof Error ? (error.stack ?? error.message) : String(error)
+  reportBug({
+    source: "auto",
+    title: `[${source}] ${stack.split("\n")[0]?.slice(0, 120)}`,
+    body: "```\n" + stack.slice(0, 4000) + "\n```",
+    signature: signatureFromStack(stack),
+    context: { appVersion: InstallationVersion, platform: process.platform },
+  }).catch(() => {})
+}
 
-const onUncaughtException = (_error: Error) => {}
+const onUnhandledRejection = (error: unknown) => reportCrash(error, "unhandledRejection")
+
+const onUncaughtException = (error: Error) => reportCrash(error, "uncaughtException")
 
 process.on("unhandledRejection", onUnhandledRejection)
 process.on("uncaughtException", onUncaughtException)

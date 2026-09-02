@@ -212,6 +212,7 @@ const promptRoot = LayerNode.group([
   SystemPrompt.node,
   CrossSpawnSpawner.node,
   RuntimeFlags.node,
+  LocationServiceMap.node,
 ])
 
 function makePrompt(input?: { mcpInstructions?: MCP.ServerInstructions[]; processor?: "blocking" }) {
@@ -221,6 +222,7 @@ function makePrompt(input?: { mcpInstructions?: MCP.ServerInstructions[]; proces
     [MCP.node, makeMcp(input?.mcpInstructions)],
     [RuntimeFlags.node, runtimeFlags],
     [InstanceStore.bootstrapNode, bootstrap],
+    [LocationServiceMap.node, locationServiceMapLayer],
   ] as const
   if (input?.processor === "blocking") {
     return LayerNode.compile(promptRoot, [...replacements, [SessionProcessor.node, blockingProcessor]])
@@ -236,6 +238,7 @@ function makeHttp(input?: { mcpInstructions?: MCP.ServerInstructions[]; processo
     [MCP.node, makeMcp(input?.mcpInstructions)],
     [RuntimeFlags.node, runtimeFlags],
     [InstanceStore.bootstrapNode, bootstrap],
+    [LocationServiceMap.node, locationServiceMapLayer],
   ] as const
   if (input?.processor === "blocking") {
     return LayerNode.compile(root, [...replacements, [SessionProcessor.node, blockingProcessor]])

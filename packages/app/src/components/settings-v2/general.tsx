@@ -10,6 +10,7 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
 import { useSettings } from "@/context/settings"
+import { useServerSDK } from "@/context/server-sdk"
 import { ExternalLink } from "../external-link"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
@@ -346,6 +347,20 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setComputerUseResource(!checked))
   }
 
+  const serverSDK = useServerSDK()
+
+  const [bugReports, { mutate: setBugReportsResource }] = createResource(
+    () => serverSDK().client.global.bugRelayTelemetry.get().then((res) => res.data?.enabled ?? true),
+    { initialValue: true },
+  )
+
+  const onBugReportsChange = (checked: boolean) => {
+    setBugReportsResource(checked)
+    void serverSDK()
+      .client.global.bugRelayTelemetry.set({ enabled: checked })
+      .catch(() => setBugReportsResource(!checked))
+  }
+
   const InterfaceSection = () => (
     <LayoutTransitionToggle
       title={language.t("settings.general.row.newInterface.title")}
@@ -590,6 +605,20 @@ export const SettingsGeneralV2: Component<{
             </div>
           </SettingsRowV2>
         </Show>
+
+        <SettingsRowV2
+          title={
+            <span class="flex items-center gap-2">
+              <Icon name="warning" class="size-3.5 shrink-0 text-text-weak" />
+              {language.t("settings.general.row.bugReports.title")}
+            </span>
+          }
+          description={language.t("settings.general.row.bugReports.description")}
+        >
+          <div data-action="settings-bug-reports">
+            <Switch checked={bugReports()} onChange={onBugReportsChange} />
+          </div>
+        </SettingsRowV2>
       </SettingsListV2>
     </div>
   )

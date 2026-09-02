@@ -52,6 +52,17 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
     if (connected) dialog.close()
   }
 
+  // The MCP dashboard lives at the gateway's origin, not under the API
+  // base path (e.g. baseURL "https://gateway.example.com/v1" but dashboard
+  // at "https://gateway.example.com/dashboard/mcp").
+  const mcpDashboardURL = () => {
+    try {
+      return new URL("/dashboard/mcp", form.baseURL.trim()).toString()
+    } catch {
+      return form.baseURL.trim() + "/dashboard/mcp"
+    }
+  }
+
   const validate = () => {
     const baseURL = form.baseURL.trim()
     const apiKey = form.apiKey.trim()
@@ -114,6 +125,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
 
       <form onSubmit={save} class="px-2.5 pb-6 flex flex-col gap-6">
         <p class="text-14-regular text-text-base">{language.t("provider.omniroute.description")}</p>
+        <p class="text-13-regular text-text-weak">{language.t("provider.omniroute.mcp.autoconfig")}</p>
 
         <div class="flex flex-col gap-4">
           <Field invalid={!!form.err.baseURL}>
@@ -166,7 +178,7 @@ export function DialogConnectOmniroute(props: { autofocus?: boolean } = {}) {
         <Show when={mcpState() === "failed"}>
           <div class="flex flex-col gap-3">
             <div class="text-14-regular text-v2-state-fg-danger">
-              {language.t("provider.omniroute.mcp.failed", { url: form.baseURL.trim() + "/dashboard/mcp" })}
+              {language.t("provider.omniroute.mcp.failed", { url: mcpDashboardURL() })}
             </div>
             <div class="flex gap-2">
               <ButtonV2 type="button" size="large" variant="contrast" onClick={() => void testMcp()}>

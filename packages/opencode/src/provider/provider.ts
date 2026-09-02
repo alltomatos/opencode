@@ -1268,6 +1268,15 @@ export interface Interface {
   readonly list: () => Effect.Effect<Record<ProviderV2.ID, Info>>
   readonly getProvider: (providerID: ProviderV2.ID) => Effect.Effect<Info>
   readonly getModel: (providerID: ProviderV2.ID, modelID: ModelV2.ID) => Effect.Effect<Model, ModelNotFoundError>
+  // Merges a Catalog v2 model/provider (Native Provider Plugin — e.g.
+  // OmniRoute) into this service's own state, so a subsequent getModel()
+  // call can find it. See syncCatalogModel's comment for why this exists
+  // instead of Provider.Service reading the Catalog itself.
+  readonly syncCatalogModel: (
+    providerID: ProviderV2.ID,
+    catalogProvider: ProviderV2.Info,
+    models: ModelV2.Info[],
+  ) => Effect.Effect<void>
   readonly getLanguage: (model: Model) => Effect.Effect<LanguageModelV3, ModelNotFoundError>
   readonly closest: (
     providerID: ProviderV2.ID,
@@ -2014,6 +2023,39 @@ const layer = Layer.effect(
       InstanceState.use(state, (s) => s.providers[providerID]),
     )
 
+    // Bridges a model registered by a Native Provider Plugin (e.g. OmniRoute,
+    // packages/core/src/plugin/provider/omniroute.ts) into this legacy
+    // Provider.Service's own state. Native Provider Plugins only ever write
+    // into the v2 Catalog — nothing in this service reads that catalog on
+    // its own (fromCatalog above is otherwise only used by the GET
+    // /provider HTTP listing, for display). Without a caller pushing a
+    // sync through this, a model that's never been in models.dev or a
+    // static config snapshot (every model OmniRoute discovers dynamically,
+    // including combos) shows up as selectable in the UI but throws
+    // ModelNotFoundError the instant a chat actually tries to use it.
+    //
+    // Deliberately dependency-free: Provider.Service's LayerNode is an
+    // isolated graph (deps: [...] above) used standalone in tests via
+    // PluginTestLayer, and the v2 Catalog is a location-scoped service
+    // (LocationServiceMap) that only the caller — already inside a
+    // location context, e.g. session/prompt.ts — can reach without
+    // dragging that whole session-runtime graph into this foundational
+    // service. So this just accepts an already-resolved catalog model +
+    // provider and merges it in; the caller does the Catalog lookup.
+    const syncCatalogModel = Effect.fn("Provider.syncCatalogModel")(function* (
+      providerID: ProviderV2.ID,
+      catalogProvider: ProviderV2.Info,
+      models: ModelV2.Info[],
+    ) {
+      const s = yield* InstanceState.get(state)
+      const info = fromCatalog(catalogProvider, models)
+      const credential = yield* auth.get(providerID).pipe(Effect.orElseSucceed(() => undefined))
+      if (credential?.type === "api") info.key = credential.key
+      const existing = s.providers[providerID]
+      if (existing) Object.assign(existing.models, info.models)
+      else s.providers[providerID] = info
+    })
+
     const getModel = Effect.fn("Provider.getModel")(function* (providerID: ProviderV2.ID, modelID: ModelV2.ID) {
       const s = yield* InstanceState.get(state)
       const provider = s.providers[providerID]
@@ -2187,7 +2229,17 @@ const layer = Layer.effect(
 
     const invalidate = () => InstanceState.invalidateAll(state)
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, invalidate })
+    return Service.of({
+      list,
+      getProvider,
+      getModel,
+      syncCatalogModel,
+      getLanguage,
+      closest,
+      getSmallModel,
+      defaultModel,
+      invalidate,
+    })
   }),
 )
 

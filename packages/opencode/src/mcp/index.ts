@@ -844,9 +844,18 @@ const layer = Layer.effect(
       if (!info || info.type !== "api") return undefined
       const baseURL = info.metadata?.baseURL
       if (!baseURL) return undefined
+      // The MCP endpoint lives at the gateway's origin, not under the API
+      // base path (e.g. baseURL "https://gateway.example.com/v1" but the
+      // MCP server at "https://gateway.example.com/api/mcp/sse").
+      let mcpUrl: string
+      try {
+        mcpUrl = new URL("/api/mcp/sse", baseURL).toString()
+      } catch {
+        mcpUrl = baseURL.replace(/\/+$/, "") + "/api/mcp/sse"
+      }
       const config: ConfigMCPV1.Info = {
         type: "remote",
-        url: baseURL.replace(/\/+$/, "") + "/api/mcp/sse",
+        url: mcpUrl,
         headers: { Authorization: `Bearer ${info.key}` },
       }
       const s = yield* InstanceState.get(state)
@@ -855,14 +864,20 @@ const layer = Layer.effect(
     })
 
     const getMcpConfig = Effect.fnUntraced(function* (mcpName: string) {
-      const s = yield* InstanceState.get(state)
-      if (s.config[mcpName]) return s.config[mcpName]
-
       const cfg = yield* cfgSvc.get()
       const mcpConfig = cfg.mcp?.[mcpName]
       if (mcpConfig && isMcpConfigured(mcpConfig)) return mcpConfig
 
+      // Omniroute's config is derived from the stored provider credential
+      // (baseURL/key), which can change after a bad connect attempt cached
+      // a stale (or wrong) URL into s.config — always recompute it fresh
+      // instead of trusting that cache, so a fixed/updated credential is
+      // picked up without needing an instance restart.
       if (mcpName === OMNIROUTE_MCP_NAME) return yield* omnirouteMcpConfig()
+
+      const s = yield* InstanceState.get(state)
+      if (s.config[mcpName]) return s.config[mcpName]
+
       return undefined
     })
 

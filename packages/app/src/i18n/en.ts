@@ -231,6 +231,7 @@ export const dict = {
   "provider.omniroute.toast.importedFiltered": "Imported {{count}} models ({{skipped}} skipped)",
   "provider.omniroute.field.combosOnly.label": "Import combos only",
   "provider.omniroute.field.combosOnly.description": "Skip plain provider/model entries and only import combo models",
+  "provider.omniroute.mcp.autoconfig": "Connecting will automatically configure the Omniroute MCP server for you.",
   "provider.omniroute.mcp.testing": "Testing MCP connection...",
   "provider.omniroute.mcp.connected": "MCP connected",
   "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
@@ -1099,6 +1100,9 @@ export const dict = {
   "settings.general.row.computerUse.title": "Computer use",
   "settings.general.row.computerUse.description":
     "Lets the agent control this computer directly — mouse, keyboard, and screen — not just the embedded browser. On by default; every action still asks for confirmation first. Requires restarting the app to take effect.",
+  "settings.general.row.bugReports.title": "Automatic bug reports",
+  "settings.general.row.bugReports.description":
+    "Sends crash reports (error message and stack trace only — never your files, conversations, or env vars) to help fix bugs faster. Reports are deduped against existing GitHub issues before a new one is opened. On by default.",
   "settings.general.row.computerUse.descriptionOn": "Enabled — restart the app for computer use to take effect.",
   "settings.general.row.computerUse.restart": "Restart now",
   "settings.general.row.newInterface.title": "New layout",

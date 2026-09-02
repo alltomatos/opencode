@@ -109,6 +109,10 @@ import type {
   FindTextResponses,
   FormatterStatusErrors,
   FormatterStatusResponses,
+  GlobalBugRelayTelemetryGetErrors,
+  GlobalBugRelayTelemetryGetResponses,
+  GlobalBugRelayTelemetrySetErrors,
+  GlobalBugRelayTelemetrySetResponses,
   GlobalConfigGetErrors,
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
@@ -1429,6 +1433,49 @@ export class Config extends HeyApiClient {
   }
 }
 
+export class BugRelayTelemetry extends HeyApiClient {
+  /**
+   * Get bug-relay telemetry setting
+   *
+   * Whether crashes are automatically reported to the bug-relay service.
+   */
+  public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalBugRelayTelemetryGetResponses,
+      GlobalBugRelayTelemetryGetErrors,
+      ThrowOnError
+    >({ url: "/global/bug-relay/telemetry", ...options })
+  }
+
+  /**
+   * Set bug-relay telemetry setting
+   *
+   * Enable or disable automatic crash reporting to the bug-relay service.
+   */
+  public set<ThrowOnError extends boolean = false>(
+    parameters?: {
+      enabled?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "enabled" }] }])
+    return (options?.client ?? this.client).put<
+      GlobalBugRelayTelemetrySetResponses,
+      GlobalBugRelayTelemetrySetErrors,
+      ThrowOnError
+    >({
+      url: "/global/bug-relay/telemetry",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -1493,6 +1540,11 @@ export class Global extends HeyApiClient {
   private _config?: Config
   get config(): Config {
     return (this._config ??= new Config({ client: this.client }))
+  }
+
+  private _bugRelayTelemetry?: BugRelayTelemetry
+  get bugRelayTelemetry(): BugRelayTelemetry {
+    return (this._bugRelayTelemetry ??= new BugRelayTelemetry({ client: this.client }))
   }
 }
 

@@ -179,6 +179,12 @@ export const SettingsProvidersV2: Component<{
   const canDisconnect = (item: ProviderItem) =>
     source(item) !== "env" && (protocol() === "v1" || !isConfigCustom(item.id))
 
+  // Omniroute's credential (baseURL + key) can be edited in place — the
+  // dialog upserts via auth.set, so there's no need to disconnect first
+  // (disconnect+reconnect is a lossy, error-prone round trip: it tears down
+  // the MCP client and re-derives its config from scratch).
+  const canEdit = (item: ProviderItem) => item.id === OMNIROUTE_PROVIDER_ID
+
   const note = (id: string) => PROVIDER_NOTES.find((item) => item.match(id))?.key
 
   const isConfigCustom = (providerID: string) => {
@@ -289,18 +295,25 @@ export const SettingsProvidersV2: Component<{
                         </span>
                       }
                     >
-                      <ButtonV2
-                        size="normal"
-                        variant="ghost-muted"
-                        class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
-                        disabled={disconnecting().has(item.id)}
-                        onClick={() => void handleDisconnect(item.id, item.name)}
-                      >
-                        <Show when={disconnecting().has(item.id)}>
-                          <Spinner class="size-4" />
+                      <div class="flex items-center gap-2">
+                        <Show when={canEdit(item)}>
+                          <ButtonV2 size="normal" variant="ghost-muted" onClick={() => connect(item.id)}>
+                            {language.t("common.edit")}
+                          </ButtonV2>
                         </Show>
-                        {language.t("common.disconnect")}
-                      </ButtonV2>
+                        <ButtonV2
+                          size="normal"
+                          variant="ghost-muted"
+                          class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                          disabled={disconnecting().has(item.id)}
+                          onClick={() => void handleDisconnect(item.id, item.name)}
+                        >
+                          <Show when={disconnecting().has(item.id)}>
+                            <Spinner class="size-4" />
+                          </Show>
+                          {language.t("common.disconnect")}
+                        </ButtonV2>
+                      </div>
                     </Show>
                   </div>
                 )}

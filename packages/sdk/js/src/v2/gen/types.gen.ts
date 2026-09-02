@@ -7480,6 +7480,64 @@ export type GlobalUpgradeResponses = {
 
 export type GlobalUpgradeResponse = GlobalUpgradeResponses[keyof GlobalUpgradeResponses]
 
+export type GlobalBugRelayTelemetryGetData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/bug-relay/telemetry"
+}
+
+export type GlobalBugRelayTelemetryGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalBugRelayTelemetryGetError = GlobalBugRelayTelemetryGetErrors[keyof GlobalBugRelayTelemetryGetErrors]
+
+export type GlobalBugRelayTelemetryGetResponses = {
+  /**
+   * Bug-relay telemetry setting
+   */
+  200: {
+    enabled: boolean
+  }
+}
+
+export type GlobalBugRelayTelemetryGetResponse =
+  GlobalBugRelayTelemetryGetResponses[keyof GlobalBugRelayTelemetryGetResponses]
+
+export type GlobalBugRelayTelemetrySetData = {
+  body?: {
+    enabled: boolean
+  }
+  path?: never
+  query?: never
+  url: "/global/bug-relay/telemetry"
+}
+
+export type GlobalBugRelayTelemetrySetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalBugRelayTelemetrySetError = GlobalBugRelayTelemetrySetErrors[keyof GlobalBugRelayTelemetrySetErrors]
+
+export type GlobalBugRelayTelemetrySetResponses = {
+  /**
+   * Updated bug-relay telemetry setting
+   */
+  200: {
+    enabled: boolean
+  }
+}
+
+export type GlobalBugRelayTelemetrySetResponse =
+  GlobalBugRelayTelemetrySetResponses[keyof GlobalBugRelayTelemetrySetResponses]
+
 export type EventSubscribeData = {
   body?: never
   path?: never
