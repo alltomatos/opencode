@@ -1926,6 +1926,11 @@ export type BatutaConfig = {
   [key: string]: BatutaActivity
 }
 
+export type MemoryConfig = {
+  enabled?: boolean
+  memoryModel?: string
+}
+
 /**
  * @deprecated Always uses stretch layout.
  */
@@ -2025,6 +2030,7 @@ export type Config = {
         }
   }
   batuta?: BatutaConfig
+  memory?: MemoryConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
    */
@@ -11491,6 +11497,89 @@ export type TelegramDisconnectResponses = {
 }
 
 export type TelegramDisconnectResponse = TelegramDisconnectResponses[keyof TelegramDisconnectResponses]
+
+export type MemoryGetConfigData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemoryGetConfigErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetConfigError = MemoryGetConfigErrors[keyof MemoryGetConfigErrors]
+
+export type MemoryGetConfigResponses = {
+  /**
+   * Current memory configuration
+   */
+  200: MemoryConfig
+}
+
+export type MemoryGetConfigResponse = MemoryGetConfigResponses[keyof MemoryGetConfigResponses]
+
+export type MemorySetConfigData = {
+  body?: MemoryConfig
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemorySetConfigErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemorySetConfigError = MemorySetConfigErrors[keyof MemorySetConfigErrors]
+
+export type MemorySetConfigResponses = {
+  /**
+   * Memory configuration saved
+   */
+  200: MemoryConfig
+}
+
+export type MemorySetConfigResponse = MemorySetConfigResponses[keyof MemorySetConfigResponses]
+
+export type MemoryForgetProjectData = {
+  body?: never
+  path?: never
+  query: {
+    directory: string
+  }
+  url: "/memory/project"
+}
+
+export type MemoryForgetProjectErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryForgetProjectError = MemoryForgetProjectErrors[keyof MemoryForgetProjectErrors]
+
+export type MemoryForgetProjectResponses = {
+  /**
+   * Project memory deleted
+   */
+  200: true
+}
+
+export type MemoryForgetProjectResponse = MemoryForgetProjectResponses[keyof MemoryForgetProjectResponses]
 
 export type TuiAppendPromptData = {
   body?: {
