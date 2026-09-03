@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.21.15",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Novo: conectar servidor remoto via túnel SSH ou Tailscale",
+              "description": "Em Configurações > Servidores > Adicionar servidor agora tem \"Adicionar túnel SSH\" (o app abre e mantém o túnel sozinho, com chave lida automaticamente de ~/.ssh) e \"Adicionar túnel Tailscale\" (detecta se o Tailscale está ativo e usa o IP da rede). Cada servidor na lista agora mostra o tipo de conexão (http, local, wsl, ssh) ao lado do nome."
+            },
+            {
+              "title": "Corrigido: instalação via CLI numa VPS não vinha com as skills padrão",
+              "description": "As skills base que o app desktop instala automaticamente nunca eram baixadas quando o opencode rodava só via CLI (`opencode serve`/`opencode web`) numa VPS. Agora o comportamento é o mesmo dos dois jeitos."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.14",
       "highlights": [
         {
