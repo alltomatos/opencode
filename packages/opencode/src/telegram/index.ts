@@ -15,6 +15,9 @@ import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { SessionID } from "../session/schema"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import { Permission } from "../permission"
+import { PermissionV1 } from "@opencode-ai/core/v1/permission"
+import { EventV2Bridge } from "@/event-v2-bridge"
 
 const TELEGRAM_AUTH_KEY = "telegram"
 const API_ROOT = "https://api.telegram.org"
@@ -54,7 +57,8 @@ type TelegramMessage = {
   audio?: TelegramAudio
   document?: TelegramDocument
 }
-type TelegramUpdate = { update_id: number; message?: TelegramMessage }
+type TelegramCallbackQuery = { id: string; data?: string; message?: { chat: { id: number } } }
+type TelegramUpdate = { update_id: number; message?: TelegramMessage; callback_query?: TelegramCallbackQuery }
 type TelegramGetUpdatesResponse = { ok: true; result: TelegramUpdate[] }
 type TelegramGetFileResponse = { ok: true; result: { file_path?: string } }
 
@@ -122,6 +126,62 @@ async function sendTyping(token: string, chatId: number): Promise<void> {
   })
 }
 
+// A tool asking for permission has no terminal to prompt on the other end —
+// this is the Telegram equivalent of the desktop/TUI's approval dialog.
+// callback_data is `perm:<requestID>:<reply>`; Telegram caps that at 64
+// bytes, which permission IDs comfortably fit under.
+async function sendApprovalRequest(
+  token: string,
+  chatId: number,
+  request: { id: string; permission: string; patterns: readonly string[] },
+): Promise<void> {
+  const text = `🔐 Permissão solicitada: ${request.permission}\n${request.patterns.join(", ")}`
+  await fetch(`${API_ROOT}/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Uma vez", callback_data: `perm:${request.id}:once` },
+            { text: "✅ Sempre", callback_data: `perm:${request.id}:always` },
+            { text: "❌ Negar", callback_data: `perm:${request.id}:reject` },
+          ],
+        ],
+      },
+    }),
+  })
+}
+
+async function answerCallbackQuery(token: string, callbackQueryId: string, text?: string): Promise<void> {
+  await fetch(`${API_ROOT}/bot${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text }),
+  })
+}
+
+// Friendly one-line summary of what the session is doing right now, so a
+// Telegram user gets the same "it's actually working" reassurance the
+// desktop timeline gives for free — Telegram has no such view, and a long
+// skill run with nothing but a typing dot reads as a dead chat.
+function describeActivity(message: SessionV1.WithParts | undefined): string | undefined {
+  if (!message) return undefined
+  const parts = message.parts
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i]
+    if (part.type === "tool") {
+      if (part.state.status === "completed") continue
+      if (part.state.status === "error") return `⚠️ Erro em ${part.tool}, tentando continuar...`
+      return `⚙️ Executando: ${part.tool}`
+    }
+    if (part.type === "reasoning") return "💭 Pensando..."
+  }
+  return undefined
+}
+
 export function extractText(result: SessionV1.WithParts): string {
   return result.parts
     .filter((part): part is SessionV1.TextPart => part.type === "text")
@@ -148,6 +208,14 @@ const layer = Layer.effect(
     const provider = yield* Provider.Service
     const projects = yield* Project.Service
     const chatSessions = yield* TelegramChatSessions.Service
+    const permission = yield* Permission.Service
+    const events = yield* EventV2Bridge.Service
+
+    // In-memory only (rebuilt as chats send their first message after a
+    // restart) — enough to route a permission.asked event for a session
+    // back to the Telegram chat that owns it.
+    const sessionChats = new Map<string, number>()
+    const rememberSession = (chatId: number, sessionID: string) => sessionChats.set(sessionID, chatId)
 
     const connect = Effect.fn("Telegram.connect")(function* (token: string, directory: string) {
       const bot = yield* Effect.tryPromise({
@@ -294,6 +362,7 @@ const layer = Layer.effect(
         sessionID = session.id
         yield* chatSessions.update(chatId, state.directory, (s) => ({ ...s, sessionID }))
       }
+      rememberSession(chatId, sessionID)
       const result = yield* promptSvc.command({ sessionID, command, arguments: args })
       return extractText(result)
     })
@@ -333,18 +402,40 @@ const layer = Layer.effect(
 
       // Telegram's "typing..." indicator auto-expires after ~5s, and a
       // skill/prompt run (orchestrator, etc.) can take minutes — without a
-      // heartbeat the chat looks dead the whole time. Keep resending it
-      // every 4s for as long as the reply is being computed; the fork is
-      // interrupted the moment the scope closes below.
+      // heartbeat the chat looks dead the whole time, unlike the desktop
+      // timeline where the user can see each step happen. Resend "typing"
+      // every 4s, and every 5th tick (~20s) also post a short status line
+      // describing whatever tool/reasoning step the session is currently
+      // on — a poor man's timeline for a text-only channel. Both stop the
+      // moment the scope below closes.
+      let lastActivity: string | undefined
       const reply = yield* Effect.scoped(
         Effect.gen(function* () {
           yield* Effect.forkScoped(
-            Effect.forever(
-              Effect.tryPromise(() => sendTyping(token, chatId)).pipe(
-                Effect.ignore,
-                Effect.andThen(Effect.sleep("4 seconds")),
-              ),
-            ),
+            Effect.gen(function* () {
+              let tick = 0
+              while (true) {
+                yield* Effect.tryPromise(() => sendTyping(token, chatId)).pipe(Effect.ignore)
+                tick++
+                if (tick % 5 === 0) {
+                  const activity = yield* Effect.gen(function* () {
+                    const cached = yield* chatSessions.get(chatId)
+                    if (!cached?.sessionID) return undefined
+                    const [latest] = yield* sessions.messages({
+                      sessionID: SessionID.make(cached.sessionID),
+                      limit: 1,
+                    })
+                    return describeActivity(latest)
+                  }).pipe(Effect.orElseSucceed(() => undefined))
+                  const text = activity ?? (lastActivity ? undefined : "⏳ Ainda trabalhando nisso...")
+                  if (text && text !== lastActivity) {
+                    lastActivity = text
+                    yield* Effect.tryPromise(() => sendMessage(token, chatId, text)).pipe(Effect.ignore)
+                  }
+                }
+                yield* Effect.sleep("4 seconds")
+              }
+            }),
           )
 
           return yield* Effect.gen(function* () {
@@ -360,6 +451,7 @@ const layer = Layer.effect(
               sessionID = session.id
               yield* chatSessions.update(chatId, directory, (s) => ({ ...s, sessionID }))
             }
+            rememberSession(chatId, sessionID)
             const model = state.model
               ? { providerID: ProviderV2.ID.make(state.model.providerID), modelID: ModelV2.ID.make(state.model.modelID) }
               : undefined
@@ -392,14 +484,61 @@ const layer = Layer.effect(
       yield* Effect.tryPromise(() => sendMessage(token, chatId, reply || "(sem resposta)")).pipe(Effect.ignore)
     })
 
+    // Approve/deny/always buttons on the message sendApprovalRequest posted.
+    // Unroutable or already-resolved requests (e.g. the user tapped a stale
+    // button after the tool timed out) just get a quiet acknowledgement —
+    // Permission.reply on an unknown requestID is a NotFoundError, not
+    // something worth surfacing back to the chat.
+    const handleCallbackQuery = Effect.fn("Telegram.handleCallbackQuery")(function* (
+      token: string,
+      cb: TelegramCallbackQuery,
+    ) {
+      const [, requestID, action] = (cb.data ?? "").split(":")
+      if (!requestID || !action) {
+        yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id)).pipe(Effect.ignore)
+        return
+      }
+      const reply = action === "always" || action === "reject" ? action : "once"
+      yield* permission.reply({ requestID: PermissionV1.ID.make(requestID), reply }).pipe(Effect.ignore)
+      const label = action === "always" ? "✅ Permitido sempre" : action === "reject" ? "❌ Negado" : "✅ Permitido"
+      yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, label)).pipe(Effect.ignore)
+      if (cb.message?.chat.id)
+        yield* Effect.tryPromise(() => sendMessage(token, cb.message!.chat.id, label)).pipe(Effect.ignore)
+    })
+
+    // No terminal exists on the other end of a Telegram chat to show the
+    // usual approval dialog, so mirror every permission.asked for a
+    // Telegram-owned session as a message with approve/deny buttons.
+    yield* Effect.forkScoped(
+      events.listen((event) =>
+        Effect.gen(function* () {
+          if (event.type !== "permission.asked") return
+          const request = event.data as PermissionV1.Request
+          const chatId = sessionChats.get(request.sessionID)
+          if (!chatId) return
+          const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
+          if (!info || info.type !== "api") return
+          yield* Effect.tryPromise(() =>
+            sendApprovalRequest(info.key, chatId, {
+              id: request.id,
+              permission: request.permission,
+              patterns: request.patterns,
+            }),
+          ).pipe(Effect.ignore)
+        }),
+      ),
+    )
+
     // Long-poll for the whole server's lifetime, only doing real work while
     // a bot is connected. Sleeps briefly instead of hammering the API when
     // disconnected or between transient errors.
     const pollLoop = Effect.gen(function* () {
       let offset = 0
       while (true) {
+        yield* Effect.logInfo("telegram poll tick", { offset })
         const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
         if (!info || info.type !== "api" || !info.metadata?.directory) {
+          yield* Effect.logInfo("telegram poll: no bot connected")
           yield* Effect.sleep("2 seconds")
           continue
         }
@@ -409,6 +548,7 @@ const layer = Layer.effect(
           Effect.tapError((cause) => Effect.logError("telegram getUpdates failed", { cause })),
           Effect.catch(() => Effect.sleep("3 seconds").pipe(Effect.as<TelegramUpdate[]>([]))),
         )
+        yield* Effect.logInfo("telegram poll: got updates", { count: updates.length })
         // Telegram never returns instantly with an empty array on a
         // successful poll — an empty result only comes back after the full
         // `timeout=` server-side wait — but this floor guards against ever
@@ -418,6 +558,11 @@ const layer = Layer.effect(
         if (updates.length === 0) yield* Effect.sleep("1 second")
         for (const update of updates) {
           offset = update.update_id + 1
+          if (update.callback_query)
+            yield* handleCallbackQuery(token, update.callback_query).pipe(
+              Effect.tapError((cause) => Effect.logError("telegram handleCallbackQuery failed", { cause })),
+              Effect.ignore,
+            )
           if (update.message)
             yield* handleMessage(token, directory, update.message).pipe(
               Effect.tapError((cause) => Effect.logError("telegram handleMessage failed", { cause })),
@@ -443,5 +588,7 @@ export const node = LayerNode.make({
     Provider.node,
     Project.node,
     TelegramChatSessions.node,
+    Permission.node,
+    EventV2Bridge.node,
   ],
 })
