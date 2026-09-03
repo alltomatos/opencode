@@ -11,6 +11,7 @@ import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { SettingsSkillsV2 } from "./skills"
+import { SettingsMemoryV2 } from "./memory"
 import { SettingsExternalAgentsV2 } from "./external-agents"
 import { SettingsMcpV2 } from "./mcp"
 import { SettingsIntegrationsV2 } from "./integrations"
@@ -97,6 +98,10 @@ export const DialogSettings: Component<{
                       <Icon name="brain" />
                       {language.t("settings.skills.title")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="memory">
+                      <Icon name="archive" />
+                      {language.t("settings.memory.title")}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="mcp">
                       <Icon name="link" />
                       {language.t("settings.mcp.title")}
@@ -144,6 +149,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
           <SettingsSkillsV2 directory={directory} />
+        </TabsV2.Content>
+        <TabsV2.Content value="memory" class="settings-v2-panel">
+          <SettingsMemoryV2 />
         </TabsV2.Content>
         <TabsV2.Content value="mcp" class="settings-v2-panel">
           <SettingsMcpV2 />
