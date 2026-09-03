@@ -1,6 +1,9 @@
 import { expect } from "bun:test"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
+import { Global } from "@opencode-ai/core/global"
 import { Effect } from "effect"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 import { Memory } from "../../src/memory/index"
 import { testEffect } from "../lib/effect"
 
@@ -79,6 +82,18 @@ it.instance("load() with a directory also includes that project's memory", () =>
     // summarize() (which needs a real model) — forgetProject() on a project
     // with no memory yet should simply be a no-op, not throw.
     yield* memory.forgetProject("/tmp/projeto-inexistente")
+  }),
+)
+
+it.instance("promoteGlobal() regenerates the global-memory skill file", () =>
+  Effect.gen(function* () {
+    const memory = yield* Memory.Service
+    yield* memory.promoteGlobal({ summary: "Regenera o skill de memória global." })
+
+    const skillFile = path.join(Global.Path.config, "skill", "memory", "SKILL.md")
+    const content = yield* Effect.tryPromise(() => readFile(skillFile, "utf8"))
+    expect(content).toContain("name: memory")
+    expect(content).toContain("Regenera o skill de memória global.")
   }),
 )
 
