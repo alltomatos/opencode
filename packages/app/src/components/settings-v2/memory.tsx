@@ -26,7 +26,6 @@ export const SettingsMemoryV2: Component = () => {
   })
 
   const [form, setForm] = createStore({
-    enabled: true,
     memoryModel: "",
   })
 
@@ -34,7 +33,6 @@ export const SettingsMemoryV2: Component = () => {
     const data = config()
     if (!data) return
     setForm({
-      enabled: data.enabled !== false,
       memoryModel: data.memoryModel ?? "",
     })
   })
@@ -42,7 +40,7 @@ export const SettingsMemoryV2: Component = () => {
   const saveMutation = useMutation(() => ({
     mutationFn: async () => {
       const payload = {
-        enabled: form.enabled,
+        enabled: config()?.enabled,
         memoryModel: form.memoryModel || undefined,
       }
       await serverSDK().client.memory.setConfig({ memoryConfig: payload })
@@ -51,6 +49,26 @@ export const SettingsMemoryV2: Component = () => {
     onSuccess: () => {
       void refetch()
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.memory.toast.saved") })
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    },
+  }))
+
+  // "Ativar memória" salva na hora, sem depender do botão Salvar do resto do
+  // formulário — mesmo padrão usado no Breniac (commit 2b7749885d), pra não
+  // se perder num fluxo de save em lote se o usuário mudar de aba antes.
+  const enabledMutation = useMutation(() => ({
+    mutationFn: async (enabled: boolean) => {
+      const current = config() ?? {}
+      await serverSDK().client.memory.setConfig({
+        memoryConfig: { enabled, memoryModel: current.memoryModel },
+      })
+      return enabled
+    },
+    onSuccess: () => {
+      void refetch()
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
@@ -98,7 +116,11 @@ export const SettingsMemoryV2: Component = () => {
               description={language.t("settings.memory.field.enabled.description")}
             >
               <div data-action="settings-memory-enabled">
-                <Switch checked={form.enabled} onChange={(checked) => setForm("enabled", checked)} />
+                <Switch
+                  checked={config()?.enabled ?? true}
+                  disabled={enabledMutation.isPending}
+                  onChange={(checked) => enabledMutation.mutate(checked)}
+                />
               </div>
             </SettingsRowV2>
             <SettingsRowV2
