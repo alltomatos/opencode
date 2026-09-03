@@ -13,6 +13,7 @@ import { ConfigFormatterV1 } from "./formatter"
 import { ConfigLayoutV1 } from "./layout"
 import { ConfigLSPV1 } from "./lsp"
 import { ConfigMCPV1 } from "./mcp"
+import { ConfigMemoryV1 } from "./memory"
 import { ConfigPermissionV1 } from "./permission"
 import { ConfigPluginV1 } from "./plugin"
 import { ConfigProviderV1 } from "./provider"
@@ -120,6 +121,9 @@ export const Info = Schema.Struct({
   ).annotate({ description: "MCP (Model Context Protocol) server configurations" }),
   batuta: Schema.optional(ConfigBatutaV1.Info).annotate({
     description: "Batuta orchestration activities (orchestrator + worker subagent delegation)",
+  }),
+  memory: Schema.optional(ConfigMemoryV1.Info).annotate({
+    description: "Cross-session memory: global and per-project summaries, opt-in (Settings > Memory)",
   }),
   formatter: Schema.optional(ConfigFormatterV1.Info).annotate({
     description:
