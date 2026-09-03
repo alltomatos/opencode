@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.16",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Telegram: pedidos rodam em segundo plano, nunca mais travam o bot",
+              "description": "Antes, um comando/skill demorado (ex: um orquestrador rodando por minutos) travava o bot inteiro até terminar. Agora todo pedido que aciona o modelo roda como uma tarefa em segundo plano — se chegar outra mensagem enquanto uma ainda está rodando, o bot pergunta se é pra rodar em paralelo (sessão separada) ou esperar na fila (mesma conversa). Novo comando /model-subagent pra escolher um modelo diferente só pras tarefas em segundo plano."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.15",
       "highlights": [
         {
