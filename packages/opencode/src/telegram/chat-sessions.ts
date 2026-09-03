@@ -12,6 +12,10 @@ export type ChatState = {
   sessionID?: string
   directory: string
   model?: { providerID: string; modelID: string }
+  // Model used for the background subagent that actually does the work
+  // (see telegram/index.ts's task dispatcher) — separate from `model`,
+  // which is only used for the lightweight coordinator session.
+  subagentModel?: { providerID: string; modelID: string }
 }
 
 const file = path.join(Global.Path.data, "telegram-chats.json")

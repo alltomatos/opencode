@@ -4,6 +4,7 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Context, Effect, Layer, Schema } from "effect"
 import { InstanceRef } from "@/effect/instance-ref"
 import { InstanceStore } from "@/project/instance-store"
+import type { InstanceContext } from "@/project/instance-context"
 import { Session } from "../session/session"
 import { SessionPrompt } from "../session/prompt"
 import { Provider } from "../provider/provider"
@@ -335,12 +336,18 @@ const layer = Layer.effect(
       "/repo <número> — troca o repositório desta conversa",
       "/model — lista os modelos conectados",
       "/model <número> — troca o modelo desta conversa",
+      "/model-subagent — lista modelos pro subagent (tarefas em segundo plano)",
+      "/model-subagent <número> — troca o modelo do subagent",
       "/skills — lista as skills disponíveis",
       "/help — mostra esta lista",
       "",
       "Também aceita foto e áudio/voz — envie junto com uma legenda ou mensagem.",
       "",
       "Qualquer outro /comando é encaminhado como comando do opencode (inclui skills customizadas).",
+      "",
+      "Todo pedido que aciona o modelo roda em segundo plano — se chegar outro",
+      "pedido enquanto um ainda está rodando, eu pergunto se é pra rodar em",
+      "paralelo ou esperar na fila.",
     ].join("\n")
 
     const WELCOME_TEXT = [
@@ -363,7 +370,7 @@ const layer = Layer.effect(
       )
     })
 
-    const listModels = Effect.fn("Telegram.listModels")(function* () {
+    const listModels = Effect.fn("Telegram.listModels")(function* (command: string = "model") {
       const list = yield* provider.list()
       const rows = Object.values(list).flatMap((p) =>
         Object.keys(p.models).map((modelID) => ({ providerID: p.id, modelID })),
@@ -372,16 +379,243 @@ const layer = Layer.effect(
       return (
         "Modelos conectados:\n" +
         rows.map((row, i) => `${i + 1}. ${row.providerID}/${row.modelID}`).join("\n") +
-        "\n\nUse /model <número> pra trocar."
+        `\n\nUse /${command} <número> pra trocar.`
       )
+    })
+
+    // Any request that actually calls the model (a plain message, or a
+    // forwarded skill command) runs in a background subagent session
+    // rather than blocking this chat's own fast commands — a stuck or
+    // slow-running skill (like /orchestrator taking many minutes) used to
+    // wedge the whole poll loop, since it awaited the prompt inline before
+    // moving to the next Telegram update. Tracking active/queued tasks per
+    // chat also lets us ask the user how to handle a second request that
+    // comes in while one is still running, instead of silently choosing.
+    interface RunningTask {
+      sessionID: string
+    }
+    interface QueuedRequest {
+      text: string
+      attachments: { fileId: string; mime: string }[]
+    }
+    interface PendingRunChoice extends QueuedRequest {
+      chatId: number
+    }
+    const activeTasksByChat = new Map<number, RunningTask[]>()
+    const queuedTasksByChat = new Map<number, QueuedRequest[]>()
+    const pendingRunChoices = new Map<string, PendingRunChoice>()
+    let runChoiceSeq = 0
+
+    async function sendRunChoice(token: string, chatId: number, id: string): Promise<void> {
+      await fetch(`${API_ROOT}/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: "Como prefere?",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "▶️ Rodar em paralelo", callback_data: `run:${id}:parallel` },
+                { text: "⏳ Rodar depois (fila)", callback_data: `run:${id}:queue` },
+              ],
+            ],
+          },
+        }),
+      })
+    }
+
+    // Creates a fresh child session (subagent) for one request and runs it
+    // fully detached from the caller — forked onto the service's own
+    // long-lived scope, not the caller's, so it keeps running (with its own
+    // typing/progress heartbeat) even after the handler that started it has
+    // already returned. When it finishes, pulls the next queued request (if
+    // any) for the same chat.
+    const resolveTaskSessionID = Effect.fn("Telegram.resolveTaskSessionID")(function* (
+      chatId: number,
+      directory: string,
+      ctx: InstanceContext,
+      sessionOverride?: SessionID,
+    ) {
+      if (sessionOverride) return sessionOverride
+      const state = (yield* chatSessions.get(chatId)) ?? { directory }
+      if (state.sessionID) return SessionID.make(state.sessionID)
+      const session = yield* sessions
+        .create({ title: `Telegram: ${chatId}`, directory })
+        .pipe(Effect.provideService(InstanceRef, ctx))
+      yield* chatSessions.update(chatId, directory, (s) => ({ ...s, sessionID: session.id }))
+      return session.id
+    })
+
+    const runOneTask = Effect.fn("Telegram.runOneTask")(function* (
+      token: string,
+      chatId: number,
+      directory: string,
+      sessionID: SessionID,
+      text: string,
+      attachments: { fileId: string; mime: string }[],
+      ctx: InstanceContext,
+    ) {
+      let lastActivity: string | undefined
+      const reply = yield* Effect.scoped(
+        Effect.gen(function* () {
+          yield* Effect.forkScoped(
+            Effect.gen(function* () {
+              let tick = 0
+              while (true) {
+                yield* Effect.tryPromise(() => sendTyping(token, chatId)).pipe(Effect.ignore)
+                tick++
+                if (tick % 5 === 0) {
+                  const activity = yield* sessions
+                    .messages({ sessionID, limit: 1 })
+                    .pipe(
+                      Effect.map(([latest]) => describeActivity(latest)),
+                      Effect.orElseSucceed(() => undefined),
+                    )
+                  const line = activity ?? (lastActivity ? undefined : "⏳ Ainda trabalhando nisso...")
+                  if (line && line !== lastActivity) {
+                    lastActivity = line
+                    yield* Effect.tryPromise(() => sendMessage(token, chatId, line)).pipe(Effect.ignore)
+                  }
+                }
+                yield* Effect.sleep("4 seconds")
+              }
+            }),
+          )
+
+          return yield* Effect.gen(function* () {
+            if (text.startsWith("/")) {
+              const [command, ...rest] = text.slice(1).split(/\s+/)
+              const result = yield* promptSvc.command({ sessionID, command, arguments: rest.join(" ") })
+              return extractText(result)
+            }
+
+            const fileParts = yield* Effect.forEach(attachments, (attachment) =>
+              Effect.tryPromise(() => downloadTelegramFile(token, attachment.fileId, attachment.mime)).pipe(
+                Effect.map((url) => ({ type: "file" as const, mime: attachment.mime, url })),
+                Effect.tapError((cause) => Effect.logError("telegram attachment download failed", { chatId, cause })),
+                Effect.option,
+              ),
+            ).pipe(Effect.map((results) => results.filter((r) => r._tag === "Some").map((r) => r.value)))
+
+            const parts = [...fileParts, ...(text ? [{ type: "text" as const, text }] : [])]
+            if (parts.length === 0) return "⚠️ Não consegui baixar o anexo enviado."
+            const chatState = (yield* chatSessions.get(chatId)) ?? { directory }
+            const model = chatState.subagentModel ?? chatState.model
+            const modelParam = model
+              ? { providerID: ProviderV2.ID.make(model.providerID), modelID: ModelV2.ID.make(model.modelID) }
+              : undefined
+            const result = yield* promptSvc.prompt({ sessionID, model: modelParam, parts })
+            return extractText(result)
+          }).pipe(
+            Effect.provideService(InstanceRef, ctx),
+            Effect.catch((cause) =>
+              Effect.gen(function* () {
+                yield* Effect.logError("telegram task failed", { chatId, cause })
+                return `⚠️ ${cause instanceof Error ? cause.message : String(cause)}`
+              }),
+            ),
+          )
+        }),
+      )
+
+      yield* Effect.tryPromise(() => sendMessage(token, chatId, reply || "(sem resposta)")).pipe(Effect.ignore)
+    })
+
+    const startTask = Effect.fn("Telegram.startTask")(function* (
+      token: string,
+      chatId: number,
+      directory: string,
+      text: string,
+      attachments: { fileId: string; mime: string }[],
+      // Set only for a request the user chose to run "in parallel" — a
+      // fresh child session of its own, since two concurrent turns on the
+      // same session would corrupt it. Left undefined, this reuses (or
+      // creates once) the chat's persistent session, preserving
+      // conversation history the same way it always did before this was
+      // backgrounded.
+      sessionOverride?: SessionID,
+    ) {
+      const ctx = yield* instanceStore.load({ directory })
+      const sessionID = yield* resolveTaskSessionID(chatId, directory, ctx, sessionOverride)
+      rememberSession(chatId, sessionID)
+      const running: RunningTask = { sessionID }
+      activeTasksByChat.set(chatId, [...(activeTasksByChat.get(chatId) ?? []), running])
+
+      // Runs the request, then keeps draining this chat's queue (if any)
+      // in the same forked fiber instead of recursing — each queued item
+      // reuses the chat's persistent session (queueing only ever applies
+      // to the non-parallel path).
+      yield* Effect.forkScoped(
+        Effect.gen(function* () {
+          let currentSessionID = sessionID
+          let currentText = text
+          let currentAttachments = attachments
+          let currentRunning = running
+          while (true) {
+            yield* runOneTask(token, chatId, directory, currentSessionID, currentText, currentAttachments, ctx)
+
+            const remaining = (activeTasksByChat.get(chatId) ?? []).filter((item) => item !== currentRunning)
+            if (remaining.length > 0) activeTasksByChat.set(chatId, remaining)
+            else activeTasksByChat.delete(chatId)
+
+            const queue = queuedTasksByChat.get(chatId)
+            if (!queue || queue.length === 0) break
+            const [next, ...rest] = queue
+            if (rest.length > 0) queuedTasksByChat.set(chatId, rest)
+            else queuedTasksByChat.delete(chatId)
+            yield* Effect.tryPromise(() =>
+              sendMessage(token, chatId, "▶️ Iniciando o próximo pedido da fila..."),
+            ).pipe(Effect.ignore)
+
+            currentSessionID = yield* resolveTaskSessionID(chatId, directory, ctx)
+            currentText = next.text
+            currentAttachments = next.attachments
+            currentRunning = { sessionID: currentSessionID }
+            activeTasksByChat.set(chatId, [...(activeTasksByChat.get(chatId) ?? []), currentRunning])
+          }
+        }),
+      )
+    })
+
+    // Entry point for anything that needs the model: starts immediately if
+    // this chat has no task in flight, otherwise asks the user (via
+    // buttons) whether to run alongside it or wait — see handleCallbackQuery
+    // for the "run:" prefix that resolves that choice.
+    const dispatchTask = Effect.fn("Telegram.dispatchTask")(function* (
+      token: string,
+      chatId: number,
+      directory: string,
+      text: string,
+      attachments: { fileId: string; mime: string }[],
+    ) {
+      const running = activeTasksByChat.get(chatId)
+      if (!running || running.length === 0) {
+        yield* startTask(token, chatId, directory, text, attachments)
+        return "🚀 Comecei a trabalhar nisso em segundo plano — te aviso quando terminar."
+      }
+
+      const id = String(++runChoiceSeq)
+      pendingRunChoices.set(id, { chatId, text, attachments })
+      yield* Effect.tryPromise(() =>
+        sendMessage(
+          token,
+          chatId,
+          "⏳ Ainda estou processando um pedido anterior pra esse chat. Quer que eu rode este agora, em paralelo, ou só depois que o outro terminar?",
+        ),
+      ).pipe(Effect.ignore)
+      yield* Effect.tryPromise(() => sendRunChoice(token, chatId, id)).pipe(Effect.ignore)
+      return undefined
     })
 
     // Interprets a leading-slash message as a command instead of a prompt.
     // Known meta-commands manage the chat's own state (repo/model/session);
-    // anything else forwards verbatim to promptSvc.command() — the exact
-    // mechanism the CLI/TUI use for custom skill commands, so any skill
-    // available in the connected repo works here for free.
+    // anything else forwards to a background subagent task (see
+    // dispatchTask) — the exact mechanism the CLI/TUI use for custom skill
+    // commands, so any skill available in the connected repo works here for
+    // free, without blocking this chat's other commands while it runs.
     const runCommand = Effect.fn("Telegram.runCommand")(function* (
+      token: string,
       chatId: number,
       state: ChatState,
       command: string,
@@ -398,10 +632,17 @@ const layer = Layer.effect(
 
       if (command === "status") {
         const model = state.model ? `${state.model.providerID}/${state.model.modelID}` : "(padrão do repositório)"
+        const subagentModel = state.subagentModel
+          ? `${state.subagentModel.providerID}/${state.subagentModel.modelID}`
+          : "(mesmo de /model)"
+        const running = activeTasksByChat.get(chatId)?.length ?? 0
+        const queued = queuedTasksByChat.get(chatId)?.length ?? 0
         return [
           `Repositório: ${state.directory}`,
           `Modelo: ${model}`,
+          `Modelo do subagent: ${subagentModel}`,
           `Sessão: ${state.sessionID ?? "(nenhuma ainda — a próxima mensagem cria uma)"}`,
+          `Tarefas em andamento: ${running}${queued ? ` (+${queued} na fila)` : ""}`,
         ].join("\n")
       }
 
@@ -416,7 +657,7 @@ const layer = Layer.effect(
       }
 
       if (command === "model") {
-        if (!args.trim()) return yield* listModels()
+        if (!args.trim()) return yield* listModels("model")
         const rows = Object.values(yield* provider.list()).flatMap((p) =>
           Object.keys(p.models).map((modelID) => ({ providerID: p.id as string, modelID })),
         )
@@ -427,22 +668,28 @@ const layer = Layer.effect(
         return `Modelo trocado pra ${picked.providerID}/${picked.modelID}.`
       }
 
+      if (command === "model-subagent") {
+        if (!args.trim()) return yield* listModels("model-subagent")
+        const rows = Object.values(yield* provider.list()).flatMap((p) =>
+          Object.keys(p.models).map((modelID) => ({ providerID: p.id as string, modelID })),
+        )
+        const index = Number(args.trim()) - 1
+        const picked = rows[index]
+        if (!picked) return `Modelo inválido. Use /model-subagent pra ver a lista.`
+        yield* chatSessions.update(chatId, state.directory, (s) => ({ ...s, subagentModel: picked }))
+        return `Modelo do subagent trocado pra ${picked.providerID}/${picked.modelID}. (Usado nas tarefas em segundo plano; sem isso, usa o mesmo de /model.)`
+      }
+
       if (command === "skills") {
         return "Digite qualquer comando de skill disponível no repositório (ex: /nome-da-skill) — ele é encaminhado direto pro opencode."
       }
 
       // Unknown command: forward to the real opencode command pipeline
-      // (custom commands / skills), same as the CLI's "/name args" handling.
-      const cached = yield* chatSessions.get(chatId)
-      let sessionID = cached?.sessionID ? SessionID.make(cached.sessionID) : undefined
-      if (!sessionID) {
-        const session = yield* sessions.create({ title: `Telegram: ${chatId}`, directory: state.directory })
-        sessionID = session.id
-        yield* chatSessions.update(chatId, state.directory, (s) => ({ ...s, sessionID }))
-      }
-      rememberSession(chatId, sessionID)
-      const result = yield* promptSvc.command({ sessionID, command, arguments: args })
-      return extractText(result)
+      // (custom commands / skills), same as the CLI's "/name args" handling
+      // — but as a background subagent task (see dispatchTask), not inline,
+      // so a long-running skill never blocks this chat's fast commands.
+      const fullText = args.trim() ? `/${command} ${args.trim()}` : `/${command}`
+      return yield* dispatchTask(token, chatId, state.directory, fullText, [])
     })
 
     // One opencode session per Telegram chat: reuse the mapped session on
@@ -478,90 +725,19 @@ const layer = Layer.effect(
 
       const state = (yield* chatSessions.get(chatId)) ?? { directory: botDirectory }
       const directory = state.directory
-      const ctx = yield* instanceStore.load({ directory })
 
-      // Telegram's "typing..." indicator auto-expires after ~5s, and a
-      // skill/prompt run (orchestrator, etc.) can take minutes — without a
-      // heartbeat the chat looks dead the whole time, unlike the desktop
-      // timeline where the user can see each step happen. Resend "typing"
-      // every 4s, and every 5th tick (~20s) also post a short status line
-      // describing whatever tool/reasoning step the session is currently
-      // on — a poor man's timeline for a text-only channel. Both stop the
-      // moment the scope below closes.
-      let lastActivity: string | undefined
-      const reply = yield* Effect.scoped(
-        Effect.gen(function* () {
-          yield* Effect.forkScoped(
-            Effect.gen(function* () {
-              let tick = 0
-              while (true) {
-                yield* Effect.tryPromise(() => sendTyping(token, chatId)).pipe(Effect.ignore)
-                tick++
-                if (tick % 5 === 0) {
-                  const activity = yield* Effect.gen(function* () {
-                    const cached = yield* chatSessions.get(chatId)
-                    if (!cached?.sessionID) return undefined
-                    const [latest] = yield* sessions.messages({
-                      sessionID: SessionID.make(cached.sessionID),
-                      limit: 1,
-                    })
-                    return describeActivity(latest)
-                  }).pipe(Effect.orElseSucceed(() => undefined))
-                  const text = activity ?? (lastActivity ? undefined : "⏳ Ainda trabalhando nisso...")
-                  if (text && text !== lastActivity) {
-                    lastActivity = text
-                    yield* Effect.tryPromise(() => sendMessage(token, chatId, text)).pipe(Effect.ignore)
-                  }
-                }
-                yield* Effect.sleep("4 seconds")
-              }
-            }),
-          )
+      let reply: string | undefined
+      if (text.startsWith("/")) {
+        const [command, ...rest] = text.slice(1).split(/\s+/)
+        const ctx = yield* instanceStore.load({ directory })
+        reply = yield* runCommand(token, chatId, state, command.toLowerCase(), rest.join(" ")).pipe(
+          Effect.provideService(InstanceRef, ctx),
+        )
+      } else {
+        reply = yield* dispatchTask(token, chatId, directory, text, attachments)
+      }
 
-          return yield* Effect.gen(function* () {
-            if (text.startsWith("/")) {
-              const [command, ...rest] = text.slice(1).split(/\s+/)
-              return yield* runCommand(chatId, state, command.toLowerCase(), rest.join(" "))
-            }
-
-            const cached = yield* chatSessions.get(chatId)
-            let sessionID = cached?.sessionID ? SessionID.make(cached.sessionID) : undefined
-            if (!sessionID) {
-              const session = yield* sessions.create({ title: `Telegram: ${chatId}`, directory })
-              sessionID = session.id
-              yield* chatSessions.update(chatId, directory, (s) => ({ ...s, sessionID }))
-            }
-            rememberSession(chatId, sessionID)
-            const model = state.model
-              ? { providerID: ProviderV2.ID.make(state.model.providerID), modelID: ModelV2.ID.make(state.model.modelID) }
-              : undefined
-
-            const fileParts = yield* Effect.forEach(attachments, (attachment) =>
-              Effect.tryPromise(() => downloadTelegramFile(token, attachment.fileId, attachment.mime)).pipe(
-                Effect.map((url) => ({ type: "file" as const, mime: attachment.mime, url })),
-                Effect.tapError((cause) => Effect.logError("telegram attachment download failed", { chatId, cause })),
-                Effect.option,
-              ),
-            ).pipe(Effect.map((results) => results.filter((r) => r._tag === "Some").map((r) => r.value)))
-
-            const parts = [...fileParts, ...(text ? [{ type: "text" as const, text }] : [])]
-            if (parts.length === 0) return "⚠️ Não consegui baixar o anexo enviado."
-            const result = yield* promptSvc
-              .prompt({ sessionID, model, parts })
-              .pipe(Effect.map((withParts) => extractText(withParts)))
-            return result
-          }).pipe(
-            Effect.provideService(InstanceRef, ctx),
-            Effect.catch((cause) =>
-              Effect.gen(function* () {
-                yield* Effect.logError("telegram prompt failed", { chatId, cause })
-                return `⚠️ ${cause instanceof Error ? cause.message : String(cause)}`
-              }),
-            ),
-          )
-        }),
-      )
-      yield* Effect.tryPromise(() => sendMessage(token, chatId, reply || "(sem resposta)")).pipe(Effect.ignore)
+      if (reply) yield* Effect.tryPromise(() => sendMessage(token, chatId, reply)).pipe(Effect.ignore)
     })
 
     // Approve/deny/always buttons on the message sendApprovalRequest posted.
@@ -585,6 +761,37 @@ const layer = Layer.effect(
         const option = state.questions[state.index]?.options[Number(optionIndexStr)]
         yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, option?.label)).pipe(Effect.ignore)
         yield* advanceQuestion(token, requestID!, state, [option?.label ?? ""])
+        return
+      }
+
+      if (data.startsWith("run:")) {
+        const [, id, choice] = data.split(":")
+        const pending = id ? pendingRunChoices.get(id) : undefined
+        if (!pending) {
+          yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id)).pipe(Effect.ignore)
+          return
+        }
+        pendingRunChoices.delete(id!)
+        if (choice === "parallel") {
+          yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, "Rodando em paralelo")).pipe(Effect.ignore)
+          const chatState = (yield* chatSessions.get(pending.chatId)) ?? { directory: "" }
+          const parallelCtx = yield* instanceStore.load({ directory: chatState.directory })
+          const parentID = chatState.sessionID ? SessionID.make(chatState.sessionID) : undefined
+          const child = yield* sessions
+            .create({ title: `Telegram (paralelo): ${pending.chatId}`, directory: chatState.directory, parentID })
+            .pipe(Effect.provideService(InstanceRef, parallelCtx))
+          yield* startTask(token, pending.chatId, chatState.directory, pending.text, pending.attachments, child.id)
+          yield* Effect.tryPromise(() =>
+            sendMessage(token, pending.chatId, "🚀 Rodando em paralelo — te aviso quando terminar."),
+          ).pipe(Effect.ignore)
+        } else {
+          yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, "Enfileirado")).pipe(Effect.ignore)
+          const queue = queuedTasksByChat.get(pending.chatId) ?? []
+          queuedTasksByChat.set(pending.chatId, [...queue, { text: pending.text, attachments: pending.attachments }])
+          yield* Effect.tryPromise(() =>
+            sendMessage(token, pending.chatId, "⏳ Enfileirado — vou rodar assim que o pedido atual terminar."),
+          ).pipe(Effect.ignore)
+        }
         return
       }
 
