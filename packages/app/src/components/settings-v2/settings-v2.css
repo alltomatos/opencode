@@ -787,3 +787,14 @@
   line-height: 1;
   color: var(--v2-state-fg-danger);
 }
+
+.settings-v2-server-dialog-select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--v2-border-border-base);
+  background: var(--v2-surface-surface-base);
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+}

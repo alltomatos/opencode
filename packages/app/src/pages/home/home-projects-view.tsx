@@ -23,6 +23,20 @@ import { fileManagerApp } from "@/utils/file-manager"
 
 const HOME_PROJECT_NAV_LABEL = "min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
 
+// Lets a user tell at a glance how each server in the sidebar is reached
+// (plain http/https, the local sidecar, WSL, or — once #134/#135 land — an
+// SSH or Tailscale tunnel) instead of every entry looking identical.
+function connectionTypeKey(server: ServerConnection.Any): string {
+  switch (server.type) {
+    case "http":
+      return server.http.url.startsWith("https:") ? "home.server.type.https" : "home.server.type.http"
+    case "sidecar":
+      return server.variant === "wsl" ? "home.server.type.wsl" : "home.server.type.local"
+    case "ssh":
+      return "home.server.type.ssh"
+  }
+}
+
 const serverContextMenuID = (server: ServerConnection.Any) => `server:${ServerConnection.key(server)}`
 const projectContextMenuID = (server: ServerConnection.Any, directory: string) =>
   `project:${ServerConnection.key(server)}:${directory}`
@@ -248,6 +262,14 @@ function HomeServerRow(props: {
         </div>
         <span class="flex min-w-0 items-center gap-1">
           <span class={HOME_PROJECT_NAV_LABEL}>{props.server.displayName ?? new URL(props.server.http.url).host}</span>
+          <span
+            class={`
+              shrink-0 rounded-[3px] border border-v2-border-border-base px-1 py-0.5
+              text-[9px] leading-none text-v2-text-text-muted
+            `}
+          >
+            {props.language.t(connectionTypeKey(props.server))}
+          </span>
           <Show when={props.server.label}>
             {(label) => (
               <span
