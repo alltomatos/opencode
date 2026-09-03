@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.21.14",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Novo: bot do Telegram pra conversar com o opencode remotamente",
+              "description": "Conecte um bot do Telegram nas Configurações > Integrações e converse com o opencode de qualquer lugar. Suporta foto, áudio/voz, troca de repositório e modelo (/repo, /model), skills customizadas, feedback de progresso durante execuções longas, e aprovação de permissões e perguntas de skills (ex.: /grill-me) direto pelos botões do chat."
+            },
+            {
+              "title": "Corrigido: agentrouter às vezes escolhia Claude Opus ou GPT como modelo padrão",
+              "description": "Esses modelos vinham dando mais problema (loops, lentidão) do que ajuda quando escolhidos automaticamente. Agora o agentrouter nunca os seleciona como padrão sozinho — continuam disponíveis pra escolha manual."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.13",
       "highlights": [
         {
