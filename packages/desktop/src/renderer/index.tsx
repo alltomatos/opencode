@@ -289,6 +289,8 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     sshServers: sshServersApi,
 
+    checkTailscale: () => window.api.checkTailscale(),
+
     getDisplayBackend: async () => {
       return window.api.getDisplayBackend().catch(() => null)
     },

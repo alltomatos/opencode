@@ -50,6 +50,7 @@ import { spawnWslSidecar } from "./wsl/sidecar"
 import { createSshServersController } from "./ssh/servers"
 import { registerSshIpcHandlers } from "./ssh/ipc"
 import { spawnSshTunnel } from "./ssh/sidecar"
+import { registerTailscaleIpcHandlers } from "./tailscale/ipc"
 import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
@@ -337,6 +338,7 @@ const main = Effect.gen(function* () {
   })
   registerWslIpcHandlers(wslServers)
   registerSshIpcHandlers(sshServers)
+  registerTailscaleIpcHandlers()
   void updater.start()
   const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
   updateTimer.unref()

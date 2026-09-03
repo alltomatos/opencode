@@ -25,6 +25,7 @@ export type ServerReadyData = {
 
 export type WslServersAPI = WslServersPlatform
 export type SshServersAPI = SshServersPlatform
+export type TailscaleStatus = { available: boolean; ip: string | null }
 export type UpdaterAPI = {
   subscribe: (cb: (state: UpdaterState) => void) => Promise<() => void>
   check: () => Promise<UpdaterState>
@@ -68,6 +69,7 @@ export type ElectronAPI = {
   awaitInitialization: () => Promise<ServerReadyData>
   wslServers: WslServersAPI
   sshServers: SshServersAPI
+  checkTailscale: () => Promise<TailscaleStatus>
   updater: UpdaterAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>

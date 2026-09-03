@@ -16,6 +16,7 @@ import { ServerConnection } from "@/context/server"
 import { showToast } from "@/utils/toast"
 import { DialogAddWslServer } from "./dialog-add-server"
 import { DialogAddSshTunnelServer } from "@/ssh-tunnel/dialog-add-server"
+import { DialogAddTailscaleServer } from "@/tailscale/dialog-add-server"
 import { useWslServers } from "./context"
 import { wslOpencodeAction, wslRuntimeRetryable } from "./settings-model"
 
@@ -35,7 +36,10 @@ export function AddServerMenu(props: { onAddServer: () => void }) {
   const openAddSshTunnel = () => {
     dialog.push(() => <DialogAddSshTunnelServer />)
   }
-  const hasExtraOptions = () => !!platform.wslServers || !!platform.sshServers
+  const openAddTailscale = () => {
+    dialog.push(() => <DialogAddTailscaleServer />)
+  }
+  const hasExtraOptions = () => !!platform.wslServers || !!platform.sshServers || !!platform.checkTailscale
   return (
     <Show
       when={hasExtraOptions()}
@@ -57,6 +61,9 @@ export function AddServerMenu(props: { onAddServer: () => void }) {
             </Show>
             <Show when={platform.sshServers}>
               <MenuV2.Item onSelect={openAddSshTunnel}>{language.t("sshTunnel.server.add")}</MenuV2.Item>
+            </Show>
+            <Show when={platform.checkTailscale}>
+              <MenuV2.Item onSelect={openAddTailscale}>{language.t("tailscale.server.add")}</MenuV2.Item>
             </Show>
           </MenuV2.Content>
         </MenuV2.Portal>

@@ -87,6 +87,7 @@ type PlatformBase = {
   /** Manage WSL sidecar servers (Electron on Windows only) */
   wslServers?: WslServersPlatform
   sshServers?: SshServersPlatform
+  checkTailscale?: () => Promise<{ available: boolean; ip: string | null }>
 
   /** Get the preferred display backend (desktop only) */
   getDisplayBackend?(): Promise<DisplayBackend | null> | DisplayBackend | null
