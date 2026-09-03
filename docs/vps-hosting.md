@@ -111,6 +111,13 @@ por trás como segunda camada. Os dois modelos de acesso (porta pública com
 Basic Auth, ou túnel SSH) podem coexistir — o servidor não precisa escolher
 um ou outro, quem decide é o cliente na hora de conectar.
 
+**No app Desktop você não precisa abrir esse túnel manualmente.** Em
+Configurações → Servidores → Adicionar servidor → **Adicionar túnel SSH**,
+informe host, porta SSH, usuário, a chave (o app lista as chaves disponíveis
+em `~/.ssh`), a porta remota do opencode e as credenciais do
+`OPENCODE_SERVER_PASSWORD`. O app abre e mantém o túnel sozinho (reabrindo
+automaticamente ao reiniciar), sem precisar de terminal aberto.
+
 ## 4. Acessando
 
 ### Pelo navegador (`opencode web`)

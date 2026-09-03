@@ -47,6 +47,9 @@ import {
 import { createWslServersController } from "./wsl/servers"
 import { registerWslIpcHandlers } from "./wsl/ipc"
 import { spawnWslSidecar } from "./wsl/sidecar"
+import { createSshServersController } from "./ssh/servers"
+import { registerSshIpcHandlers } from "./ssh/ipc"
+import { spawnSshTunnel } from "./ssh/sidecar"
 import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
@@ -166,9 +169,24 @@ const main = Effect.gen(function* () {
       },
     },
   )
+  const sshServers = createSshServersController(
+    async (config) => {
+      logger.log("spawning ssh tunnel", { host: config.host })
+      return spawnSshTunnel(config, {
+        onLine: (line) => logger.log("ssh tunnel", { host: config.host, stream: line.stream, text: line.text }),
+      })
+    },
+    {
+      logger: {
+        log: (message, meta) => logger.log(message, meta),
+        error: (message, meta) => logger.error(message, meta),
+      },
+    },
+  )
   const stopSidecars = async () => {
     await killSidecar()
     wslServers.stopAll()
+    sshServers.stopAll()
   }
   const relaunch = () => {
     setAppQuitting()
@@ -318,6 +336,7 @@ const main = Effect.gen(function* () {
     },
   })
   registerWslIpcHandlers(wslServers)
+  registerSshIpcHandlers(sshServers)
   void updater.start()
   const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
   updateTimer.unref()
@@ -347,6 +366,7 @@ const main = Effect.gen(function* () {
 
       if (process.platform === "win32") {
         void wslServers.initialize().catch((error) => logger.error("wsl server initialization failed", error))
+      void sshServers.initialize().catch((error) => logger.error("ssh server initialization failed", error))
       }
 
       logger.log("loading task finished")
@@ -411,6 +431,7 @@ const main = Effect.gen(function* () {
 
     if (process.platform === "win32") {
       void wslServers.initialize().catch((error) => logger.error("wsl server initialization failed", error))
+      void sshServers.initialize().catch((error) => logger.error("ssh server initialization failed", error))
     }
 
     logger.log("loading task finished")

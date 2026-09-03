@@ -13,6 +13,7 @@ import {
   ServerConnection,
   useCommand,
   useWslServers,
+  useSshServers,
   useLanguage,
 } from "@opencode-ai/app"
 import type { UpdaterState } from "@opencode-ai/app/updater"
@@ -28,6 +29,7 @@ import { DesktopFirstLaunchOnboarding } from "./onboarding"
 import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
+import { readySshConnections } from "./ssh/connections"
 import "./styles.css"
 import { Splash } from "@opencode-ai/ui/logo"
 import { useTheme } from "@opencode-ai/ui/theme/context"
@@ -164,6 +166,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
   })()
 
   const wslServersApi = os === "windows" ? window.api.wslServers : undefined
+  const sshServersApi = window.api.sshServers
 
   return {
     platform: "desktop",
@@ -284,6 +287,8 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     wslServers: wslServersApi,
 
+    sshServers: sshServersApi,
+
     getDisplayBackend: async () => {
       return window.api.getDisplayBackend().catch(() => null)
     },
@@ -381,6 +386,7 @@ function DesktopRoot(props: { windowState: DesktopWindowState }) {
 
   function App() {
     const wslServers = useWslServers()
+    const sshServers = useSshServers()
     const language = useLanguage()
     const ready = createMemo(
       () => !defaultServer.loading && !sidecar.loading && !locale.loading && !wslServers.isLoading,
@@ -401,6 +407,7 @@ function DesktopRoot(props: { windowState: DesktopWindowState }) {
         })
       }
       list.push(...readyWslConnections(wslServers.data, language.t("wsl.server.label")))
+      list.push(...readySshConnections(sshServers.data))
       return list
     })
     const effectiveDefaultServer = createMemo(() =>

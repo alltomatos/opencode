@@ -9,6 +9,7 @@ const local = {
 const remote = {
   type: "ssh",
   host: "example.test",
+  sshServerId: "ssh:test",
   http: { url: "http://localhost:4096" },
 } as const
 const httpLocal = {
