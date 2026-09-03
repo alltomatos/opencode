@@ -69,6 +69,40 @@ function projectDir(directory: string) {
   return path.join(Global.Path.data, "memory", "projects", projectKey(directory))
 }
 
+// Where the global-memory skill lives so it's picked up by the same discovery
+// mechanism as any other skill (packages/opencode/src/skill/index.ts scans
+// Global.Path.config with the "{skill,skills}/**/SKILL.md" pattern) — this is
+// what makes global memory available in every session without per-consumer
+// wiring, on top of the explicit Memory.Service.load() used by
+// sessions/Telegram. See issue #142.
+function globalSkillFile() {
+  return path.join(Global.Path.config, "skill", "memory", "SKILL.md")
+}
+
+// Caps how much global-memory content gets embedded in the skill file so it
+// can't grow unbounded — only the most recent entries survive a
+// regeneration; older ones stay on disk under memory/global/ (readable via
+// the memory_search tool / Memory.Service.load()) but drop out of the skill.
+const GLOBAL_SKILL_MAX_CHARS = 20_000
+const GLOBAL_SKILL_MAX_FILES = 20
+
+async function regenerateGlobalSkillFile() {
+  const content = await readRecentMemoryFiles(globalDir(), GLOBAL_SKILL_MAX_FILES)
+  const trimmed = content.length > GLOBAL_SKILL_MAX_CHARS ? content.slice(-GLOBAL_SKILL_MAX_CHARS) : content
+  const body = trimmed.trim()
+    ? trimmed
+    : "Nenhuma memória global registrada ainda."
+  const skill =
+    `---\n` +
+    `name: memory\n` +
+    `description: Memória global entre sessões e projetos — fatos, preferências e decisões que o usuário confirmou como relevantes além de um projeto específico. Consulte antes de perguntar algo que já pode ter sido respondido antes.\n` +
+    `---\n\n` +
+    `${body}\n`
+  const file = globalSkillFile()
+  await mkdir(path.dirname(file), { recursive: true })
+  await writeFile(file, skill, "utf8")
+}
+
 export class ModelNotConfiguredError extends Schema.TaggedErrorClass<ModelNotConfiguredError>()(
   "MemoryModelNotConfiguredError",
   {},
@@ -250,6 +284,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       const entry = `## ${timestamp}\n\n${input.summary}\n\n`
       const file = path.join(globalDir(), todayFile())
       yield* Effect.tryPromise({ try: () => appendMemoryEntry(file, entry), catch: () => undefined }).pipe(Effect.orDie)
+      yield* Effect.tryPromise({ try: () => regenerateGlobalSkillFile(), catch: () => undefined }).pipe(Effect.orDie)
       return { path: file }
     })
 
