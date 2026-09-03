@@ -273,6 +273,12 @@ import type {
   SyncStartResponses,
   SyncStealErrors,
   SyncStealResponses,
+  TelegramConnectErrors,
+  TelegramConnectResponses,
+  TelegramDisconnectErrors,
+  TelegramDisconnectResponses,
+  TelegramStatusErrors,
+  TelegramStatusResponses,
   TextPartInput,
   ToolIdsErrors,
   ToolIdsResponses,
@@ -5274,6 +5280,105 @@ export class Sync extends HeyApiClient {
   }
 }
 
+export class Telegram extends HeyApiClient {
+  /**
+   * Get Telegram bot status
+   *
+   * Get whether a Telegram bot is connected, and its username if so.
+   */
+  public status<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TelegramStatusResponses, TelegramStatusErrors, ThrowOnError>({
+      url: "/telegram",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Connect a Telegram bot
+   *
+   * Validate a Telegram bot token via getMe and store it as the active bot.
+   */
+  public connect<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      token?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "token" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<TelegramConnectResponses, TelegramConnectErrors, ThrowOnError>({
+      url: "/telegram/connect",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Disconnect the Telegram bot
+   *
+   * Remove the stored Telegram bot token.
+   */
+  public disconnect<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<TelegramDisconnectResponses, TelegramDisconnectErrors, ThrowOnError>({
+      url: "/telegram/disconnect",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Control extends HeyApiClient {
   /**
    * Get next TUI request
@@ -7915,6 +8020,11 @@ export class OpencodeClient extends HeyApiClient {
   private _sync?: Sync
   get sync(): Sync {
     return (this._sync ??= new Sync({ client: this.client }))
+  }
+
+  private _telegram?: Telegram
+  get telegram(): Telegram {
+    return (this._telegram ??= new Telegram({ client: this.client }))
   }
 
   private _tui?: Tui

@@ -13,6 +13,7 @@ import { SettingsServersV2 } from "./servers"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsExternalAgentsV2 } from "./external-agents"
 import { SettingsMcpV2 } from "./mcp"
+import { SettingsIntegrationsV2 } from "./integrations"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -100,6 +101,10 @@ export const DialogSettings: Component<{
                       <Icon name="link" />
                       {language.t("settings.mcp.title")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="integrations">
+                      <Icon name="share" />
+                      {language.t("settings.integrations.title")}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="externalAgents">
                       <Icon name="terminal" />
                       {language.t("settings.externalAgents.title")}
@@ -142,6 +147,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="mcp" class="settings-v2-panel">
           <SettingsMcpV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="integrations" class="settings-v2-panel">
+          <SettingsIntegrationsV2 />
         </TabsV2.Content>
         <TabsV2.Content value="externalAgents" class="settings-v2-panel">
           <SettingsExternalAgentsV2 />

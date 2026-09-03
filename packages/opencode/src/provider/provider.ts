@@ -2219,7 +2219,11 @@ const layer = Layer.effect(
       const configured = Object.keys(cfg.provider ?? {})
       const provider = Object.values(s.providers).find((p) => configured.length === 0 || configured.includes(p.id))
       if (!provider) return yield* new NoProvidersError()
-      const [model] = sort(Object.values(provider.models))
+      const candidates =
+        provider.id === "agentrouter"
+          ? excludeAgentrouterDefaultBlocklist(Object.values(provider.models))
+          : Object.values(provider.models)
+      const [model] = sort(candidates)
       if (!model) return yield* new NoModelsError({ providerID: provider.id })
       return {
         providerID: provider.id,
@@ -2245,6 +2249,16 @@ const layer = Layer.effect(
 
 const priority = ["gpt-5", "claude-sonnet-4", "big-pickle", "gemini-3-pro"]
 const smallModelFamilyPriority = ["gemini-flash", "gpt-nano", "claude-haiku"]
+
+// Claude Opus and GPT models on agentrouter proved flakier in practice than
+// the alternatives it offers (rate-limit/content-filter loops, slow
+// responses) — keep them selectable by name, just never auto-picked as the
+// default for that provider. Falls back to the unfiltered list if every
+// model happens to match (never leaves the provider with zero candidates).
+function excludeAgentrouterDefaultBlocklist<T extends { id: string }>(models: T[]) {
+  const filtered = models.filter((model) => !/opus|gpt/i.test(model.id))
+  return filtered.length > 0 ? filtered : models
+}
 export function sort<T extends { id: string }>(models: T[]) {
   return sortBy(
     models,
