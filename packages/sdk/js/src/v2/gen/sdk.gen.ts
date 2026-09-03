@@ -152,6 +152,13 @@ import type {
   McpRemoveResponses,
   McpStatusErrors,
   McpStatusResponses,
+  MemoryConfig,
+  MemoryForgetProjectErrors,
+  MemoryForgetProjectResponses,
+  MemoryGetConfigErrors,
+  MemoryGetConfigResponses,
+  MemorySetConfigErrors,
+  MemorySetConfigResponses,
   ModelRef,
   MoveSessionDestination,
   OutputFormat,
@@ -5379,6 +5386,98 @@ export class Telegram extends HeyApiClient {
   }
 }
 
+export class Memory extends HeyApiClient {
+  /**
+   * Get memory configuration
+   *
+   * Whether memory is enabled and which model summarizes/answers memory lookups.
+   */
+  public getConfig<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MemoryGetConfigResponses, MemoryGetConfigErrors, ThrowOnError>({
+      url: "/memory",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update memory configuration
+   *
+   * Enable/disable memory and choose the model used for it.
+   */
+  public setConfig<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      memoryConfig?: MemoryConfig
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "memoryConfig", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<MemorySetConfigResponses, MemorySetConfigErrors, ThrowOnError>({
+      url: "/memory",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Delete a project's memory
+   *
+   * Deletes all memory entries recorded for the given project directory. Global memory is untouched.
+   */
+  public forgetProject<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).delete<
+      MemoryForgetProjectResponses,
+      MemoryForgetProjectErrors,
+      ThrowOnError
+    >({
+      url: "/memory/project",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Control extends HeyApiClient {
   /**
    * Get next TUI request
@@ -8025,6 +8124,11 @@ export class OpencodeClient extends HeyApiClient {
   private _telegram?: Telegram
   get telegram(): Telegram {
     return (this._telegram ??= new Telegram({ client: this.client }))
+  }
+
+  private _memory?: Memory
+  get memory(): Memory {
+    return (this._memory ??= new Memory({ client: this.client }))
   }
 
   private _tui?: Tui
