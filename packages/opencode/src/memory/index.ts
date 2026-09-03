@@ -17,6 +17,26 @@ import path from "node:path"
 // global/per-project markdown memory available to any session (chat,
 // Telegram, Breniac once it adopts this service too). See issue #138.
 
+// Memory is on by default (opt-out, not opt-in) — unset `enabled` means
+// "never touched this setting," which should behave as enabled; only an
+// explicit `false` (the user turned it off in Settings) disables it.
+export function isEnabled(config: ConfigMemoryV1.Info) {
+  return config.enabled !== false
+}
+
+// Curated against the Omniroute catalog (same list used by the Breniac
+// recommended-models dialog) — cheap/fast models that have proven reliable
+// for structured tool-calling. Tried in order; the first one whose provider
+// is actually connected wins, so a fresh install gets a working default
+// without the user having to configure anything first.
+const DEFAULT_MODEL_CANDIDATES = [
+  "openrouter/google/gemini-3.5-flash-lite",
+  "kc/anthropic/claude-haiku-4.5",
+  "kc/google/gemini-2.5-flash-lite",
+  "antigravity/gemini-3.1-flash-lite",
+  "agy/gemini-3.1-flash-lite",
+]
+
 function projectKey(directory: string) {
   return directory.replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+/g, "_").slice(-80) || "root"
 }
@@ -90,6 +110,11 @@ export interface Interface {
   readonly promoteGlobal: (input: { summary: string }) => Effect.Effect<{ path: string }>
   readonly load: (input: { directory?: string }) => Effect.Effect<{ context: string }>
   readonly forgetProject: (directory: string) => Effect.Effect<void>
+  // Direct write, no secondary LLM call — for the on-demand `memory_save`
+  // tool, where the model already doing the work decides something is
+  // worth remembering. Project-scoped only; promoting to global still goes
+  // through the explicit-confirmation summarize()/promoteGlobal() path.
+  readonly remember: (input: { directory: string; note: string }) => Effect.Effect<{ path: string }>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Memory") {}
@@ -119,21 +144,41 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       return s.config
     })
 
+    // Resolves a "providerID/modelID" string to an actual, connected model —
+    // used both for the user's explicit choice and for auto-picking a
+    // default from DEFAULT_MODEL_CANDIDATES.
+    const tryResolveModel = (spec: string) =>
+      Effect.gen(function* () {
+        const separator = spec.indexOf("/")
+        if (separator < 0) return undefined
+        const providerID = spec.slice(0, separator)
+        const modelID = spec.slice(separator + 1)
+        const providerInfo = yield* provider.getProvider(providerID as any).pipe(Effect.orElseSucceed(() => undefined))
+        const modelInfo = providerInfo?.models[modelID]
+        if (!modelInfo) return undefined
+        return yield* provider
+          .getLanguage(modelInfo)
+          .pipe(Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)))
+      })
+
+    const resolveModel = Effect.fn("Memory.resolveModel")(function* (configured: string | undefined) {
+      if (configured) {
+        const language = yield* tryResolveModel(configured)
+        if (language) return language
+        return yield* new ModelNotConfiguredError()
+      }
+      for (const candidate of DEFAULT_MODEL_CANDIDATES) {
+        const language = yield* tryResolveModel(candidate)
+        if (language) return language
+      }
+      return yield* new ModelNotConfiguredError()
+    })
+
     const summarize = Effect.fn("Memory.summarize")(function* (input: { directory: string; transcript: string }) {
       if (!input.transcript.trim()) return { summarized: false } satisfies SummarizeResult
 
       const config = yield* InstanceState.get(state).pipe(Effect.map((s) => s.config))
-      if (!config.memoryModel) return yield* new ModelNotConfiguredError()
-
-      const separator = config.memoryModel.indexOf("/")
-      const providerID = config.memoryModel.slice(0, separator)
-      const modelID = config.memoryModel.slice(separator + 1)
-      const providerInfo = yield* provider.getProvider(providerID as any)
-      const modelInfo = providerInfo?.models[modelID]
-      if (!modelInfo) return yield* new ModelNotConfiguredError()
-      const language = yield* provider
-        .getLanguage(modelInfo)
-        .pipe(Effect.catchTag("ProviderModelNotFoundError", () => Effect.fail(new ModelNotConfiguredError())))
+      const language = yield* resolveModel(config.memoryModel)
 
       const saveSummary = tool({
         description: "Salvar o resumo estruturado desta sessão.",
@@ -192,6 +237,14 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       } satisfies SummarizeResult
     })
 
+    const remember = Effect.fn("Memory.remember")(function* (input: { directory: string; note: string }) {
+      const timestamp = new Date().toISOString()
+      const entry = `## ${timestamp}\n\n${input.note}\n\n`
+      const file = path.join(projectDir(input.directory), todayFile())
+      yield* Effect.tryPromise({ try: () => appendMemoryEntry(file, entry), catch: () => undefined }).pipe(Effect.orDie)
+      return { path: file }
+    })
+
     const promoteGlobal = Effect.fn("Memory.promoteGlobal")(function* (input: { summary: string }) {
       const timestamp = new Date().toISOString()
       const entry = `## ${timestamp}\n\n${input.summary}\n\n`
@@ -220,7 +273,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       )
     })
 
-    return Service.of({ get, set, summarize, promoteGlobal, load, forgetProject })
+    return Service.of({ get, set, summarize, promoteGlobal, load, forgetProject, remember })
   }),
 )
 
