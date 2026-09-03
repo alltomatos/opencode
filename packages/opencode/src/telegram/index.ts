@@ -41,9 +41,22 @@ export class InvalidTokenError extends Schema.TaggedErrorClass<InvalidTokenError
 // https://core.telegram.org/bots/api#making-requests.
 type TelegramApiError = { ok: false; description?: string }
 type TelegramGetMeResponse = { ok: true; result: { id: number; username?: string; first_name: string } }
-type TelegramMessage = { chat: { id: number }; text?: string }
+type TelegramPhotoSize = { file_id: string; width: number; height: number }
+type TelegramVoice = { file_id: string; mime_type?: string }
+type TelegramAudio = { file_id: string; mime_type?: string }
+type TelegramDocument = { file_id: string; mime_type?: string; file_name?: string }
+type TelegramMessage = {
+  chat: { id: number }
+  text?: string
+  caption?: string
+  photo?: TelegramPhotoSize[]
+  voice?: TelegramVoice
+  audio?: TelegramAudio
+  document?: TelegramDocument
+}
 type TelegramUpdate = { update_id: number; message?: TelegramMessage }
 type TelegramGetUpdatesResponse = { ok: true; result: TelegramUpdate[] }
+type TelegramGetFileResponse = { ok: true; result: { file_path?: string } }
 
 async function fetchBotInfo(token: string): Promise<BotInfo> {
   const response = await fetch(`${API_ROOT}/bot${token}/getMe`)
@@ -68,6 +81,29 @@ async function getUpdates(token: string, offset: number): Promise<TelegramUpdate
     throw new Error(description ?? `Telegram API returned ${response.status}`)
   }
   return body.result
+}
+
+const MAX_DOWNLOAD_BYTES = 20 * 1024 * 1024 // Telegram bot API's own download cap for regular bots.
+
+// Fetches a photo/voice/audio/document attachment and returns it as a data
+// URL — getFile resolves Telegram's file_id to a temporary file_path, which
+// is then downloaded from Telegram's separate file-serving host.
+async function downloadTelegramFile(token: string, fileId: string, fallbackMime: string): Promise<string> {
+  const infoResponse = await fetch(`${API_ROOT}/bot${token}/getFile?file_id=${fileId}`)
+  const infoBody = (await infoResponse.json().catch(() => undefined)) as
+    | TelegramGetFileResponse
+    | TelegramApiError
+    | undefined
+  if (!infoResponse.ok || !infoBody?.ok || !infoBody.result.file_path) {
+    const description = infoBody && "description" in infoBody ? infoBody.description : undefined
+    throw new Error(description ?? `Telegram getFile returned ${infoResponse.status}`)
+  }
+  const fileResponse = await fetch(`${API_ROOT}/file/bot${token}/${infoBody.result.file_path}`)
+  if (!fileResponse.ok) throw new Error(`Telegram file download returned ${fileResponse.status}`)
+  const buffer = await fileResponse.arrayBuffer()
+  if (buffer.byteLength > MAX_DOWNLOAD_BYTES) throw new Error(`Attachment too large (${buffer.byteLength} bytes)`)
+  const mime = fileResponse.headers.get("content-type") ?? fallbackMime
+  return `data:${mime};base64,${Buffer.from(buffer).toString("base64")}`
 }
 
 async function sendMessage(token: string, chatId: number, text: string): Promise<void> {
@@ -155,6 +191,8 @@ const layer = Layer.effect(
       "/model <número> — troca o modelo desta conversa",
       "/skills — lista as skills disponíveis",
       "/help — mostra esta lista",
+      "",
+      "Também aceita foto e áudio/voz — envie junto com uma legenda ou mensagem.",
       "",
       "Qualquer outro /comando é encaminhado como comando do opencode (inclui skills customizadas).",
     ].join("\n")
@@ -271,42 +309,85 @@ const layer = Layer.effect(
       message: TelegramMessage,
     ) {
       const chatId = message.chat.id
-      const text = message.text
-      if (!text) return
-      yield* Effect.tryPromise(() => sendTyping(token, chatId)).pipe(Effect.ignore)
+      const text = message.text ?? message.caption ?? ""
+
+      // Photos come as several resolutions of the same image — Telegram
+      // orders `photo` smallest-first, so the last entry is the largest.
+      // Voice notes are always OGG/Opus; audio/document attachments carry
+      // their own mime type. Anything that isn't image/audio is skipped —
+      // there's no use forwarding an arbitrary document as a "file" part
+      // the model can't read.
+      const attachments: { fileId: string; mime: string }[] = []
+      const photo = message.photo?.at(-1)
+      if (photo) attachments.push({ fileId: photo.file_id, mime: "image/jpeg" })
+      if (message.voice) attachments.push({ fileId: message.voice.file_id, mime: message.voice.mime_type ?? "audio/ogg" })
+      if (message.audio) attachments.push({ fileId: message.audio.file_id, mime: message.audio.mime_type ?? "audio/mpeg" })
+      if (message.document?.mime_type?.match(/^(image|audio)\//))
+        attachments.push({ fileId: message.document.file_id, mime: message.document.mime_type })
+
+      if (!text && attachments.length === 0) return
 
       const state = (yield* chatSessions.get(chatId)) ?? { directory: botDirectory }
       const directory = state.directory
       const ctx = yield* instanceStore.load({ directory })
 
-      const reply = yield* Effect.gen(function* () {
-        if (text.startsWith("/")) {
-          const [command, ...rest] = text.slice(1).split(/\s+/)
-          return yield* runCommand(chatId, state, command.toLowerCase(), rest.join(" "))
-        }
+      // Telegram's "typing..." indicator auto-expires after ~5s, and a
+      // skill/prompt run (orchestrator, etc.) can take minutes — without a
+      // heartbeat the chat looks dead the whole time. Keep resending it
+      // every 4s for as long as the reply is being computed; the fork is
+      // interrupted the moment the scope closes below.
+      const reply = yield* Effect.scoped(
+        Effect.gen(function* () {
+          yield* Effect.forkScoped(
+            Effect.forever(
+              Effect.tryPromise(() => sendTyping(token, chatId)).pipe(
+                Effect.ignore,
+                Effect.andThen(Effect.sleep("4 seconds")),
+              ),
+            ),
+          )
 
-        const cached = yield* chatSessions.get(chatId)
-        let sessionID = cached?.sessionID ? SessionID.make(cached.sessionID) : undefined
-        if (!sessionID) {
-          const session = yield* sessions.create({ title: `Telegram: ${chatId}`, directory })
-          sessionID = session.id
-          yield* chatSessions.update(chatId, directory, (s) => ({ ...s, sessionID }))
-        }
-        const model = state.model
-          ? { providerID: ProviderV2.ID.make(state.model.providerID), modelID: ModelV2.ID.make(state.model.modelID) }
-          : undefined
-        const result = yield* promptSvc
-          .prompt({ sessionID, model, parts: [{ type: "text", text }] })
-          .pipe(Effect.map((withParts) => extractText(withParts)))
-        return result
-      }).pipe(
-        Effect.provideService(InstanceRef, ctx),
-        Effect.catch((cause) =>
-          Effect.gen(function* () {
-            yield* Effect.logError("telegram prompt failed", { chatId, cause })
-            return `⚠️ ${cause instanceof Error ? cause.message : String(cause)}`
-          }),
-        ),
+          return yield* Effect.gen(function* () {
+            if (text.startsWith("/")) {
+              const [command, ...rest] = text.slice(1).split(/\s+/)
+              return yield* runCommand(chatId, state, command.toLowerCase(), rest.join(" "))
+            }
+
+            const cached = yield* chatSessions.get(chatId)
+            let sessionID = cached?.sessionID ? SessionID.make(cached.sessionID) : undefined
+            if (!sessionID) {
+              const session = yield* sessions.create({ title: `Telegram: ${chatId}`, directory })
+              sessionID = session.id
+              yield* chatSessions.update(chatId, directory, (s) => ({ ...s, sessionID }))
+            }
+            const model = state.model
+              ? { providerID: ProviderV2.ID.make(state.model.providerID), modelID: ModelV2.ID.make(state.model.modelID) }
+              : undefined
+
+            const fileParts = yield* Effect.forEach(attachments, (attachment) =>
+              Effect.tryPromise(() => downloadTelegramFile(token, attachment.fileId, attachment.mime)).pipe(
+                Effect.map((url) => ({ type: "file" as const, mime: attachment.mime, url })),
+                Effect.tapError((cause) => Effect.logError("telegram attachment download failed", { chatId, cause })),
+                Effect.option,
+              ),
+            ).pipe(Effect.map((results) => results.filter((r) => r._tag === "Some").map((r) => r.value)))
+
+            const parts = [...fileParts, ...(text ? [{ type: "text" as const, text }] : [])]
+            if (parts.length === 0) return "⚠️ Não consegui baixar o anexo enviado."
+            const result = yield* promptSvc
+              .prompt({ sessionID, model, parts })
+              .pipe(Effect.map((withParts) => extractText(withParts)))
+            return result
+          }).pipe(
+            Effect.provideService(InstanceRef, ctx),
+            Effect.catch((cause) =>
+              Effect.gen(function* () {
+                yield* Effect.logError("telegram prompt failed", { chatId, cause })
+                return `⚠️ ${cause instanceof Error ? cause.message : String(cause)}`
+              }),
+            ),
+          )
+        }),
       )
       yield* Effect.tryPromise(() => sendMessage(token, chatId, reply || "(sem resposta)")).pipe(Effect.ignore)
     })
