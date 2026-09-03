@@ -18,6 +18,9 @@ import { ComputerTool } from "./computer"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
+import { MemorySearchTool } from "./memory-search"
+import { MemorySaveTool } from "./memory-save"
+import { Memory } from "../memory"
 import * as Tool from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@opencode-ai/plugin"
@@ -101,6 +104,7 @@ const layer = Layer.effect(
     const truncate = yield* Truncate.Service
     const flags = yield* RuntimeFlags.Service
     const mcp = yield* MCP.Service
+    const memory = yield* Memory.Service
 
     const invalid = yield* InvalidTool
     const task = yield* TaskTool
@@ -120,6 +124,8 @@ const layer = Layer.effect(
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
+    const memorysearchtool = yield* MemorySearchTool
+    const memorysavetool = yield* MemorySaveTool
     const agent = yield* Agent.Service
     const codeMode = flags.experimentalCodeMode ? yield* Effect.promise(() => import("./code-mode")) : undefined
     const codeModeTool = codeMode ? yield* codeMode.CodeModeTool : undefined
@@ -210,6 +216,7 @@ const layer = Layer.effect(
         }
 
         yield* config.get()
+        const memoryEnabled = Memory.isEnabled(yield* memory.get())
         const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
         const browserToolEnabled =
           flags.client === "desktop" && flags.experimentalBrowserTool && Option.isSome(flags.browserBridgePort)
@@ -229,6 +236,8 @@ const layer = Layer.effect(
           todo: Tool.init(todo),
           search: Tool.init(websearch),
           skill: Tool.init(skilltool),
+          memorySearch: Tool.init(memorysearchtool),
+          memorySave: Tool.init(memorysavetool),
           patch: Tool.init(patchtool),
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
@@ -254,6 +263,7 @@ const layer = Layer.effect(
             tool.todo,
             tool.search,
             tool.skill,
+            ...(memoryEnabled ? [tool.memorySearch, tool.memorySave] : []),
             tool.patch,
             ...(tool.execute ? [tool.execute] : []),
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
@@ -465,6 +475,7 @@ export const node = LayerNode.make({
     ExternalAgent.node,
     Database.node,
     Ripgrep.node,
+    Memory.node,
   ],
 })
 
