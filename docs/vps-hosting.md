@@ -93,6 +93,31 @@ opencode.seudominio.com {
 Com o proxy, mantenha `--hostname 127.0.0.1` no `opencode` (só o proxy fica
 exposto na 443) e libere apenas as portas 80/443 no firewall da VPS.
 
+### Alternativa: túnel SSH em vez de expor a porta
+
+Se você já tem acesso SSH (com chave) à VPS e prefere não abrir a porta do
+`opencode` pra internet nem configurar TLS, dá pra rodar o servidor com
+`--hostname 127.0.0.1` (sem liberar nada no firewall além da 22) e acessar
+via túnel:
+
+```bash
+ssh -L 4096:127.0.0.1:4096 usuario@ip-da-vps
+```
+
+Com o túnel aberto, aponte o navegador ou o Desktop (Adicionar servidor)
+pra `http://127.0.0.1:4096` — a autenticação forte nesse caminho é a sua
+chave SSH; o usuário/senha do `OPENCODE_SERVER_PASSWORD` continua valendo
+por trás como segunda camada. Os dois modelos de acesso (porta pública com
+Basic Auth, ou túnel SSH) podem coexistir — o servidor não precisa escolher
+um ou outro, quem decide é o cliente na hora de conectar.
+
+**No app Desktop você não precisa abrir esse túnel manualmente.** Em
+Configurações → Servidores → Adicionar servidor → **Adicionar túnel SSH**,
+informe host, porta SSH, usuário, a chave (o app lista as chaves disponíveis
+em `~/.ssh`), a porta remota do opencode e as credenciais do
+`OPENCODE_SERVER_PASSWORD`. O app abre e mantém o túnel sozinho (reabrindo
+automaticamente ao reiniciar), sem precisar de terminal aberto.
+
 ## 4. Acessando
 
 ### Pelo navegador (`opencode web`)

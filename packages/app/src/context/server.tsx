@@ -212,6 +212,9 @@ export namespace ServerConnection {
   export type Ssh = {
     type: "ssh"
     host: string
+    // id of the underlying SshServerConfig (see ssh-tunnel/types.ts), so the
+    // UI can ask the main process to stop/remove the actual tunnel process
+    sshServerId: string
     // SSH client exposes an HTTP server for the app to use as a proxy
     http: HttpBase
   } & Base
