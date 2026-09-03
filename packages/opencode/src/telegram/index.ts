@@ -589,9 +589,12 @@ const layer = Layer.effect(
       text: string,
       attachments: { fileId: string; mime: string }[],
     ) {
+      yield* Effect.logInfo("telegram dispatchTask", { chatId, text: text.slice(0, 40) })
       const running = activeTasksByChat.get(chatId)
+      yield* Effect.logInfo("telegram dispatchTask: running", { chatId, count: running?.length ?? 0 })
       if (!running || running.length === 0) {
         yield* startTask(token, chatId, directory, text, attachments)
+        yield* Effect.logInfo("telegram dispatchTask: startTask returned", { chatId })
         return "🚀 Comecei a trabalhar nisso em segundo plano — te aviso quando terminar."
       }
 
@@ -704,6 +707,7 @@ const layer = Layer.effect(
     ) {
       const chatId = message.chat.id
       const text = message.text ?? message.caption ?? ""
+      yield* Effect.logInfo("telegram handleMessage", { chatId, text: text.slice(0, 40) })
 
       // Photos come as several resolutions of the same image — Telegram
       // orders `photo` smallest-first, so the last entry is the largest.
@@ -737,7 +741,9 @@ const layer = Layer.effect(
         reply = yield* dispatchTask(token, chatId, directory, text, attachments)
       }
 
+      yield* Effect.logInfo("telegram handleMessage: reply computed", { chatId, hasReply: !!reply })
       if (reply) yield* Effect.tryPromise(() => sendMessage(token, chatId, reply)).pipe(Effect.ignore)
+      yield* Effect.logInfo("telegram handleMessage: done", { chatId })
     })
 
     // Approve/deny/always buttons on the message sendApprovalRequest posted.
