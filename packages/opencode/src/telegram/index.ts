@@ -17,6 +17,8 @@ import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { Permission } from "../permission"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
+import { Question } from "../question"
+import { QuestionV1 } from "@opencode-ai/schema/question-v1"
 import { EventV2Bridge } from "@/event-v2-bridge"
 
 const TELEGRAM_AUTH_KEY = "telegram"
@@ -155,6 +157,31 @@ async function sendApprovalRequest(
   })
 }
 
+// Multi-select is not offered over Telegram buttons — one tap picks one
+// option, same as answering a single-choice poll. `custom` still works via
+// a plain text reply, handled separately in handleMessage.
+async function sendQuestion(
+  token: string,
+  chatId: number,
+  requestID: string,
+  info: { question: string; options: readonly { label: string }[]; custom?: boolean },
+): Promise<void> {
+  const note = info.custom === false ? "" : "\n\n(ou digite sua própria resposta)"
+  await fetch(`${API_ROOT}/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: `❓ ${info.question}${note}`,
+      reply_markup: {
+        inline_keyboard: info.options.map((option, i) => [
+          { text: option.label.slice(0, 60), callback_data: `ques:${requestID}:${i}` },
+        ]),
+      },
+    }),
+  })
+}
+
 async function answerCallbackQuery(token: string, callbackQueryId: string, text?: string): Promise<void> {
   await fetch(`${API_ROOT}/bot${token}/answerCallbackQuery`, {
     method: "POST",
@@ -209,13 +236,64 @@ const layer = Layer.effect(
     const projects = yield* Project.Service
     const chatSessions = yield* TelegramChatSessions.Service
     const permission = yield* Permission.Service
+    const question = yield* Question.Service
     const events = yield* EventV2Bridge.Service
 
     // In-memory only (rebuilt as chats send their first message after a
-    // restart) — enough to route a permission.asked event for a session
-    // back to the Telegram chat that owns it.
+    // restart) — enough to route a permission.asked/question.asked event
+    // for a session back to the Telegram chat that owns it.
     const sessionChats = new Map<string, number>()
     const rememberSession = (chatId: number, sessionID: string) => sessionChats.set(sessionID, chatId)
+
+    // A multi-question request (e.g. from /grill-me) is answered one
+    // question at a time — each button tap or free-text reply advances
+    // `index` until every question has an answer, then question.reply()
+    // fires with the full array.
+    interface PendingQuestion {
+      chatId: number
+      questions: readonly Question.Info[]
+      index: number
+      answers: string[][]
+    }
+    const pendingQuestions = new Map<string, PendingQuestion>()
+
+    // Consumes the message as this chat's answer to its current pending
+    // question, if any — returns false (message untouched) otherwise, so
+    // the caller falls through to normal command/prompt handling.
+    const tryAnswerPendingQuestion = Effect.fn("Telegram.tryAnswerPendingQuestion")(function* (
+      token: string,
+      chatId: number,
+      text: string,
+    ) {
+      if (!text || text.startsWith("/")) return false
+      const entry = Array.from(pendingQuestions.entries()).find(([, v]) => v.chatId === chatId)
+      if (!entry) return false
+      const [requestID, state] = entry
+      if (state.questions[state.index]?.custom === false) return false
+      yield* advanceQuestion(token, requestID, state, [text])
+      return true
+    })
+
+    const advanceQuestion = Effect.fn("Telegram.advanceQuestion")(function* (
+      token: string,
+      requestID: string,
+      state: PendingQuestion,
+      answer: string[],
+    ) {
+      state.answers.push(answer)
+      state.index++
+      if (state.index < state.questions.length) {
+        yield* Effect.tryPromise(() =>
+          sendQuestion(token, state.chatId, requestID, state.questions[state.index]!),
+        ).pipe(Effect.ignore)
+        return
+      }
+      pendingQuestions.delete(requestID)
+      yield* question
+        .reply({ requestID: QuestionV1.ID.make(requestID), answers: state.answers })
+        .pipe(Effect.ignore)
+      yield* Effect.tryPromise(() => sendMessage(token, state.chatId, "✅ Respostas enviadas.")).pipe(Effect.ignore)
+    })
 
     const connect = Effect.fn("Telegram.connect")(function* (token: string, directory: string) {
       const bot = yield* Effect.tryPromise({
@@ -396,6 +474,8 @@ const layer = Layer.effect(
 
       if (!text && attachments.length === 0) return
 
+      if (yield* tryAnswerPendingQuestion(token, chatId, text)) return
+
       const state = (yield* chatSessions.get(chatId)) ?? { directory: botDirectory }
       const directory = state.directory
       const ctx = yield* instanceStore.load({ directory })
@@ -493,7 +573,22 @@ const layer = Layer.effect(
       token: string,
       cb: TelegramCallbackQuery,
     ) {
-      const [, requestID, action] = (cb.data ?? "").split(":")
+      const data = cb.data ?? ""
+
+      if (data.startsWith("ques:")) {
+        const [, requestID, optionIndexStr] = data.split(":")
+        const state = requestID ? pendingQuestions.get(requestID) : undefined
+        if (!state) {
+          yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id)).pipe(Effect.ignore)
+          return
+        }
+        const option = state.questions[state.index]?.options[Number(optionIndexStr)]
+        yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, option?.label)).pipe(Effect.ignore)
+        yield* advanceQuestion(token, requestID!, state, [option?.label ?? ""])
+        return
+      }
+
+      const [, requestID, action] = data.split(":")
       if (!requestID || !action) {
         yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id)).pipe(Effect.ignore)
         return
@@ -507,24 +602,38 @@ const layer = Layer.effect(
     })
 
     // No terminal exists on the other end of a Telegram chat to show the
-    // usual approval dialog, so mirror every permission.asked for a
-    // Telegram-owned session as a message with approve/deny buttons.
+    // usual approval dialog or an elicitation prompt, so mirror both
+    // permission.asked and question.asked for a Telegram-owned session as
+    // a message with buttons (questions also accept a free-text reply).
     yield* Effect.forkScoped(
       events.listen((event) =>
         Effect.gen(function* () {
-          if (event.type !== "permission.asked") return
-          const request = event.data as PermissionV1.Request
-          const chatId = sessionChats.get(request.sessionID)
-          if (!chatId) return
-          const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
-          if (!info || info.type !== "api") return
-          yield* Effect.tryPromise(() =>
-            sendApprovalRequest(info.key, chatId, {
-              id: request.id,
-              permission: request.permission,
-              patterns: request.patterns,
-            }),
-          ).pipe(Effect.ignore)
+          if (event.type === "permission.asked") {
+            const request = event.data as PermissionV1.Request
+            const chatId = sessionChats.get(request.sessionID)
+            if (!chatId) return
+            const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
+            if (!info || info.type !== "api") return
+            yield* Effect.tryPromise(() =>
+              sendApprovalRequest(info.key, chatId, {
+                id: request.id,
+                permission: request.permission,
+                patterns: request.patterns,
+              }),
+            ).pipe(Effect.ignore)
+            return
+          }
+          if (event.type === "question.asked") {
+            const request = event.data as Question.Request
+            const chatId = sessionChats.get(request.sessionID)
+            if (!chatId || request.questions.length === 0) return
+            const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
+            if (!info || info.type !== "api") return
+            pendingQuestions.set(request.id, { chatId, questions: request.questions, index: 0, answers: [] })
+            yield* Effect.tryPromise(() => sendQuestion(info.key, chatId, request.id, request.questions[0]!)).pipe(
+              Effect.ignore,
+            )
+          }
         }),
       ),
     )
@@ -589,6 +698,7 @@ export const node = LayerNode.make({
     Project.node,
     TelegramChatSessions.node,
     Permission.node,
+    Question.node,
     EventV2Bridge.node,
   ],
 })
