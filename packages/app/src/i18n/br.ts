@@ -1465,4 +1465,6 @@ export const dict = {
   "provider.omniroute.mcp.failed": "Não foi possível conectar ao servidor MCP. Acesse {{url}} e habilite-o, depois teste novamente.",
   "provider.omniroute.mcp.retry": "Testar novamente",
   "provider.omniroute.mcp.skip": "Pular MCP",
+  "settings.general.row.bugReports.title": "Automatic bug reports", // TODO: translate (auto-filled from en)
+  "settings.general.row.bugReports.description": "Sends crash reports (error message and stack trace only — never your files, conversations, or env vars) to help fix bugs faster. Reports are deduped against existing GitHub issues before a new one is opened. On by default.", // TODO: translate (auto-filled from en)
 }
