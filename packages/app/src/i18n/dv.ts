@@ -1436,7 +1436,4 @@ export const dict = {
   "settings.integrations.telegram.field.token.placeholder": "Bot token", // TODO: translate (auto-filled from en)
   "settings.integrations.telegram.error.required": "Enter a bot token", // TODO: translate (auto-filled from en)
   "settings.integrations.telegram.toast.connected.title": "Telegram bot connected", // TODO: translate (auto-filled from en)
-  "session.question.pending.many": "{{count}} pending questions", // TODO: translate plural form (auto-filled from .other)
-  "session.followupDock.summary.many": "{{count}} queued messages", // TODO: translate plural form (auto-filled from .other)
-  "session.revertDock.summary.many": "{{count}} rolled back messages", // TODO: translate plural form (auto-filled from .other)
 }

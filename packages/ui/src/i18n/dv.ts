@@ -203,8 +203,4 @@ export const dict: Record<string, string> = {
   "ui.backgroundTasks.status.completed": "Completed",
   "ui.backgroundTasks.status.error": "Failed",
   "ui.backgroundTasks.status.cancelled": "Cancelled",
-  "ui.sessionTurn.diffs.changed.many": "{{count}} Changed files", // TODO: translate plural form (auto-filled from .other)
-  "ui.messagePart.context.read.many": "{{count}} reads", // TODO: translate plural form (auto-filled from .other)
-  "ui.messagePart.context.search.many": "{{count}} searches", // TODO: translate plural form (auto-filled from .other)
-  "ui.messagePart.context.list.many": "{{count}} lists", // TODO: translate plural form (auto-filled from .other)
 }
