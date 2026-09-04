@@ -6,7 +6,10 @@ on:
 
 jobs:
   check-duplicates:
-    if: github.event.action == 'opened'
+    # Uses upstream's OPENCODE_API_KEY (LLM duplicate check) — not
+    # configured on this fork, guard to the upstream repo. Same fix as
+    # pr-management.yml's check-duplicates job.
+    if: github.event.action == 'opened' && github.repository == 'anomalyco/opencode'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -140,7 +143,8 @@ jobs:
           Remember: post at most ONE comment combining all findings. If everything is fine, post nothing."
 
   recheck-compliance:
-    if: github.event.action == 'edited' && contains(github.event.issue.labels.*.name, 'needs:compliance')
+    # Same OPENCODE_API_KEY dependency as check-duplicates above.
+    if: github.event.action == 'edited' && contains(github.event.issue.labels.*.name, 'needs:compliance') && github.repository == 'anomalyco/opencode'
     runs-on: ubuntu-latest
     permissions:
       contents: read

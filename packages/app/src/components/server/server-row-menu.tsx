@@ -11,6 +11,7 @@ export const ServerRowMenu: Component<{
   server: ServerConnection.Any
   controller: ReturnType<typeof useServerManagementController>
   onEdit: (server: ServerConnection.Http) => void
+  onShowQr?: (server: ServerConnection.Http) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }> = (props) => {
@@ -23,6 +24,7 @@ export const ServerRowMenu: Component<{
       canDefault={props.controller.canDefault()}
       isDefault={props.controller.defaultKey() === key}
       onEdit={props.onEdit}
+      onShowQr={props.onShowQr}
       onSetDefault={() => props.controller.setDefault(key)}
       onRemoveDefault={() => props.controller.setDefault(null)}
       onRemove={() => props.controller.handleRemove(key)}
@@ -37,6 +39,7 @@ export function serverMenuLabels(language: ReturnType<typeof useLanguage>) {
     more: language.t("common.moreOptions"),
     server: language.t("settings.section.server"),
     edit: language.t("dialog.server.menu.edit"),
+    qr: language.t("dialog.server.menu.qr"),
     default: language.t("dialog.server.menu.default"),
     defaultRemove: language.t("dialog.server.menu.defaultRemove"),
     delete: language.t("dialog.server.menu.delete"),
@@ -49,6 +52,7 @@ export const ServerRowMenuView: Component<{
   canDefault: boolean
   isDefault: boolean
   onEdit: (server: ServerConnection.Http) => void
+  onShowQr?: (server: ServerConnection.Http) => void
   onSetDefault: () => void
   onRemoveDefault: () => void
   onRemove: () => void
@@ -79,6 +83,16 @@ export const ServerRowMenuView: Component<{
             >
               <IconV2 name="edit" size="small" />
               {props.labels.edit}
+            </MenuV2.Item>
+            <MenuV2.Item
+              disabled={builtin() || !httpServer()}
+              onSelect={() => {
+                const server = httpServer()
+                if (server) props.onShowQr?.(server)
+              }}
+            >
+              <Icon name="share" size="small" />
+              {props.labels.qr}
             </MenuV2.Item>
             <Show when={props.canDefault && !props.isDefault}>
               <MenuV2.Item onSelect={props.onSetDefault}>
