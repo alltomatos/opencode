@@ -25,6 +25,13 @@ import { EventV2Bridge } from "@/event-v2-bridge"
 const TELEGRAM_AUTH_KEY = "telegram"
 const API_ROOT = "https://api.telegram.org"
 const POLL_TIMEOUT_SECONDS = 25
+// A turn that's still running after this long is almost certainly wedged
+// (e.g. a `question`/permission tool call whose Telegram-side listener was
+// lost across a server restart — the underlying session then waits forever
+// for an answer nobody can send). Without this, runOneTask never returns
+// and the chat goes silent with no feedback, indistinguishable from the bot
+// just being slow. See the 2026-09-03 incident.
+const TASK_TIMEOUT = "10 minutes"
 
 export const BotInfo = Schema.Struct({
   id: Schema.Number,
@@ -331,6 +338,7 @@ const layer = Layer.effect(
     const HELP_TEXT = [
       "Comandos disponíveis:",
       "/new — começa uma sessão nova nesta conversa",
+      "/cancel — cancela o que estiver rodando agora nesta conversa (ex.: turno travado esperando resposta)",
       "/status — mostra repositório, modelo e sessão atual",
       "/repo — lista os projetos disponíveis",
       "/repo <número> — troca o repositório desta conversa",
@@ -515,6 +523,21 @@ const layer = Layer.effect(
                 return `⚠️ ${cause instanceof Error ? cause.message : String(cause)}`
               }),
             ),
+            Effect.timeoutOrElse({
+              duration: TASK_TIMEOUT,
+              orElse: () =>
+                Effect.gen(function* () {
+                  yield* Effect.logError("telegram task timed out", { chatId, sessionID })
+                  yield* promptSvc.cancel(sessionID).pipe(Effect.ignore)
+                  // Don't leave the wedged session as this chat's default — the
+                  // next message would just queue behind it and hang again.
+                  yield* chatSessions.update(chatId, directory, (s) => ({ ...s, sessionID: undefined })).pipe(Effect.ignore)
+                  return (
+                    `⏱️ Isso ficou rodando por mais de ${TASK_TIMEOUT} sem terminar — provavelmente uma pergunta ` +
+                    `pendente que ninguém respondeu a tempo. Cancelei o turno; a próxima mensagem começa uma sessão nova.`
+                  )
+                }),
+            }),
           )
         }),
       )
@@ -628,6 +651,16 @@ const layer = Layer.effect(
       if (command === "new") {
         yield* chatSessions.update(chatId, state.directory, (s) => ({ ...s, sessionID: undefined }))
         return "Sessão encerrada. A próxima mensagem começa uma conversa nova."
+      }
+
+      // Manual escape hatch for a wedged turn (e.g. a pending question nobody
+      // can answer anymore) — cancels the current session's run and drops it
+      // as this chat's default, without waiting for TASK_TIMEOUT or a full
+      // server restart.
+      if (command === "cancel") {
+        if (state.sessionID) yield* promptSvc.cancel(SessionID.make(state.sessionID)).pipe(Effect.ignore)
+        yield* chatSessions.update(chatId, state.directory, (s) => ({ ...s, sessionID: undefined }))
+        return "🛑 Cancelado. A próxima mensagem começa uma conversa nova."
       }
 
       if (command === "status") {
@@ -812,6 +845,11 @@ const layer = Layer.effect(
     // usual approval dialog or an elicitation prompt, so mirror both
     // permission.asked and question.asked for a Telegram-owned session as
     // a message with buttons (questions also accept a free-text reply).
+    // Wrapped in catchAllCause per event: an unexpected defect handling one
+    // event must not silently kill this listener for the rest of the
+    // process's lifetime — that would orphan every future permission/question
+    // this session asks, exactly like the 2026-09-03 incident where a stuck
+    // question could never be un-stuck short of a full server restart.
     yield* Effect.forkScoped(
       events.listen((event) =>
         Effect.gen(function* () {
@@ -841,7 +879,9 @@ const layer = Layer.effect(
               Effect.ignore,
             )
           }
-        }),
+        }).pipe(
+          Effect.catchCause((cause) => Effect.logError("telegram event handler failed", { event: event.type, cause })),
+        ),
       ),
     )
 
@@ -874,20 +914,33 @@ const layer = Layer.effect(
         if (updates.length === 0) yield* Effect.sleep("1 second")
         for (const update of updates) {
           offset = update.update_id + 1
+          // catchAllCause (not just Effect.ignore, which only catches the
+          // typed error channel) so an unexpected defect handling one update
+          // can't silently kill this loop for the rest of the process's
+          // lifetime — every future Telegram message would stop being
+          // consumed with no crash and no log to explain why.
           if (update.callback_query)
             yield* handleCallbackQuery(token, update.callback_query).pipe(
-              Effect.tapError((cause) => Effect.logError("telegram handleCallbackQuery failed", { cause })),
-              Effect.ignore,
+              Effect.catchCause((cause) => Effect.logError("telegram handleCallbackQuery failed", { cause })),
             )
           if (update.message)
             yield* handleMessage(token, directory, update.message).pipe(
-              Effect.tapError((cause) => Effect.logError("telegram handleMessage failed", { cause })),
-              Effect.ignore,
+              Effect.catchCause((cause) => Effect.logError("telegram handleMessage failed", { cause })),
             )
         }
       }
     })
-    yield* Effect.forkScoped(pollLoop)
+    // Belt-and-suspenders on top of the per-update catchAllCause above: if
+    // the loop's own scaffolding (not update handling) ever throws, log it
+    // and restart the loop from scratch instead of leaving Telegram polling
+    // dead for the rest of the process's life.
+    yield* Effect.forkScoped(
+      pollLoop.pipe(
+        Effect.catchCause((cause) => Effect.logError("telegram poll loop crashed, restarting", { cause })),
+        Effect.andThen(() => Effect.sleep("1 second")),
+        Effect.forever,
+      ),
+    )
 
     return Service.of({ connect, disconnect, status })
   }),
