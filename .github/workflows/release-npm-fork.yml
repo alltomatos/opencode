@@ -1,0 +1,62 @@
+name: release-npm-fork
+
+# Publishes this fork's own CLI to npm under its own scope (default
+# @alltomatos), so it can be installed with a channel via npm's own @tag
+# syntax:
+#   npm install -g @alltomatos/opencode@dev     # every push to dev
+#   npm install -g @alltomatos/opencode@latest  # every push to prod
+#
+# Separate from upstream's own opencode-ai/@opencode-ai/* npm packages
+# (published only from anomalyco/opencode by publish.yml) — this fork does
+# not have permission to publish under that name, and shouldn't.
+
+on:
+  push:
+    branches:
+      - dev
+      - prod
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'alltomatos/opencode'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - uses: ./.github/actions/setup-bun
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Compute version and dist-tag
+        id: version
+        run: |
+          base=$(node -p "require('./packages/desktop/package.json').version")
+          if [ "${{ github.ref_name }}" = "prod" ]; then
+            echo "version=$base" >> "$GITHUB_OUTPUT"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${base}-dev.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "tag=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build CLI binaries (cross-compiled, single runner)
+        working-directory: packages/opencode
+        run: ./script/build.ts --skip-embed-web-ui
+        env:
+          OPENCODE_CHANNEL: ${{ steps.version.outputs.tag }}
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Publish to npm
+        working-directory: packages/opencode
+        run: ./script/publish-fork.ts
+        env:
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+          NPM_TAG: ${{ steps.version.outputs.tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
