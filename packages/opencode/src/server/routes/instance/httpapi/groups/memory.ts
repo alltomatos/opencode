@@ -10,6 +10,10 @@ export const ForgetProjectQuery = Schema.Struct({
   directory: Schema.String,
 })
 
+export const ProjectMemoryStatus = Schema.Struct({
+  hasMemory: Schema.Boolean,
+})
+
 export const MemoryPaths = {
   config: "/memory",
   forgetProject: "/memory/project",
@@ -38,6 +42,17 @@ export const MemoryApi = HttpApi.make("memory")
             identifier: "memory.setConfig",
             summary: "Update memory configuration",
             description: "Enable/disable memory and choose the model used for it.",
+          }),
+        ),
+        HttpApiEndpoint.get("projectMemoryStatus", MemoryPaths.forgetProject, {
+          query: ForgetProjectQuery,
+          success: described(ProjectMemoryStatus, "Whether the given project directory has any recorded memory"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "memory.projectMemoryStatus",
+            summary: "Check whether a project has any recorded memory",
+            description:
+              "Used before asking the user whether to forget a project's memory when closing it — no memory means no prompt.",
           }),
         ),
         HttpApiEndpoint.delete("forgetProject", MemoryPaths.forgetProject, {

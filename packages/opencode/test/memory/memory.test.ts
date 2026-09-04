@@ -97,6 +97,19 @@ it.instance("promoteGlobal() regenerates the global-memory skill file", () =>
   }),
 )
 
+it.instance("hasProjectMemory() reflects remember()/forgetProject() writes", () =>
+  Effect.gen(function* () {
+    const memory = yield* Memory.Service
+    const directory = "/tmp/hasProjectMemory-test"
+
+    expect(yield* memory.hasProjectMemory(directory)).toBe(false)
+    yield* memory.remember({ directory, note: "Fato do projeto." })
+    expect(yield* memory.hasProjectMemory(directory)).toBe(true)
+    yield* memory.forgetProject(directory)
+    expect(yield* memory.hasProjectMemory(directory)).toBe(false)
+  }),
+)
+
 it.instance("forgetProject() removes only that project's memory, not global", () =>
   Effect.gen(function* () {
     const memory = yield* Memory.Service

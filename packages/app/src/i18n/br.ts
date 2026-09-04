@@ -1188,6 +1188,11 @@ export const dict = {
   "settings.commands.description": "Configurações de comandos estarão disponíveis aqui.",
   "settings.mcp.title": "MCP",
   "settings.memory.title": "Memória",
+  "project.forgetMemory.title": "Esquecer as memórias deste projeto também?",
+  "project.forgetMemory.description":
+    "Este projeto tem memórias registradas. Fechá-lo só tira ele da lista (dá pra reabrir depois) — esquecer as memórias é separado e não pode ser desfeito.",
+  "project.forgetMemory.keep": "Manter memórias",
+  "project.forgetMemory.forget": "Esquecer memórias",
   "settings.memory.field.enabled.title": "Ativar memória",
   "settings.memory.field.enabled.description":
     "Permite que o agente busque e salve anotações entre sessões por conta própria, por projeto e globalmente. Vem ativado por padrão.",

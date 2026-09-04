@@ -1262,6 +1262,11 @@ export const dict = {
   "settings.commands.description": "Command settings will be configurable here.",
   "settings.mcp.title": "MCP",
   "settings.memory.title": "Memory",
+  "project.forgetMemory.title": "Forget this project's memory too?",
+  "project.forgetMemory.description":
+    "This project has recorded memory. Closing it only removes it from the list (you can reopen it later) — forgetting memory is separate and can't be undone.",
+  "project.forgetMemory.keep": "Keep memory",
+  "project.forgetMemory.forget": "Forget memory",
   "settings.memory.field.enabled.title": "Enable memory",
   "settings.memory.field.enabled.description":
     "Lets the agent search and save cross-session notes on its own, per project and globally. Enabled by default.",
