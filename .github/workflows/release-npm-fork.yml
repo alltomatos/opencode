@@ -48,14 +48,14 @@ jobs:
 
       - name: Build CLI binaries (cross-compiled, single runner)
         working-directory: packages/opencode
-        run: ./script/build.ts --skip-embed-web-ui
+        run: bun ./script/build.ts --skip-embed-web-ui
         env:
           OPENCODE_CHANNEL: ${{ steps.version.outputs.tag }}
           OPENCODE_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Publish to npm
         working-directory: packages/opencode
-        run: ./script/publish-fork.ts
+        run: bun ./script/publish-fork.ts
         env:
           OPENCODE_VERSION: ${{ steps.version.outputs.version }}
           NPM_TAG: ${{ steps.version.outputs.tag }}
