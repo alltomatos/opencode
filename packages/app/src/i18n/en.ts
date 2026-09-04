@@ -405,6 +405,12 @@ export const dict = {
   "dialog.server.action.remove": "Remove server",
 
   "dialog.server.menu.edit": "Edit",
+  "dialog.server.menu.qr": "Show QR code",
+  "dialog.server.qr.title": "QR code — {{name}}",
+  "dialog.server.qr.description":
+    "Scan this from a paired mobile client to auto-configure this server — the code carries the same credential this app already uses, so treat it like a password.",
+  "dialog.server.qr.copy": "Copy pairing data",
+  "dialog.server.qr.copied": "Pairing data copied",
   "dialog.server.menu.default": "Set as default",
   "dialog.server.menu.defaultRemove": "Remove default",
   "dialog.server.menu.delete": "Delete",
