@@ -57,6 +57,45 @@ Isto substitui qualquer nota antiga dizendo que o build/publish é manual — **
 - Mensagens de commit em inglês, seguindo `tipo(escopo): resumo` (`fix(desktop):`, `feat(app):`, `docs:`, `chore(release):`), com corpo explicando o *porquê*, não só o *o quê* — este fork usa `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` no rodapé quando a mudança foi feita por IA.
 - `docs/` na raiz é onde ficam documentos deste fork que não são upstream (PRDs em `docs/prd/`, guias como `docs/vps-hosting.md`). Não confundir com `packages/web/src/content/docs/` — esse é o site Starlight herdado do upstream (`opencode.ai/docs`), cujas mudanças não necessariamente ficam visíveis pra usuários deste fork (o README avisa que a documentação "oficial" seguida é a do projeto original).
 
+## Armadilha: resolução de projeto por diretório é cacheada pra sempre
+
+Descoberta ao vivo (não no código estático) construindo o app mobile deste fork, mas é um
+comportamento do servidor que qualquer cliente novo (mobile, integração, script) vai bater —
+válido tanto em `dev` quanto em `prod`.
+
+**O bug de superfície**: um diretório novo é criado (`mkdir`/`git clone`), o cliente chama uma rota
+qualquer com `?directory=<caminho>` (ex.: `GET /project/current`, `POST /session`) — e o "projeto"
+resultante aparece como `id: "global"`, `worktree: "/"` ou some da lista depois de sair e voltar,
+mesmo que o diretório tenha um repo git válido no disco.
+
+**Causa real**: `packages/opencode/src/project/instance-store.ts` resolve a identidade do projeto
+(`Project.fromDirectory` → `packages/core/src/project.ts` `resolve()`, que deriva o id de
+`remote(repo) ?? previous ?? root(repo)`) **uma única vez por diretório, pro resto da vida do
+processo do servidor**, e cacheia o resultado. Se o diretório for consultado **antes** de ter um
+commit git (bare/vazio, ou `git init` ainda não rodou), fica preso pra sempre no projeto `"global"`
+compartilhado. Rodar `git init`/`git commit` no disco *depois* não muda nada — nada reavalia
+automaticamente.
+
+**A cilada dentro da cilada**: `POST /project/git/init` (`packages/opencode/src/project/project.ts`,
+`initGit`) é o mecanismo real de reparo — mas ele tem uma guarda: `if (input.project.vcs === "git")
+return input.project`. Se o cache já registrou `vcs: "git"` (mesmo com o `id` errado — acontece
+porque o campo `vcs` é recomputado a cada request independente do `id`), `initGit` acha que "já é
+git, nada a fazer" e devolve o cache velho sem nunca corrigir o `id`.
+
+**Sequência que funciona (confirmada ao vivo contra um servidor real)**:
+1. `mkdir -p <path> && git -C <path> init && git -C <path> commit --allow-empty -m init` — **completo**
+   antes de qualquer chamada HTTP com `?directory=<path>`.
+2. Primeiro toque nesse diretório via `POST /project/git/init?directory=<path>` — **nunca**
+   `GET /project/current` como primeiro toque (essa rota só lê o cache, nunca resolve/corrige).
+3. Se ainda vier `id: "global"` (diretório já foi tocado antes por engano, cache já poluído):
+   `POST /instance/dispose?directory=<path>` derruba o cache daquele diretório especificamente,
+   depois um `initGit` novo resolve do zero. Não precisa reiniciar o servidor inteiro.
+
+É exatamente isso que `packages/app/src/pages/home/home-controller.ts` (`project.add`) já faz —
+lista os arquivos do diretório e chama `sdk.client.project.initGit` antes de tratar como projeto.
+Qualquer cliente novo que pular esse passo (assumir que só passar `?directory=` em qualquer rota já
+"registra" o projeto) vai reproduzir esse bug.
+
 ## Verificar se este cache está desatualizado
 
 Antes de responder algo que dependa de estado atual exato, rode:
