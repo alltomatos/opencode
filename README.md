@@ -88,6 +88,25 @@ O instalador gerado fica em `packages/desktop/dist/`.
 
 **Publicação real é automática**: assim que a branch `prod` recebe um push (a promoção `dev` → `prod`), o workflow [`release-desktop.yml`](./.github/workflows/release-desktop.yml) dispara sozinho e builda Windows/macOS/Linux em paralelo (`windows-latest`/`macos-latest`/`ubuntu-latest`), publicando os três num único release do GitHub com a versão que estiver em `packages/desktop/package.json` no momento do push. Não precisa mais buildar nada manualmente nesta máquina — só bumpar a versão, commitar, e promover. Pra reexecutar manualmente (ex: retry de uma plataforma que falhou), use `gh workflow run release-desktop.yml`.
 
+### CLI via npm (canais dev/prod)
+
+Além do app desktop, o CLI deste fork é publicado direto no npm sob o escopo `@alltomatos`, separado dos pacotes `opencode-ai`/`@opencode-ai/*` do projeto original — instala com canal via a sintaxe `@tag` do próprio npm:
+
+```bash
+npm install -g @alltomatos/opencode@dev     # última publicada a cada push em dev
+npm install -g @alltomatos/opencode@latest  # última publicada a cada push em prod
+```
+
+Publicação é automática pelo workflow [`release-npm-fork.yml`](./.github/workflows/release-npm-fork.yml): builda os binários (cross-compilados num único runner) e publica com a tag correspondente à branch. Útil pra testar mudanças de `dev` via CLI/servidor sem precisar instalar o app desktop.
+
+### Memória entre sessões
+
+Este fork adiciona um sistema de memória cross-sessão (global e por projeto), habilitado por padrão. O modelo tem acesso a duas tools sob demanda — `memory_search` (consulta memórias relevantes) e `memory_save` (registra algo pra lembrar depois) — chamadas quando o próprio modelo decide que é relevante, sem injetar tudo automaticamente em todo prompt.
+
+- **Ativar/desativar e escolher modelo**: Configurações → Memória (mesmo padrão de toggle instantâneo do resto do app).
+- **Memória global** (`~/.local/share/opencode/memory/global/`) fica disponível como skill carregada automaticamente em qualquer sessão/projeto, além de consultável via `memory_search`.
+- **Memória por projeto** (`~/.local/share/opencode/memory/projects/<projeto>/`) fica isolada por diretório.
+
 ### Rodando numa VPS (servidor remoto)
 
 O OpenCode também roda como servidor puro, sem o app desktop — útil pra manter sessões ativas 24/7 e acessar de qualquer lugar.
@@ -100,6 +119,8 @@ opencode serve --hostname 0.0.0.0 --port 4096    # só a API, pra conectar via a
 ```
 
 Depois é só adicionar esse endereço como servidor remoto em **Configurações → Servidores** no app desktop, ou abrir a URL direto no navegador. Guia completo (systemd, proxy reverso/TLS, segurança) em [`docs/vps-hosting.md`](./docs/vps-hosting.md).
+
+**Bot do Telegram**: conecte em Configurações → Integrações → Telegram (token do @BotFather). Cada pedido roda em segundo plano; se um turno ficar travado (ex.: uma pergunta sem resposta) ele cancela sozinho depois de 10 minutos e avisa no chat — ou use `/cancel` pra cancelar na hora, sem precisar reiniciar o servidor. `/new` começa uma sessão nova a qualquer momento.
 
 ### Agents
 
