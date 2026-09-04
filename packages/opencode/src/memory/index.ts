@@ -144,6 +144,10 @@ export interface Interface {
   readonly promoteGlobal: (input: { summary: string }) => Effect.Effect<{ path: string }>
   readonly load: (input: { directory?: string }) => Effect.Effect<{ context: string }>
   readonly forgetProject: (directory: string) => Effect.Effect<void>
+  // Used to decide whether closing a project should even ask about
+  // forgetting its memory — no memory recorded means no dialog, no
+  // friction. See issue #141.
+  readonly hasProjectMemory: (directory: string) => Effect.Effect<boolean>
   // Direct write, no secondary LLM call — for the on-demand `memory_save`
   // tool, where the model already doing the work decides something is
   // worth remembering. Project-scoped only; promoting to global still goes
@@ -308,7 +312,14 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       )
     })
 
-    return Service.of({ get, set, summarize, promoteGlobal, load, forgetProject, remember })
+    const hasProjectMemory = Effect.fn("Memory.hasProjectMemory")(function* (directory: string) {
+      const entries = yield* Effect.tryPromise({ try: () => readdir(projectDir(directory)), catch: () => [] as string[] }).pipe(
+        Effect.orElseSucceed(() => [] as string[]),
+      )
+      return entries.some((entry) => entry.endsWith(".md"))
+    })
+
+    return Service.of({ get, set, summarize, promoteGlobal, load, forgetProject, hasProjectMemory, remember })
   }),
 )
 

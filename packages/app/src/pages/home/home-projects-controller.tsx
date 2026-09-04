@@ -7,6 +7,7 @@ import { useLanguage } from "@/context/language"
 import { useNotification } from "@/context/notification"
 import { usePlatform } from "@/context/platform"
 import { ServerConnection } from "@/context/server"
+import { DialogForgetProjectMemory } from "@/components/dialog-forget-project-memory"
 import { closeHomeProject, errorMessage, homeProjectDirectories } from "@/pages/layout/helpers"
 import { Persist, persisted } from "@/utils/persist"
 import { showToast } from "@/utils/toast"
@@ -96,13 +97,36 @@ export function createHomeProjectsController(home: HomeController) {
         })
       },
       close: (conn: ServerConnection.Any, directory: string) => {
-        const next = closeHomeProject(
-          home.selection.value(),
-          ServerConnection.key(conn),
-          home.server.context(conn).projects,
-          directory,
-        )
-        if (next) home.selection.set(next)
+        const finish = () => {
+          const next = closeHomeProject(
+            home.selection.value(),
+            ServerConnection.key(conn),
+            home.server.context(conn).projects,
+            directory,
+          )
+          if (next) home.selection.set(next)
+        }
+        // Closing is reversible (recently closed) — forgetting memory isn't,
+        // so only ask when there's actually something to forget, and never
+        // block the close itself on that check failing. See issue #141.
+        const client = home.server.context(conn).sdk.client
+        client.memory
+          .projectMemoryStatus({ directory })
+          .then((status) => {
+            if (!status?.data?.hasMemory) {
+              finish()
+              return
+            }
+            dialog.push(() => (
+              <DialogForgetProjectMemory
+                onChoice={(forget) => {
+                  if (forget) void client.memory.forgetProject({ directory }).catch(() => undefined)
+                  finish()
+                }}
+              />
+            ))
+          })
+          .catch(() => finish())
       },
       move: (conn: ServerConnection.Any, worktree: string, index: number) => {
         home.server.context(conn).projects.move(worktree, index)

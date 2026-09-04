@@ -157,6 +157,8 @@ import type {
   MemoryForgetProjectResponses,
   MemoryGetConfigErrors,
   MemoryGetConfigResponses,
+  MemoryProjectMemoryStatusErrors,
+  MemoryProjectMemoryStatusResponses,
   MemorySetConfigErrors,
   MemorySetConfigResponses,
   ModelRef,
@@ -5469,6 +5471,29 @@ export class Memory extends HeyApiClient {
     return (options?.client ?? this.client).delete<
       MemoryForgetProjectResponses,
       MemoryForgetProjectErrors,
+      ThrowOnError
+    >({
+      url: "/memory/project",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Check whether a project has any recorded memory
+   *
+   * Used before asking the user whether to forget a project's memory when closing it — no memory means no prompt.
+   */
+  public projectMemoryStatus<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<
+      MemoryProjectMemoryStatusResponses,
+      MemoryProjectMemoryStatusErrors,
       ThrowOnError
     >({
       url: "/memory/project",

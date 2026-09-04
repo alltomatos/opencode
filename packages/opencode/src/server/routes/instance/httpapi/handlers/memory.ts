@@ -24,6 +24,16 @@ export const memoryHandlers = HttpApiBuilder.group(InstanceHttpApi, "memory", (h
       return true as const
     })
 
-    return handlers.handle("getConfig", getConfig).handle("setConfig", setConfig).handle("forgetProject", forgetProject)
+    const projectMemoryStatus = Effect.fn("MemoryHttpApi.projectMemoryStatus")(function* (ctx: {
+      query: typeof ForgetProjectQuery.Type
+    }) {
+      return { hasMemory: yield* memory.hasProjectMemory(ctx.query.directory) }
+    })
+
+    return handlers
+      .handle("getConfig", getConfig)
+      .handle("setConfig", setConfig)
+      .handle("forgetProject", forgetProject)
+      .handle("projectMemoryStatus", projectMemoryStatus)
   }),
 )

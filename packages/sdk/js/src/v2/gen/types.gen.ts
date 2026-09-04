@@ -11581,6 +11581,36 @@ export type MemoryForgetProjectResponses = {
 
 export type MemoryForgetProjectResponse = MemoryForgetProjectResponses[keyof MemoryForgetProjectResponses]
 
+export type MemoryProjectMemoryStatusData = {
+  body?: never
+  path?: never
+  query: {
+    directory: string
+  }
+  url: "/memory/project"
+}
+
+export type MemoryProjectMemoryStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryProjectMemoryStatusError = MemoryProjectMemoryStatusErrors[keyof MemoryProjectMemoryStatusErrors]
+
+export type MemoryProjectMemoryStatusResponses = {
+  /**
+   * Whether the given project directory has any recorded memory
+   */
+  200: {
+    hasMemory: boolean
+  }
+}
+
+export type MemoryProjectMemoryStatusResponse =
+  MemoryProjectMemoryStatusResponses[keyof MemoryProjectMemoryStatusResponses]
+
 export type TuiAppendPromptData = {
   body?: {
     text: string
