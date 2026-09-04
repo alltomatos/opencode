@@ -60,6 +60,7 @@ const wrapperDir = "./dist/opencode-wrapper"
 await $`mkdir -p ${wrapperDir}/bin`
 await $`cp ./script/postinstall.mjs ${wrapperDir}/postinstall.mjs`
 await Bun.file(`${wrapperDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
+await Bun.file(`${wrapperDir}/README.md`).write(await Bun.file("../../README.md").text())
 await Bun.file(`${wrapperDir}/bin/opencode.exe`).write(
   [
     `echo "Error: ${wrapperName}'s postinstall script was not run." >&2`,
