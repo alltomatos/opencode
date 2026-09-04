@@ -36,9 +36,12 @@ O app desktop já suporta múltiplos tipos de conexão simultâneos (`packages/a
 
 O app suporta múltiplos servidores simultâneos hoje (lista de `ServerConnection`, cada um com seu próprio `scope`) — o app mobile deve replicar esse modelo: **N servidores pareados, um selecionado/ativo por vez ou lado a lado**, exatamente como pedido.
 
-## 4. Pareamento por QR code — proposta (NÃO existe ainda, precisa ser construído)
+## 4. Pareamento por QR code — implementado no app desktop (2026-09-04)
 
-Isso **não existe no fork hoje**. Nem no app desktop, nem no backend. Antes do app mobile poder "ler um QR code e se autoconfigurar", este fork precisa:
+Como o `auth_token` já É exatamente `base64(usuário:senha)` (seção 2) — a mesma credencial que o app desktop já guarda pra cada servidor configurado — o pareamento por QR code não precisou de nenhum endpoint novo no backend. Foi implementado **inteiramente no app desktop**: em Configurações → Servidores → menu "..." de um servidor → **Ver QR code**, renderiza um QR (lib `qrcode`) com o payload abaixo, mais um botão "Copiar dados de pareamento" (mesmo JSON, pra colar manualmente se não der pra escanear).
+
+- Código: `packages/app/src/components/settings-v2/dialog-server-qr-code.tsx` (gera o payload e renderiza), `packages/app/src/components/server/server-row-menu.tsx` (item de menu).
+- **Cuidado de segurança**: o QR code carrega a credencial completa do servidor — é equivalente a mostrar a senha. A UI já avisa isso na descrição do dialog.
 
 ### 4.1 Payload do QR code
 
@@ -58,11 +61,9 @@ Formato proposto (JSON compacto, para caber num QR code legível em qualquer cel
 - `token`: reaproveita o mecanismo `?auth_token=` que já existe (seção 2) — **não** a senha em texto puro, pra poder ser revogado/expirado independentemente da senha do servidor.
 - `label`: nome de exibição opcional.
 
-### 4.2 O que falta construir no backend (este fork)
+### 4.2 Limitação conhecida (decisão de produto em aberto)
 
-- Um endpoint novo (ex. `POST /control/pairing-token`) que gera um `auth_token` de pareamento — com escopo e validade próprios (ex. expira em 10 minutos, ou após o primeiro uso), **diferente** do mecanismo atual de `auth_token` (que hoje, até onde foi investigado, é de vida longa — precisa confirmar/ajustar antes de usar pra isso).
-- No app desktop: uma tela/dialog em "Configurações → Servidores" que chama esse endpoint e renderiza o QR code (lib recomendada: `qrcode` no lado do app desktop, já que é Electron/web — não precisa de nada nativo).
-- Decisão de produto em aberto: o token de pareamento dá acesso equivalente à senha do servidor, ou um escopo mais restrito (ex. só leitura até o usuário confirmar no desktop)? Isso muda o desenho do endpoint.
+O token embutido no QR é de vida longa e escopo total — não existe (ainda) um mecanismo de token de pareamento efêmero/escopo restrito, diferente da senha real do servidor. Se isso for um problema (ex. querer revogar o acesso de um app mobile sem trocar a senha de todo mundo), precisa de um endpoint novo de emissão de token com expiração/escopo próprio — não construído nesta etapa, pois a v1 prioriza "funciona hoje, sem mudar o backend" sobre esse refinamento.
 
 ### 4.3 O que o app mobile faz ao ler o QR code
 
@@ -209,7 +210,7 @@ Como já registrado no `mobile-app.md` (seção 7): o app mobile deve consumir `
 
 ## 8. Resumo do que falta construir aqui (neste fork) antes da Fase 1 do app mobile
 
-1. **Pareamento por QR code** (seção 4) — endpoint de geração de token de pareamento + UI no desktop pra mostrar o QR. Nada disso existe hoje.
-2. **Confirmar/ajustar o mecanismo de `auth_token`** — hoje parece ser de vida longa; validar se serve como está pro caso de pareamento efêmero, ou se precisa de uma variante com expiração.
+1. ~~Pareamento por QR code~~ — **feito** (seção 4), 2026-09-04.
+2. **Token de pareamento com escopo/expiração próprios** (seção 4.2) — hoje o QR carrega a credencial real de vida longa; construir uma variante efêmera é opcional, só se virar requisito de produto.
 3. **Confirmar cobertura do SDK** pra `/batuta` e `/memory` (seção 7).
 4. Nada mais bloqueia a Fase 1 no backend — sessão, evento, permissão/pergunta, projeto, provider, config, Batuta e Memory já estão todos expostos e documentados acima.

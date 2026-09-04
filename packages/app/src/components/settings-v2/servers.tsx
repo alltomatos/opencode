@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/language"
 import { ServerConnection, serverName } from "@/context/server"
 import { useServerManagementController } from "../dialog-select-server"
 import { DialogServerV2 } from "./dialog-server-v2"
+import { DialogServerQrCode } from "./dialog-server-qr-code"
 import { SettingsListV2 } from "./parts/list"
 import { AddServerMenu, isWslServer, useFilteredWslServers, WslServerSettings } from "@/wsl/settings"
 import { isSshTunnelServer, useFilteredSshServers, SshServerSettings } from "@/ssh-tunnel/settings"
@@ -50,6 +51,10 @@ export const SettingsServersV2: Component = () => {
 
   const openEdit = (server: ServerConnection.Http) => {
     dialog.push(() => <DialogServerV2 mode="edit" server={server} />)
+  }
+
+  const openQr = (server: ServerConnection.Http) => {
+    dialog.push(() => <DialogServerQrCode server={server} />)
   }
 
   return (
@@ -132,7 +137,7 @@ export const SettingsServersV2: Component = () => {
                       <Show when={controller.canDefault() && isDefault()}>
                         <Tag>{language.t("dialog.server.status.default")}</Tag>
                       </Show>
-                      <ServerRowMenu server={item} controller={controller} onEdit={openEdit} />
+                      <ServerRowMenu server={item} controller={controller} onEdit={openEdit} onShowQr={openQr} />
                     </div>
                   </div>
                 )
