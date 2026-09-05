@@ -96,6 +96,28 @@ lista os arquivos do diretório e chama `sdk.client.project.initGit` antes de tr
 Qualquer cliente novo que pular esse passo (assumir que só passar `?directory=` em qualquer rota já
 "registra" o projeto) vai reproduzir esse bug.
 
+**Atualização**: pra só *listar* o que existe em diretórios conhecidos (sem precisar de um id de
+projeto de verdade), `GET /file?directory=<pasta-mãe>&path=.` filtrando `type: "directory"` é mais
+simples e não sofre nada disso — não depende de git nem de nenhuma resolução de projeto, só do
+diretório existir no disco. O caminho `initGit`/`dispose` acima só é necessário se você
+especificamente precisa do `id` de projeto do servidor pra alguma outra coisa (ex.: uma feature que
+dependa da tabela `ProjectTable`).
+
+## Armadilha: `POST /session/:id/shell` responde 200 mesmo quando o comando falha
+
+O status HTTP dessa rota reflete "a mensagem foi processada", não "o comando saiu com código 0".
+Testado ao vivo: um `git clone` de repositório privado sem credencial no servidor
+(`fatal: could not read Username for 'https://github.com'`) devolve **200** — o erro real fica só
+no texto da parte de tool (`ToolStateError.error` ou `ToolStateCompleted.output`, dependendo de como
+o shell reporta a falha), nunca no status da resposta. Qualquer cliente que só confira `res.ok`
+antes de considerar o comando bem-sucedido vai reportar sucesso falso pro usuário.
+
+**Como verificar de verdade**: ou (a) parseie o texto retornado (`parts[].state.output`/`.error`)
+procurando por sinais de erro, ou (b) mais confiável — encadeie um marcador único no fim do comando
+com `&&` (ex.: `<comando> && echo ___OK___`), que só imprime se a cadeia inteira teve sucesso; a
+ausência do marcador na saída = falha, e o texto capturado já traz o erro real (stderr) pra mostrar
+ao usuário.
+
 ## Verificar se este cache está desatualizado
 
 Antes de responder algo que dependa de estado atual exato, rode:
