@@ -5,7 +5,7 @@ import type { Details } from "electron"
 import { getLogger } from "./logging"
 import { getUserShell, loadShellEnv } from "./shell-env"
 import { getStore } from "./store"
-import { DEFAULT_SERVER_URL_KEY } from "./store-keys"
+import { DEFAULT_SERVER_URL_KEY, SIDECAR_PASSWORD_KEY, SIDECAR_PORT_KEY } from "./store-keys"
 import { startBrowserBridge } from "./browser-bridge"
 import { getActiveBrowserPanel } from "./browser-panel"
 import { startComputerBridge } from "./computer-bridge"
@@ -43,6 +43,28 @@ export function setDefaultServerUrl(url: string | null) {
   }
 
   getStore().delete(DEFAULT_SERVER_URL_KEY)
+}
+
+// Reusadas a cada start do sidecar — ver comentário em store-keys.ts.
+// Sem persistir isso, um pareamento QR feito com o celular (que grava
+// host:porta + senha) virava letra morta no próximo restart do desktop,
+// já que os dois eram sorteados de novo toda vez.
+export function getPersistedSidecarPort(): number | undefined {
+  const value = getStore().get(SIDECAR_PORT_KEY)
+  return typeof value === "number" ? value : undefined
+}
+
+export function setPersistedSidecarPort(port: number) {
+  getStore().set(SIDECAR_PORT_KEY, port)
+}
+
+export function getPersistedSidecarPassword(): string | undefined {
+  const value = getStore().get(SIDECAR_PASSWORD_KEY)
+  return typeof value === "string" ? value : undefined
+}
+
+export function setPersistedSidecarPassword(password: string) {
+  getStore().set(SIDECAR_PASSWORD_KEY, password)
 }
 
 export function preferAppEnv(userDataPath: string) {
