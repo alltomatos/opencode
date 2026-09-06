@@ -137,7 +137,13 @@ export const SettingsServersV2: Component = () => {
                       <Show when={controller.canDefault() && isDefault()}>
                         <Tag>{language.t("dialog.server.status.default")}</Tag>
                       </Show>
-                      <ServerRowMenu server={item} controller={controller} onEdit={openEdit} onShowQr={openQr} />
+                      <ServerRowMenu
+                        server={item}
+                        controller={controller}
+                        health={health()}
+                        onEdit={openEdit}
+                        onShowQr={openQr}
+                      />
                     </div>
                   </div>
                 )
