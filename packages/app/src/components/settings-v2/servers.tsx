@@ -53,7 +53,7 @@ export const SettingsServersV2: Component = () => {
     dialog.push(() => <DialogServerV2 mode="edit" server={server} />)
   }
 
-  const openQr = (server: ServerConnection.Http) => {
+  const openQr = (server: ServerConnection.Http | ServerConnection.Sidecar) => {
     dialog.push(() => <DialogServerQrCode server={server} />)
   }
 
