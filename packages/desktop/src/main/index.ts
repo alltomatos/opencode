@@ -28,8 +28,12 @@ import {
 } from "./onboarding"
 import {
   getDefaultServerUrl,
+  getPersistedSidecarPassword,
+  getPersistedSidecarPort,
   preferAppEnv,
   setDefaultServerUrl,
+  setPersistedSidecarPassword,
+  setPersistedSidecarPort,
   spawnLocalServer,
   type SidecarListener,
 } from "./server"
@@ -89,6 +93,38 @@ function emitDeepLinks(urls: string[]) {
   pendingDeepLinks.push(...urls)
   const win = getLastFocusedWindow()
   if (win) sendDeepLinks(win, urls)
+}
+
+// Tenta escutar em `preferred` (a porta do sidecar salva do start
+// anterior) pra manter a URL de pareamento QR estável entre restarts do
+// desktop; se essa porta já estiver ocupada (ex.: outra instância ainda
+// de pé) ou não houver uma persistida ainda, cai pra uma porta
+// efêmera (`0`) como sempre foi.
+function reserveLocalPort(preferred?: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const tryListen = (port: number, allowFallback: boolean) => {
+      const socket = createServer()
+      socket.once("error", () => {
+        socket.close()
+        if (allowFallback) {
+          tryListen(0, false)
+          return
+        }
+        reject(new Error(`Failed to reserve port ${port}`))
+      })
+      socket.listen(port, "127.0.0.1", () => {
+        const address = socket.address()
+        if (typeof address !== "object" || !address) {
+          socket.close()
+          reject(new Error("Failed to get port"))
+          return
+        }
+        const resolved = address.port
+        socket.close(() => resolve(resolved))
+      })
+    }
+    tryListen(preferred ?? 0, preferred !== undefined)
+  })
 }
 
 async function killSidecar() {
@@ -382,21 +418,12 @@ const main = Effect.gen(function* () {
         if (!Number.isNaN(parsed)) return parsed
       }
 
-      const res = yield* Deferred.make<number, unknown>()
-      const socket = createServer()
-      socket.on("error", (e) => Deferred.failSync(res, () => e))
-      socket.listen(0, "127.0.0.1", () => {
-        const address = socket.address()
-        if (typeof address !== "object" || !address) {
-          socket.close()
-          Deferred.failSync(res, () => new Error("Failed to get port"))
-          return
-        }
-        const port = address.port
-        socket.close(() => Effect.runSync(Deferred.succeed(res, port)))
-      })
-
-      return yield* Deferred.await(res)
+      // Tenta reocupar a mesma porta do start anterior antes de sortear
+      // uma nova — ver comentário em store-keys.ts sobre por que isso
+      // importa pro pareamento QR sobreviver a um restart do desktop.
+      const resolved = yield* Effect.promise(() => reserveLocalPort(getPersistedSidecarPort()))
+      setPersistedSidecarPort(resolved)
+      return resolved
     })
     // `bindHostname` é o que o sidecar de fato escuta — "0.0.0.0" cobre
     // loopback + rede local + a interface do Tailscale, então o celular
@@ -407,7 +434,11 @@ const main = Effect.gen(function* () {
     const bindHostname = "0.0.0.0"
     const hostname = "127.0.0.1"
     const url = `http://${hostname}:${port}`
-    const password = randomUUID()
+    // Idem porta: reusa a senha persistida em vez de sortear uma nova a
+    // cada start, senão um pareamento QR anterior fica com credencial
+    // inválida mesmo que a porta bata.
+    const password = getPersistedSidecarPassword() ?? randomUUID()
+    setPersistedSidecarPassword(password)
 
     logger.log("spawning sidecar", { url, bindHostname })
     const { listener, health } = yield* Effect.promise(() =>
