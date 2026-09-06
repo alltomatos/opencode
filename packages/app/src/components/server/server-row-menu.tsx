@@ -11,7 +11,7 @@ export const ServerRowMenu: Component<{
   server: ServerConnection.Any
   controller: ReturnType<typeof useServerManagementController>
   onEdit: (server: ServerConnection.Http) => void
-  onShowQr?: (server: ServerConnection.Http) => void
+  onShowQr?: (server: ServerConnection.Http | ServerConnection.Sidecar) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }> = (props) => {
@@ -52,7 +52,7 @@ export const ServerRowMenuView: Component<{
   canDefault: boolean
   isDefault: boolean
   onEdit: (server: ServerConnection.Http) => void
-  onShowQr?: (server: ServerConnection.Http) => void
+  onShowQr?: (server: ServerConnection.Http | ServerConnection.Sidecar) => void
   onSetDefault: () => void
   onRemoveDefault: () => void
   onRemove: () => void
@@ -61,6 +61,10 @@ export const ServerRowMenuView: Component<{
 }> = (props) => {
   const builtin = () => ServerConnection.builtin(props.server)
   const httpServer = () => (props.server.type === "http" ? props.server : undefined)
+  // Pareamento por QR precisa funcionar pro sidecar embutido (é o único jeito
+  // do celular alcançar o "Servidor local") — só http/sidecar têm `.http`
+  // (url/credenciais) pra montar o payload; ssh não tem sentido aqui.
+  const qrServer = () => (props.server.type === "http" || props.server.type === "sidecar" ? props.server : undefined)
   return (
     <MenuV2 gutter={6} modal={false} placement="bottom-end" open={props.open} onOpenChange={props.onOpenChange}>
       <MenuV2.Trigger
@@ -85,9 +89,9 @@ export const ServerRowMenuView: Component<{
               {props.labels.edit}
             </MenuV2.Item>
             <MenuV2.Item
-              disabled={builtin() || !httpServer()}
+              disabled={!qrServer()}
               onSelect={() => {
-                const server = httpServer()
+                const server = qrServer()
                 if (server) props.onShowQr?.(server)
               }}
             >

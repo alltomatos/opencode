@@ -44,7 +44,10 @@ function withTailscaleHost(url: string, tailscaleIp: string | null): string {
   }
 }
 
-export function buildServerPairingPayload(server: ServerConnection.Http, tailscaleIp: string | null = null): ServerPairingPayload {
+export function buildServerPairingPayload(
+  server: ServerConnection.Http | ServerConnection.Sidecar,
+  tailscaleIp: string | null = null,
+): ServerPairingPayload {
   const credential = `${server.http.username ?? ""}:${server.http.password ?? ""}`
   return {
     v: 1,
@@ -55,7 +58,7 @@ export function buildServerPairingPayload(server: ServerConnection.Http, tailsca
 }
 
 export const DialogServerQrCode: Component<{
-  server: ServerConnection.Http
+  server: ServerConnection.Http | ServerConnection.Sidecar
 }> = (props) => {
   const dialog = useDialog()
   const language = useLanguage()
