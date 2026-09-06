@@ -6,10 +6,12 @@ import { type Component, Show } from "solid-js"
 import { useServerManagementController } from "@/components/dialog-select-server"
 import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
+import type { ServerHealth } from "@/utils/server-health"
 
 export const ServerRowMenu: Component<{
   server: ServerConnection.Any
   controller: ReturnType<typeof useServerManagementController>
+  health?: ServerHealth
   onEdit: (server: ServerConnection.Http) => void
   onShowQr?: (server: ServerConnection.Http | ServerConnection.Sidecar) => void
   open?: boolean
@@ -23,6 +25,7 @@ export const ServerRowMenu: Component<{
       labels={serverMenuLabels(language)}
       canDefault={props.controller.canDefault()}
       isDefault={props.controller.defaultKey() === key}
+      health={props.health}
       onEdit={props.onEdit}
       onShowQr={props.onShowQr}
       onSetDefault={() => props.controller.setDefault(key)}
@@ -51,6 +54,7 @@ export const ServerRowMenuView: Component<{
   labels: ReturnType<typeof serverMenuLabels>
   canDefault: boolean
   isDefault: boolean
+  health?: ServerHealth
   onEdit: (server: ServerConnection.Http) => void
   onShowQr?: (server: ServerConnection.Http | ServerConnection.Sidecar) => void
   onSetDefault: () => void
@@ -63,8 +67,14 @@ export const ServerRowMenuView: Component<{
   const httpServer = () => (props.server.type === "http" ? props.server : undefined)
   // Pareamento por QR precisa funcionar pro sidecar embutido (é o único jeito
   // do celular alcançar o "Servidor local") — só http/sidecar têm `.http`
-  // (url/credenciais) pra montar o payload; ssh não tem sentido aqui.
-  const qrServer = () => (props.server.type === "http" || props.server.type === "sidecar" ? props.server : undefined)
+  // (url/credenciais) pra montar o payload; ssh não tem sentido aqui. Também
+  // só faz sentido oferecer o QR quando o servidor está de fato saudável —
+  // um código pra um servidor fora do ar pareia o celular com uma conexão
+  // que nunca vai responder.
+  const qrServer = () =>
+    (props.server.type === "http" || props.server.type === "sidecar") && props.health?.healthy
+      ? props.server
+      : undefined
   return (
     <MenuV2 gutter={6} modal={false} placement="bottom-end" open={props.open} onOpenChange={props.onOpenChange}>
       <MenuV2.Trigger
