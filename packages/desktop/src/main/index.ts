@@ -398,13 +398,20 @@ const main = Effect.gen(function* () {
 
       return yield* Deferred.await(res)
     })
+    // `bindHostname` é o que o sidecar de fato escuta — "0.0.0.0" cobre
+    // loopback + rede local + a interface do Tailscale, então o celular
+    // (via QR em Configurações > Servidores) consegue alcançar esse
+    // mesmo servidor local, não só a VPS. `url`/tudo mais no desktop
+    // continua em 127.0.0.1 propositalmente: nenhum comportamento
+    // interno do app muda, isso só adiciona alcance de rede.
+    const bindHostname = "0.0.0.0"
     const hostname = "127.0.0.1"
     const url = `http://${hostname}:${port}`
     const password = randomUUID()
 
-    logger.log("spawning sidecar", { url })
+    logger.log("spawning sidecar", { url, bindHostname })
     const { listener, health } = yield* Effect.promise(() =>
-      spawnLocalServer(hostname, port, password, {
+      spawnLocalServer(bindHostname, port, password, {
         userDataPath: app.getPath("userData"),
         onStdout: (message) => writeLog("server", "stdout", { message }),
         onStderr: (message) => writeLog("server", "stderr", { message }, "warn"),

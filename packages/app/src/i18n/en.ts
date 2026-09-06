@@ -411,6 +411,8 @@ export const dict = {
     "Scan this from a paired mobile client to auto-configure this server — the code carries the same credential this app already uses, so treat it like a password.",
   "dialog.server.qr.copy": "Copy pairing data",
   "dialog.server.qr.copied": "Pairing data copied",
+  "dialog.server.qr.loopbackWarning":
+    "This server only listens on this computer (127.0.0.1) and Tailscale isn't running here, so a phone can't reach it with this code. Start Tailscale on this machine, or pair with a server that has a real network address instead.",
   "dialog.server.menu.default": "Set as default",
   "dialog.server.menu.defaultRemove": "Remove default",
   "dialog.server.menu.delete": "Delete",
