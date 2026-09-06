@@ -177,7 +177,14 @@ export async function spawnLocalServer(
   })
 
   const wait = (async () => {
-    const url = `http://${hostname}:${port}`
+    // Sempre verifica a saúde via loopback, mesmo quando `hostname` é
+    // "0.0.0.0" (bind em todas as interfaces, pra ficar alcançável via
+    // Tailscale/rede local — ver index.ts). Um socket cliente conectando
+    // literalmente em "0.0.0.0" como destino não é confiável entre SOs
+    // (principalmente Windows); o desktop sempre roda na mesma máquina
+    // do sidecar, então 127.0.0.1 é sempre válido independente de onde
+    // o servidor também esteja escutando.
+    const url = `http://127.0.0.1:${port}`
     let healthy = false
     const gone = exit.promise.then((code) => {
       if (healthy) return
