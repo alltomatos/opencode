@@ -127,6 +127,28 @@ function createServerCtx(
     return base
   }
 
+  // Um projeto pode ser criado/tocado por QUALQUER cliente ligado neste
+  // mesmo servidor (celular, CLI, outra instância do desktop) — `sync.data.project`
+  // já reflete isso ao vivo via project.updated (ver server-sync.tsx),
+  // mas isso só alimenta METADADOS (nome/ícone) pra projetos que essa
+  // instalação do desktop já tinha aberto. O sidebar em si (`projects`,
+  // persistido localmente) não ganhava esses projetos novos sozinho —
+  // reportado ao vivo: um projeto importado pelo app mobile no mesmo
+  // servidor local não aparecia no sidebar do desktop até abrir a pasta
+  // manualmente ali. Sincroniza isso automaticamente: todo projeto que o
+  // servidor conhece e que esta instalação nunca abriu (e que o usuário
+  // não fechou de propósito — respeita `recentlyClosed`) entra sozinho.
+  createEffect(() => {
+    const closed = new Set(projects.recentlyClosed().map((worktree) => pathKey(worktree)))
+    const opened = new Set(projects.list().map((project) => pathKey(project.worktree)))
+    for (const project of sync.data.project) {
+      if (!project.worktree || project.worktree === "/") continue
+      const key = pathKey(project.worktree)
+      if (opened.has(key) || closed.has(key)) continue
+      projects.open(project.worktree)
+    }
+  })
+
   const projectsList = createMemo(() => projects.list().map(enrich))
   const recentlyClosedList = createMemo(() => {
     const known = new Set(sync.data.project.map((project) => pathKey(project.worktree)))
