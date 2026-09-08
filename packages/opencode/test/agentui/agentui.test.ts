@@ -73,3 +73,34 @@ it.instance("add() replaces an existing agent with the same id", () =>
     yield* svc.remove(id)
   }),
 )
+
+it.instance("buildKnowledgeContext() returns '' when the agent has no ragSources", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    expect(yield* svc.buildKnowledgeContext(agent())).toBe("")
+  }),
+)
+
+it.instance("buildKnowledgeContext() inlines 'text' sources under their label", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    const withSource = {
+      ...agent(),
+      ragSources: [{ id: "s1", kind: "text" as const, label: "Política de reembolso", value: "Reembolso em até 7 dias." }],
+    }
+    const context = yield* svc.buildKnowledgeContext(withSource)
+    expect(context).toContain("Política de reembolso")
+    expect(context).toContain("Reembolso em até 7 dias.")
+  }),
+)
+
+it.instance("buildKnowledgeContext() skips 'file' sources (not yet ingestable)", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    const withFile = {
+      ...agent(),
+      ragSources: [{ id: "s1", kind: "file" as const, label: "Manual", value: "manual.pdf" }],
+    }
+    expect(yield* svc.buildKnowledgeContext(withFile)).toBe("")
+  }),
+)

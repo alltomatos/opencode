@@ -846,7 +846,9 @@ const layer = Layer.effect(
         const { agent, trigger } = agentMatch
         const rest = text.slice(trigger.length).trim()
         const model = yield* resolveAgentModel(agent.model)
-        reply = yield* dispatchTask(token, chatId, directory, rest, attachments, { system: agent.personality, model }, `${chatId}:${agent.id}`)
+        const knowledge = yield* agentUI.buildKnowledgeContext(agent)
+        const system = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
+        reply = yield* dispatchTask(token, chatId, directory, rest, attachments, { system, model }, `${chatId}:${agent.id}`)
       } else if (text.startsWith("/")) {
         const [command, ...rest] = text.slice(1).split(/\s+/)
         const ctx = yield* instanceStore.load({ directory })
