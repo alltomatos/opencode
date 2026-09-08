@@ -79,7 +79,16 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Run unit tests
-        timeout-minutes: 20
+        # Was 20: too tight now that the per-test subprocess/ripgrep
+        # timeouts were correctly bumped (30s -> 60s / 5s -> 30s — those
+        # were the real bottleneck, not a hang) elsewhere in this
+        # investigation. A legitimately-passing full run can now take longer
+        # wall-clock on a loaded runner than it used to when slow tests just
+        # failed fast instead. Confirmed core:test alone (0 fail) plus
+        # windows-latest's slower disk I/O ate the whole 20-minute budget
+        # before opencode:test (3377 tests) could finish. See 2026-09-08 CI
+        # investigation.
+        timeout-minutes: 35
         run: GITHUB_ACTIONS=false bun turbo test
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
