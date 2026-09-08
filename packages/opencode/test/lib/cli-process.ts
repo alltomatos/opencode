@@ -206,7 +206,14 @@ export function withCliFixture<A, E>(
 
     const spawn = Effect.fn("opencode.spawn")(function* (args: string[], opts?: SpawnOpts) {
       const start = Date.now()
-      const timeoutMs = opts?.timeoutMs ?? 30_000
+      // 60s, not 30s: CI runners under turbo's full parallel test load have
+      // been observed to blow a 30s budget just booting this subprocess
+      // (bun + the CLI entry cold-starting while dozens of other test files
+      // spawn their own subprocesses concurrently) with no actual hang —
+      // confirmed by the same "expected exit 0, got -1 after ~30000ms"
+      // signature appearing on unrelated `dev` runs. See 2026-09-08 CI
+      // investigation.
+      const timeoutMs = opts?.timeoutMs ?? 60_000
       // stdin: "ignore" so the child doesn't see a piped stdin and block
       // on `Bun.stdin.text()` (see src/cli/cmd/run.ts — non-TTY stdin is
       // consumed as the prompt). The old Process.run wrapper defaulted to
