@@ -1977,6 +1977,64 @@ export type ComboConfig = {
   [key: string]: Combo
 }
 
+export type AgentUiChannelBinding = {
+  type: "telegram"
+}
+
+export type AgentUiRagSource = {
+  id: string
+  kind: "file" | "text" | "url"
+  /**
+   * Display name for this source in the AgentUI form
+   */
+  label: string
+  /**
+   * For 'file': a path under the RAG storage dir. For 'text': the pasted text itself. For 'url': the URL to fetch.
+   */
+  value: string
+}
+
+export type AgentUiGuardrails = {
+  enabled: boolean
+  level: "basic" | "strict"
+}
+
+export type AgentUiAgent = {
+  /**
+   * Stable identifier for this AgentUI
+   */
+  id: string
+  /**
+   * Display name
+   */
+  name: string
+  /**
+   * Custom system prompt describing this agent's role/tone
+   */
+  personality: string
+  /**
+   * 'providerID/modelID' for a direct model, or 'combo:<id>' to resolve through a saved combo
+   */
+  model: string
+  /**
+   * Channels this agent is reachable on
+   */
+  channels: Array<AgentUiChannelBinding>
+  /**
+   * Prefixes (e.g. '#', '!') that address this agent on a shared channel — the opencode '/' command prefix stays reserved for the built-in command flow
+   */
+  commandTriggers: Array<string>
+  /**
+   * Knowledge sources this agent can retrieve from
+   */
+  ragSources: Array<AgentUiRagSource>
+  guardrails: AgentUiGuardrails
+}
+
+export type AgentUiConfig = {
+  [key: string]: AgentUiAgent
+}
+
 export type MemoryConfig = {
   enabled?: boolean
   memoryModel?: string
@@ -2082,6 +2140,7 @@ export type Config = {
   }
   batuta?: BatutaConfig
   combo?: ComboConfig
+  agentui?: AgentUiConfig
   memory?: MemoryConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
@@ -2172,6 +2231,11 @@ export type ComboNotFoundError = {
 
 export type ComboExhaustedError = {
   _tag: "ComboExhaustedError"
+  id: string
+}
+
+export type AgentUiNotFoundError = {
+  _tag: "AgentUINotFoundError"
   id: string
 }
 
@@ -8135,6 +8199,128 @@ export type ComboResolveResponses = {
 }
 
 export type ComboResolveResponse = ComboResolveResponses[keyof ComboResolveResponses]
+
+export type AgentuiListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui"
+}
+
+export type AgentuiListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiListError = AgentuiListErrors[keyof AgentuiListErrors]
+
+export type AgentuiListResponses = {
+  /**
+   * List configured AgentUI agents
+   */
+  200: Array<AgentUiAgent>
+}
+
+export type AgentuiListResponse = AgentuiListResponses[keyof AgentuiListResponses]
+
+export type AgentuiAddData = {
+  body?: AgentUiAgent
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui"
+}
+
+export type AgentuiAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiAddError = AgentuiAddErrors[keyof AgentuiAddErrors]
+
+export type AgentuiAddResponses = {
+  /**
+   * Agent added successfully
+   */
+  200: AgentUiAgent
+}
+
+export type AgentuiAddResponse = AgentuiAddResponses[keyof AgentuiAddResponses]
+
+export type AgentuiRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}"
+}
+
+export type AgentuiRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiRemoveError = AgentuiRemoveErrors[keyof AgentuiRemoveErrors]
+
+export type AgentuiRemoveResponses = {
+  /**
+   * Agent removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AgentuiRemoveResponse = AgentuiRemoveResponses[keyof AgentuiRemoveResponses]
+
+export type AgentuiGetData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}"
+}
+
+export type AgentuiGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError
+   */
+  500: AgentUiNotFoundError
+}
+
+export type AgentuiGetError = AgentuiGetErrors[keyof AgentuiGetErrors]
+
+export type AgentuiGetResponses = {
+  /**
+   * The requested agent
+   */
+  200: AgentUiAgent
+}
+
+export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
 
 export type ConfigGetData = {
   body?: never

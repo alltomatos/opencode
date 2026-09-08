@@ -8,6 +8,7 @@ import { SettingsGeneralV2 } from "./general"
 import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
 import { SettingsCombosV2 } from "./combos"
+import { SettingsAgentUIV2 } from "./agentui"
 import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
@@ -99,6 +100,10 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.customize")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1.5 w-full">
+                    <TabsV2.Trigger value="agentui">
+                      <Icon name="subagent" />
+                      {language.t("settings.agentui.title")}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="skills">
                       <Icon name="brain" />
                       {language.t("settings.skills.title")}
@@ -154,6 +159,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="combos" class="settings-v2-panel">
           <SettingsCombosV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="agentui" class="settings-v2-panel">
+          <SettingsAgentUIV2 />
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
           <SettingsSkillsV2 directory={directory} />

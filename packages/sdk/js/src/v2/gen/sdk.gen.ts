@@ -4,6 +4,15 @@ import { client } from "./client.gen.js"
 import { buildClientParams, type Client, type Options as Options2, type TDataShape } from "./client/index.js"
 import type {
   AgentPartInput,
+  AgentuiAddErrors,
+  AgentuiAddResponses,
+  AgentUiAgent,
+  AgentuiGetErrors,
+  AgentuiGetResponses,
+  AgentuiListErrors,
+  AgentuiListResponses,
+  AgentuiRemoveErrors,
+  AgentuiRemoveResponses,
   AppAgentsErrors,
   AppAgentsResponses,
   AppLogErrors,
@@ -2114,6 +2123,139 @@ export class Combo extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<ComboResolveResponses, ComboResolveErrors, ThrowOnError>({
       url: "/combo/{id}/resolve",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Agentui extends HeyApiClient {
+  /**
+   * List AgentUI agents
+   *
+   * List all configured custom conversational agents.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiListResponses, AgentuiListErrors, ThrowOnError>({
+      url: "/agentui",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update an AgentUI agent
+   *
+   * Create or replace a custom conversational agent.
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      agentUiAgent?: AgentUiAgent
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "agentUiAgent", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiAddResponses, AgentuiAddErrors, ThrowOnError>({
+      url: "/agentui",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove an AgentUI agent
+   *
+   * Delete a custom conversational agent.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<AgentuiRemoveResponses, AgentuiRemoveErrors, ThrowOnError>({
+      url: "/agentui/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get an AgentUI agent
+   *
+   * Read a single custom agent by id.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiGetResponses, AgentuiGetErrors, ThrowOnError>({
+      url: "/agentui/{id}",
       ...options,
       ...params,
     })
@@ -8186,6 +8328,11 @@ export class OpencodeClient extends HeyApiClient {
   private _combo?: Combo
   get combo(): Combo {
     return (this._combo ??= new Combo({ client: this.client }))
+  }
+
+  private _agentui?: Agentui
+  get agentui(): Agentui {
+    return (this._agentui ??= new Agentui({ client: this.client }))
   }
 
   private _config?: Config2

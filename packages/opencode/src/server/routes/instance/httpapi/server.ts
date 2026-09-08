@@ -22,6 +22,7 @@ import { Telegram } from "@/telegram"
 import { Memory } from "@/memory"
 import { Batuta } from "@/batuta"
 import { Combo } from "@/combo"
+import { AgentUI } from "@/agentui"
 import { McpAuth } from "@/mcp/auth"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
@@ -88,6 +89,7 @@ import { PtyConnectApi } from "./groups/pty"
 import { eventHandlers } from "./handlers/event"
 import { batutaHandlers } from "./handlers/batuta"
 import { comboHandlers } from "./handlers/combo"
+import { agentuiHandlers } from "./handlers/agentui"
 import { configHandlers } from "./handlers/config"
 import { controlHandlers } from "./handlers/control"
 import { controlPlaneHandlers } from "./handlers/control-plane"
@@ -170,6 +172,7 @@ const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
     mcpHandlers,
     batutaHandlers,
     comboHandlers,
+    agentuiHandlers,
     projectHandlers,
     projectCopyHandlers,
     ptyHandlers,
@@ -267,6 +270,7 @@ const app = LayerNode.group([
   Memory.node,
   Batuta.node,
   Combo.node,
+  AgentUI.node,
   Command.node,
   Truncate.node,
   ToolRegistry.node,
