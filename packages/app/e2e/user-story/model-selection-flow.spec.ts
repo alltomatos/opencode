@@ -69,12 +69,13 @@ test("creates a session in a new project, connects OpenCode Go, and selects its 
   })
 
   await page.goto("/")
-  const addProject = page.locator('[data-action="home-add-project-row"]')
-  await expectAppVisible(addProject)
-  await addProject.click()
-  await page.locator("[data-directory-path]").click()
-
-  await page.locator('[data-action="home-new-session"]').click()
+  // The mock server already reports `project` as known to it, so the
+  // sidebar auto-syncs it in (see fix(desktop): "sincroniza sidebar com
+  // projetos criados por outros clientes") — there's no empty "add project"
+  // state to click through here, just the project row appearing on its own.
+  const projectRow = page.locator('[data-component="home-project-row"]')
+  await expectAppVisible(projectRow)
+  await page.locator('[data-action="home-project-new-session"]').click()
   await expectAppVisible(page.locator('[data-component="prompt-input-v2"]'))
   await dismissTabsIntroToast(page)
 

@@ -588,7 +588,14 @@ withMcpInstructions.instance(
       expect(body).toContain("Use lookup before mutate.")
       yield* Fiber.interrupt(fiber)
     }),
-  15_000,
+  // Was 15s: this is a real `.instance` test (tmpdir + git init + LSP
+  // location-services boot, not mocked), and that setup overhead alone can
+  // exceed 15s under load before prompt.loop's own 10s-budgeted wait
+  // (llm.wait(1), below) ever gets a chance to run — surfacing as a bare
+  // bun-test timeout instead of that wait's own distinct error message.
+  // Confirmed by reproducing this test's timeout locally, consistently,
+  // outside of any CI load. See 2026-09-08 CI investigation.
+  40_000,
 )
 
 it.instance("legacy prompt emits message events without session.next events", () =>

@@ -152,16 +152,26 @@ export function resolveFilePath(root: string, file: string): string {
 
 export function windowsPath(p: string): string {
   if (process.platform !== "win32") return p
-  return (
-    p
-      .replace(/^\/([a-zA-Z]):(?:[\\/]|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-      // Git Bash for Windows paths are typically /<drive>/...
-      .replace(/^\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-      // Cygwin git paths are typically /cygdrive/<drive>/...
-      .replace(/^\/cygdrive\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-      // WSL paths are typically /mnt/<drive>/...
-      .replace(/^\/mnt\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-  )
+  const withDrive = p
+    .replace(/^\/([a-zA-Z]):(?:[\\/]|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
+    // Git Bash for Windows paths are typically /<drive>/...
+    .replace(/^\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
+    // Cygwin git paths are typically /cygdrive/<drive>/...
+    .replace(/^\/cygdrive\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
+    // WSL paths are typically /mnt/<drive>/...
+    .replace(/^\/mnt\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
+  if (withDrive !== p) return withDrive
+  // A POSIX-rooted path with no drive encoded at all is otherwise ambiguous
+  // about which drive it means — but path.resolve() on Windows silently
+  // roots a bare "/..." path at the CURRENT PROCESS's drive (cwd), not the
+  // system drive, making normalization non-deterministic across
+  // processes/CI runners with different cwd drives. Root it at the system
+  // drive instead. See the identical fix/comment in ../fs-util.ts.
+  if (/^[\\/]/.test(p) && !/^[\\/]{2}/.test(p)) {
+    const systemDrive = (process.env.SystemDrive ?? "C:").toUpperCase()
+    return `${systemDrive}${p}`
+  }
+  return p
 }
 export function overlaps(a: string, b: string) {
   return FSUtil.overlaps(a, b)
