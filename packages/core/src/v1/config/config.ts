@@ -8,6 +8,7 @@ import { ConfigAgentV1 } from "./agent"
 import { ConfigAttachmentV1 } from "./attachment"
 import { ConfigBatutaV1 } from "./batuta"
 import { ConfigComboV1 } from "./combo"
+import { ConfigAgentUIV1 } from "./agentui"
 import { ConfigCommandV1 } from "./command"
 import { ConfigExternalAgentV1 } from "./external-agent"
 import { ConfigFormatterV1 } from "./formatter"
@@ -125,6 +126,9 @@ export const Info = Schema.Struct({
   }),
   combo: Schema.optional(ConfigComboV1.Info).annotate({
     description: "Model combos: named groups of models with failover/rate-limit, selectable anywhere a model is (chat, AgentUI, Batuta)",
+  }),
+  agentui: Schema.optional(ConfigAgentUIV1.Info).annotate({
+    description: "Custom conversational agents (personality, channel, RAG sources, guardrails) — see epic #144",
   }),
   memory: Schema.optional(ConfigMemoryV1.Info).annotate({
     description: "Cross-session memory: global and per-project summaries, opt-in (Settings > Memory)",
