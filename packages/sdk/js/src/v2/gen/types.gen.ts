@@ -1926,6 +1926,116 @@ export type BatutaConfig = {
   [key: string]: BatutaActivity
 }
 
+export type ComboModel = {
+  /**
+   * Model for this combo entry, in 'providerID/modelID' form
+   */
+  model: string
+  priority: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ComboFailover = {
+  /**
+   * When true, a request that fails on one model retries the next one in the combo instead of failing.
+   */
+  enabled: boolean
+  /**
+   * 'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' starts from whichever model comes after the last one used.
+   */
+  strategy: "priority" | "round-robin"
+}
+
+export type ComboRateLimit = {
+  /**
+   * Max requests per minute across the whole combo, regardless of which model handles each one
+   */
+  requestsPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  /**
+   * Max total tokens (input+output) per minute across the whole combo
+   */
+  tokensPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type Combo = {
+  /**
+   * Stable identifier for this combo
+   */
+  id: string
+  /**
+   * Display name for this combo
+   */
+  name: string
+  /**
+   * Models this combo can resolve to, in failover order
+   */
+  models: Array<ComboModel>
+  failover: ComboFailover
+  rateLimit?: ComboRateLimit
+}
+
+export type ComboConfig = {
+  [key: string]: Combo
+}
+
+export type AgentUiChannelBinding = {
+  type: "telegram"
+}
+
+export type AgentUiRagSource = {
+  id: string
+  kind: "file" | "text" | "url"
+  /**
+   * Display name for this source in the AgentUI form
+   */
+  label: string
+  /**
+   * For 'file': a path under the RAG storage dir. For 'text': the pasted text itself. For 'url': the URL to fetch.
+   */
+  value: string
+}
+
+export type AgentUiGuardrails = {
+  enabled: boolean
+  level: "basic" | "strict"
+}
+
+export type AgentUiAgent = {
+  /**
+   * Stable identifier for this AgentUI
+   */
+  id: string
+  /**
+   * Display name
+   */
+  name: string
+  /**
+   * Custom system prompt describing this agent's role/tone
+   */
+  personality: string
+  /**
+   * 'providerID/modelID' for a direct model, or 'combo:<id>' to resolve through a saved combo
+   */
+  model: string
+  /**
+   * Channels this agent is reachable on
+   */
+  channels: Array<AgentUiChannelBinding>
+  /**
+   * Prefixes (e.g. '#', '!') that address this agent on a shared channel — the opencode '/' command prefix stays reserved for the built-in command flow
+   */
+  commandTriggers: Array<string>
+  /**
+   * Knowledge sources this agent can retrieve from
+   */
+  ragSources: Array<AgentUiRagSource>
+  guardrails: AgentUiGuardrails
+  enabled?: boolean
+}
+
+export type AgentUiConfig = {
+  [key: string]: AgentUiAgent
+}
+
 export type MemoryConfig = {
   enabled?: boolean
   memoryModel?: string
@@ -2030,6 +2140,8 @@ export type Config = {
         }
   }
   batuta?: BatutaConfig
+  combo?: ComboConfig
+  agentui?: AgentUiConfig
   memory?: MemoryConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
@@ -2111,6 +2223,21 @@ export type BatutaWorkerNotFoundError = {
   id: string
   label: string
   message: string
+}
+
+export type ComboNotFoundError = {
+  _tag: "ComboNotFoundError"
+  id: string
+}
+
+export type ComboExhaustedError = {
+  _tag: "ComboExhaustedError"
+  id: string
+}
+
+export type AgentUiNotFoundError = {
+  _tag: "AgentUINotFoundError"
+  id: string
 }
 
 export type Model = {
@@ -7948,6 +8075,325 @@ export type BatutaStartPipelineChatResponses = {
 }
 
 export type BatutaStartPipelineChatResponse = BatutaStartPipelineChatResponses[keyof BatutaStartPipelineChatResponses]
+
+export type ComboListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo"
+}
+
+export type ComboListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboListError = ComboListErrors[keyof ComboListErrors]
+
+export type ComboListResponses = {
+  /**
+   * List configured combos
+   */
+  200: Array<Combo>
+}
+
+export type ComboListResponse = ComboListResponses[keyof ComboListResponses]
+
+export type ComboAddData = {
+  body?: Combo
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo"
+}
+
+export type ComboAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboAddError = ComboAddErrors[keyof ComboAddErrors]
+
+export type ComboAddResponses = {
+  /**
+   * Combo added successfully
+   */
+  200: Combo
+}
+
+export type ComboAddResponse = ComboAddResponses[keyof ComboAddResponses]
+
+export type ComboRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/{id}"
+}
+
+export type ComboRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboRemoveError = ComboRemoveErrors[keyof ComboRemoveErrors]
+
+export type ComboRemoveResponses = {
+  /**
+   * Combo removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type ComboRemoveResponse = ComboRemoveResponses[keyof ComboRemoveResponses]
+
+export type ComboResolveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/{id}/resolve"
+}
+
+export type ComboResolveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * ComboNotFoundError | ComboExhaustedError
+   */
+  500: ComboNotFoundError | ComboExhaustedError
+}
+
+export type ComboResolveError = ComboResolveErrors[keyof ComboResolveErrors]
+
+export type ComboResolveResponses = {
+  /**
+   * The model this combo currently resolves to
+   */
+  200: {
+    providerID: string
+    modelID: string
+  }
+}
+
+export type ComboResolveResponse = ComboResolveResponses[keyof ComboResolveResponses]
+
+export type AgentuiListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui"
+}
+
+export type AgentuiListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiListError = AgentuiListErrors[keyof AgentuiListErrors]
+
+export type AgentuiListResponses = {
+  /**
+   * List configured AgentUI agents
+   */
+  200: Array<AgentUiAgent>
+}
+
+export type AgentuiListResponse = AgentuiListResponses[keyof AgentuiListResponses]
+
+export type AgentuiAddData = {
+  body?: AgentUiAgent
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui"
+}
+
+export type AgentuiAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiAddError = AgentuiAddErrors[keyof AgentuiAddErrors]
+
+export type AgentuiAddResponses = {
+  /**
+   * Agent added successfully
+   */
+  200: AgentUiAgent
+}
+
+export type AgentuiAddResponse = AgentuiAddResponses[keyof AgentuiAddResponses]
+
+export type AgentuiRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}"
+}
+
+export type AgentuiRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiRemoveError = AgentuiRemoveErrors[keyof AgentuiRemoveErrors]
+
+export type AgentuiRemoveResponses = {
+  /**
+   * Agent removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AgentuiRemoveResponse = AgentuiRemoveResponses[keyof AgentuiRemoveResponses]
+
+export type AgentuiGetData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}"
+}
+
+export type AgentuiGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError
+   */
+  500: AgentUiNotFoundError
+}
+
+export type AgentuiGetError = AgentuiGetErrors[keyof AgentuiGetErrors]
+
+export type AgentuiGetResponses = {
+  /**
+   * The requested agent
+   */
+  200: AgentUiAgent
+}
+
+export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
+
+export type AgentuiTestData = {
+  body?: {
+    projectDirectory: string
+    message: string
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/test"
+}
+
+export type AgentuiTestErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError
+   */
+  500: AgentUiNotFoundError
+}
+
+export type AgentuiTestError = AgentuiTestErrors[keyof AgentuiTestErrors]
+
+export type AgentuiTestResponses = {
+  /**
+   * Sandbox reply from the agent
+   */
+  200: {
+    reply: string
+    blocked: boolean
+  }
+}
+
+export type AgentuiTestResponse = AgentuiTestResponses[keyof AgentuiTestResponses]
+
+export type AgentuiResetSandboxData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/sandbox/reset"
+}
+
+export type AgentuiResetSandboxErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiResetSandboxError = AgentuiResetSandboxErrors[keyof AgentuiResetSandboxErrors]
+
+export type AgentuiResetSandboxResponses = {
+  /**
+   * Sandbox conversation reset
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AgentuiResetSandboxResponse = AgentuiResetSandboxResponses[keyof AgentuiResetSandboxResponses]
 
 export type ConfigGetData = {
   body?: never

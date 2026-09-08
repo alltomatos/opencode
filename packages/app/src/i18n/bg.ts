@@ -1200,6 +1200,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Code",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "What is a Batuta?",
   "batuta.intro": "A batuta is the famous, slender wand a conductor uses to lead an orchestra. Here you can set up an orchestrated activity: pick one model to act as the orchestrator, and other models to act as workers it can delegate tasks to.",
   "batuta.list.title": "Activities",
@@ -1429,4 +1430,58 @@ export const dict = {
   "settings.integrations.telegram.field.token.placeholder": "Bot token", // TODO: translate (auto-filled from en)
   "settings.integrations.telegram.error.required": "Enter a bot token", // TODO: translate (auto-filled from en)
   "settings.integrations.telegram.toast.connected.title": "Telegram bot connected", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.loopbackWarning": "This server only listens on this computer (127.0.0.1) and Tailscale isn't running here, so a phone can't reach it with this code. Start Tailscale on this machine, or pair with a server that has a real network address instead.", // TODO: translate (auto-filled from en)
+  "batuta.model.model.filterPlaceholder": "Filter models…", // TODO: translate (auto-filled from en)
+  "batuta.model.model.truncated": "Showing the first {{count}} matches — keep typing to narrow it down", // TODO: translate (auto-filled from en)
+  "settings.combos.title": "Combos", // TODO: translate (auto-filled from en)
+  "settings.combos.add.button": "Add combo", // TODO: translate (auto-filled from en)
+  "settings.combos.empty": "No combos yet.", // TODO: translate (auto-filled from en)
+  "settings.combos.modelCount": "{{count}} models", // TODO: translate (auto-filled from en)
+  "settings.combos.error.incomplete": "Give the combo a name and pick a model for every row.", // TODO: translate (auto-filled from en)
+  "settings.combos.toast.saved": "Combo saved", // TODO: translate (auto-filled from en)
+  "settings.combos.dialog.addTitle": "Add combo", // TODO: translate (auto-filled from en)
+  "settings.combos.dialog.editTitle": "Edit combo", // TODO: translate (auto-filled from en)
+  "settings.combos.field.name": "Name", // TODO: translate (auto-filled from en)
+  "settings.combos.field.models": "Models", // TODO: translate (auto-filled from en)
+  "settings.combos.addModel": "Add model", // TODO: translate (auto-filled from en)
+  "settings.combos.field.failover": "Failover", // TODO: translate (auto-filled from en)
+  "settings.combos.field.failoverStrategy": "Failover strategy", // TODO: translate (auto-filled from en)
+  "settings.combos.failover.priority": "Priority order", // TODO: translate (auto-filled from en)
+  "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
+  "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
+  "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
+  "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)
+  "settings.agentui.guardrails.basic": "Basic", // TODO: translate (auto-filled from en)
+  "settings.agentui.guardrails.strict": "Strict", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.ragSources": "Knowledge sources", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.label": "Label", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.value": "Text or URL", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.add": "Add source", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.note": "File upload and real retrieval land in a later phase — these are stored as-is for now.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.enabled": "Enabled",
+  "settings.agentui.enable": "Enable agent",
+  "settings.agentui.disable": "Disable agent",
+  "settings.agentui.sandbox.open": "Test",
+  "settings.agentui.sandbox.title": "Test {{name}}",
+  "settings.agentui.sandbox.empty": "Send a message to try this agent — same personality, model and guardrails it uses for real, in a private test conversation.",
+  "settings.agentui.sandbox.placeholder": "Type a message...",
+  "settings.agentui.sandbox.send": "Send",
+  "settings.agentui.sandbox.reset": "New conversation",
+  "settings.agentui.sandbox.noDirectory": "Open a project first to test this agent.",
+  "settings.agentui.form.title.create": "New agent",
+  "settings.agentui.form.title.edit": "Edit agent",
+  "settings.agentui.form.testHint": "Save the agent first to test it.",
 }

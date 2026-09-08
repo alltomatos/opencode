@@ -4,6 +4,19 @@ import { client } from "./client.gen.js"
 import { buildClientParams, type Client, type Options as Options2, type TDataShape } from "./client/index.js"
 import type {
   AgentPartInput,
+  AgentuiAddErrors,
+  AgentuiAddResponses,
+  AgentUiAgent,
+  AgentuiGetErrors,
+  AgentuiGetResponses,
+  AgentuiListErrors,
+  AgentuiListResponses,
+  AgentuiRemoveErrors,
+  AgentuiRemoveResponses,
+  AgentuiResetSandboxErrors,
+  AgentuiResetSandboxResponses,
+  AgentuiTestErrors,
+  AgentuiTestResponses,
   AppAgentsErrors,
   AppAgentsResponses,
   AppLogErrors,
@@ -38,6 +51,15 @@ import type {
   BatutaStartResponses,
   BatutaSyncErrors,
   BatutaSyncResponses,
+  Combo as Combo2,
+  ComboAddErrors,
+  ComboAddResponses,
+  ComboListErrors,
+  ComboListResponses,
+  ComboRemoveErrors,
+  ComboRemoveResponses,
+  ComboResolveErrors,
+  ComboResolveResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -1975,6 +1997,347 @@ export class Batuta extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+}
+
+export class Combo extends HeyApiClient {
+  /**
+   * List combos
+   *
+   * List all configured model combos.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ComboListResponses, ComboListErrors, ThrowOnError>({
+      url: "/combo",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update a combo
+   *
+   * Create or replace a model combo (models, failover, rate limit).
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      combo?: Combo2
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "combo", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ComboAddResponses, ComboAddErrors, ThrowOnError>({
+      url: "/combo",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a combo
+   *
+   * Delete a model combo.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ComboRemoveResponses, ComboRemoveErrors, ThrowOnError>({
+      url: "/combo/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Resolve a combo to a concrete model
+   *
+   * Applies the combo's failover/rate-limit rules and returns which provider/model to use right now — mainly useful for debugging a combo's behavior from the UI.
+   */
+  public resolve<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ComboResolveResponses, ComboResolveErrors, ThrowOnError>({
+      url: "/combo/{id}/resolve",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Agentui extends HeyApiClient {
+  /**
+   * List AgentUI agents
+   *
+   * List all configured custom conversational agents.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiListResponses, AgentuiListErrors, ThrowOnError>({
+      url: "/agentui",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update an AgentUI agent
+   *
+   * Create or replace a custom conversational agent.
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      agentUiAgent?: AgentUiAgent
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "agentUiAgent", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiAddResponses, AgentuiAddErrors, ThrowOnError>({
+      url: "/agentui",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove an AgentUI agent
+   *
+   * Delete a custom conversational agent.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<AgentuiRemoveResponses, AgentuiRemoveErrors, ThrowOnError>({
+      url: "/agentui/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get an AgentUI agent
+   *
+   * Read a single custom agent by id.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiGetResponses, AgentuiGetErrors, ThrowOnError>({
+      url: "/agentui/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Send a sandbox test message to an AgentUI agent
+   *
+   * Runs a message through the agent's real pipeline (guardrails, personality, RAG, model) against a dedicated sandbox session, without touching any real channel.
+   */
+  public test<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      projectDirectory?: string
+      message?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "projectDirectory" },
+            { in: "body", key: "message" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiTestResponses, AgentuiTestErrors, ThrowOnError>({
+      url: "/agentui/{id}/test",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Reset an AgentUI agent's sandbox conversation
+   *
+   * Starts a fresh sandbox session for this agent on the next test message.
+   */
+  public resetSandbox<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiResetSandboxResponses, AgentuiResetSandboxErrors, ThrowOnError>(
+      {
+        url: "/agentui/{id}/sandbox/reset",
+        ...options,
+        ...params,
+      },
+    )
   }
 }
 
@@ -8039,6 +8402,16 @@ export class OpencodeClient extends HeyApiClient {
   private _batuta?: Batuta
   get batuta(): Batuta {
     return (this._batuta ??= new Batuta({ client: this.client }))
+  }
+
+  private _combo?: Combo
+  get combo(): Combo {
+    return (this._combo ??= new Combo({ client: this.client }))
+  }
+
+  private _agentui?: Agentui
+  get agentui(): Agentui {
+    return (this._agentui ??= new Agentui({ client: this.client }))
   }
 
   private _config?: Config2

@@ -21,6 +21,8 @@ import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Question } from "../question"
 import { QuestionV1 } from "@opencode-ai/schema/question-v1"
 import { EventV2Bridge } from "@/event-v2-bridge"
+import { AgentUI } from "@/agentui"
+import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 
 const TELEGRAM_AUTH_KEY = "telegram"
 const API_ROOT = "https://api.telegram.org"
@@ -246,12 +248,40 @@ const layer = Layer.effect(
     const permission = yield* Permission.Service
     const question = yield* Question.Service
     const events = yield* EventV2Bridge.Service
+    const agentUI = yield* AgentUI.Service
 
     // In-memory only (rebuilt as chats send their first message after a
     // restart) — enough to route a permission.asked/question.asked event
     // for a session back to the Telegram chat that owns it.
     const sessionChats = new Map<string, number>()
     const rememberSession = (chatId: number, sessionID: string) => sessionChats.set(sessionID, chatId)
+
+    // Each AgentUI keeps its own conversation per chat, separate from the
+    // chat's default opencode session — addressing #!comando (the AgentUI's
+    // configured commandTriggers) shouldn't mix its personality/model into
+    // the plain-message session, or vice versa.
+    const agentSessionsByChat = new Map<string, string>()
+
+    // Picks the AgentUI (if any) whose commandTriggers prefix this message —
+    // the opencode "/" prefix stays reserved for the built-in command flow
+    // (see ConfigAgentUIV1.Agent.commandTriggers), so a trigger match is
+    // never attempted for slash text. Longest matching trigger wins so a
+    // more specific trigger (e.g. "!!") isn't shadowed by a shorter one
+    // ("!") configured on a different agent.
+    const matchAgentUITrigger = Effect.fn("Telegram.matchAgentUITrigger")(function* (text: string) {
+      if (!text || text.startsWith("/")) return undefined
+      const agents = yield* agentUI.list()
+      let best: { agent: ConfigAgentUIV1.Agent; trigger: string } | undefined
+      for (const agent of agents) {
+        if (!ConfigAgentUIV1.isEnabled(agent)) continue
+        if (!agent.channels.some((channel) => channel.type === "telegram")) continue
+        for (const trigger of agent.commandTriggers) {
+          if (!trigger) continue
+          if (text.startsWith(trigger) && (!best || trigger.length > best.trigger.length)) best = { agent, trigger }
+        }
+      }
+      return best
+    })
 
     // A multi-question request (e.g. from /grill-me) is answered one
     // question at a time — each button tap or free-text reply advances
@@ -353,6 +383,11 @@ const layer = Layer.effect(
       "",
       "Qualquer outro /comando é encaminhado como comando do opencode (inclui skills customizadas).",
       "",
+      "Se algum agente personalizado (AgentUI) estiver configurado com prefixo",
+      "de comando (ex.: ! ou #) e canal Telegram, mensagens que começam com",
+      "esse prefixo são respondidas por ele, com sua própria personalidade,",
+      "modelo e conversa — separada da conversa padrão desta sessão.",
+      "",
       "Todo pedido que aciona o modelo roda em segundo plano — se chegar outro",
       "pedido enquanto um ainda está rodando, eu pergunto se é pra rodar em",
       "paralelo ou esperar na fila.",
@@ -402,9 +437,15 @@ const layer = Layer.effect(
     interface RunningTask {
       sessionID: string
     }
+    interface TaskOverride {
+      system: string
+      model?: { providerID: string; modelID: string }
+    }
     interface QueuedRequest {
       text: string
       attachments: { fileId: string; mime: string }[]
+      override?: TaskOverride
+      agentKey?: string
     }
     interface PendingRunChoice extends QueuedRequest {
       chatId: number
@@ -444,8 +485,18 @@ const layer = Layer.effect(
       directory: string,
       ctx: InstanceContext,
       sessionOverride?: SessionID,
+      agentKey?: string,
     ) {
       if (sessionOverride) return sessionOverride
+      if (agentKey) {
+        const existing = agentSessionsByChat.get(agentKey)
+        if (existing) return SessionID.make(existing)
+        const session = yield* sessions
+          .create({ title: `Telegram AgentUI: ${agentKey}`, directory, permission: agentUI.sessionPermission() })
+          .pipe(Effect.provideService(InstanceRef, ctx))
+        agentSessionsByChat.set(agentKey, session.id)
+        return session.id
+      }
       const state = (yield* chatSessions.get(chatId)) ?? { directory }
       if (state.sessionID) return SessionID.make(state.sessionID)
       const session = yield* sessions
@@ -463,6 +514,7 @@ const layer = Layer.effect(
       text: string,
       attachments: { fileId: string; mime: string }[],
       ctx: InstanceContext,
+      override?: TaskOverride,
     ) {
       let lastActivity: string | undefined
       const reply = yield* Effect.scoped(
@@ -509,11 +561,11 @@ const layer = Layer.effect(
             const parts = [...fileParts, ...(text ? [{ type: "text" as const, text }] : [])]
             if (parts.length === 0) return "⚠️ Não consegui baixar o anexo enviado."
             const chatState = (yield* chatSessions.get(chatId)) ?? { directory }
-            const model = chatState.subagentModel ?? chatState.model
+            const model = override?.model ?? chatState.subagentModel ?? chatState.model
             const modelParam = model
               ? { providerID: ProviderV2.ID.make(model.providerID), modelID: ModelV2.ID.make(model.modelID) }
               : undefined
-            const result = yield* promptSvc.prompt({ sessionID, model: modelParam, parts })
+            const result = yield* promptSvc.prompt({ sessionID, model: modelParam, system: override?.system, parts })
             return extractText(result)
           }).pipe(
             Effect.provideService(InstanceRef, ctx),
@@ -558,25 +610,37 @@ const layer = Layer.effect(
       // conversation history the same way it always did before this was
       // backgrounded.
       sessionOverride?: SessionID,
+      taskOverride?: TaskOverride,
+      agentKey?: string,
     ) {
       const ctx = yield* instanceStore.load({ directory })
-      const sessionID = yield* resolveTaskSessionID(chatId, directory, ctx, sessionOverride)
+      const sessionID = yield* resolveTaskSessionID(chatId, directory, ctx, sessionOverride, agentKey)
       rememberSession(chatId, sessionID)
       const running: RunningTask = { sessionID }
       activeTasksByChat.set(chatId, [...(activeTasksByChat.get(chatId) ?? []), running])
 
       // Runs the request, then keeps draining this chat's queue (if any)
       // in the same forked fiber instead of recursing — each queued item
-      // reuses the chat's persistent session (queueing only ever applies
-      // to the non-parallel path).
+      // reuses its own session (the chat's persistent one, or the
+      // originating AgentUI's, per queued item's agentKey) and override.
       yield* Effect.forkScoped(
         Effect.gen(function* () {
           let currentSessionID = sessionID
           let currentText = text
           let currentAttachments = attachments
+          let currentOverride = taskOverride
           let currentRunning = running
           while (true) {
-            yield* runOneTask(token, chatId, directory, currentSessionID, currentText, currentAttachments, ctx)
+            yield* runOneTask(
+              token,
+              chatId,
+              directory,
+              currentSessionID,
+              currentText,
+              currentAttachments,
+              ctx,
+              currentOverride,
+            )
 
             const remaining = (activeTasksByChat.get(chatId) ?? []).filter((item) => item !== currentRunning)
             if (remaining.length > 0) activeTasksByChat.set(chatId, remaining)
@@ -591,9 +655,10 @@ const layer = Layer.effect(
               sendMessage(token, chatId, "▶️ Iniciando o próximo pedido da fila..."),
             ).pipe(Effect.ignore)
 
-            currentSessionID = yield* resolveTaskSessionID(chatId, directory, ctx)
+            currentSessionID = yield* resolveTaskSessionID(chatId, directory, ctx, undefined, next.agentKey)
             currentText = next.text
             currentAttachments = next.attachments
+            currentOverride = next.override
             currentRunning = { sessionID: currentSessionID }
             activeTasksByChat.set(chatId, [...(activeTasksByChat.get(chatId) ?? []), currentRunning])
           }
@@ -611,15 +676,17 @@ const layer = Layer.effect(
       directory: string,
       text: string,
       attachments: { fileId: string; mime: string }[],
+      taskOverride?: TaskOverride,
+      agentKey?: string,
     ) {
       const running = activeTasksByChat.get(chatId)
       if (!running || running.length === 0) {
-        yield* startTask(token, chatId, directory, text, attachments)
+        yield* startTask(token, chatId, directory, text, attachments, undefined, taskOverride, agentKey)
         return "🚀 Comecei a trabalhar nisso em segundo plano — te aviso quando terminar."
       }
 
       const id = String(++runChoiceSeq)
-      pendingRunChoices.set(id, { chatId, text, attachments })
+      pendingRunChoices.set(id, { chatId, text, attachments, override: taskOverride, agentKey })
       yield* Effect.tryPromise(() =>
         sendMessage(
           token,
@@ -760,7 +827,21 @@ const layer = Layer.effect(
       const directory = state.directory
 
       let reply: string | undefined
-      if (text.startsWith("/")) {
+      const agentMatch = yield* matchAgentUITrigger(text)
+      if (agentMatch) {
+        const { agent, trigger } = agentMatch
+        const rest = text.slice(trigger.length).trim()
+        const guard = agentUI.checkInput(agent, rest)
+        if (!guard.allowed) {
+          reply = `🛡️ ${guard.reason}`
+        } else {
+          const model = yield* agentUI.resolveModel(agent.model)
+          const knowledge = yield* agentUI.buildKnowledgeContext(agent)
+          const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
+          const system = agentUI.hardenSystemPrompt(agent, personality)
+          reply = yield* dispatchTask(token, chatId, directory, rest, attachments, { system, model }, `${chatId}:${agent.id}`)
+        }
+      } else if (text.startsWith("/")) {
         const [command, ...rest] = text.slice(1).split(/\s+/)
         const ctx = yield* instanceStore.load({ directory })
         reply = yield* runCommand(token, chatId, state, command.toLowerCase(), rest.join(" ")).pipe(
@@ -809,18 +890,33 @@ const layer = Layer.effect(
           yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, "Rodando em paralelo")).pipe(Effect.ignore)
           const chatState = (yield* chatSessions.get(pending.chatId)) ?? { directory: "" }
           const parallelCtx = yield* instanceStore.load({ directory: chatState.directory })
-          const parentID = chatState.sessionID ? SessionID.make(chatState.sessionID) : undefined
+          const parentSessionID = pending.agentKey
+            ? agentSessionsByChat.get(pending.agentKey)
+            : chatState.sessionID
+          const parentID = parentSessionID ? SessionID.make(parentSessionID) : undefined
           const child = yield* sessions
             .create({ title: `Telegram (paralelo): ${pending.chatId}`, directory: chatState.directory, parentID })
             .pipe(Effect.provideService(InstanceRef, parallelCtx))
-          yield* startTask(token, pending.chatId, chatState.directory, pending.text, pending.attachments, child.id)
+          yield* startTask(
+            token,
+            pending.chatId,
+            chatState.directory,
+            pending.text,
+            pending.attachments,
+            child.id,
+            pending.override,
+            pending.agentKey,
+          )
           yield* Effect.tryPromise(() =>
             sendMessage(token, pending.chatId, "🚀 Rodando em paralelo — te aviso quando terminar."),
           ).pipe(Effect.ignore)
         } else {
           yield* Effect.tryPromise(() => answerCallbackQuery(token, cb.id, "Enfileirado")).pipe(Effect.ignore)
           const queue = queuedTasksByChat.get(pending.chatId) ?? []
-          queuedTasksByChat.set(pending.chatId, [...queue, { text: pending.text, attachments: pending.attachments }])
+          queuedTasksByChat.set(pending.chatId, [
+            ...queue,
+            { text: pending.text, attachments: pending.attachments, override: pending.override, agentKey: pending.agentKey },
+          ])
           yield* Effect.tryPromise(() =>
             sendMessage(token, pending.chatId, "⏳ Enfileirado — vou rodar assim que o pedido atual terminar."),
           ).pipe(Effect.ignore)
@@ -960,5 +1056,6 @@ export const node = LayerNode.make({
     Permission.node,
     Question.node,
     EventV2Bridge.node,
+    AgentUI.node,
   ],
 })

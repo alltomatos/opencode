@@ -14,6 +14,7 @@ import { createHomeScrollController } from "@/pages/home/home-scroll-controller"
 import { HomeProjects } from "@/pages/home/home-projects"
 import { HomeUtilityNav } from "@/pages/home/home-projects-view"
 import { BatutaSidebarList } from "@/pages/batuta/batuta-sidebar-list"
+import { AgentUISidebarList } from "@/pages/agentui/agentui-sidebar-list"
 
 // Batuta is still an active work-in-progress feature — only show its entry
 // point on dev builds, not to production users, until it's ready to ship.
@@ -49,7 +50,8 @@ export const AppProjectSidebar: Component = () => {
   const selectTab = (tab: ProjectSidebarTab) => {
     layout.projectSidebar.setTab(tab)
     if (tab === "batuta" && location.pathname !== "/batuta") navigate("/batuta")
-    if (tab === "code" && location.pathname === "/batuta") navigate("/")
+    if (tab === "agentui" && location.pathname !== "/agentui") navigate("/agentui")
+    if (tab === "code" && (location.pathname === "/batuta" || location.pathname === "/agentui")) navigate("/")
   }
 
   const projects = {
@@ -91,13 +93,14 @@ export const AppProjectSidebar: Component = () => {
           </TooltipV2>
         </div>
         <div class="flex min-h-0 flex-1 flex-col">
-          <Show
-            when={layout.projectSidebar.tab() === "batuta"}
-            fallback={<HomeProjects projects={projects} scroll={scroll} />}
-          >
+          <Show when={layout.projectSidebar.tab() === "code"} fallback={
             <ServerSDKProvider server={home.server.focused}>
-              <BatutaSidebarList />
+              <Show when={layout.projectSidebar.tab() === "batuta"} fallback={<AgentUISidebarList />}>
+                <BatutaSidebarList />
+              </Show>
             </ServerSDKProvider>
+          }>
+            <HomeProjects projects={projects} scroll={scroll} />
           </Show>
         </div>
         <HomeUtilityNav
@@ -117,22 +120,15 @@ const ProjectSidebarTabs: Component<{
   language: ReturnType<typeof useLanguage>
 }> = (props) => {
   return (
-    <Show
-      when={BATUTA_VISIBLE}
-      fallback={
-        <div class="flex h-7 min-w-0 flex-1 items-center px-1 text-12-medium text-v2-text-text-muted">
-          {props.language.t("sidebar.tab.code")}
-        </div>
-      }
-    >
-      <div class="flex h-7 min-w-0 flex-1 items-center gap-0.5 rounded-[8px] bg-v2-background-bg-layer-01 p-0.5">
-        <ProjectSidebarTabButton
-          active={props.tab === "code"}
-          label={props.language.t("sidebar.tab.code")}
-          onClick={() => props.onSelect("code")}
-        >
-          <Icon name="code" size="small" />
-        </ProjectSidebarTabButton>
+    <div class="flex h-7 min-w-0 flex-1 items-center gap-0.5 rounded-[8px] bg-v2-background-bg-layer-01 p-0.5">
+      <ProjectSidebarTabButton
+        active={props.tab === "code"}
+        label={props.language.t("sidebar.tab.code")}
+        onClick={() => props.onSelect("code")}
+      >
+        <Icon name="code" size="small" />
+      </ProjectSidebarTabButton>
+      <Show when={BATUTA_VISIBLE}>
         <ProjectSidebarTabButton
           active={props.tab === "batuta"}
           label={props.language.t("sidebar.tab.batuta")}
@@ -140,8 +136,15 @@ const ProjectSidebarTabs: Component<{
         >
           <IconV2 name="batuta" size="small" />
         </ProjectSidebarTabButton>
-      </div>
-    </Show>
+      </Show>
+      <ProjectSidebarTabButton
+        active={props.tab === "agentui"}
+        label={props.language.t("sidebar.tab.agentui")}
+        onClick={() => props.onSelect("agentui")}
+      >
+        <IconV2 name="subagent" size="small" />
+      </ProjectSidebarTabButton>
+    </div>
   )
 }
 

@@ -49,13 +49,7 @@ Baixe o instalador direto na [página de releases](https://github.com/alltomatos
 | Linux (Fedora/RHEL)   | `opencode-desktop-linux-x64.rpm`      |
 | Linux (universal)     | `opencode-desktop-linux-x64.AppImage` |
 
-Instalação via PowerShell no Windows (sempre baixa a última versão publicada):
-
-```powershell
-irm https://raw.githubusercontent.com/alltomatos/opencode/prod/install.ps1 | iex
-```
-
-No macOS e Linux, baixe o instalador correspondente direto da [página de releases](https://github.com/alltomatos/opencode/releases/latest) e instale manualmente (`.dmg`, `dpkg -i *.deb`, `rpm -i *.rpm`, ou dê permissão de execução no `.AppImage`).
+No Windows, baixe e rode o `opencode-desktop-win-x64.exe` (instalador NSIS) — sem necessidade de script. No macOS e Linux, baixe o instalador correspondente e instale manualmente (`.dmg`, `dpkg -i *.deb`, `rpm -i *.rpm`, ou dê permissão de execução no `.AppImage`).
 
 > **Nota (macOS):** os builds de Mac não são assinados/notarizados por este fork (não temos uma conta Apple Developer configurada). Na primeira abertura o Gatekeeper vai avisar que o app "não pode ser verificado" — clique com o botão direito no app → **Abrir** para liberar manualmente.
 
@@ -121,6 +115,14 @@ opencode serve --hostname 0.0.0.0 --port 4096    # só a API, pra conectar via a
 Depois é só adicionar esse endereço como servidor remoto em **Configurações → Servidores** no app desktop, ou abrir a URL direto no navegador. Guia completo (systemd, proxy reverso/TLS, segurança) em [`docs/vps-hosting.md`](./docs/vps-hosting.md).
 
 **Bot do Telegram**: conecte em Configurações → Integrações → Telegram (token do @BotFather). Cada pedido roda em segundo plano; se um turno ficar travado (ex.: uma pergunta sem resposta) ele cancela sozinho depois de 10 minutos e avisa no chat — ou use `/cancel` pra cancelar na hora, sem precisar reiniciar o servidor. `/new` começa uma sessão nova a qualquer momento.
+
+### Abas do app: Code, AgentUI e Batuta
+
+O app desktop organiza o trabalho em três abas na barra lateral:
+
+- **Code** — a aba padrão: sessões de codificação normais, com o agente OpenCode operando no seu projeto (terminal e browser embutidos, permissões, etc).
+- **AgentUI** — construtor de agentes de chat próprios: configure um agente com system prompt, modelo e skills selecionadas, teste num sandbox de chat embutido, e habilite/desabilite por sessão. Editor baseado em páginas, direto na sidebar.
+- **Batuta** — orquestrador de agentes externos (`claude`, `codex`, etc). Detecta quais CLIs de terceiros estão instalados no servidor conectado (sem spawnar subprocesso, só varredura de PATH), instala a skill `batuta-cli` nos agentes selecionados para que reportem progresso de volta ao Batuta, e expõe um form de worker cujo combobox só habilita agentes que já têm a skill instalada. Feature em desenvolvimento ativo — visível apenas em builds `dev`.
 
 ### Agents
 
