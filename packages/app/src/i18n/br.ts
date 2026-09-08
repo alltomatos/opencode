@@ -896,6 +896,25 @@ export const dict = {
   "batuta.list.start": "Iniciar",
   "batuta.model.provider.placeholder": "Provedor",
   "batuta.model.model.placeholder": "Modelo",
+  "batuta.model.model.filterPlaceholder": "Filtrar modelos…",
+  "batuta.model.model.truncated": "Mostrando os primeiros {{count}} resultados — continue digitando pra refinar",
+  "settings.combos.title": "Combos",
+  "settings.combos.add.button": "Adicionar combo",
+  "settings.combos.empty": "Nenhum combo ainda.",
+  "settings.combos.modelCount": "{{count}} modelos",
+  "settings.combos.error.incomplete": "Dê um nome ao combo e escolha um modelo pra cada linha.",
+  "settings.combos.toast.saved": "Combo salvo",
+  "settings.combos.dialog.addTitle": "Adicionar combo",
+  "settings.combos.dialog.editTitle": "Editar combo",
+  "settings.combos.field.name": "Nome",
+  "settings.combos.field.models": "Modelos",
+  "settings.combos.addModel": "Adicionar modelo",
+  "settings.combos.field.failover": "Failover",
+  "settings.combos.field.failoverStrategy": "Estratégia de failover",
+  "settings.combos.failover.priority": "Ordem de prioridade",
+  "settings.combos.failover.roundRobin": "Round-robin",
+  "settings.combos.field.requestsPerMinute": "Requisições / minuto (opcional)",
+  "settings.combos.field.tokensPerMinute": "Tokens / minuto (opcional)",
   "batuta.form.title.create": "Nova atividade Batuta",
   "batuta.form.title.edit": "Editar atividade Batuta",
   "batuta.form.field.name.label": "Nome",
@@ -1467,4 +1486,5 @@ export const dict = {
   "provider.omniroute.mcp.skip": "Pular MCP",
   "settings.general.row.bugReports.title": "Automatic bug reports", // TODO: translate (auto-filled from en)
   "settings.general.row.bugReports.description": "Sends crash reports (error message and stack trace only — never your files, conversations, or env vars) to help fix bugs faster. Reports are deduped against existing GitHub issues before a new one is opened. On by default.", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.loopbackWarning": "This server only listens on this computer (127.0.0.1) and Tailscale isn't running here, so a phone can't reach it with this code. Start Tailscale on this machine, or pair with a server that has a real network address instead.", // TODO: translate (auto-filled from en)
 }

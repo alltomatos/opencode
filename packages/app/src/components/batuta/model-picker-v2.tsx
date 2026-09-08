@@ -1,11 +1,19 @@
-import { createMemo, For, type Component } from "solid-js"
+import { createMemo, createSignal, For, Show, type Component } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useProviders } from "@/hooks/use-providers"
 
+// Combo values are encoded as "combo:<id>" so the picker's public contract
+// stays a single string everywhere it's already used (Batuta, Memória) —
+// callers that don't pass `combos` never see this prefix and behave exactly
+// as before.
+const COMBO_PREFIX = "combo:"
+
 export interface ModelPickerV2Props {
-  /** "providerID/modelID" or empty string when nothing is selected yet */
+  /** "providerID/modelID", "combo:<id>", or empty string when nothing is selected yet */
   value: string
   onChange: (value: string) => void
+  /** When provided, the provider dropdown also lists these as selectable combos. */
+  combos?: { id: string; name: string }[]
 }
 
 function splitModel(value: string) {
@@ -30,14 +38,32 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const providerList = createMemo(() =>
     Array.from(providers.all().values()).sort((a, b) => a.name.localeCompare(b.name)),
   )
-  const selectedProviderID = createMemo(() => splitModel(props.value).providerID)
+  const isCombo = createMemo(() => props.value.startsWith(COMBO_PREFIX))
+  const selectedComboID = createMemo(() => (isCombo() ? props.value.slice(COMBO_PREFIX.length) : ""))
+  const selectedProviderID = createMemo(() => (isCombo() ? "" : splitModel(props.value).providerID))
   const selectedModelID = createMemo(() => splitModel(props.value).modelID)
   const selectedProvider = createMemo(() => providerList().find((provider) => provider.id === selectedProviderID()))
-  const modelList = createMemo(() => {
+  const allModels = createMemo(() => {
     const provider = selectedProvider()
     if (!provider) return []
     return Object.values(provider.models).sort((a, b) => a.name.localeCompare(b.name))
   })
+
+  // Some providers (OpenRouter, Omniroute, ...) expose thousands of models —
+  // rendering every one as a DOM <option> is what actually gets slow, not
+  // the fetch (the catalog is already synced client-side). Filter narrows
+  // before render, and MODEL_RENDER_CAP keeps an unfiltered/broad list from
+  // ever hitting the DOM at full size.
+  const MODEL_RENDER_CAP = 200
+  const [modelFilter, setModelFilter] = createSignal("")
+  const filteredModels = createMemo(() => {
+    const query = modelFilter().trim().toLowerCase()
+    const all = allModels()
+    if (!query) return all
+    return all.filter((model) => model.name.toLowerCase().includes(query) || model.id.toLowerCase().includes(query))
+  })
+  const modelList = createMemo(() => filteredModels().slice(0, MODEL_RENDER_CAP))
+  const modelListTruncated = createMemo(() => filteredModels().length > MODEL_RENDER_CAP)
 
   return (
     <div
@@ -50,25 +76,56 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
     >
       <select
         class={selectClass}
-        value={selectedProviderID()}
-        onChange={(event) => props.onChange(event.currentTarget.value ? `${event.currentTarget.value}/` : "")}
-      >
-        <option value="">{language.t("batuta.model.provider.placeholder")}</option>
-        <For each={providerList()}>{(provider) => <option value={provider.id}>{provider.name}</option>}</For>
-      </select>
-      <select
-        class={selectClass}
-        disabled={!selectedProvider()}
-        value={selectedModelID()}
+        value={isCombo() ? `${COMBO_PREFIX}${selectedComboID()}` : selectedProviderID()}
         onChange={(event) => {
-          const provider = selectedProvider()
-          if (!provider || !event.currentTarget.value) return
-          props.onChange(`${provider.id}/${event.currentTarget.value}`)
+          const next = event.currentTarget.value
+          if (!next) return props.onChange("")
+          props.onChange(next.startsWith(COMBO_PREFIX) ? next : `${next}/`)
         }}
       >
-        <option value="">{language.t("batuta.model.model.placeholder")}</option>
-        <For each={modelList()}>{(model) => <option value={model.id}>{model.name}</option>}</For>
+        <option value="">{language.t("batuta.model.provider.placeholder")}</option>
+        <Show when={props.combos && props.combos.length > 0}>
+          <optgroup label={language.t("settings.combos.title")}>
+            <For each={props.combos}>
+              {(combo) => <option value={`${COMBO_PREFIX}${combo.id}`}>{combo.name}</option>}
+            </For>
+          </optgroup>
+        </Show>
+        <optgroup label={language.t("batuta.model.provider.placeholder")}>
+          <For each={providerList()}>{(provider) => <option value={provider.id}>{provider.name}</option>}</For>
+        </optgroup>
       </select>
+      <Show when={!isCombo()}>
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
+          <Show when={allModels().length > MODEL_RENDER_CAP}>
+            <input
+              type="text"
+              class="h-8 min-w-0 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2.5 text-13-regular text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint focus-visible:border-v2-border-border-focus"
+              placeholder={language.t("batuta.model.model.filterPlaceholder")}
+              value={modelFilter()}
+              onInput={(event) => setModelFilter(event.currentTarget.value)}
+            />
+          </Show>
+          <select
+            class={selectClass}
+            disabled={!selectedProvider()}
+            value={selectedModelID()}
+            onChange={(event) => {
+              const provider = selectedProvider()
+              if (!provider || !event.currentTarget.value) return
+              props.onChange(`${provider.id}/${event.currentTarget.value}`)
+            }}
+          >
+            <option value="">{language.t("batuta.model.model.placeholder")}</option>
+            <For each={modelList()}>{(model) => <option value={model.id}>{model.name}</option>}</For>
+          </select>
+          <Show when={modelListTruncated()}>
+            <span class="text-11-regular text-v2-text-text-faint">
+              {language.t("batuta.model.model.truncated", { count: MODEL_RENDER_CAP })}
+            </span>
+          </Show>
+        </div>
+      </Show>
     </div>
   )
 }

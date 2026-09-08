@@ -38,6 +38,15 @@ import type {
   BatutaStartResponses,
   BatutaSyncErrors,
   BatutaSyncResponses,
+  Combo as Combo2,
+  ComboAddErrors,
+  ComboAddResponses,
+  ComboListErrors,
+  ComboListResponses,
+  ComboRemoveErrors,
+  ComboRemoveResponses,
+  ComboResolveErrors,
+  ComboResolveResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -1972,6 +1981,139 @@ export class Batuta extends HeyApiClient {
       ThrowOnError
     >({
       url: "/batuta/{id}/pipeline-chat",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Combo extends HeyApiClient {
+  /**
+   * List combos
+   *
+   * List all configured model combos.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ComboListResponses, ComboListErrors, ThrowOnError>({
+      url: "/combo",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update a combo
+   *
+   * Create or replace a model combo (models, failover, rate limit).
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      combo?: Combo2
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "combo", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ComboAddResponses, ComboAddErrors, ThrowOnError>({
+      url: "/combo",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a combo
+   *
+   * Delete a model combo.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ComboRemoveResponses, ComboRemoveErrors, ThrowOnError>({
+      url: "/combo/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Resolve a combo to a concrete model
+   *
+   * Applies the combo's failover/rate-limit rules and returns which provider/model to use right now — mainly useful for debugging a combo's behavior from the UI.
+   */
+  public resolve<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ComboResolveResponses, ComboResolveErrors, ThrowOnError>({
+      url: "/combo/{id}/resolve",
       ...options,
       ...params,
     })
@@ -8039,6 +8181,11 @@ export class OpencodeClient extends HeyApiClient {
   private _batuta?: Batuta
   get batuta(): Batuta {
     return (this._batuta ??= new Batuta({ client: this.client }))
+  }
+
+  private _combo?: Combo
+  get combo(): Combo {
+    return (this._combo ??= new Combo({ client: this.client }))
   }
 
   private _config?: Config2

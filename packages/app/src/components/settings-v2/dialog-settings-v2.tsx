@@ -7,6 +7,7 @@ import { usePlatform } from "@/context/platform"
 import { SettingsGeneralV2 } from "./general"
 import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
+import { SettingsCombosV2 } from "./combos"
 import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
@@ -88,6 +89,10 @@ export const DialogSettings: Component<{
                       <Icon name="models" />
                       {language.t("settings.models.title")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="combos">
+                      <Icon name="branch" />
+                      {language.t("settings.combos.title")}
+                    </TabsV2.Trigger>
                   </div>
                 </div>
 
@@ -146,6 +151,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="combos" class="settings-v2-panel">
+          <SettingsCombosV2 />
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
           <SettingsSkillsV2 directory={directory} />

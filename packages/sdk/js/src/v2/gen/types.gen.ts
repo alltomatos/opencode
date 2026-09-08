@@ -1926,6 +1926,57 @@ export type BatutaConfig = {
   [key: string]: BatutaActivity
 }
 
+export type ComboModel = {
+  /**
+   * Model for this combo entry, in 'providerID/modelID' form
+   */
+  model: string
+  priority: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ComboFailover = {
+  /**
+   * When true, a request that fails on one model retries the next one in the combo instead of failing.
+   */
+  enabled: boolean
+  /**
+   * 'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' starts from whichever model comes after the last one used.
+   */
+  strategy: "priority" | "round-robin"
+}
+
+export type ComboRateLimit = {
+  /**
+   * Max requests per minute across the whole combo, regardless of which model handles each one
+   */
+  requestsPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  /**
+   * Max total tokens (input+output) per minute across the whole combo
+   */
+  tokensPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type Combo = {
+  /**
+   * Stable identifier for this combo
+   */
+  id: string
+  /**
+   * Display name for this combo
+   */
+  name: string
+  /**
+   * Models this combo can resolve to, in failover order
+   */
+  models: Array<ComboModel>
+  failover: ComboFailover
+  rateLimit?: ComboRateLimit
+}
+
+export type ComboConfig = {
+  [key: string]: Combo
+}
+
 export type MemoryConfig = {
   enabled?: boolean
   memoryModel?: string
@@ -2030,6 +2081,7 @@ export type Config = {
         }
   }
   batuta?: BatutaConfig
+  combo?: ComboConfig
   memory?: MemoryConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
@@ -2111,6 +2163,16 @@ export type BatutaWorkerNotFoundError = {
   id: string
   label: string
   message: string
+}
+
+export type ComboNotFoundError = {
+  _tag: "ComboNotFoundError"
+  id: string
+}
+
+export type ComboExhaustedError = {
+  _tag: "ComboExhaustedError"
+  id: string
 }
 
 export type Model = {
@@ -7948,6 +8010,131 @@ export type BatutaStartPipelineChatResponses = {
 }
 
 export type BatutaStartPipelineChatResponse = BatutaStartPipelineChatResponses[keyof BatutaStartPipelineChatResponses]
+
+export type ComboListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo"
+}
+
+export type ComboListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboListError = ComboListErrors[keyof ComboListErrors]
+
+export type ComboListResponses = {
+  /**
+   * List configured combos
+   */
+  200: Array<Combo>
+}
+
+export type ComboListResponse = ComboListResponses[keyof ComboListResponses]
+
+export type ComboAddData = {
+  body?: Combo
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo"
+}
+
+export type ComboAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboAddError = ComboAddErrors[keyof ComboAddErrors]
+
+export type ComboAddResponses = {
+  /**
+   * Combo added successfully
+   */
+  200: Combo
+}
+
+export type ComboAddResponse = ComboAddResponses[keyof ComboAddResponses]
+
+export type ComboRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/{id}"
+}
+
+export type ComboRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboRemoveError = ComboRemoveErrors[keyof ComboRemoveErrors]
+
+export type ComboRemoveResponses = {
+  /**
+   * Combo removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type ComboRemoveResponse = ComboRemoveResponses[keyof ComboRemoveResponses]
+
+export type ComboResolveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/{id}/resolve"
+}
+
+export type ComboResolveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * ComboNotFoundError | ComboExhaustedError
+   */
+  500: ComboNotFoundError | ComboExhaustedError
+}
+
+export type ComboResolveError = ComboResolveErrors[keyof ComboResolveErrors]
+
+export type ComboResolveResponses = {
+  /**
+   * The model this combo currently resolves to
+   */
+  200: {
+    providerID: string
+    modelID: string
+  }
+}
+
+export type ComboResolveResponse = ComboResolveResponses[keyof ComboResolveResponses]
 
 export type ConfigGetData = {
   body?: never
