@@ -1456,7 +1456,4 @@ export const dict = {
   "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
-  "session.question.pending.many": "{{count}} pending questions", // TODO: translate plural form (auto-filled from .other)
-  "session.followupDock.summary.many": "{{count}} queued messages", // TODO: translate plural form (auto-filled from .other)
-  "session.revertDock.summary.many": "{{count}} rolled back messages", // TODO: translate plural form (auto-filled from .other)
 }
