@@ -1,7 +1,7 @@
 import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { AgentUINotFoundError } from "@/agentui"
+import { AgentUINotFoundError, AgentUIGenerateFailedError } from "@/agentui"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
@@ -18,6 +18,13 @@ export const RemoveResponse = Schema.Struct({ success: Schema.Literal(true) })
 // (query_directory vs body_directory).
 export const TestPayload = Schema.Struct({ projectDirectory: Schema.String, message: Schema.String })
 export const TestResponse = Schema.Struct({ reply: Schema.String, blocked: Schema.Boolean })
+export const GenerateDraftPayload = Schema.Struct({ description: Schema.String })
+export const GenerateDraftResponse = Schema.Struct({
+  name: Schema.String,
+  personality: Schema.String,
+  commandTriggers: Schema.Array(Schema.String),
+  guardrails: ConfigAgentUIV1.Guardrails,
+})
 
 export const AgentUIApi = HttpApi.make("agentui")
   .add(
@@ -54,6 +61,19 @@ export const AgentUIApi = HttpApi.make("agentui")
             identifier: "agentui.add",
             summary: "Add or update an AgentUI agent",
             description: "Create or replace a custom conversational agent.",
+          }),
+        ),
+        HttpApiEndpoint.post("generate", `${root}/generate`, {
+          query: WorkspaceRoutingQuery,
+          payload: GenerateDraftPayload,
+          success: described(GenerateDraftResponse, "Generated agent draft"),
+          error: AgentUIGenerateFailedError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "agentui.generate",
+            summary: "Generate an AgentUI draft from a natural-language description",
+            description:
+              "One-shot generation: drafts name, personality/system-prompt, command trigger and guardrail level from a free-text description, for the user to review before saving.",
           }),
         ),
         HttpApiEndpoint.post("test", `${root}/:id/test`, {

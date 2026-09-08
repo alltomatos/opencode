@@ -1450,6 +1450,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Krijo me AI",
+  "settings.agentui.ai.hint": "Përshkruani agjentin që dëshironi me fjalët tuaja — emri, personaliteti dhe cilësimet do të hartohen më poshtë për shqyrtim.",
+  "settings.agentui.ai.placeholder": "p.sh. Një recepsioniste miqësore e një klinike dentare që përgjigjet pyetjeve për takimet...",
+  "settings.agentui.ai.generate": "Gjenero",
+  "settings.agentui.ai.generating": "Duke gjeneruar…",
+  "settings.agentui.ai.toast.generated": "Skica u gjenerua — shqyrtojeni para se ta ruani",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

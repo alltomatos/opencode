@@ -1452,6 +1452,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Ստեղծել AI-ով",
+  "settings.agentui.ai.hint": "Նկարագրեք ցանկալի գործակալը ձեր բառերով — անունը, բնավորությունը և կարգավորումները կպատրաստվեն ստորև՝ վերանայման համար։",
+  "settings.agentui.ai.placeholder": "օր.՝ Ատամնաբուժական կլինիկայի ընկերասեր ընդունարան, որը պատասխանում է հանդիպումների հարցերին...",
+  "settings.agentui.ai.generate": "Ստեղծել",
+  "settings.agentui.ai.generating": "Ստեղծվում է…",
+  "settings.agentui.ai.toast.generated": "Սևագիրը ստեղծված է — վերանայեք պահպանելուց առաջ",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

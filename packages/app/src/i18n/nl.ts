@@ -1458,6 +1458,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Maken met AI",
+  "settings.agentui.ai.hint": "Beschrijf in je eigen woorden de agent die je wilt — naam, persoonlijkheid en instellingen worden hieronder opgesteld ter beoordeling.",
+  "settings.agentui.ai.placeholder": "bijv. Een vriendelijke receptioniste van een tandartspraktijk die vragen over afspraken beantwoordt...",
+  "settings.agentui.ai.generate": "Genereren",
+  "settings.agentui.ai.generating": "Genereren…",
+  "settings.agentui.ai.toast.generated": "Concept gegenereerd — controleer voordat je opslaat",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

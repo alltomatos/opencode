@@ -1460,6 +1460,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Δημιουργία με AI",
+  "settings.agentui.ai.hint": "Περιγράψτε τον πράκτορα που θέλετε με δικά σας λόγια — το όνομα, η προσωπικότητα και οι ρυθμίσεις θα προετοιμαστούν παρακάτω για έλεγχο.",
+  "settings.agentui.ai.placeholder": "π.χ. Μια φιλική ρεσεψιονίστ οδοντιατρείου που απαντά σε ερωτήσεις για ραντεβού...",
+  "settings.agentui.ai.generate": "Δημιουργία",
+  "settings.agentui.ai.generating": "Δημιουργείται…",
+  "settings.agentui.ai.toast.generated": "Το προσχέδιο δημιουργήθηκε — ελέγξτε το πριν την αποθήκευση",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

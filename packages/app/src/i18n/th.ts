@@ -1525,6 +1525,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "สร้างด้วย AI",
+  "settings.agentui.ai.hint": "อธิบายเอเจนต์ที่คุณต้องการด้วยคำพูดของคุณเอง — ชื่อ บุคลิกภาพ และการตั้งค่าจะถูกร่างไว้ด้านล่างให้คุณตรวจสอบ",
+  "settings.agentui.ai.placeholder": "เช่น พนักงานต้อนรับคลินิกทันตกรรมที่เป็นมิตร ตอบคำถามเกี่ยวกับการนัดหมาย...",
+  "settings.agentui.ai.generate": "สร้าง",
+  "settings.agentui.ai.generating": "กำลังสร้าง…",
+  "settings.agentui.ai.toast.generated": "สร้างร่างแล้ว — ตรวจสอบก่อนบันทึก",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

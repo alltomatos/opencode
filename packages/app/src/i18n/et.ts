@@ -1438,6 +1438,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Loo AI abil",
+  "settings.agentui.ai.hint": "Kirjelda soovitud agenti oma sõnadega — nimi, isiksus ja seaded koostatakse allpool ülevaatamiseks.",
+  "settings.agentui.ai.placeholder": "nt. Sõbralik hambaravikliiniku administraator, kes vastab vastuvõtuaegade küsimustele...",
+  "settings.agentui.ai.generate": "Genereeri",
+  "settings.agentui.ai.generating": "Genereerimine…",
+  "settings.agentui.ai.toast.generated": "Mustand loodud — vaata üle enne salvestamist",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

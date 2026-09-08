@@ -1454,6 +1454,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI로 만들기",
+  "settings.agentui.ai.hint": "원하는 에이전트를 자신의 말로 설명해 주세요 — 이름, 성격, 설정이 아래에 검토용 초안으로 작성됩니다.",
+  "settings.agentui.ai.placeholder": "예: 예약 관련 질문에 답하는 친절한 치과 접수원...",
+  "settings.agentui.ai.generate": "생성",
+  "settings.agentui.ai.generating": "생성 중…",
+  "settings.agentui.ai.toast.generated": "초안이 생성되었습니다 — 저장 전에 검토하세요",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

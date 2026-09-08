@@ -1456,6 +1456,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AIで作成",
+  "settings.agentui.ai.hint": "作りたいエージェントを自分の言葉で説明してください — 名前、性格、設定が下に確認用の下書きとして生成されます。",
+  "settings.agentui.ai.placeholder": "例：予約に関する質問に答える、フレンドリーな歯科医院の受付係...",
+  "settings.agentui.ai.generate": "生成",
+  "settings.agentui.ai.generating": "生成中…",
+  "settings.agentui.ai.toast.generated": "下書きを生成しました — 保存前に確認してください",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

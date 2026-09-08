@@ -1440,6 +1440,12 @@ export const dict: Record<string, string> = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI සමඟ සාදන්න",
+  "settings.agentui.ai.hint": "ඔබට අවශ්‍ය නියෝජිතයා ඔබේම වචනවලින් විස්තර කරන්න — නම, පෞරුෂය සහ සැකසුම් සමාලෝචනය සඳහා පහත කෙටුම්පත් කෙරේ.",
+  "settings.agentui.ai.placeholder": "උදා: හමුවීම් ප්‍රශ්නවලට පිළිතුරු දෙන මිත්‍රශීලී දන්ත වෛද්‍ය ප්‍රසාද ගැනුම්කරු...",
+  "settings.agentui.ai.generate": "උත්පාදනය කරන්න",
+  "settings.agentui.ai.generating": "උත්පාදනය කරමින්…",
+  "settings.agentui.ai.toast.generated": "කෙටුම්පත සාදන ලදී — සුරැකීමට පෙර සමාලෝචනය කරන්න",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

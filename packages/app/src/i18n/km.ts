@@ -1438,6 +1438,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "បង្កើតជាមួយ AI",
+  "settings.agentui.ai.hint": "ពិពណ៌នាភ្នាក់ងារដែលអ្នកចង់បានជាមួយពាក្យផ្ទាល់ខ្លួនរបស់អ្នក — ឈ្មោះ បុគ្គលិកលក្ខណៈ និងការកំណត់នឹងត្រូវបានព្រាងខាងក្រោមសម្រាប់ការត្រួតពិនិត្យ។",
+  "settings.agentui.ai.placeholder": "ឧ. បុគ្គលិកទទួលភ្ញៀវដ៏រួសរាយនៃគ្លីនិកធ្មេញ ដែលឆ្លើយសំណួរអំពីការណាត់ជួប...",
+  "settings.agentui.ai.generate": "បង្កើត",
+  "settings.agentui.ai.generating": "កំពុងបង្កើត…",
+  "settings.agentui.ai.toast.generated": "ព្រាងត្រូវបានបង្កើត — សូមពិនិត្យមុននឹងរក្សាទុក",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
