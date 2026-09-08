@@ -1,0 +1,318 @@
+import { createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js"
+import { useNavigate, useParams } from "@solidjs/router"
+import { createStore } from "solid-js/store"
+import { ScrollView } from "@opencode-ai/ui/scroll-view"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
+import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { TextareaV2 } from "@opencode-ai/ui/v2/textarea-v2"
+import { Switch } from "@opencode-ai/ui/v2/switch-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useLanguage } from "@/context/language"
+import { useServerSDK } from "@/context/server-sdk"
+import { useLayout } from "@/context/layout"
+import { useTabs } from "@/context/tabs"
+import { useServerSync } from "@/context/server-sync"
+import { createHomeController } from "@/pages/home/home-controller"
+import { showToast } from "@/utils/toast"
+import { ModelPickerV2 } from "@/components/batuta/model-picker-v2"
+import { DialogAgentUISandbox } from "@/components/settings-v2/dialog-agentui-sandbox"
+import "@/components/settings-v2/settings-v2.css"
+
+type RagSource = { id: string; kind: "text" | "url"; label: string; value: string }
+type AgentUIFormState = {
+  id: string
+  name: string
+  personality: string
+  model: string
+  commandTriggers: string
+  ragSources: RagSource[]
+  guardrailsEnabled: boolean
+  guardrailsLevel: "basic" | "strict"
+  telegram: boolean
+  enabled: boolean
+}
+
+function emptyForm(): AgentUIFormState {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    personality: "",
+    model: "",
+    commandTriggers: "!",
+    ragSources: [],
+    guardrailsEnabled: true,
+    guardrailsLevel: "basic",
+    telegram: false,
+    enabled: true,
+  }
+}
+
+export function AgentUIFormPage() {
+  const navigate = useNavigate()
+  const params = useParams<{ id?: string }>()
+  const language = useLanguage()
+  const serverSDK = useServerSDK()
+  const dialog = useDialog()
+  const isEdit = !!params.id
+
+  const layout = useLayout()
+  const tabs = useTabs()
+  const serverSync = useServerSync()
+  const home = createHomeController()
+  const directory = createMemo(() => {
+    const route = layout.route()
+    if (route.type === "dir-new-sesssion") return route.dir
+    if (route.type === "draft") {
+      const draft = tabs.store.find((item) => item.type === "draft" && item.draftID === route.draftID)
+      return draft?.type === "draft" ? draft.directory : undefined
+    }
+    if (route.type === "session") return serverSync().session.get(route.sessionId)?.directory
+    return home.project.selected()?.worktree ?? home.project.newSession()?.worktree
+  })
+
+  const [combos] = createResource(async () => {
+    const result = await serverSDK().client.combo.list()
+    return (result.data ?? []).map((c) => ({ id: c.id, name: c.name }))
+  })
+
+  const [existing] = createResource(
+    () => params.id,
+    async (id) => {
+      const result = await serverSDK().client.agentui.get({ id })
+      return result.data
+    },
+  )
+  const ready = createMemo(() => !isEdit || existing.state === "ready")
+
+  const [form, setForm] = createStore<AgentUIFormState>(emptyForm())
+  const [everSaved, setEverSaved] = createSignal(isEdit)
+  let initialized = false
+
+  createEffect(() => {
+    const agent = existing()
+    if (!agent || initialized) return
+    initialized = true
+    setForm({
+      id: agent.id,
+      name: agent.name,
+      personality: agent.personality,
+      model: agent.model,
+      commandTriggers: agent.commandTriggers.join(" "),
+      ragSources: agent.ragSources.map((s) => ({ id: s.id, kind: s.kind as "text" | "url", label: s.label, value: s.value })),
+      guardrailsEnabled: agent.guardrails.enabled,
+      guardrailsLevel: agent.guardrails.level,
+      telegram: agent.channels.some((c) => c.type === "telegram"),
+      enabled: agent.enabled !== false,
+    })
+  })
+
+  const addRagSource = () =>
+    setForm("ragSources", (list) => [...list, { id: crypto.randomUUID(), kind: "text", label: "", value: "" }])
+  const removeRagSource = (id: string) => setForm("ragSources", (list) => list.filter((s) => s.id !== id))
+
+  const [saving, setSaving] = createSignal(false)
+  const [error, setError] = createSignal<string | undefined>()
+
+  const save = async () => {
+    if (!form.name.trim() || !form.model) {
+      setError(language.t("settings.agentui.error.incomplete"))
+      return
+    }
+    setError(undefined)
+    setSaving(true)
+    const triggers = form.commandTriggers
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+    try {
+      await serverSDK().client.agentui.add({
+        agentUiAgent: {
+          id: form.id,
+          name: form.name,
+          personality: form.personality,
+          model: form.model,
+          channels: form.telegram ? [{ type: "telegram" }] : [],
+          commandTriggers: triggers,
+          ragSources: form.ragSources.filter((s) => s.label && s.value),
+          guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
+          enabled: form.enabled,
+        },
+      })
+      showToast({ variant: "success", icon: "circle-check", title: language.t("settings.agentui.toast.saved") })
+      setEverSaved(true)
+      if (!isEdit) navigate(`/agentui/${form.id}/edit`, { replace: true })
+    } catch (cause) {
+      showToast({
+        title: language.t("common.requestFailed"),
+        description: cause instanceof Error ? cause.message : String(cause),
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openSandbox = () => {
+    if (!everSaved()) return
+    dialog.push(() => <DialogAgentUISandbox agentID={form.id} agentName={form.name || "—"} directory={directory()} />)
+  }
+
+  const title = createMemo(() =>
+    isEdit ? language.t("settings.agentui.form.title.edit") : language.t("settings.agentui.form.title.create"),
+  )
+
+  return (
+    <div
+      class={`
+        m-2 flex min-h-0 flex-1 flex-col self-stretch overflow-hidden rounded-[10px]
+        bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)]
+      `}
+    >
+      <div class="flex h-12 shrink-0 items-center gap-2 border-b border-v2-border-border-base px-3">
+        <IconButtonV2
+          variant="ghost-muted"
+          size="small"
+          icon={<Icon name="arrow-left" />}
+          aria-label={language.t("common.goBack")}
+          onClick={() => navigate("/agentui")}
+        />
+        <span class="flex-1 text-13-medium text-v2-text-text-base">{title()}</span>
+        <TooltipV2
+          placement="bottom"
+          value={everSaved() ? language.t("settings.agentui.sandbox.open") : language.t("settings.agentui.form.testHint")}
+        >
+          <ButtonV2 variant="neutral" disabled={!everSaved()} onClick={openSandbox}>
+            {language.t("settings.agentui.sandbox.open")}
+          </ButtonV2>
+        </TooltipV2>
+        <ButtonV2 variant="contrast" disabled={saving()} onClick={() => void save()}>
+          {saving() ? language.t("common.saving") : language.t("common.save")}
+        </ButtonV2>
+        <IconButtonV2
+          variant="ghost-muted"
+          size="small"
+          icon={<Icon name="close" />}
+          aria-label={language.t("common.close")}
+          onClick={() => navigate("/agentui")}
+        />
+      </div>
+
+      <Show when={ready()} fallback={<div class="flex-1" />}>
+        <div class="flex min-h-0 flex-1">
+          <ScrollView class="min-h-0 flex-1">
+            <div class="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-3 py-8 lg:px-6">
+              <div class="flex w-full min-w-0 flex-col gap-2">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.name")}</label>
+                <TextInputV2
+                  type="text"
+                  appearance="large"
+                  class="!w-full self-stretch"
+                  value={form.name}
+                  autofocus={!isEdit}
+                  onInput={(event) => setForm("name", event.currentTarget.value)}
+                />
+              </div>
+
+              <div class="flex w-full min-w-0 flex-col gap-2">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.personality")}</label>
+                <TextareaV2
+                  class="!w-full self-stretch"
+                  rows={16}
+                  value={form.personality}
+                  onInput={(event) => setForm("personality", event.currentTarget.value)}
+                />
+              </div>
+
+              <Show when={error()}>
+                <span class="settings-v2-server-dialog-error">{error()}</span>
+              </Show>
+            </div>
+          </ScrollView>
+
+          <ScrollView class="min-h-0 w-[340px] shrink-0 border-l border-v2-border-border-base">
+            <div class="flex w-full flex-col gap-5 px-4 py-6">
+              <div class="flex items-center justify-between">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.enabled")}</label>
+                <Switch checked={form.enabled} onChange={(checked) => setForm("enabled", checked)} />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.model")}</label>
+                <ModelPickerV2 value={form.model} onChange={(value) => setForm("model", value)} combos={combos() ?? []} />
+              </div>
+
+              <div class="flex items-center justify-between">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.telegram")}</label>
+                <Switch checked={form.telegram} onChange={(checked) => setForm("telegram", checked)} />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.commandTriggers")}</label>
+                <TextInputV2
+                  value={form.commandTriggers}
+                  onInput={(event) => setForm("commandTriggers", event.currentTarget.value)}
+                  placeholder="! #"
+                />
+              </div>
+
+              <div class="flex items-center justify-between">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.guardrails")}</label>
+                <Switch checked={form.guardrailsEnabled} onChange={(checked) => setForm("guardrailsEnabled", checked)} />
+              </div>
+              <Show when={form.guardrailsEnabled}>
+                <div class="flex flex-col gap-1.5">
+                  <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.guardrailsLevel")}</label>
+                  <select
+                    class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
+                    value={form.guardrailsLevel}
+                    onChange={(event) => setForm("guardrailsLevel", event.currentTarget.value as "basic" | "strict")}
+                  >
+                    <option value="basic">{language.t("settings.agentui.guardrails.basic")}</option>
+                    <option value="strict">{language.t("settings.agentui.guardrails.strict")}</option>
+                  </select>
+                </div>
+              </Show>
+
+              <div class="flex flex-col gap-2">
+                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.ragSources")}</label>
+                <For each={form.ragSources}>
+                  {(source, index) => (
+                    <div class="flex items-start gap-2">
+                      <TextInputV2
+                        class="w-[100px]"
+                        placeholder={language.t("settings.agentui.rag.label")}
+                        value={source.label}
+                        onInput={(event) => setForm("ragSources", index(), "label", event.currentTarget.value)}
+                      />
+                      <TextInputV2
+                        class="flex-1"
+                        placeholder={language.t("settings.agentui.rag.value")}
+                        value={source.value}
+                        onInput={(event) => setForm("ragSources", index(), "value", event.currentTarget.value)}
+                      />
+                      <IconButtonV2
+                        type="button"
+                        variant="ghost-muted"
+                        size="small"
+                        icon={<IconV2 name="xmark-small" />}
+                        aria-label={language.t("common.remove")}
+                        onClick={() => removeRagSource(source.id)}
+                      />
+                    </div>
+                  )}
+                </For>
+                <ButtonV2 variant="outline" onClick={addRagSource}>
+                  {language.t("settings.agentui.rag.add")}
+                </ButtonV2>
+                <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.rag.note")}</p>
+              </div>
+            </div>
+          </ScrollView>
+        </div>
+      </Show>
+    </div>
+  )
+}

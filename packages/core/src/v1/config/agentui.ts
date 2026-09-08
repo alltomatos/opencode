@@ -46,8 +46,18 @@ export const Agent = Schema.Struct({
     description: "Knowledge sources this agent can retrieve from",
   }),
   guardrails: Guardrails,
+  // Absent/undefined means enabled — old configs saved before this field
+  // existed must keep working exactly as before. Read via isEnabled()
+  // below rather than this field directly.
+  enabled: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether this agent is currently reachable on its channels. Missing/undefined means enabled.",
+  }),
 }).annotate({ identifier: "AgentUIAgent" })
 export type Agent = Schema.Schema.Type<typeof Agent>
+
+export function isEnabled(agent: Pick<Agent, "enabled">): boolean {
+  return agent.enabled !== false
+}
 
 export const Info = Schema.Record(Schema.String, Agent).annotate({ identifier: "AgentUIConfig" })
 export type Info = Schema.Schema.Type<typeof Info>

@@ -22,8 +22,7 @@ import { Question } from "../question"
 import { QuestionV1 } from "@opencode-ai/schema/question-v1"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { AgentUI } from "@/agentui"
-import { Combo } from "@/combo"
-import type { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
+import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 
 const TELEGRAM_AUTH_KEY = "telegram"
 const API_ROOT = "https://api.telegram.org"
@@ -250,7 +249,6 @@ const layer = Layer.effect(
     const question = yield* Question.Service
     const events = yield* EventV2Bridge.Service
     const agentUI = yield* AgentUI.Service
-    const combos = yield* Combo.Service
 
     // In-memory only (rebuilt as chats send their first message after a
     // restart) — enough to route a permission.asked/question.asked event
@@ -275,6 +273,7 @@ const layer = Layer.effect(
       const agents = yield* agentUI.list()
       let best: { agent: ConfigAgentUIV1.Agent; trigger: string } | undefined
       for (const agent of agents) {
+        if (!ConfigAgentUIV1.isEnabled(agent)) continue
         if (!agent.channels.some((channel) => channel.type === "telegram")) continue
         for (const trigger of agent.commandTriggers) {
           if (!trigger) continue
@@ -282,19 +281,6 @@ const layer = Layer.effect(
         }
       }
       return best
-    })
-
-    // Resolves an AgentUI's `model` field ("providerID/modelID" or
-    // "combo:<id>", same encoding as ModelPickerV2) to a concrete pair.
-    // Falls back to the chat's own default model when the combo/model is
-    // unavailable, rather than failing the whole request.
-    const resolveAgentModel = Effect.fn("Telegram.resolveAgentModel")(function* (spec: string) {
-      if (spec.startsWith("combo:")) {
-        return yield* combos.resolve(spec.slice("combo:".length)).pipe(Effect.orElseSucceed(() => undefined))
-      }
-      const [providerID, modelID] = spec.split("/")
-      if (!providerID || !modelID) return undefined
-      return { providerID, modelID }
     })
 
     // A multi-question request (e.g. from /grill-me) is answered one
@@ -849,7 +835,7 @@ const layer = Layer.effect(
         if (!guard.allowed) {
           reply = `🛡️ ${guard.reason}`
         } else {
-          const model = yield* resolveAgentModel(agent.model)
+          const model = yield* agentUI.resolveModel(agent.model)
           const knowledge = yield* agentUI.buildKnowledgeContext(agent)
           const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
           const system = agentUI.hardenSystemPrompt(agent, personality)
@@ -1071,6 +1057,5 @@ export const node = LayerNode.make({
     Question.node,
     EventV2Bridge.node,
     AgentUI.node,
-    Combo.node,
   ],
 })

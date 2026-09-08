@@ -1,10 +1,85 @@
 import { expect } from "bun:test"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { Effect, Exit } from "effect"
+import { LocationServiceMap, locationServiceMapLayer } from "@opencode-ai/core/location-services"
+import { Effect, Exit, Layer } from "effect"
 import { AgentUI } from "../../src/agentui/index"
+import { InstanceStore } from "../../src/project/instance-store"
+import { InstanceBootstrap } from "../../src/project/bootstrap-service"
+import { SessionSummary } from "../../src/session/summary"
+import { LSP } from "../../src/lsp/lsp"
+import { MCP } from "../../src/mcp"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import { testEffect } from "../lib/effect"
 
-const it = testEffect(LayerNode.compile(AgentUI.node))
+// AgentUI.Service now pulls in Session/SessionPrompt/InstanceStore (for the
+// sandbox test-chat feature), which drags in the same wide dependency tree
+// prompt.test.ts stubs out for its own tests — same noop/minimal layers,
+// only enough to make the graph compile, since none of the tests below
+// actually exercise testMessage() (that needs a real TestLLMServer, see
+// prompt.test.ts, and would duplicate that file's harness for no gain over
+// the manual verification this feature already gets).
+const noopBootstrap = Layer.succeed(InstanceBootstrap.Service, InstanceBootstrap.Service.of({ run: Effect.void }))
+const noopSummary = Layer.succeed(
+  SessionSummary.Service,
+  SessionSummary.Service.of({ summarize: () => Effect.void, diff: () => Effect.succeed([]), computeDiff: () => Effect.succeed([]) }),
+)
+const noopLsp = Layer.succeed(
+  LSP.Service,
+  LSP.Service.of({
+    init: () => Effect.void,
+    status: () => Effect.succeed([]),
+    hasClients: () => Effect.succeed(false),
+    touchFile: () => Effect.void,
+    diagnostics: () => Effect.succeed({}),
+    hover: () => Effect.succeed(undefined),
+    definition: () => Effect.succeed([]),
+    references: () => Effect.succeed([]),
+    implementation: () => Effect.succeed([]),
+    documentSymbol: () => Effect.succeed([]),
+    workspaceSymbol: () => Effect.succeed([]),
+    prepareCallHierarchy: () => Effect.succeed([]),
+    incomingCalls: () => Effect.succeed([]),
+    outgoingCalls: () => Effect.succeed([]),
+  }),
+)
+const noopMcp = Layer.succeed(
+  MCP.Service,
+  MCP.Service.of({
+    status: () => Effect.succeed({}),
+    clients: () => Effect.succeed({}),
+    instructions: () => Effect.succeed([]),
+    tools: () => Effect.succeed({}),
+    prompts: () => Effect.succeed({}),
+    resources: () => Effect.succeed({}),
+    resourceTemplates: () => Effect.succeed({}),
+    add: () => Effect.succeed({ status: { status: "disabled" as const } }),
+    connect: () => Effect.void,
+    disconnect: () => Effect.void,
+    remove: () => Effect.void,
+    serverCatalog: () => Effect.succeed({ tools: [], prompts: [], resources: [] }),
+    getPrompt: () => Effect.succeed(undefined),
+    readResource: () => Effect.succeed(undefined),
+    startAuth: () => Effect.die("unexpected MCP auth in agentui tests"),
+    authenticate: () => Effect.die("unexpected MCP auth in agentui tests"),
+    finishAuth: () => Effect.die("unexpected MCP auth in agentui tests"),
+    removeAuth: () => Effect.void,
+    supportsOAuth: () => Effect.succeed(false),
+    hasStoredTokens: () => Effect.succeed(false),
+    getAuthStatus: () => Effect.succeed("not_authenticated" as const),
+  }),
+)
+const noopRuntimeFlags = RuntimeFlags.layer({ experimentalEventSystem: true })
+
+const it = testEffect(
+  LayerNode.compile(AgentUI.node, [
+    [InstanceStore.bootstrapNode, noopBootstrap],
+    [SessionSummary.node, noopSummary],
+    [LSP.node, noopLsp],
+    [MCP.node, noopMcp],
+    [RuntimeFlags.node, noopRuntimeFlags],
+    [LocationServiceMap.node, locationServiceMapLayer],
+  ]),
+)
 
 function agent(overrides: { id?: string } = {}) {
   return {

@@ -1458,4 +1458,17 @@ export const dict = {
   "settings.agentui.rag.value": "Text or URL", // TODO: translate (auto-filled from en)
   "settings.agentui.rag.add": "Add source", // TODO: translate (auto-filled from en)
   "settings.agentui.rag.note": "File upload and real retrieval land in a later phase — these are stored as-is for now.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.enabled": "Enabled",
+  "settings.agentui.enable": "Enable agent",
+  "settings.agentui.disable": "Disable agent",
+  "settings.agentui.sandbox.open": "Test",
+  "settings.agentui.sandbox.title": "Test {{name}}",
+  "settings.agentui.sandbox.empty": "Send a message to try this agent — same personality, model and guardrails it uses for real, in a private test conversation.",
+  "settings.agentui.sandbox.placeholder": "Type a message...",
+  "settings.agentui.sandbox.send": "Send",
+  "settings.agentui.sandbox.reset": "New conversation",
+  "settings.agentui.sandbox.noDirectory": "Open a project first to test this agent.",
+  "settings.agentui.form.title.create": "New agent",
+  "settings.agentui.form.title.edit": "Edit agent",
+  "settings.agentui.form.testHint": "Save the agent first to test it.",
 }

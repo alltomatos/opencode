@@ -2029,6 +2029,7 @@ export type AgentUiAgent = {
    */
   ragSources: Array<AgentUiRagSource>
   guardrails: AgentUiGuardrails
+  enabled?: boolean
 }
 
 export type AgentUiConfig = {
@@ -8321,6 +8322,78 @@ export type AgentuiGetResponses = {
 }
 
 export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
+
+export type AgentuiTestData = {
+  body?: {
+    projectDirectory: string
+    message: string
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/test"
+}
+
+export type AgentuiTestErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError
+   */
+  500: AgentUiNotFoundError
+}
+
+export type AgentuiTestError = AgentuiTestErrors[keyof AgentuiTestErrors]
+
+export type AgentuiTestResponses = {
+  /**
+   * Sandbox reply from the agent
+   */
+  200: {
+    reply: string
+    blocked: boolean
+  }
+}
+
+export type AgentuiTestResponse = AgentuiTestResponses[keyof AgentuiTestResponses]
+
+export type AgentuiResetSandboxData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/sandbox/reset"
+}
+
+export type AgentuiResetSandboxErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiResetSandboxError = AgentuiResetSandboxErrors[keyof AgentuiResetSandboxErrors]
+
+export type AgentuiResetSandboxResponses = {
+  /**
+   * Sandbox conversation reset
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AgentuiResetSandboxResponse = AgentuiResetSandboxResponses[keyof AgentuiResetSandboxResponses]
 
 export type ConfigGetData = {
   body?: never

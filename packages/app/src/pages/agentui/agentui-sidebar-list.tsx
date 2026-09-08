@@ -9,10 +9,10 @@ import { useServerSDK } from "@/context/server-sdk"
 
 const NAV_LABEL = "min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
 
-// Mirrors BatutaSidebarList (pages/batuta/batuta-sidebar-list.tsx): a flat
-// list that just gets the user into the /agentui page, which owns all the
-// actual create/edit/delete actions — same division of labor as Batuta's
-// sidebar vs. its main page.
+// Mirrors BatutaSidebarList (pages/batuta/batuta-sidebar-list.tsx): "+"
+// opens the create-agent page directly, each row opens that agent's edit
+// page — the list at /agentui stays the place for bulk delete/enable and
+// as the empty-state landing.
 export const AgentUISidebarList: Component = () => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
@@ -33,7 +33,7 @@ export const AgentUISidebarList: Component = () => {
             size="small"
             icon={<IconV2 name="plus" />}
             aria-label={language.t("settings.agentui.add.button")}
-            onClick={() => navigate("/agentui")}
+            onClick={() => navigate("/agentui/new")}
           />
         </TooltipV2>
       </div>
@@ -57,7 +57,7 @@ export const AgentUISidebarList: Component = () => {
                       transition-[background-color,color] duration-[120ms] ease-in-out
                       hover:bg-v2-background-bg-layer-01 hover:text-v2-text-text-base
                     `}
-                    onClick={() => navigate("/agentui")}
+                    onClick={() => navigate(`/agentui/${agent.id}/edit`)}
                   >
                     <IconV2 name="subagent" size="small" class="shrink-0 text-v2-icon-icon-muted" />
                     <span class={NAV_LABEL}>{agent.name}</span>

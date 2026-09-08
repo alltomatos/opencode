@@ -4,7 +4,16 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
+import { SessionV1 } from "@opencode-ai/core/v1/session"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+import { ModelV2 } from "@opencode-ai/core/model"
 import { Config } from "@/config/config"
+import { Combo } from "@/combo"
+import { Session } from "@/session/session"
+import { SessionPrompt } from "@/session/prompt"
+import { InstanceStore } from "@/project/instance-store"
+import { InstanceRef } from "@/effect/instance-ref"
+import { SessionID } from "@/session/schema"
 import { Context, Effect, Layer, Schema } from "effect"
 
 // Phase 1 of the AgentUI epic (#144) — CRUD only. No channel routing, RAG
@@ -54,14 +63,36 @@ export interface Interface {
   //    file access, regardless of guardrails.enabled, the same way Batuta's
   //    pipeline-chat sessions are scoped (see Batuta.Service).
   readonly sessionPermission: () => PermissionV1.Ruleset
+  // Resolves an agent's `model` field ("providerID/modelID" or
+  // "combo:<id>", same encoding ModelPickerV2 uses) to a concrete pair.
+  // Shared by every channel (Telegram, the sandbox test chat below) so
+  // there's one place that knows how to read that field.
+  readonly resolveModel: (spec: string) => Effect.Effect<{ providerID: string; modelID: string } | undefined>
+  // Sandbox (in-app test chat, no channel required): runs a message
+  // through the exact same pipeline a real channel would — guardrail
+  // check, hardened system prompt, RAG context, resolved model — but
+  // against a dedicated per-agent sandbox session instead of Telegram
+  // (or whatever channel), so an agent can be tried out before it's
+  // wired to anything real. `directory` picks which connected project's
+  // models/skills the sandbox session runs against.
+  readonly testMessage: (input: {
+    id: string
+    directory: string
+    message: string
+  }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
+  readonly resetSandbox: (id: string) => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/AgentUI") {}
 
-const layer: Layer.Layer<Service, never, Config.Service> = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const cfgSvc = yield* Config.Service
+    const combos = yield* Combo.Service
+    const sessions = yield* Session.Service
+    const promptSvc = yield* SessionPrompt.Service
+    const instanceStore = yield* InstanceStore.Service
 
     // Same overlay-on-top-of-disk-config pattern as Batuta.Service and
     // Combo.Service (packages/opencode/src/batuta/index.ts, src/combo/index.ts)
@@ -202,6 +233,82 @@ const layer: Layer.Layer<Service, never, Config.Service> = Layer.effect(
       { permission: "external_directory", pattern: "*", action: "deny" },
     ]
 
+    const resolveModel = Effect.fn("AgentUI.resolveModel")(function* (spec: string) {
+      if (spec.startsWith("combo:")) {
+        return yield* combos.resolve(spec.slice("combo:".length)).pipe(Effect.orElseSucceed(() => undefined))
+      }
+      const [providerID, modelID] = spec.split("/")
+      if (!providerID || !modelID) return undefined
+      return { providerID, modelID }
+    })
+
+    function extractText(result: SessionV1.WithParts): string {
+      return result.parts
+        .filter((part): part is SessionV1.TextPart => part.type === "text")
+        .map((part) => part.text)
+        .join("\n")
+        .trim()
+    }
+
+    // One sandbox session per agent, independent of any real channel's
+    // sessions (Telegram keeps its own, keyed by chat+agent) — testing an
+    // agent never touches or gets touched by its real conversations.
+    const sandboxSessions = new Map<string, string>()
+
+    const testMessage = Effect.fn("AgentUI.testMessage")(function* (input: {
+      id: string
+      directory: string
+      message: string
+    }) {
+      const agent = yield* get(input.id)
+      if (!ConfigAgentUIV1.isEnabled(agent)) {
+        return { reply: "Este agente está desativado. Ative-o para testar.", blocked: true }
+      }
+      const guard = checkInput(agent, input.message)
+      if (!guard.allowed) return { reply: `🛡️ ${guard.reason}`, blocked: true }
+
+      const ctx = yield* instanceStore.load({ directory: input.directory })
+      const sessionID = yield* Effect.gen(function* () {
+        const existing = sandboxSessions.get(input.id)
+        if (existing) return existing
+        const session = yield* sessions
+          .create({ title: `Sandbox: ${agent.name}`, directory: input.directory, permission: sessionPermission() })
+          .pipe(Effect.provideService(InstanceRef, ctx))
+        sandboxSessions.set(input.id, session.id)
+        return session.id
+      })
+
+      const resolved = yield* resolveModel(agent.model)
+      const model = resolved
+        ? { providerID: ProviderV2.ID.make(resolved.providerID), modelID: ModelV2.ID.make(resolved.modelID) }
+        : undefined
+      const knowledge = yield* buildKnowledgeContext(agent)
+      const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
+      const system = hardenSystemPrompt(agent, personality)
+
+      const reply = yield* promptSvc
+        .prompt({
+          sessionID: SessionID.make(sessionID),
+          model,
+          system,
+          parts: [{ type: "text", text: input.message }],
+        })
+        .pipe(
+          Effect.map((result) => extractText(result) || "(sem resposta)"),
+          Effect.provideService(InstanceRef, ctx),
+          Effect.catch((cause) =>
+            Effect.logError("agentui sandbox prompt failed", { id: input.id, cause }).pipe(
+              Effect.as(`⚠️ ${cause instanceof Error ? cause.message : String(cause)}`),
+            ),
+          ),
+        )
+      return { reply, blocked: false }
+    })
+
+    const resetSandbox = Effect.fn("AgentUI.resetSandbox")(function* (id: string) {
+      sandboxSessions.delete(id)
+    })
+
     return Service.of({
       list,
       get,
@@ -211,6 +318,9 @@ const layer: Layer.Layer<Service, never, Config.Service> = Layer.effect(
       hardenSystemPrompt,
       checkInput,
       sessionPermission,
+      resolveModel,
+      testMessage,
+      resetSandbox,
     })
   }),
 )
@@ -218,5 +328,5 @@ const layer: Layer.Layer<Service, never, Config.Service> = Layer.effect(
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node],
+  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node],
 })

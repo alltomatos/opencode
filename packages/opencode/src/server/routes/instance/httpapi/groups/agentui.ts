@@ -11,6 +11,13 @@ const root = "/agentui"
 
 export const ListResponse = Schema.Array(ConfigAgentUIV1.Agent)
 export const RemoveResponse = Schema.Struct({ success: Schema.Literal(true) })
+// `projectDirectory`, not `directory` — WorkspaceRoutingQuery already has its
+// own `directory` query param (which instance handles the request); this one
+// picks which connected project's models/skills the sandbox session runs
+// against, and naming it the same would collide in the generated SDK
+// (query_directory vs body_directory).
+export const TestPayload = Schema.Struct({ projectDirectory: Schema.String, message: Schema.String })
+export const TestResponse = Schema.Struct({ reply: Schema.String, blocked: Schema.Boolean })
 
 export const AgentUIApi = HttpApi.make("agentui")
   .add(
@@ -47,6 +54,31 @@ export const AgentUIApi = HttpApi.make("agentui")
             identifier: "agentui.add",
             summary: "Add or update an AgentUI agent",
             description: "Create or replace a custom conversational agent.",
+          }),
+        ),
+        HttpApiEndpoint.post("test", `${root}/:id/test`, {
+          params: { id: Schema.String },
+          query: WorkspaceRoutingQuery,
+          payload: TestPayload,
+          success: described(TestResponse, "Sandbox reply from the agent"),
+          error: AgentUINotFoundError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "agentui.test",
+            summary: "Send a sandbox test message to an AgentUI agent",
+            description:
+              "Runs a message through the agent's real pipeline (guardrails, personality, RAG, model) against a dedicated sandbox session, without touching any real channel.",
+          }),
+        ),
+        HttpApiEndpoint.post("resetSandbox", `${root}/:id/sandbox/reset`, {
+          params: { id: Schema.String },
+          query: WorkspaceRoutingQuery,
+          success: described(RemoveResponse, "Sandbox conversation reset"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "agentui.resetSandbox",
+            summary: "Reset an AgentUI agent's sandbox conversation",
+            description: "Starts a fresh sandbox session for this agent on the next test message.",
           }),
         ),
         HttpApiEndpoint.delete("remove", `${root}/:id`, {

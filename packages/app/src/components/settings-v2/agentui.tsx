@@ -1,53 +1,28 @@
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Switch } from "@opencode-ai/ui/v2/switch-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useNavigate } from "@solidjs/router"
 import { createResource, For, Show, type Component } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
-import { DialogAgentUIV2 } from "./dialog-agentui-v2"
+import { DialogAgentUISandbox } from "./dialog-agentui-sandbox"
 import { SettingsListV2 } from "./parts/list"
 import "./settings-v2.css"
 
-export const SettingsAgentUIV2: Component = () => {
+export const SettingsAgentUIV2: Component<{ directory?: string }> = (props) => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
   const dialog = useDialog()
+  const navigate = useNavigate()
 
   const [agents, { refetch }] = createResource(async () => {
     const result = await serverSDK().client.agentui.list()
     return result.data ?? []
   })
-  const [combos] = createResource(async () => {
-    const result = await serverSDK().client.combo.list()
-    return (result.data ?? []).map((c) => ({ id: c.id, name: c.name }))
-  })
-
-  const openAdd = () => {
-    dialog.push(() => <DialogAgentUIV2 mode="add" combos={combos() ?? []} onSaved={() => void refetch()} />)
-  }
-
-  const openEdit = (agent: NonNullable<ReturnType<typeof agents>>[number]) => {
-    dialog.push(() => (
-      <DialogAgentUIV2
-        mode="edit"
-        combos={combos() ?? []}
-        agent={{
-          id: agent.id,
-          name: agent.name,
-          personality: agent.personality,
-          model: agent.model,
-          commandTriggers: agent.commandTriggers.join(" "),
-          ragSources: agent.ragSources.map((s) => ({ id: s.id, kind: s.kind as "text" | "url", label: s.label, value: s.value })),
-          guardrailsEnabled: agent.guardrails.enabled,
-          guardrailsLevel: agent.guardrails.level,
-          telegram: agent.channels.some((c) => c.type === "telegram"),
-        }}
-        onSaved={() => void refetch()}
-      />
-    ))
-  }
 
   const remove = async (id: string) => {
     try {
@@ -61,12 +36,28 @@ export const SettingsAgentUIV2: Component = () => {
     }
   }
 
+  const toggleEnabled = async (agent: NonNullable<ReturnType<typeof agents>>[number]) => {
+    try {
+      await serverSDK().client.agentui.add({ agentUiAgent: { ...agent, enabled: agent.enabled === false } })
+      void refetch()
+    } catch (cause) {
+      showToast({
+        title: language.t("common.requestFailed"),
+        description: cause instanceof Error ? cause.message : String(cause),
+      })
+    }
+  }
+
+  const openSandbox = (agent: NonNullable<ReturnType<typeof agents>>[number]) => {
+    dialog.push(() => <DialogAgentUISandbox agentID={agent.id} agentName={agent.name} directory={props.directory} />)
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header">
         <div class="settings-v2-tab-header-row flex items-center justify-between">
           <h2 class="settings-v2-tab-title">{language.t("settings.agentui.title")}</h2>
-          <ButtonV2 variant="contrast" onClick={openAdd}>
+          <ButtonV2 variant="contrast" onClick={() => navigate("/agentui/new")}>
             {language.t("settings.agentui.add.button")}
           </ButtonV2>
         </div>
@@ -86,14 +77,25 @@ export const SettingsAgentUIV2: Component = () => {
                       <span class="settings-v2-servers-meta">{agent.model}</span>
                     </div>
                   </div>
-                  <div class="settings-v2-servers-actions">
+                  <div class="settings-v2-servers-actions flex items-center gap-1">
+                    <TooltipV2
+                      placement="top"
+                      value={language.t(
+                        agent.enabled === false ? "settings.agentui.enable" : "settings.agentui.disable",
+                      )}
+                    >
+                      <Switch checked={agent.enabled !== false} onChange={() => void toggleEnabled(agent)} />
+                    </TooltipV2>
+                    <ButtonV2 variant="neutral" size="normal" onClick={() => openSandbox(agent)}>
+                      {language.t("settings.agentui.sandbox.open")}
+                    </ButtonV2>
                     <IconButtonV2
                       type="button"
                       variant="ghost-muted"
                       size="small"
                       icon={<IconV2 name="edit" />}
                       aria-label={language.t("dialog.server.menu.edit")}
-                      onClick={() => openEdit(agent)}
+                      onClick={() => navigate(`/agentui/${agent.id}/edit`)}
                     />
                     <IconButtonV2
                       type="button"

@@ -25,6 +25,28 @@ export const agentuiHandlers = HttpApiBuilder.group(InstanceHttpApi, "agentui", 
       return { success: true as const }
     })
 
-    return handlers.handle("list", list).handle("get", get).handle("add", add).handle("remove", remove)
+    const test = Effect.fn("AgentUIHttpApi.test")(function* (ctx: {
+      params: { id: string }
+      payload: { projectDirectory: string; message: string }
+    }) {
+      return yield* agentui.testMessage({
+        id: ctx.params.id,
+        directory: ctx.payload.projectDirectory,
+        message: ctx.payload.message,
+      })
+    })
+
+    const resetSandbox = Effect.fn("AgentUIHttpApi.resetSandbox")(function* (ctx: { params: { id: string } }) {
+      yield* agentui.resetSandbox(ctx.params.id)
+      return { success: true as const }
+    })
+
+    return handlers
+      .handle("list", list)
+      .handle("get", get)
+      .handle("add", add)
+      .handle("remove", remove)
+      .handle("test", test)
+      .handle("resetSandbox", resetSandbox)
   }),
 )

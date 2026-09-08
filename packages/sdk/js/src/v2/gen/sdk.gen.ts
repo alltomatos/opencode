@@ -13,6 +13,10 @@ import type {
   AgentuiListResponses,
   AgentuiRemoveErrors,
   AgentuiRemoveResponses,
+  AgentuiResetSandboxErrors,
+  AgentuiResetSandboxResponses,
+  AgentuiTestErrors,
+  AgentuiTestResponses,
   AppAgentsErrors,
   AppAgentsResponses,
   AppLogErrors,
@@ -2259,6 +2263,81 @@ export class Agentui extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  /**
+   * Send a sandbox test message to an AgentUI agent
+   *
+   * Runs a message through the agent's real pipeline (guardrails, personality, RAG, model) against a dedicated sandbox session, without touching any real channel.
+   */
+  public test<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      projectDirectory?: string
+      message?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "projectDirectory" },
+            { in: "body", key: "message" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiTestResponses, AgentuiTestErrors, ThrowOnError>({
+      url: "/agentui/{id}/test",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Reset an AgentUI agent's sandbox conversation
+   *
+   * Starts a fresh sandbox session for this agent on the next test message.
+   */
+  public resetSandbox<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiResetSandboxResponses, AgentuiResetSandboxErrors, ThrowOnError>(
+      {
+        url: "/agentui/{id}/sandbox/reset",
+        ...options,
+        ...params,
+      },
+    )
   }
 }
 

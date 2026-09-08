@@ -72,6 +72,7 @@ import { BatutaPage } from "@/pages/batuta"
 import { BatutaActivityFormPage } from "@/pages/batuta/activity-form"
 import { BatutaActivityLivePage } from "@/pages/batuta/activity-live"
 import { AgentUIPage } from "@/pages/agentui"
+import { AgentUIFormPage } from "@/pages/agentui-form"
 import { SettingsPage } from "@/pages/settings"
 import { LegacyHome } from "@/pages/home/legacy-home"
 
@@ -660,6 +661,8 @@ function Routes(props: { serverScoped?: JSX.Element }) {
         <Route path="/batuta/:id/edit" component={BatutaActivityFormPage} />
         <Route path="/batuta/:id/live" component={BatutaActivityLivePage} />
         <Route path="/agentui" component={AgentUIPage} />
+        <Route path="/agentui/new" component={AgentUIFormPage} />
+        <Route path="/agentui/:id/edit" component={AgentUIFormPage} />
         <Route path="/settings/:tab?" component={SettingsPage} />
         <Route path="/:dir/session/:id" component={NewLayoutLegacySessionRedirect} />
         <Route path="/server/:serverKey/session/:id" component={TargetSessionRoute} />
