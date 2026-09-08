@@ -1200,6 +1200,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Kód",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "Mi az a Batuta?",
   "batuta.intro": "A batuta a karmesterek híres, karcsú pálcája, amellyel a zenekart vezetik. Itt állíthat be egy orkesztrált tevékenységet: válasszon egy modellt, amely karmesterként működik, és további modelleket, amelyek dolgozókként végzik a rájuk bízott feladatokat.",
   "batuta.list.title": "Tevékenységek",
@@ -1449,7 +1450,7 @@ export const dict = {
   "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
-  "settings.agentui.title": "Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)

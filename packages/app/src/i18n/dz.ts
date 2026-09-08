@@ -1211,6 +1211,7 @@ export const dict: Record<string, string> = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Code",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "What is a Batuta?",
   "batuta.intro": "A batuta is the famous, slender wand a conductor uses to lead an orchestra. Here you can set up an orchestrated activity: pick one model to act as the orchestrator, and other models to act as workers it can delegate tasks to.",
   "batuta.list.title": "Activities",
@@ -1460,7 +1461,7 @@ export const dict: Record<string, string> = {
   "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
-  "settings.agentui.title": "Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)

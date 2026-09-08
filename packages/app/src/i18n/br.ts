@@ -887,6 +887,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Code",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agentes",
   "batuta.title": "O que é uma Batuta?",
   "batuta.intro":
     "A batuta é a famosa e fina varinha usada pelo maestro para conduzir a orquestra. Aqui você define uma atividade orquestrada: escolhe um modelo para ser o orquestrador e outros modelos para serem workers aos quais ele pode delegar tarefas.",
@@ -899,7 +900,7 @@ export const dict = {
   "batuta.model.model.filterPlaceholder": "Filtrar modelos…",
   "batuta.model.model.truncated": "Mostrando os primeiros {{count}} resultados — continue digitando pra refinar",
   "settings.combos.title": "Combos",
-  "settings.agentui.title": "Agentes",
+  "settings.agentui.title": "Meus Agentes",
   "settings.agentui.add.button": "Criar agente",
   "settings.agentui.empty": "Nenhum agente ainda.",
   "settings.agentui.error.incomplete": "Dê um nome ao agente e escolha um modelo.",

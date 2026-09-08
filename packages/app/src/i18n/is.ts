@@ -1187,6 +1187,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Kóði",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "Hvað er Batuta?",
   "batuta.intro": "Batuta er hinn frægi, granni sproti sem hljómsveitarstjóri notar til að stjórna hljómsveit. Hér getur þú sett upp samhæfða virkni: veldu eitt líkan sem stjórnandi og önnur líkön sem starfsmenn sem hann getur falið verkefni.",
   "batuta.list.title": "Virkni",
@@ -1436,7 +1437,7 @@ export const dict = {
   "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
-  "settings.agentui.title": "Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)

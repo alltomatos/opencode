@@ -922,6 +922,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Code",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "What is a Batuta?",
   "batuta.intro":
     "A batuta is the famous, slender wand a conductor uses to lead an orchestra. Here you can set up an orchestrated activity: pick one model to act as the orchestrator, and other models to act as workers it can delegate tasks to.",
@@ -934,7 +935,7 @@ export const dict = {
   "batuta.model.model.filterPlaceholder": "Filter models…",
   "batuta.model.model.truncated": "Showing the first {{count}} matches — keep typing to narrow it down",
   "settings.combos.title": "Combos",
-  "settings.agentui.title": "Agents",
+  "settings.agentui.title": "My Agents",
   "settings.agentui.add.button": "Create agent",
   "settings.agentui.empty": "No agents yet.",
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.",

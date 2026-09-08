@@ -1198,6 +1198,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Kod",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "Što je Batuta?",
   "batuta.intro": "Batuta je poznata, tanka palica koju dirigent koristi za vođenje orkestra. Ovdje možete postaviti orkestriranu aktivnost: odaberite jedan model koji će djelovati kao orkestrator, i druge modele koji će djelovati kao izvršitelji kojima može delegirati zadatke.",
   "batuta.list.title": "Aktivnosti",
@@ -1447,7 +1448,7 @@ export const dict = {
   "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
-  "settings.agentui.title": "Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)

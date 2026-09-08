@@ -1203,6 +1203,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Kodas",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "Kas yra Batuta?",
   "batuta.intro": "Batuta – tai garsioji plona lazdelė, kurią dirigentas naudoja orkestrui valdyti. Čia galite sukurti orkestruotą veiklą: pasirinkite vieną modelį, kuris veiks kaip orkestratorius, ir kitus modelius, kurie veiks kaip darbuotojai, kuriems jis gali pavesti užduotis.",
   "batuta.list.title": "Veiklos",
@@ -1452,7 +1453,7 @@ export const dict = {
   "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
-  "settings.agentui.title": "Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
