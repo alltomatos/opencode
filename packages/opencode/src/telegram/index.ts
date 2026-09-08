@@ -506,7 +506,7 @@ const layer = Layer.effect(
         const existing = agentSessionsByChat.get(agentKey)
         if (existing) return SessionID.make(existing)
         const session = yield* sessions
-          .create({ title: `Telegram AgentUI: ${agentKey}`, directory })
+          .create({ title: `Telegram AgentUI: ${agentKey}`, directory, permission: agentUI.sessionPermission() })
           .pipe(Effect.provideService(InstanceRef, ctx))
         agentSessionsByChat.set(agentKey, session.id)
         return session.id
@@ -845,10 +845,16 @@ const layer = Layer.effect(
       if (agentMatch) {
         const { agent, trigger } = agentMatch
         const rest = text.slice(trigger.length).trim()
-        const model = yield* resolveAgentModel(agent.model)
-        const knowledge = yield* agentUI.buildKnowledgeContext(agent)
-        const system = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
-        reply = yield* dispatchTask(token, chatId, directory, rest, attachments, { system, model }, `${chatId}:${agent.id}`)
+        const guard = agentUI.checkInput(agent, rest)
+        if (!guard.allowed) {
+          reply = `🛡️ ${guard.reason}`
+        } else {
+          const model = yield* resolveAgentModel(agent.model)
+          const knowledge = yield* agentUI.buildKnowledgeContext(agent)
+          const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
+          const system = agentUI.hardenSystemPrompt(agent, personality)
+          reply = yield* dispatchTask(token, chatId, directory, rest, attachments, { system, model }, `${chatId}:${agent.id}`)
+        }
       } else if (text.startsWith("/")) {
         const [command, ...rest] = text.slice(1).split(/\s+/)
         const ctx = yield* instanceStore.load({ directory })
