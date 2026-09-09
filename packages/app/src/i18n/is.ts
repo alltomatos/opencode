@@ -1292,6 +1292,8 @@ export const dict = {
   "settings.mcp.add.title": "Bæta við MCP tengingu",
   "settings.mcp.openConfig.button": "Hrá stilling",
   "settings.mcp.add.known.label": "Þekktar tengingar",
+  "settings.mcp.add.known.oauthBadge": "OAuth",
+  "settings.mcp.add.known.oauthHint": "This connector requires OAuth. Fill in the Client ID / Client secret below, or leave them empty to authorize on first connection.",
   "settings.mcp.add.field.name.label": "Heiti",
   "settings.mcp.add.field.name.placeholder": "minn-thjonn",
   "settings.mcp.add.field.type.label": "Tengingartegund",
