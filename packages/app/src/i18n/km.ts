@@ -1435,6 +1435,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "បើកទំព័រនេះពីគម្រោងដែលបានភ្ជាប់ ដើម្បីផ្តល់ឱ្យភ្នាក់ងារនេះនូវរូបយន្ត Telegram ផ្ទាល់ខ្លួន។",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1448,6 +1449,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "តូខឹនរូបយន្ត (ស្រេចចិត្ត — ទុកទទេដើម្បីចែករំលែករូបយន្តសកល)",
+  "settings.agentui.field.telegramToken.hint": "បិទភ្ជាប់តូខឹនពី @BotFather ដើម្បីផ្តល់ឱ្យភ្នាក់ងារនេះនូវរូបយន្ត Telegram ជាក់លាក់របស់ខ្លួន។ ទុកទទេដើម្បីចូលប្រើតាមរយៈរូបយន្តរួមនៅក្នុងការកំណត់ → ការរួមបញ្ចូល ដោយប្រើបុព្វបទពាក្យបញ្ជារបស់វា។",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

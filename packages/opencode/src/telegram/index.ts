@@ -1,7 +1,7 @@
 export * as Telegram from "./index"
 
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Effect, Fiber, Layer, Schema } from "effect"
 import { InstanceRef } from "@/effect/instance-ref"
 import { InstanceStore } from "@/project/instance-store"
 import type { InstanceContext } from "@/project/instance-context"
@@ -801,6 +801,11 @@ const layer = Layer.effect(
       token: string,
       botDirectory: string,
       message: TelegramMessage,
+      // Set only for a dedicated per-agent bot loop (see agentBotSource
+      // below) — every message this bot receives goes straight to that one
+      // agent, no commandTriggers prefix required and no fallback to the
+      // default opencode chat, since this bot has no other purpose.
+      pinnedAgent?: ConfigAgentUIV1.Agent,
     ) {
       const chatId = message.chat.id
       const text = message.text ?? message.caption ?? ""
@@ -827,7 +832,7 @@ const layer = Layer.effect(
       const directory = state.directory
 
       let reply: string | undefined
-      const agentMatch = yield* matchAgentUITrigger(text)
+      const agentMatch = pinnedAgent ? { agent: pinnedAgent, trigger: "" } : yield* matchAgentUITrigger(text)
       if (agentMatch) {
         const { agent, trigger } = agentMatch
         const rest = text.slice(trigger.length).trim()
@@ -850,6 +855,9 @@ const layer = Layer.effect(
       } else {
         reply = yield* dispatchTask(token, chatId, directory, text, attachments)
       }
+      // pinnedAgent is always truthy here when set — agentMatch above is
+      // built directly from it — so the "/"-command and default-chat
+      // branches above never actually run for a dedicated per-agent bot.
 
       if (reply) yield* Effect.tryPromise(() => sendMessage(token, chatId, reply)).pipe(Effect.ignore)
     })
@@ -981,59 +989,133 @@ const layer = Layer.effect(
       ),
     )
 
+    interface PollSource {
+      token: string
+      directory: string
+      // Set only for a dedicated per-agent bot — see handleMessage.
+      pinnedAgent?: ConfigAgentUIV1.Agent
+    }
+
     // Long-poll for the whole server's lifetime, only doing real work while
-    // a bot is connected. Sleeps briefly instead of hammering the API when
-    // disconnected or between transient errors.
-    const pollLoop = Effect.gen(function* () {
-      let offset = 0
-      while (true) {
-        yield* Effect.logInfo("telegram poll tick", { offset })
-        const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
-        if (!info || info.type !== "api" || !info.metadata?.directory) {
-          yield* Effect.logInfo("telegram poll: no bot connected")
-          yield* Effect.sleep("2 seconds")
-          continue
+    // `getSource` resolves to a bot. `getSource` is re-run every tick (not
+    // read once) so a dedicated per-agent bot's loop picks up edits to that
+    // agent (personality, guardrails, even the token itself) without
+    // needing to be restarted — the same way the global bot already
+    // re-reads Auth.Service every tick instead of caching its token.
+    function makePollLoop(label: string, getSource: Effect.Effect<PollSource | undefined>) {
+      return Effect.gen(function* () {
+        let offset = 0
+        while (true) {
+          yield* Effect.logInfo("telegram poll tick", { label, offset })
+          const source = yield* getSource
+          if (!source) {
+            yield* Effect.logInfo("telegram poll: no bot connected", { label })
+            yield* Effect.sleep("2 seconds")
+            continue
+          }
+          const { token, directory, pinnedAgent } = source
+          const updates = yield* Effect.tryPromise(() => getUpdates(token, offset)).pipe(
+            Effect.tapError((cause) => Effect.logError("telegram getUpdates failed", { label, cause })),
+            Effect.catch(() => Effect.sleep("3 seconds").pipe(Effect.as<TelegramUpdate[]>([]))),
+          )
+          yield* Effect.logInfo("telegram poll: got updates", { label, count: updates.length })
+          // Telegram never returns instantly with an empty array on a
+          // successful poll — an empty result only comes back after the full
+          // `timeout=` server-side wait — but this floor guards against ever
+          // spinning the loop as fast as the event loop allows if that
+          // assumption turns out wrong for some edge case (e.g. a proxy
+          // stripping the timeout param).
+          if (updates.length === 0) yield* Effect.sleep("1 second")
+          for (const update of updates) {
+            offset = update.update_id + 1
+            // catchAllCause (not just Effect.ignore, which only catches the
+            // typed error channel) so an unexpected defect handling one update
+            // can't silently kill this loop for the rest of the process's
+            // lifetime — every future Telegram message would stop being
+            // consumed with no crash and no log to explain why.
+            if (update.callback_query)
+              yield* handleCallbackQuery(token, update.callback_query).pipe(
+                Effect.catchCause((cause) => Effect.logError("telegram handleCallbackQuery failed", { label, cause })),
+              )
+            if (update.message)
+              yield* handleMessage(token, directory, update.message, pinnedAgent).pipe(
+                Effect.catchCause((cause) => Effect.logError("telegram handleMessage failed", { label, cause })),
+              )
+          }
         }
-        const token = info.key
-        const directory = info.metadata.directory
-        const updates = yield* Effect.tryPromise(() => getUpdates(token, offset)).pipe(
-          Effect.tapError((cause) => Effect.logError("telegram getUpdates failed", { cause })),
-          Effect.catch(() => Effect.sleep("3 seconds").pipe(Effect.as<TelegramUpdate[]>([]))),
-        )
-        yield* Effect.logInfo("telegram poll: got updates", { count: updates.length })
-        // Telegram never returns instantly with an empty array on a
-        // successful poll — an empty result only comes back after the full
-        // `timeout=` server-side wait — but this floor guards against ever
-        // spinning the loop as fast as the event loop allows if that
-        // assumption turns out wrong for some edge case (e.g. a proxy
-        // stripping the timeout param).
-        if (updates.length === 0) yield* Effect.sleep("1 second")
-        for (const update of updates) {
-          offset = update.update_id + 1
-          // catchAllCause (not just Effect.ignore, which only catches the
-          // typed error channel) so an unexpected defect handling one update
-          // can't silently kill this loop for the rest of the process's
-          // lifetime — every future Telegram message would stop being
-          // consumed with no crash and no log to explain why.
-          if (update.callback_query)
-            yield* handleCallbackQuery(token, update.callback_query).pipe(
-              Effect.catchCause((cause) => Effect.logError("telegram handleCallbackQuery failed", { cause })),
-            )
-          if (update.message)
-            yield* handleMessage(token, directory, update.message).pipe(
-              Effect.catchCause((cause) => Effect.logError("telegram handleMessage failed", { cause })),
-            )
-        }
-      }
-    })
+      })
+    }
+
     // Belt-and-suspenders on top of the per-update catchAllCause above: if
     // the loop's own scaffolding (not update handling) ever throws, log it
-    // and restart the loop from scratch instead of leaving Telegram polling
-    // dead for the rest of the process's life.
+    // and restart the loop from scratch instead of leaving that bot's
+    // polling dead for the rest of the process's life.
+    function forkPollLoop(label: string, getSource: Effect.Effect<PollSource | undefined>) {
+      return Effect.forkScoped(
+        makePollLoop(label, getSource).pipe(
+          Effect.catchCause((cause) => Effect.logError("telegram poll loop crashed, restarting", { label, cause })),
+          Effect.andThen(() => Effect.sleep("1 second")),
+          Effect.forever,
+        ),
+      )
+    }
+
+    const globalSource: Effect.Effect<PollSource | undefined> = Effect.gen(function* () {
+      const info = yield* auth.get(TELEGRAM_AUTH_KEY).pipe(Effect.orElseSucceed(() => undefined))
+      if (!info || info.type !== "api" || !info.metadata?.directory) return undefined
+      return { token: info.key, directory: info.metadata.directory }
+    })
+    yield* forkPollLoop("global", globalSource)
+
+    // Each AgentUI with its own bot token gets a dedicated, independently
+    // supervised poll loop — reconciled against the current agent list
+    // rather than tied to add()/remove() call sites, so a server restart or
+    // a config edit made outside this process (e.g. hand-editing the config
+    // file) is picked up the same way. `agentUI.get()` re-reads fresh every
+    // tick inside the loop itself, so only start/stop transitions need
+    // handling here — a token or personality *change* on an already-running
+    // agent's bot is picked up by that fiber on its own, no restart needed.
+    const agentBotFibers = new Map<string, Fiber.Fiber<never, never>>()
+
+    function agentSource(agentID: string): Effect.Effect<PollSource | undefined> {
+      return agentUI.get(agentID).pipe(
+        Effect.map((agent): PollSource | undefined => {
+          if (!ConfigAgentUIV1.isEnabled(agent)) return undefined
+          const channel = agent.channels.find((c) => c.type === "telegram")
+          if (!channel?.token || !channel.directory) return undefined
+          return { token: channel.token, directory: channel.directory, pinnedAgent: agent }
+        }),
+        Effect.orElseSucceed(() => undefined),
+      )
+    }
+
+    const reconcileAgentBots = Effect.gen(function* () {
+      const agents = yield* agentUI.list()
+      const qualifying = new Set(
+        agents
+          .filter((agent) => {
+            if (!ConfigAgentUIV1.isEnabled(agent)) return false
+            const channel = agent.channels.find((c) => c.type === "telegram")
+            return Boolean(channel?.token && channel.directory)
+          })
+          .map((agent) => agent.id),
+      )
+      for (const [id, fiber] of agentBotFibers) {
+        if (qualifying.has(id)) continue
+        yield* Fiber.interrupt(fiber)
+        agentBotFibers.delete(id)
+      }
+      for (const id of qualifying) {
+        if (agentBotFibers.has(id)) continue
+        const fiber = yield* forkPollLoop(`agent:${id}`, agentSource(id))
+        agentBotFibers.set(id, fiber)
+      }
+    })
+
     yield* Effect.forkScoped(
-      pollLoop.pipe(
-        Effect.catchCause((cause) => Effect.logError("telegram poll loop crashed, restarting", { cause })),
-        Effect.andThen(() => Effect.sleep("1 second")),
+      reconcileAgentBots.pipe(
+        Effect.catchCause((cause) => Effect.logError("telegram reconcile agent bots failed", { cause })),
+        Effect.andThen(() => Effect.sleep("5 seconds")),
         Effect.forever,
       ),
     )

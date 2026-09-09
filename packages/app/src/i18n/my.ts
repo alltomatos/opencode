@@ -1460,6 +1460,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "ဤအေးဂျင့်ကို ၎င်း၏ကိုယ်ပိုင် Telegram ဘော့ပေးရန် ချိတ်ဆက်ထားသော ပရောဂျက်မှ ဤစာမျက်နှာကို ဖွင့်ပါ။",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1473,6 +1474,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "ဘော့တိုကင် (ရွေးချယ်နိုင် — ကမ္ဘာလုံးဆိုင်ရာဘော့ကို မျှဝေရန် ဗလာထားပါ)",
+  "settings.agentui.field.telegramToken.hint": "ဤအေးဂျင့်ကို ၎င်း၏ကိုယ်ပိုင် Telegram ဘော့ပေးရန် @BotFather မှ တိုကင်ကို ကူးထည့်ပါ။ ဆက်တင်များ → ပေါင်းစည်းမှုများရှိ မျှဝေထားသောဘော့မှတစ်ဆင့် ၎င်း၏ command prefix ကိုအသုံးပြု၍ ချိတ်ဆက်ရန် ဗလာထားပါ။",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

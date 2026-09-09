@@ -1461,6 +1461,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "މި އެޖެންޓަށް އަމިއްލަ ޓެލެގްރާމް ބޮޓެއް ދިނުމަށް، ކަނެކްޓް ކުރެވިފައިވާ ޕްރޮޖެކްޓަކުން މި ޞަފްޙާ ހުޅުވާ.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1474,6 +1475,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "ބޮޓް ޓޯކަން (އިޚްތިޔާރީ — ގްލޯބަލް ބޮޓް ޝެއަރ ކުރުމަށް ހުސްކޮށް ބަހައްޓާ)",
+  "settings.agentui.field.telegramToken.hint": "މި އެޖެންޓަށް އަމިއްލަ ޓެލެގްރާމް ބޮޓެއް ދިނުމަށް @BotFather އިން ޓޯކަނެއް ޕޭސްޓް ކުރޭ. ހުސްކޮށް ބެހެއްޓުމުން ސެޓިންގްސް → އިންޓަގްރޭޝަންސްގައި ހުންނަ ޝެއަރޑް ބޮޓް މެދުވެރިކޮށް، އޭގެ ކޮމާންޑް ޓްރިގާ ބޭނުންކޮށްގެން ފޯރުކޮށްދެވޭނެ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

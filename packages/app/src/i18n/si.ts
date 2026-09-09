@@ -1437,6 +1437,7 @@ export const dict: Record<string, string> = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "මෙම නියෝජිතයාට තමන්ගේම ටෙලිග්‍රාම් බොට් එකක් ලබා දීමට සම්බන්ධිත ව්‍යාපෘතියකින් මෙම පිටුව විවෘත කරන්න.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1450,6 +1451,8 @@ export const dict: Record<string, string> = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "බොට් ටෝකනය (විකල්ප — ගෝලීය බොට් බෙදාගැනීමට හිස්ව තබන්න)",
+  "settings.agentui.field.telegramToken.hint": "මෙම නියෝජිතයාට තමන්ගේම කැපවූ ටෙලිග්‍රාම් බොට් එකක් ලබා දීමට @BotFather වෙතින් ටෝකනයක් අලවන්න. සැකසීම් → ඒකාබද්ධ කිරීම් හි ඇති බෙදාගත් බොට් හරහා, එහි විධාන උපසර්ගය භාවිතයෙන් ළඟා වීමට හිස්ව තබන්න.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)
