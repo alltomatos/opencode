@@ -396,7 +396,11 @@
 
     --v2-text-text-base: var(--v2-grey-100);
     --v2-text-text-muted: var(--v2-grey-500);
-    --v2-text-text-faint: var(--v2-grey-600);
+    /* Was grey-600 (2.9:1 against layer-03/04 surfaces, below the 4.5:1 body-text minimum
+       once this text sits on a card/popover instead of the page background). grey-500
+       matches --v2-text-text-muted's lightness but keeps faint text legible on every
+       --v2-background-bg-* surface; the faint/muted distinction still holds via usage. */
+    --v2-text-text-faint: var(--v2-grey-500);
     --v2-text-text-inverse: var(--v2-grey-1100);
     --v2-text-text-contrast: var(--v2-grey-50);
     --v2-text-text-accent: var(--v2-blue-400);
@@ -410,14 +414,20 @@
     --v2-icon-icon-accent: var(--v2-blue-400);
     --v2-icon-icon-accent-hover: var(--v2-blue-300);
 
-    --v2-border-border-muted: var(--v2-alpha-light-8);
-    --v2-border-border-base: var(--v2-alpha-light-10);
+    /* Border alphas doubled from light-8/-10: at 8-10% white over grey-800/900 surfaces
+       the previous values composited to ~1.1-1.3:1 against the surface, i.e. effectively
+       invisible dividers. light-14/-20 bring that closer to a perceptible (if still
+       intentionally subtle) line without turning every divider into a hard outline. */
+    --v2-border-border-muted: var(--v2-alpha-light-14);
+    --v2-border-border-base: var(--v2-alpha-light-16);
     --v2-border-border-strong: var(--v2-alpha-light-20);
     --v2-border-border-inverse: var(--v2-grey-100);
     --v2-border-border-focus: var(--v2-blue-500);
 
-    --v2-overlay-simple-overlay-hover: var(--v2-alpha-light-6);
-    --v2-overlay-simple-overlay-pressed: var(--v2-alpha-light-10);
+    /* Hover/pressed overlays bumped one alpha step so press/hover feedback stays
+       perceptible on dark surfaces; still well below the contrast/scrim tokens. */
+    --v2-overlay-simple-overlay-hover: var(--v2-alpha-light-10);
+    --v2-overlay-simple-overlay-pressed: var(--v2-alpha-light-16);
     --v2-overlay-simple-overlay-contrast-hover: var(--v2-alpha-dark-24);
     --v2-overlay-simple-overlay-contrast-pressed: var(--v2-alpha-dark-40);
     --v2-overlay-simple-overlay-scrim: var(--v2-alpha-dark-60);
