@@ -28,6 +28,7 @@ import { testEffect } from "../lib/effect"
 import { TestLLMServer } from "../lib/llm-server"
 
 import { LSP } from "@/lsp/lsp"
+import { LocationServiceMap, locationServiceMapLayer } from "@opencode-ai/core/location-services"
 import { MCP } from "../../src/mcp"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { RuntimeFlags } from "@/effect/runtime-flags"
@@ -90,12 +91,14 @@ const root = LayerNode.group([
   SessionSummary.node,
   Database.node,
   CrossSpawnSpawner.node,
+  LocationServiceMap.node,
   LayerNode.make({ service: TestLLMServer, layer: TestLLMServer.layer, deps: [] }),
 ])
 const it = testEffect(
   LayerNode.compile(root, [
     [MCP.node, mcp],
     [LSP.node, lsp],
+    [LocationServiceMap.node, locationServiceMapLayer],
     [RuntimeFlags.node, RuntimeFlags.layer({ experimentalEventSystem: true })],
     [InstanceStore.bootstrapNode, bootstrap],
   ]),
