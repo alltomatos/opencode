@@ -770,7 +770,12 @@ export const SettingsKeybinds: Component<{ v2?: boolean }> = (props) => {
               class="flex-1"
             />
             <Show when={store.filter}>
-              <IconButton icon="circle-x" variant="ghost" onClick={() => setStore("filter", "")} />
+              <IconButton
+                icon="circle-x"
+                variant="ghost"
+                aria-label={language.t("common.clearSearch")}
+                onClick={() => setStore("filter", "")}
+              />
             </Show>
           </div>
         </div>
