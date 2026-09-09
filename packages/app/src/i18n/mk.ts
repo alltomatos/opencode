@@ -1450,6 +1450,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "Отворете ја оваа страница од поврзан проект за да му дадете на овој агент сопствен Telegram бот.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1463,6 +1464,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "Токен на ботот (опционално — оставете празно за да го споделите глобалниот бот)",
+  "settings.agentui.field.telegramToken.hint": "Залепете токен од @BotFather за да му дадете на овој агент сопствен наменски Telegram бот. Оставете празно за пристап преку споделениот бот во Поставки → Интеграции, користејќи го неговиот префикс за команда.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

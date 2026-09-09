@@ -1532,6 +1532,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "Åbn denne side fra et forbundet projekt for at give denne agent sin egen Telegram-bot.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1545,6 +1546,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "Bot-token (valgfrit — lad stå tomt for at dele den globale bot)",
+  "settings.agentui.field.telegramToken.hint": "Indsæt et token fra @BotFather for at give denne agent sin egen dedikerede Telegram-bot. Lad stå tomt for at nå den via den delte bot i Indstillinger → Integrationer, med dens kommandopræfiks.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

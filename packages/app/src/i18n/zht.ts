@@ -1507,6 +1507,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "從已連接的專案開啟此頁面，為該代理設定專屬的 Telegram 機器人。",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1520,6 +1521,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "機器人權杖（選填 — 留空以共用全域機器人）",
+  "settings.agentui.field.telegramToken.hint": "貼上來自 @BotFather 的權杖，為該代理設定專屬的 Telegram 機器人。留空則透過設定 → 整合中的共用機器人、使用其指令前綴來存取。",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

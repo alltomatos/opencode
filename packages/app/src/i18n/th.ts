@@ -1522,6 +1522,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "เปิดหน้านี้จากโปรเจกต์ที่เชื่อมต่อเพื่อให้เอเจนต์นี้มีบอท Telegram ของตัวเอง",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1535,6 +1536,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "โทเค็นบอท (ไม่บังคับ — เว้นว่างไว้เพื่อใช้บอทส่วนกลางร่วมกัน)",
+  "settings.agentui.field.telegramToken.hint": "วางโทเค็นจาก @BotFather เพื่อให้เอเจนต์นี้มีบอท Telegram เฉพาะของตัวเอง เว้นว่างไว้เพื่อเข้าถึงผ่านบอทที่ใช้ร่วมกันในการตั้งค่า → การผสานรวม โดยใช้คำนำหน้าคำสั่งของมัน",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -1451,6 +1451,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "이 에이전트에 전용 텔레그램 봇을 부여하려면 연결된 프로젝트에서 이 페이지를 여세요.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1464,6 +1465,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "봇 토큰(선택 사항 — 글로벌 봇을 공유하려면 비워 두세요)",
+  "settings.agentui.field.telegramToken.hint": "이 에이전트에 전용 텔레그램 봇을 부여하려면 @BotFather의 토큰을 붙여넣으세요. 비워 두면 설정 → 통합에 있는 공유 봇을 명령 트리거를 통해 대신 사용합니다.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -1445,6 +1445,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "ਇਸ ਏਜੰਟ ਨੂੰ ਆਪਣਾ ਖੁਦ ਦਾ ਟੈਲੀਗ੍ਰਾਮ ਬੋਟ ਦੇਣ ਲਈ ਇੱਕ ਕਨੈਕਟ ਕੀਤੇ ਪ੍ਰੋਜੈਕਟ ਤੋਂ ਇਹ ਪੰਨਾ ਖੋਲ੍ਹੋ।",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1458,6 +1459,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "ਬੋਟ ਟੋਕਨ (ਵਿਕਲਪਿਕ — ਗਲੋਬਲ ਬੋਟ ਸਾਂਝਾ ਕਰਨ ਲਈ ਖਾਲੀ ਛੱਡੋ)",
+  "settings.agentui.field.telegramToken.hint": "ਇਸ ਏਜੰਟ ਨੂੰ ਆਪਣਾ ਸਮਰਪਿਤ ਟੈਲੀਗ੍ਰਾਮ ਬੋਟ ਦੇਣ ਲਈ @BotFather ਤੋਂ ਟੋਕਨ ਪੇਸਟ ਕਰੋ। ਸੈਟਿੰਗਾਂ → ਏਕੀਕਰਨ ਵਿੱਚ ਸਾਂਝੇ ਬੋਟ ਰਾਹੀਂ, ਇਸਦੇ ਕਮਾਂਡ ਟਰਿੱਗਰ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਪਹੁੰਚਣ ਲਈ ਖਾਲੀ ਛੱਡੋ।",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

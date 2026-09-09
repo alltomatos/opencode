@@ -1440,6 +1440,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "ამ აგენტს საკუთარი Telegram ბოტის მისანიჭებლად გახსენით ეს გვერდი დაკავშირებული პროექტიდან.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1453,6 +1454,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "ბოტის ტოკენი (არასავალდებულო — დატოვეთ ცარიელი გლობალური ბოტის გასაზიარებლად)",
+  "settings.agentui.field.telegramToken.hint": "ჩასვით ტოკენი @BotFather-იდან, რომ ამ აგენტს მისცეთ საკუთარი ტელეგრამის ბოტი. დატოვეთ ცარიელი, რომ წვდომა მოხდეს პარამეტრები → ინტეგრაციები-ში არსებული საერთო ბოტის მეშვეობით, მისი ბრძანების პრეფიქსით.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -6,6 +6,23 @@ export const ChannelBinding = Schema.Struct({
   type: Schema.Literals(["telegram"]).annotate({
     description: "Which channel this AgentUI listens/replies on. Only 'telegram' exists today — more (whatsapp, discord, ...) land as new Channel implementations without changing this shape.",
   }),
+  // Per-agent bot token (from @BotFather) — when set, this agent gets its
+  // own dedicated Telegram bot/poll loop that responds to every message
+  // directly, no command-trigger prefix needed. When absent, the agent
+  // stays reachable only through the shared server-wide bot configured in
+  // Settings → Integrations, addressed by its commandTriggers prefix (the
+  // original, still-supported multiplexed mode from before per-agent
+  // tokens existed).
+  token: Schema.optional(Schema.String).annotate({
+    description: "Dedicated Telegram bot token for this agent (from @BotFather). Leave unset to share the server's global bot instead.",
+  }),
+  // Which connected project's models/skills/RAG this agent's dedicated bot
+  // runs sessions against — same role `directory` plays for the sandbox
+  // test chat (see AgentUI.Service.testMessage). Only meaningful when
+  // `token` is set.
+  directory: Schema.optional(Schema.String).annotate({
+    description: "Connected project directory this agent's dedicated bot operates against. Required alongside token.",
+  }),
 }).annotate({ identifier: "AgentUIChannelBinding" })
 export type ChannelBinding = Schema.Schema.Type<typeof ChannelBinding>
 

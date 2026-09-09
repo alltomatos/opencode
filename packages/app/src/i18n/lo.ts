@@ -1432,6 +1432,7 @@ export const dict = {
   "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.telegramNeedsProject": "ເປີດໜ້ານີ້ຈາກໂຄງການທີ່ເຊື່ອມຕໍ່ເພື່ອໃຫ້ຕົວແທນນີ້ມີບອດ Telegram ຂອງຕົນເອງ.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1445,6 +1446,8 @@ export const dict = {
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegramToken.placeholder": "ໂທເຄັນບອດ (ທາງເລືອກ — ປະໄວ້ຫວ່າງເພື່ອແບ່ງປັນບອດທົ່ວໂລກ)",
+  "settings.agentui.field.telegramToken.hint": "ວາງໂທເຄັນຈາກ @BotFather ເພື່ອໃຫ້ຕົວແທນນີ້ມີບອດ Telegram ສະເພາະຂອງຕົນເອງ. ປະໄວ້ຫວ່າງເພື່ອເຂົ້າເຖິງຜ່ານບອດທີ່ໃຊ້ຮ່ວມກັນໃນການຕັ້ງຄ່າ → ການເຊື່ອມໂຍງ, ໂດຍໃຊ້ຄຳນຳໜ້າຄຳສັ່ງຂອງມັນ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)
