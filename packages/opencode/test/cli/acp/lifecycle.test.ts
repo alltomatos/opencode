@@ -18,7 +18,12 @@ describe("opencode acp lifecycle subprocess", () => {
         const acp = yield* opencode.acp()
         acp.close()
 
-        const code = yield* Effect.promise(() => acp.exited).pipe(Effect.timeout(Duration.seconds(5)))
+        // Was 5s: Windows process teardown after stdin EOF was observed to
+        // take just over that (5300ms) under CI load on 2026-09-09. Bumped
+        // with headroom rather than shaving the margin to the exact miss —
+        // same rationale as the run-process.test.ts timeout bumps from the
+        // same investigation.
+        const code = yield* Effect.promise(() => acp.exited).pipe(Effect.timeout(Duration.seconds(15)))
         expect(code).toBe(0)
       }),
     60_000,
