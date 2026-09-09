@@ -1308,6 +1308,8 @@ export const dict = {
   "settings.mcp.add.title": "Pridėti MCP jungtį",
   "settings.mcp.openConfig.button": "Neapdorota konfigūracija",
   "settings.mcp.add.known.label": "Žinomos jungtys",
+  "settings.mcp.add.known.oauthBadge": "OAuth",
+  "settings.mcp.add.known.oauthHint": "This connector requires OAuth. Fill in the Client ID / Client secret below, or leave them empty to authorize on first connection.",
   "settings.mcp.add.field.name.label": "Pavadinimas",
   "settings.mcp.add.field.name.placeholder": "mano-serveris",
   "settings.mcp.add.field.type.label": "Ryšio tipas",

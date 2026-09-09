@@ -1305,6 +1305,8 @@ export const dict = {
   "settings.mcp.add.title": "MCP csatlakozó hozzáadása",
   "settings.mcp.openConfig.button": "Nyers konfig",
   "settings.mcp.add.known.label": "Ismert csatlakozók",
+  "settings.mcp.add.known.oauthBadge": "OAuth",
+  "settings.mcp.add.known.oauthHint": "This connector requires OAuth. Fill in the Client ID / Client secret below, or leave them empty to authorize on first connection.",
   "settings.mcp.add.field.name.label": "Név",
   "settings.mcp.add.field.name.placeholder": "sajat-szerver",
   "settings.mcp.add.field.type.label": "Kapcsolat típusa",

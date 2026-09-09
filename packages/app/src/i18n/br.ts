@@ -1280,6 +1280,8 @@ export const dict = {
   "settings.mcp.add.title": "Adicionar conector MCP",
   "settings.mcp.openConfig.button": "Config raw",
   "settings.mcp.add.known.label": "Conectores conhecidos",
+  "settings.mcp.add.known.oauthBadge": "OAuth",
+  "settings.mcp.add.known.oauthHint": "This connector requires OAuth. Fill in the Client ID / Client secret below, or leave them empty to authorize on first connection.",
   "settings.mcp.add.field.name.label": "Nome",
   "settings.mcp.add.field.name.placeholder": "meu-servidor",
   "settings.mcp.add.field.type.label": "Tipo de conexão",
