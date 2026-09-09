@@ -595,7 +595,11 @@ withMcpInstructions.instance(
   // bun-test timeout instead of that wait's own distinct error message.
   // Confirmed by reproducing this test's timeout locally, consistently,
   // outside of any CI load. See 2026-09-08 CI investigation.
-  40_000,
+  // Bumped again 15s->40s->60s: still hit the bare bun-test timeout (an
+  // InterruptError with no distinct "timed out waiting for MCP instruction
+  // request" message, meaning the outer 40s budget — not the inner 10s
+  // llm.wait — expired first) under CI load on 2026-09-09.
+  60_000,
 )
 
 it.instance("legacy prompt emits message events without session.next events", () =>
