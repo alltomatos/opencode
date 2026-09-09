@@ -475,6 +475,8 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  WhatsappWebhookErrors,
+  WhatsappWebhookResponses,
   WorktreeCreateErrors,
   WorktreeCreateInput,
   WorktreeCreateResponses,
@@ -6352,6 +6354,49 @@ export class Tui extends HeyApiClient {
   }
 }
 
+export class Whatsapp extends HeyApiClient {
+  /**
+   * Receive a WhatsApp webhook for an AgentUI agent
+   *
+   * Inbound webhook endpoint for the agent's configured WhatsApp channel (via waconector). Never call this directly — it's the URL configured on the WhatsApp gateway itself.
+   */
+  public webhook<ThrowOnError extends boolean = false>(
+    parameters: {
+      agentId: string
+      secret: string
+      directory?: string
+      workspace?: string
+      body?: unknown
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "agentId" },
+            { in: "path", key: "secret" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "body", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<WhatsappWebhookResponses, WhatsappWebhookErrors, ThrowOnError>({
+      url: "/whatsapp/webhook/{agentId}/{secret}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Health extends HeyApiClient {
   /**
    * Check server health
@@ -8571,6 +8616,11 @@ export class OpencodeClient extends HeyApiClient {
   private _tui?: Tui
   get tui(): Tui {
     return (this._tui ??= new Tui({ client: this.client }))
+  }
+
+  private _whatsapp?: Whatsapp
+  get whatsapp(): Whatsapp {
+    return (this._whatsapp ??= new Whatsapp({ client: this.client }))
   }
 
   private _v2?: V2

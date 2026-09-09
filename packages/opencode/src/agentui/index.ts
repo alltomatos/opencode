@@ -113,6 +113,17 @@ export interface Interface {
     message: string
   }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
   readonly resetSandbox: (id: string) => Effect.Effect<void>
+  // Generalizes testMessage() beyond the fixed sandbox session: any real
+  // channel (WhatsApp today) that just needs "guardrail check -> hardened
+  // system prompt -> resolved model -> RAG -> one prompt call -> reply
+  // text", one independent session per (agent, chatKey) pair, without
+  // Telegram's own richer background-task/typing-indicator machinery.
+  readonly dispatchChannelMessage: (input: {
+    id: string
+    directory: string
+    chatKey: string
+    message: string
+  }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
   // "Criar com IA": one-shot generation — the user describes the agent
   // they want in natural language, this drafts the form fields a real
   // conversation-builder would otherwise ask about turn by turn (name,
@@ -294,14 +305,19 @@ const layer = Layer.effect(
         .trim()
     }
 
-    // One sandbox session per agent, independent of any real channel's
-    // sessions (Telegram keeps its own, keyed by chat+agent) — testing an
-    // agent never touches or gets touched by its real conversations.
-    const sandboxSessions = new Map<string, string>()
+    // One session per (agent, chatKey) pair — the sandbox test chat uses a
+    // fixed "sandbox" chatKey (so it's independent of any real channel's
+    // sessions), while a real channel (WhatsApp today; Telegram's dedicated
+    // per-agent bots keep their own richer session map in Telegram.Service,
+    // with background-task queueing this generalized path intentionally
+    // doesn't have) passes its own chat/contact identifier so each sender
+    // gets their own conversation with the agent.
+    const channelSessions = new Map<string, string>()
 
-    const testMessage = Effect.fn("AgentUI.testMessage")(function* (input: {
+    const dispatchChannelMessage = Effect.fn("AgentUI.dispatchChannelMessage")(function* (input: {
       id: string
       directory: string
+      chatKey: string
       message: string
     }) {
       const agent = yield* get(input.id)
@@ -312,13 +328,14 @@ const layer = Layer.effect(
       if (!guard.allowed) return { reply: `🛡️ ${guard.reason}`, blocked: true }
 
       const ctx = yield* instanceStore.load({ directory: input.directory })
+      const sessionKey = `${input.id}:${input.chatKey}`
       const sessionID = yield* Effect.gen(function* () {
-        const existing = sandboxSessions.get(input.id)
+        const existing = channelSessions.get(sessionKey)
         if (existing) return existing
         const session = yield* sessions
-          .create({ title: `Sandbox: ${agent.name}`, directory: input.directory, permission: sessionPermission() })
+          .create({ title: `${agent.name}: ${input.chatKey}`, directory: input.directory, permission: sessionPermission() })
           .pipe(Effect.provideService(InstanceRef, ctx))
-        sandboxSessions.set(input.id, session.id)
+        channelSessions.set(sessionKey, session.id)
         return session.id
       })
 
@@ -341,7 +358,7 @@ const layer = Layer.effect(
           Effect.map((result) => extractText(result) || "(sem resposta)"),
           Effect.provideService(InstanceRef, ctx),
           Effect.catch((cause) =>
-            Effect.logError("agentui sandbox prompt failed", { id: input.id, cause }).pipe(
+            Effect.logError("agentui channel prompt failed", { id: input.id, chatKey: input.chatKey, cause }).pipe(
               Effect.as(`⚠️ ${cause instanceof Error ? cause.message : String(cause)}`),
             ),
           ),
@@ -349,8 +366,16 @@ const layer = Layer.effect(
       return { reply, blocked: false }
     })
 
+    const testMessage = Effect.fn("AgentUI.testMessage")(function* (input: {
+      id: string
+      directory: string
+      message: string
+    }) {
+      return yield* dispatchChannelMessage({ ...input, chatKey: "sandbox" })
+    })
+
     const resetSandbox = Effect.fn("AgentUI.resetSandbox")(function* (id: string) {
-      sandboxSessions.delete(id)
+      channelSessions.delete(`${id}:sandbox`)
     })
 
     const tryResolveDraftModel = (spec: string) =>
@@ -454,6 +479,7 @@ const layer = Layer.effect(
       testMessage,
       resetSandbox,
       generateDraft,
+      dispatchChannelMessage,
     })
   }),
 )

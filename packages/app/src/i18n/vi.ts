@@ -843,6 +843,7 @@ export const dict = {
   "common.dismiss": "Bỏ qua",
   "common.moreCountSuffix": " (+{{count}} thêm)",
   "common.requestFailed": "Không thực hiện được yêu cầu",
+  "common.optional": "tùy chọn",
   "common.moreOptions": "Nhiều lựa chọn hơn",
   "common.learnMore": "Tìm hiểu thêm",
   "common.rename": "Đổi tên",
@@ -1454,6 +1455,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Mở trang này từ một dự án đã kết nối để cung cấp cho tác nhân này bot Telegram riêng.",
+  "settings.agentui.error.whatsappIncomplete": "Mở trang này từ một dự án đã kết nối và điền tất cả các trường bắt buộc cho nhà cung cấp WhatsApp đã chọn.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1469,6 +1471,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bot (tùy chọn — để trống để dùng chung bot toàn cục)",
   "settings.agentui.field.telegramToken.hint": "Dán token từ @BotFather để cung cấp cho tác nhân này bot Telegram chuyên dụng riêng. Để trống để truy cập qua bot dùng chung trong Cài đặt → Tích hợp, bằng tiền tố lệnh của nó.",
+  "settings.agentui.field.whatsapp": "Trả lời trên WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Sử dụng API WhatsApp không chính thức (thông qua waconector) — chọn nhà cung cấp và điền chi tiết kết nối. Các nhà cung cấp tự lưu trữ cần máy chủ/container riêng chạy tách biệt.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — dán nó vào bảng điều khiển của nhà cung cấp",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhook cần cấu hình ở phía nhà cung cấp sẽ xuất hiện ở đây sau khi bạn lưu.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

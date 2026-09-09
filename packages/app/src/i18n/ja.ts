@@ -790,6 +790,7 @@ export const dict = {
   "common.closeTab": "タブを閉じる",
   "common.dismiss": "閉じる",
   "common.requestFailed": "リクエストに失敗しました",
+  "common.optional": "任意",
   "common.moreOptions": "その他のオプション",
   "common.learnMore": "詳細",
   "common.rename": "名前を変更",
@@ -1454,6 +1455,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "このエージェント専用のTelegramボットを設定するには、接続済みのプロジェクトからこのページを開いてください。",
+  "settings.agentui.error.whatsappIncomplete": "接続済みのプロジェクトからこのページを開き、選択したWhatsAppプロバイダーの必須項目をすべて入力してください。",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1469,6 +1471,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "ボットトークン（任意 — グローバルボットを共有する場合は空欄のまま）",
   "settings.agentui.field.telegramToken.hint": "@BotFatherのトークンを貼り付けると、このエージェント専用のTelegramボットになります。空欄のままにすると、設定 → 連携にある共有ボットを、そのコマンドトリガー経由で利用します。",
+  "settings.agentui.field.whatsapp": "WhatsAppで返信",
+  "settings.agentui.field.whatsapp.hint": "非公式のWhatsApp API（waconector経由）を使用します — プロバイダーを選び、接続情報を入力してください。セルフホスト型プロバイダーは別途稼働する独自サーバー/コンテナが必要です。これはそこに接続するだけです。",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — プロバイダーのダッシュボードに貼り付けてください",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "プロバイダー側で設定するWebhook URLは、保存後にここに表示されます。",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

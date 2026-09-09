@@ -829,6 +829,7 @@ export const dict = {
   "common.dismiss": "ច្រានចោល",
   "common.moreCountSuffix": "(+{{count}} ច្រើនទៀត)",
   "common.requestFailed": "សំណើបានបរាជ័យ",
+  "common.optional": "ស្រេចចិត្ត",
   "common.moreOptions": "ជម្រើសច្រើនទៀត",
   "common.learnMore": "ស្វែងយល់បន្ថែម",
   "common.rename": "ប្តូរឈ្មោះ",
@@ -1436,6 +1437,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "បើកទំព័រនេះពីគម្រោងដែលបានភ្ជាប់ ដើម្បីផ្តល់ឱ្យភ្នាក់ងារនេះនូវរូបយន្ត Telegram ផ្ទាល់ខ្លួន។",
+  "settings.agentui.error.whatsappIncomplete": "បើកទំព័រនេះពីគម្រោងដែលបានភ្ជាប់ ហើយបំពេញគ្រប់វាលដែលត្រូវការសម្រាប់អ្នកផ្តល់សេវា WhatsApp ដែលបានជ្រើសរើស។",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1451,6 +1453,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "តូខឹនរូបយន្ត (ស្រេចចិត្ត — ទុកទទេដើម្បីចែករំលែករូបយន្តសកល)",
   "settings.agentui.field.telegramToken.hint": "បិទភ្ជាប់តូខឹនពី @BotFather ដើម្បីផ្តល់ឱ្យភ្នាក់ងារនេះនូវរូបយន្ត Telegram ជាក់លាក់របស់ខ្លួន។ ទុកទទេដើម្បីចូលប្រើតាមរយៈរូបយន្តរួមនៅក្នុងការកំណត់ → ការរួមបញ្ចូល ដោយប្រើបុព្វបទពាក្យបញ្ជារបស់វា។",
+  "settings.agentui.field.whatsapp": "ឆ្លើយតបនៅលើ WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "ប្រើ API WhatsApp មិនផ្លូវការ (តាមរយៈ waconector) — ជ្រើសរើសអ្នកផ្តល់សេវា ហើយបំពេញព័ត៌មានលម្អិតការតភ្ជាប់។ អ្នកផ្តល់សេវាដែលបង្ហោះដោយខ្លួនឯងត្រូវការម៉ាស៊ីនមេ/កុងតឺន័រផ្ទាល់ខ្លួនរបស់ពួកគេដំណើរការដាច់ដោយឡែក។",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL Webhook — បិទភ្ជាប់វានៅក្នុងផ្ទាំងគ្រប់គ្រងរបស់អ្នកផ្តល់សេវា",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL Webhook ដែលត្រូវកំណត់រចនាសម្ព័ន្ធនៅខាងអ្នកផ្តល់សេវានឹងបង្ហាញនៅទីនេះបន្ទាប់ពីអ្នករក្សាទុក។",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

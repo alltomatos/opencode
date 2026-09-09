@@ -1977,11 +1977,32 @@ export type ComboConfig = {
   [key: string]: Combo
 }
 
-export type AgentUiChannelBinding = {
+export type AgentUiTelegramChannelBinding = {
   type: "telegram"
   token?: string
   directory?: string
 }
+
+export type AgentUiWhatsAppChannelBinding = {
+  type: "whatsapp"
+  /**
+   * Which unofficial WhatsApp API this channel connects through (see waconector).
+   */
+  provider: "waha" | "evolution" | "zapi" | "uazapi" | "whapi" | "wuzapi" | "quepasa" | "wppconnect" | "izapia"
+  /**
+   * Provider-specific connection fields (e.g. baseUrl+apiKey for WAHA, instanceId+token for Z-API). Shape depends on `provider`.
+   */
+  config: {
+    [key: string]: string
+  }
+  directory?: string
+  /**
+   * Random per-channel secret embedded in the webhook URL — authenticates inbound webhook calls from the provider.
+   */
+  webhookSecret: string
+}
+
+export type AgentUiChannelBinding = AgentUiTelegramChannelBinding | AgentUiWhatsAppChannelBinding
 
 export type AgentUiRagSource = {
   id: string
@@ -2889,6 +2910,16 @@ export type EventTuiSessionSelect = {
      */
     sessionID: string
   }
+}
+
+export type WhatsAppChannelNotConfiguredError = {
+  _tag: "WhatsAppChannelNotConfiguredError"
+  id: string
+}
+
+export type WhatsAppInvalidWebhookError = {
+  _tag: "WhatsAppInvalidWebhookError"
+  reason: string
 }
 
 export type Workspace = {
@@ -12487,6 +12518,43 @@ export type TuiControlResponseResponses = {
 }
 
 export type TuiControlResponseResponse = TuiControlResponseResponses[keyof TuiControlResponseResponses]
+
+export type WhatsappWebhookData = {
+  body?: unknown
+  path: {
+    agentId: string
+    secret: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/whatsapp/webhook/{agentId}/{secret}"
+}
+
+export type WhatsappWebhookErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError | WhatsAppChannelNotConfiguredError | WhatsAppInvalidWebhookError
+   */
+  500: AgentUiNotFoundError | WhatsAppChannelNotConfiguredError | WhatsAppInvalidWebhookError
+}
+
+export type WhatsappWebhookError = WhatsappWebhookErrors[keyof WhatsappWebhookErrors]
+
+export type WhatsappWebhookResponses = {
+  /**
+   * Webhook processed
+   */
+  200: {
+    ok: true
+  }
+}
+
+export type WhatsappWebhookResponse = WhatsappWebhookResponses[keyof WhatsappWebhookResponses]
 
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never

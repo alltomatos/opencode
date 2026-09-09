@@ -867,6 +867,7 @@ export const dict = {
   "common.closeTab": "Закрыть вкладку",
   "common.dismiss": "Закрыть",
   "common.requestFailed": "Запрос не выполнен",
+  "common.optional": "необязательно",
   "common.moreOptions": "Дополнительные опции",
   "common.learnMore": "Подробнее",
   "common.rename": "Переименовать",
@@ -1547,6 +1548,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Откройте эту страницу из подключённого проекта, чтобы дать этому агенту собственного Telegram-бота.",
+  "settings.agentui.error.whatsappIncomplete": "Откройте эту страницу из подключённого проекта и заполните все обязательные поля для выбранного провайдера WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1562,6 +1564,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Токен бота (необязательно — оставьте пустым, чтобы использовать общий бот)",
   "settings.agentui.field.telegramToken.hint": "Вставьте токен от @BotFather, чтобы дать этому агенту собственного выделенного Telegram-бота. Оставьте пустым, чтобы обращаться к нему через общий бот в Настройки → Интеграции, используя его командный префикс.",
+  "settings.agentui.field.whatsapp": "Отвечать в WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Использует неофициальный WhatsApp API (через waconector) — выберите провайдера и заполните данные подключения. Провайдерам с самостоятельным хостингом нужен собственный, отдельно работающий сервер/контейнер; это лишь подключается к нему.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL вебхука — вставьте его в панель провайдера",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL вебхука, который нужно настроить у провайдера, появится здесь после сохранения.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

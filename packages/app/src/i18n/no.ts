@@ -730,6 +730,7 @@ export const dict = {
   "common.closeTab": "Lukk fane",
   "common.dismiss": "Avvis",
   "common.requestFailed": "Forespørsel mislyktes",
+  "common.optional": "valgfritt",
   "common.moreOptions": "Flere alternativer",
   "common.learnMore": "Lær mer",
   "common.rename": "Gi nytt navn",
@@ -1552,6 +1553,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Åpne denne siden fra et tilkoblet prosjekt for å gi denne agenten sin egen Telegram-bot.",
+  "settings.agentui.error.whatsappIncomplete": "Åpne denne siden fra et tilkoblet prosjekt og fyll ut alle påkrevde felt for den valgte WhatsApp-leverandøren.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1567,6 +1569,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Bot-token (valgfritt — la stå tomt for å dele den globale boten)",
   "settings.agentui.field.telegramToken.hint": "Lim inn et token fra @BotFather for å gi denne agenten sin egen dedikerte Telegram-bot. La stå tomt for å nå den via den delte boten i Innstillinger → Integrasjoner, med kommandoprefikset.",
+  "settings.agentui.field.whatsapp": "Svar på WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Bruker en uoffisiell WhatsApp-API (via waconector) — velg en leverandør og fyll ut tilkoblingsdetaljene. Selvhostede leverandører krever sin egen server/beholder som kjører separat.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — lim den inn i leverandørens dashbord",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook-URL-en som skal konfigureres hos leverandøren, vises her etter at du har lagret.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

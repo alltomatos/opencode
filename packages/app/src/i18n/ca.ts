@@ -842,6 +842,7 @@ export const dict = {
   "common.dismiss": "Descartar",
   "common.moreCountSuffix": " (+{{count}} més)",
   "common.requestFailed": "La sol·licitud ha fallat",
+  "common.optional": "opcional",
   "common.moreOptions": "Més opcions",
   "common.learnMore": "Més informació",
   "common.rename": "Canvia el nom",
@@ -1458,6 +1459,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Obre aquesta pàgina des d'un projecte connectat per donar a aquest agent el seu propi bot de Telegram.",
+  "settings.agentui.error.whatsappIncomplete": "Obre aquesta pàgina des d'un projecte connectat i omple tots els camps obligatoris del proveïdor de WhatsApp seleccionat.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1473,6 +1475,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Testimoni del bot (opcional — deixa buit per compartir el bot global)",
   "settings.agentui.field.telegramToken.hint": "Enganxa un testimoni de @BotFather per donar a aquest agent el seu propi bot dedicat de Telegram. Deixa-ho buit per accedir-hi mitjançant el bot compartit a Configuració → Integracions, usant el seu prefix d'ordre.",
+  "settings.agentui.field.whatsapp": "Respon a WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Utilitza una API no oficial de WhatsApp (via waconector) — tria un proveïdor i omple les dades de connexió. Els proveïdors autoallotjats necessiten el seu propi servidor/contenidor en execució per separat; això només s'hi connecta.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL del webhook — enganxa-la al tauler del proveïdor",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "La URL del webhook per configurar al proveïdor apareix aquí després de desar.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

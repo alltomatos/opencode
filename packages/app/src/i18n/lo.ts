@@ -827,6 +827,7 @@ export const dict = {
   "common.dismiss": "ປິດ",
   "common.moreCountSuffix": "(+{{count}} ເພີ່ມເຕີມ)",
   "common.requestFailed": "ການຮ້ອງຂໍລົ້ມເຫລວ",
+  "common.optional": "ທາງເລືອກ",
   "common.moreOptions": "ທາງເລືອກເພີ່ມເຕີມ",
   "common.learnMore": "ສຶກສາເພີ່ມເຕີມ",
   "common.rename": "ປ່ຽນຊື່",
@@ -1433,6 +1434,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "ເປີດໜ້ານີ້ຈາກໂຄງການທີ່ເຊື່ອມຕໍ່ເພື່ອໃຫ້ຕົວແທນນີ້ມີບອດ Telegram ຂອງຕົນເອງ.",
+  "settings.agentui.error.whatsappIncomplete": "ເປີດໜ້ານີ້ຈາກໂຄງການທີ່ເຊື່ອມຕໍ່ ແລະ ຕື່ມຂໍ້ມູນທຸກຊ່ອງທີ່ຕ້ອງການສຳລັບຜູ້ໃຫ້ບໍລິການ WhatsApp ທີ່ເລືອກ.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1448,6 +1450,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "ໂທເຄັນບອດ (ທາງເລືອກ — ປະໄວ້ຫວ່າງເພື່ອແບ່ງປັນບອດທົ່ວໂລກ)",
   "settings.agentui.field.telegramToken.hint": "ວາງໂທເຄັນຈາກ @BotFather ເພື່ອໃຫ້ຕົວແທນນີ້ມີບອດ Telegram ສະເພາະຂອງຕົນເອງ. ປະໄວ້ຫວ່າງເພື່ອເຂົ້າເຖິງຜ່ານບອດທີ່ໃຊ້ຮ່ວມກັນໃນການຕັ້ງຄ່າ → ການເຊື່ອມໂຍງ, ໂດຍໃຊ້ຄຳນຳໜ້າຄຳສັ່ງຂອງມັນ.",
+  "settings.agentui.field.whatsapp": "ຕອບໃນ WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "ໃຊ້ WhatsApp API ທີ່ບໍ່ເປັນທາງການ (ຜ່ານ waconector) — ເລືອກຜູ້ໃຫ້ບໍລິການ ແລະ ຕື່ມລາຍລະອຽດການເຊື່ອມຕໍ່. ຜູ້ໃຫ້ບໍລິການແບບ self-hosted ຕ້ອງການເຊີບເວີ/container ຂອງຕົນເອງແຍກຕ່າງຫາກ.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL Webhook — ວາງມັນໃນແດັຊບອດຂອງຜູ້ໃຫ້ບໍລິການ",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL Webhook ທີ່ຕ້ອງຕັ້ງຄ່າຢູ່ຝັ່ງຜູ້ໃຫ້ບໍລິການຈະປາກົດຢູ່ບ່ອນນີ້ຫຼັງຈາກທ່ານບັນທຶກ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

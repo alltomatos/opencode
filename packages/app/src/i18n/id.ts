@@ -906,6 +906,7 @@ export const dict = {
   "common.dismiss": "Tutup",
   "common.moreCountSuffix": " (+{{count}} lainnya)",
   "common.requestFailed": "Permintaan gagal",
+  "common.optional": "opsional",
   "common.moreOptions": "Opsi lainnya",
   "common.learnMore": "Pelajari lebih lanjut",
   "common.rename": "Ganti nama",
@@ -1535,6 +1536,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Buka halaman ini dari proyek yang terhubung untuk memberi agen ini bot Telegram-nya sendiri.",
+  "settings.agentui.error.whatsappIncomplete": "Buka halaman ini dari proyek yang terhubung dan isi semua kolom wajib untuk penyedia WhatsApp yang dipilih.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1550,6 +1552,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bot (opsional — biarkan kosong untuk berbagi bot global)",
   "settings.agentui.field.telegramToken.hint": "Tempel token dari @BotFather untuk memberi agen ini bot Telegram khusus miliknya sendiri. Biarkan kosong untuk mengaksesnya melalui bot bersama di Pengaturan → Integrasi, menggunakan prefiks perintahnya.",
+  "settings.agentui.field.whatsapp": "Balas di WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Menggunakan API WhatsApp tidak resmi (melalui waconector) — pilih penyedia dan isi detail koneksi. Penyedia self-hosted memerlukan server/kontainer sendiri yang berjalan terpisah; ini hanya terhubung ke sana.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — tempelkan ke dasbor penyedia",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhook yang perlu dikonfigurasi di sisi penyedia muncul di sini setelah Anda menyimpan.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

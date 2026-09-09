@@ -835,6 +835,7 @@ export const dict = {
   "common.dismiss": "Рад кардан",
   "common.moreCountSuffix": "(+{{count}} бештар)",
   "common.requestFailed": "Дархост иҷро нашуд",
+  "common.optional": "ихтиёрӣ",
   "common.moreOptions": "Имконоти бештар",
   "common.learnMore": "Бисёр омӯхтан",
   "common.rename": "Номи дигар",
@@ -1449,6 +1450,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Ин саҳифаро аз лоиҳаи пайвастшуда кушоед, то ба ин агент боти шахсии Telegram диҳед.",
+  "settings.agentui.error.whatsappIncomplete": "Ин саҳифаро аз лоиҳаи пайвастшуда кушоед ва ҳамаи майдонҳои ҳатмии провайдери WhatsApp интихобшударо пур кунед.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1464,6 +1466,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Токени бот (ихтиёрӣ — барои мубодилаи боти глобалӣ холӣ гузоред)",
   "settings.agentui.field.telegramToken.hint": "Токенро аз @BotFather гузоред, то ба ин агент боти махсуси Telegram диҳед. Барои дастрасӣ тавассути боти умумӣ дар Танзимот → Ҳамгироӣ, бо пешванди фармони он, холӣ гузоред.",
+  "settings.agentui.field.whatsapp": "Дар WhatsApp ҷавоб додан",
+  "settings.agentui.field.whatsapp.hint": "API ғайрирасмии WhatsApp-ро истифода мебарад (тавассути waconector) — провайдерро интихоб кунед ва тафсилоти пайвастшавиро пур кунед. Провайдерони худмизбон ба сервери/контейнери алоҳидаи худ ниёз доранд.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL-и webhook — онро ба саҳифаи идоракунии провайдер часпонед",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL-и webhook, ки бояд аз тарафи провайдер танзим карда шавад, пас аз сабт дар ин ҷо намоён мешавад.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

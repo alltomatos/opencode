@@ -841,6 +841,7 @@ export const dict = {
   "common.dismiss": "ပယ်ရန်",
   "common.moreCountSuffix": "(+{{count}} နောက်ထပ်)",
   "common.requestFailed": "တောင်းဆိုမှု မအောင်မြင်ပါ။",
+  "common.optional": "ရွေးချယ်နိုင်သော",
   "common.moreOptions": "နောက်ထပ် ရွေးချယ်စရာများ",
   "common.learnMore": "ပိုမိုလေ့လာရန်",
   "common.rename": "အမည်ပြောင်း",
@@ -1461,6 +1462,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "ဤအေးဂျင့်ကို ၎င်း၏ကိုယ်ပိုင် Telegram ဘော့ပေးရန် ချိတ်ဆက်ထားသော ပရောဂျက်မှ ဤစာမျက်နှာကို ဖွင့်ပါ။",
+  "settings.agentui.error.whatsappIncomplete": "ချိတ်ဆက်ထားသော ပရောဂျက်မှ ဤစာမျက်နှာကို ဖွင့်ပြီး ရွေးချယ်ထားသော WhatsApp ဝန်ဆောင်မှုပေးသူအတွက် လိုအပ်သော ကွက်လပ်များအားလုံးကို ဖြည့်ပါ။",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1476,6 +1478,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "ဘော့တိုကင် (ရွေးချယ်နိုင် — ကမ္ဘာလုံးဆိုင်ရာဘော့ကို မျှဝေရန် ဗလာထားပါ)",
   "settings.agentui.field.telegramToken.hint": "ဤအေးဂျင့်ကို ၎င်း၏ကိုယ်ပိုင် Telegram ဘော့ပေးရန် @BotFather မှ တိုကင်ကို ကူးထည့်ပါ။ ဆက်တင်များ → ပေါင်းစည်းမှုများရှိ မျှဝေထားသောဘော့မှတစ်ဆင့် ၎င်း၏ command prefix ကိုအသုံးပြု၍ ချိတ်ဆက်ရန် ဗလာထားပါ။",
+  "settings.agentui.field.whatsapp": "WhatsApp တွင် ပြန်ကြားမည်",
+  "settings.agentui.field.whatsapp.hint": "တရားမဝင် WhatsApp API ကို အသုံးပြုသည် (waconector မှတဆင့်) — ဝန်ဆောင်မှုပေးသူတစ်ခုကို ရွေးပြီး ချိတ်ဆက်မှုအသေးစိတ်ကို ဖြည့်ပါ။",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ဝန်ဆောင်မှုပေးသူ၏ dashboard တွင် ကူးထည့်ပါ",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "ဝန်ဆောင်မှုပေးသူဘက်တွင် စီစဉ်ရမည့် Webhook URL သည် သိမ်းဆည်းပြီးနောက် ဤနေရာတွင် ပေါ်လာမည်။",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -802,6 +802,7 @@ export const dict = {
   "common.closeTab": "إغلاق علامة التبويب",
   "common.dismiss": "إهمال",
   "common.requestFailed": "فشل الطلب",
+  "common.optional": "اختياري",
   "common.moreOptions": "مزيد من الخيارات",
   "common.learnMore": "اطّلع على المزيد",
   "common.rename": "إعادة تسمية",
@@ -1456,6 +1457,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "افتح هذه الصفحة من مشروع متصل لمنح هذا الوكيل بوت تيليجرام خاصًا به.",
+  "settings.agentui.error.whatsappIncomplete": "افتح هذه الصفحة من مشروع متصل واملأ كل الحقول المطلوبة لمزود WhatsApp المحدد.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1471,6 +1473,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "رمز البوت (اختياري — اتركه فارغًا لمشاركة البوت العام)",
   "settings.agentui.field.telegramToken.hint": "الصق رمزًا من @BotFather لمنح هذا الوكيل بوت تيليجرام مخصصًا له. اتركه فارغًا للوصول إليه عبر البوت المشترك في الإعدادات ← التكاملات، باستخدام بادئة الأمر الخاصة به.",
+  "settings.agentui.field.whatsapp": "الرد على واتساب",
+  "settings.agentui.field.whatsapp.hint": "يستخدم واجهة برمجة تطبيقات واتساب غير رسمية (عبر waconector) — اختر مزودًا واملأ بيانات الاتصال. المزودات المستضافة ذاتيًا تحتاج خادمها/حاويتها الخاصة تعمل بشكل منفصل؛ هذا فقط يتصل بها.",
+  "settings.agentui.field.whatsapp.webhookUrl": "رابط الويب هوك — الصقه في لوحة تحكم المزود",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "رابط الويب هوك الذي يجب إعداده لدى المزود يظهر هنا بعد الحفظ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

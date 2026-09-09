@@ -841,6 +841,7 @@ export const dict = {
   "common.dismiss": "Παράβλεψη",
   "common.moreCountSuffix": " (+{{count}} περισσότερα)",
   "common.requestFailed": "Το αίτημα απέτυχε",
+  "common.optional": "προαιρετικό",
   "common.moreOptions": "Περισσότερες επιλογές",
   "common.learnMore": "Μάθετε περισσότερα",
   "common.rename": "Μετονομασία",
@@ -1458,6 +1459,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Ανοίξτε αυτή τη σελίδα από συνδεδεμένο έργο για να δώσετε σε αυτόν τον πράκτορα το δικό του bot Telegram.",
+  "settings.agentui.error.whatsappIncomplete": "Ανοίξτε αυτή τη σελίδα από συνδεδεμένο έργο και συμπληρώστε όλα τα υποχρεωτικά πεδία για τον επιλεγμένο πάροχο WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1473,6 +1475,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bot (προαιρετικό — αφήστε κενό για κοινή χρήση του καθολικού bot)",
   "settings.agentui.field.telegramToken.hint": "Επικολλήστε ένα token από το @BotFather για να δώσετε σε αυτόν τον πράκτορα το δικό του αποκλειστικό bot Telegram. Αφήστε κενό για πρόσβαση μέσω του κοινού bot στις Ρυθμίσεις → Ενσωματώσεις, χρησιμοποιώντας το πρόθεμα εντολής του.",
+  "settings.agentui.field.whatsapp": "Απάντηση στο WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Χρησιμοποιεί ένα ανεπίσημο API WhatsApp (μέσω waconector) — επιλέξτε πάροχο και συμπληρώστε τα στοιχεία σύνδεσης. Οι αυτοφιλοξενούμενοι πάροχοι χρειάζονται τον δικό τους διακομιστή/container να τρέχει ξεχωριστά· αυτό απλώς συνδέεται μαζί του.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — επικολλήστε το στον πίνακα του παρόχου",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Το URL webhook προς ρύθμιση στον πάροχο εμφανίζεται εδώ μετά την αποθήκευση.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

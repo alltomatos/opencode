@@ -839,6 +839,7 @@ export const dict = {
   "common.dismiss": "Хаах",
   "common.moreCountSuffix": "(+{{count}} илүү)",
   "common.requestFailed": "Хүсэлт амжилтгүй боллоо",
+  "common.optional": "заавал биш",
   "common.moreOptions": "Илүү олон сонголт",
   "common.learnMore": "Илүү ихийг мэдэж аваарай",
   "common.rename": "Нэрээ өөрчлөх",
@@ -1453,6 +1454,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Энэ агентад өөрийн Telegram бот өгөхийн тулд холбогдсон төслөөс энэ хуудсыг нээнэ үү.",
+  "settings.agentui.error.whatsappIncomplete": "Энэ хуудсыг холбогдсон төслөөс нээж, сонгосон WhatsApp үйлчилгээ үзүүлэгчийн бүх шаардлагатай талбарыг бөглөнө үү.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1468,6 +1470,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Ботын токен (сонголттой — глобал ботыг хуваалцахын тулд хоосон орхино уу)",
   "settings.agentui.field.telegramToken.hint": "Энэ агентад өөрийн зориулалтын Telegram бот өгөхийн тулд @BotFather-ээс токеныг буулгана уу. Тохиргоо → Интеграциуд дахь хуваалцсан ботоор дамжуулан, түүний тушаалын угтвар ашиглан хандахын тулд хоосон орхино уу.",
+  "settings.agentui.field.whatsapp": "WhatsApp дээр хариулах",
+  "settings.agentui.field.whatsapp.hint": "Албан бус WhatsApp API ашигладаг (waconector-оор дамжуулан) — үйлчилгээ үзүүлэгчийг сонгож, холболтын мэдээллийг бөглөнө үү. Өөрөө байршуулсан үйлчилгээ үзүүлэгчид тусад нь ажиллаж буй өөрийн серверийг шаарддаг.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — үйлчилгээ үзүүлэгчийн хяналтын самбарт буулгана уу",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Үйлчилгээ үзүүлэгч дээр тохируулах Webhook URL хадгалсны дараа энд харагдана.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

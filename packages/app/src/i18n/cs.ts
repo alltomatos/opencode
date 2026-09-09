@@ -837,6 +837,7 @@ export const dict = {
   "common.dismiss": "Odmítnout",
   "common.moreCountSuffix": " (+{{count}} další)",
   "common.requestFailed": "Požadavek se nezdařil",
+  "common.optional": "volitelné",
   "common.moreOptions": "Více možností",
   "common.learnMore": "Zjistěte více",
   "common.rename": "Přejmenovat",
@@ -1448,6 +1449,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Otevřete tuto stránku z připojeného projektu, abyste tomuto agentovi dali vlastního Telegram bota.",
+  "settings.agentui.error.whatsappIncomplete": "Otevřete tuto stránku z připojeného projektu a vyplňte všechna povinná pole pro vybraného poskytovatele WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1463,6 +1465,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bota (volitelné — nechte prázdné pro sdílení globálního bota)",
   "settings.agentui.field.telegramToken.hint": "Vložte token od @BotFather, abyste tomuto agentovi dali vlastního vyhrazeného Telegram bota. Nechte prázdné pro přístup přes sdíleného bota v Nastavení → Integrace, pomocí jeho příkazové předpony.",
+  "settings.agentui.field.whatsapp": "Odpovídat na WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Používá neoficiální WhatsApp API (přes waconector) — vyberte poskytovatele a vyplňte údaje o připojení. Self-hosted poskytovatelé potřebují vlastní server/kontejner spuštěný samostatně; toto se k němu pouze připojuje.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhooku — vložte jej do panelu poskytovatele",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhooku ke konfiguraci u poskytovatele se zobrazí zde po uložení.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

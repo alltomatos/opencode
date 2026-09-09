@@ -831,6 +831,7 @@ export const dict = {
   "common.dismiss": "رد کردن",
   "common.moreCountSuffix": " (+ {{count}} بیشتر)",
   "common.requestFailed": "درخواست ناموفق بود",
+  "common.optional": "اختیاری",
   "common.moreOptions": "گزینه های بیشتر",
   "common.learnMore": "بیشتر بدانید",
   "common.rename": "تغییر نام دهید",
@@ -1440,6 +1441,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "این صفحه را از یک پروژه متصل باز کنید تا به این عامل ربات تلگرام اختصاصی خود را بدهید.",
+  "settings.agentui.error.whatsappIncomplete": "این صفحه را از یک پروژه متصل باز کنید و همه فیلدهای ضروری برای ارائه‌دهنده واتس‌اپ انتخابی را پر کنید.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1455,6 +1457,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "توکن ربات (اختیاری — برای اشتراک‌گذاری ربات سراسری خالی بگذارید)",
   "settings.agentui.field.telegramToken.hint": "یک توکن از @BotFather بچسبانید تا به این عامل ربات تلگرام اختصاصی خودش را بدهید. برای دسترسی از طریق ربات مشترک در تنظیمات ← یکپارچه‌سازی‌ها، با پیشوند دستور آن، خالی بگذارید.",
+  "settings.agentui.field.whatsapp": "پاسخ در واتس‌اپ",
+  "settings.agentui.field.whatsapp.hint": "از یک API غیررسمی واتس‌اپ استفاده می‌کند (از طریق waconector) — یک ارائه‌دهنده انتخاب کنید و جزئیات اتصال را پر کنید. ارائه‌دهندگان خودمیزبان به سرور/کانتینر جداگانه خود نیاز دارند؛ این فقط به آن متصل می‌شود.",
+  "settings.agentui.field.whatsapp.webhookUrl": "آدرس webhook — آن را در داشبورد ارائه‌دهنده جای‌گذاری کنید",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "آدرس webhook که باید در سمت ارائه‌دهنده تنظیم شود، پس از ذخیره در اینجا نمایش داده می‌شود.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

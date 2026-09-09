@@ -829,6 +829,7 @@ export const dict: Record<string, string> = {
   "common.dismiss": "අස් කරන්න",
   "common.moreCountSuffix": "(+{{count}} තව)",
   "common.requestFailed": "ඉල්ලීම අසාර්ථක විය",
+  "common.optional": "විකල්ප",
   "common.moreOptions": "තවත් විකල්ප",
   "common.learnMore": "තවත් හදාරන්න",
   "common.rename": "නැවත නම් කරන්න",
@@ -1438,6 +1439,7 @@ export const dict: Record<string, string> = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "මෙම නියෝජිතයාට තමන්ගේම ටෙලිග්‍රාම් බොට් එකක් ලබා දීමට සම්බන්ධිත ව්‍යාපෘතියකින් මෙම පිටුව විවෘත කරන්න.",
+  "settings.agentui.error.whatsappIncomplete": "සම්බන්ධිත ව්‍යාපෘතියකින් මෙම පිටුව විවෘත කර තෝරාගත් WhatsApp සැපයුම්කරු සඳහා අවශ්‍ය සියලුම ක්ෂේත්‍ර පුරවන්න.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1453,6 +1455,10 @@ export const dict: Record<string, string> = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "බොට් ටෝකනය (විකල්ප — ගෝලීය බොට් බෙදාගැනීමට හිස්ව තබන්න)",
   "settings.agentui.field.telegramToken.hint": "මෙම නියෝජිතයාට තමන්ගේම කැපවූ ටෙලිග්‍රාම් බොට් එකක් ලබා දීමට @BotFather වෙතින් ටෝකනයක් අලවන්න. සැකසීම් → ඒකාබද්ධ කිරීම් හි ඇති බෙදාගත් බොට් හරහා, එහි විධාන උපසර්ගය භාවිතයෙන් ළඟා වීමට හිස්ව තබන්න.",
+  "settings.agentui.field.whatsapp": "WhatsApp හි පිළිතුරු දෙන්න",
+  "settings.agentui.field.whatsapp.hint": "නිල නොවන WhatsApp API එකක් භාවිතා කරයි (waconector හරහා) — සැපයුම්කරුවෙකු තෝරා සම්බන්ධතා විස්තර පුරවන්න. self-hosted සැපයුම්කරුවන්ට වෙනම ධාවනය වන තමන්ගේම සර්වර්/කන්ටේනරයක් අවශ්‍යයි.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — එය සැපයුම්කරුගේ dashboard එකට අලවන්න",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "සැපයුම්කරු පැත්තෙන් වින්‍යාස කළ යුතු Webhook URL එක සුරැකීමෙන් පසු මෙහි දිස්වේ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

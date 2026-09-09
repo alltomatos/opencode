@@ -845,6 +845,7 @@ export const dict = {
   "common.closeTab": "關閉分頁",
   "common.dismiss": "忽略",
   "common.requestFailed": "要求失敗",
+  "common.optional": "選填",
   "common.moreOptions": "更多選項",
   "common.learnMore": "深入了解",
   "common.rename": "重新命名",
@@ -1508,6 +1509,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "從已連接的專案開啟此頁面，為該代理設定專屬的 Telegram 機器人。",
+  "settings.agentui.error.whatsappIncomplete": "從已連接的專案開啟此頁面，並填寫所選 WhatsApp 供應商的所有必填欄位。",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1523,6 +1525,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "機器人權杖（選填 — 留空以共用全域機器人）",
   "settings.agentui.field.telegramToken.hint": "貼上來自 @BotFather 的權杖，為該代理設定專屬的 Telegram 機器人。留空則透過設定 → 整合中的共用機器人、使用其指令前綴來存取。",
+  "settings.agentui.field.whatsapp": "在 WhatsApp 上回覆",
+  "settings.agentui.field.whatsapp.hint": "使用非官方 WhatsApp API（透過 waconector）— 選擇供應商並填寫連線詳情。自架供應商需要單獨執行自己的伺服器/容器；這裡只是連線到它。",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — 將其貼到供應商的控制台中",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "儲存後，需要在供應商端設定的 Webhook URL 會顯示在此處。",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -831,6 +831,7 @@ export const dict: Record<string, string> = {
   "common.dismiss": "খারিজ",
   "common.moreCountSuffix": "(+{{count}} আরো)",
   "common.requestFailed": "অনুরোধ ব্যর্থ হয়েছে",
+  "common.optional": "ঐচ্ছিক",
   "common.moreOptions": "আরও বিকল্প",
   "common.learnMore": "আরও জানুন",
   "common.rename": "নাম পরিবর্তন করুন",
@@ -1437,6 +1438,7 @@ export const dict: Record<string, string> = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "এই এজেন্টকে নিজস্ব টেলিগ্রাম বট দিতে সংযুক্ত প্রকল্প থেকে এই পৃষ্ঠাটি খুলুন।",
+  "settings.agentui.error.whatsappIncomplete": "একটি সংযুক্ত প্রকল্প থেকে এই পৃষ্ঠাটি খুলুন এবং নির্বাচিত WhatsApp প্রদানকারীর জন্য সমস্ত প্রয়োজনীয় ক্ষেত্র পূরণ করুন।",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1452,6 +1454,10 @@ export const dict: Record<string, string> = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "বট টোকেন (ঐচ্ছিক — গ্লোবাল বট শেয়ার করতে খালি রাখুন)",
   "settings.agentui.field.telegramToken.hint": "এই এজেন্টকে নিজস্ব উৎসর্গীকৃত টেলিগ্রাম বট দিতে @BotFather থেকে একটি টোকেন পেস্ট করুন। সেটিংস → ইন্টিগ্রেশনে থাকা শেয়ার করা বটের মাধ্যমে পৌঁছাতে খালি রাখুন, এর কমান্ড ট্রিগার ব্যবহার করে।",
+  "settings.agentui.field.whatsapp": "WhatsApp-এ উত্তর দিন",
+  "settings.agentui.field.whatsapp.hint": "একটি অনানুষ্ঠানিক WhatsApp API ব্যবহার করে (waconector এর মাধ্যমে) — একটি প্রদানকারী বেছে নিন এবং সংযোগের বিবরণ পূরণ করুন। স্ব-হোস্টেড প্রদানকারীদের নিজস্ব সার্ভার/কন্টেইনার আলাদাভাবে চালানো প্রয়োজন; এটি শুধু তার সাথে সংযোগ করে।",
+  "settings.agentui.field.whatsapp.webhookUrl": "ওয়েবহুক URL — প্রদানকারীর ড্যাশবোর্ডে পেস্ট করুন",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "সংরক্ষণের পরে প্রদানকারীর পক্ষ থেকে কনফিগার করার জন্য ওয়েবহুক URL এখানে প্রদর্শিত হয়।",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

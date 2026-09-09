@@ -837,6 +837,7 @@ export const dict = {
   "common.dismiss": "Închide",
   "common.moreCountSuffix": " (+{{count}} în plus)",
   "common.requestFailed": "Solicitarea a eșuat",
+  "common.optional": "opțional",
   "common.moreOptions": "Mai multe opțiuni",
   "common.learnMore": "Află mai mult",
   "common.rename": "Redenumește",
@@ -1447,6 +1448,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Deschide această pagină dintr-un proiect conectat pentru a oferi acestui agent propriul bot Telegram.",
+  "settings.agentui.error.whatsappIncomplete": "Deschide această pagină dintr-un proiect conectat și completează toate câmpurile obligatorii pentru furnizorul WhatsApp selectat.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1462,6 +1464,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bot (opțional — lasă gol pentru a partaja botul global)",
   "settings.agentui.field.telegramToken.hint": "Lipește un token de la @BotFather pentru a oferi acestui agent propriul bot Telegram dedicat. Lasă gol pentru a-l accesa prin botul partajat din Setări → Integrări, folosind prefixul său de comandă.",
+  "settings.agentui.field.whatsapp": "Răspunde pe WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Folosește un API WhatsApp neoficial (prin waconector) — alege un furnizor și completează detaliile de conexiune. Furnizorii auto-găzduiți necesită propriul server/container care rulează separat.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — lipește-l în panoul furnizorului",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL-ul webhook de configurat la furnizor apare aici după salvare.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

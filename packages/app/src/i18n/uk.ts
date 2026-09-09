@@ -919,6 +919,7 @@ export const dict = {
   "common.dismiss": "Відхилити",
   "common.moreCountSuffix": " (ще {{count}})",
   "common.requestFailed": "Запит не виконано",
+  "common.optional": "необов'язково",
   "common.moreOptions": "Більше параметрів",
   "common.learnMore": "Дізнатися більше",
   "common.rename": "Перейменувати",
@@ -1552,6 +1553,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Відкрийте цю сторінку з підключеного проєкту, щоб надати цьому агенту власного Telegram-бота.",
+  "settings.agentui.error.whatsappIncomplete": "Відкрийте цю сторінку з підключеного проєкту та заповніть усі обов'язкові поля для обраного постачальника WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1567,6 +1569,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Токен бота (необов'язково — залиште порожнім, щоб використовувати спільного бота)",
   "settings.agentui.field.telegramToken.hint": "Вставте токен від @BotFather, щоб надати цьому агенту власного виділеного Telegram-бота. Залиште порожнім, щоб отримати доступ через спільного бота в Налаштування → Інтеграції, за допомогою його командного префікса.",
+  "settings.agentui.field.whatsapp": "Відповідати в WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Використовує неофіційний WhatsApp API (через waconector) — оберіть постачальника та заповніть дані підключення. Постачальники з самостійним хостингом потребують власного, окремо запущеного сервера/контейнера.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL вебхука — вставте його в панель постачальника",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL вебхука, який потрібно налаштувати у постачальника, з'явиться тут після збереження.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

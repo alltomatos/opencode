@@ -838,6 +838,7 @@ export const dict = {
   "common.dismiss": "Отхвърляне",
   "common.moreCountSuffix": "(+{{count}} още)",
   "common.requestFailed": "Неуспешна заявка",
+  "common.optional": "по избор",
   "common.moreOptions": "Още опции",
   "common.learnMore": "Научете повече",
   "common.rename": "Преименуване",
@@ -1455,6 +1456,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Отворете тази страница от свързан проект, за да дадете на този агент собствен Telegram бот.",
+  "settings.agentui.error.whatsappIncomplete": "Отворете тази страница от свързан проект и попълнете всички задължителни полета за избрания доставчик на WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1470,6 +1472,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Токен на бота (по избор — оставете празно, за да споделяте глобалния бот)",
   "settings.agentui.field.telegramToken.hint": "Поставете токен от @BotFather, за да дадете на този агент собствен, посветен Telegram бот. Оставете празно, за да се достига чрез споделения бот в Настройки → Интеграции, чрез неговия команден префикс.",
+  "settings.agentui.field.whatsapp": "Отговори в WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Използва неофициално WhatsApp API (чрез waconector) — изберете доставчик и попълнете данните за връзка. Самостоятелно хостваните доставчици се нуждаят от собствен сървър/контейнер, работещ отделно; това само се свързва с него.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL адрес на webhook — поставете го в таблото на доставчика",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL адресът на webhook за конфигуриране при доставчика се показва тук след запис.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -806,6 +806,7 @@ export const dict = {
   "common.closeTab": "Zamknij kartę",
   "common.dismiss": "Odrzuć",
   "common.requestFailed": "Żądanie nie powiodło się",
+  "common.optional": "opcjonalnie",
   "common.moreOptions": "Więcej opcji",
   "common.learnMore": "Dowiedz się więcej",
   "common.rename": "Zmień nazwę",
@@ -1469,6 +1470,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Otwórz tę stronę z połączonego projektu, aby nadać temu agentowi własnego bota Telegram.",
+  "settings.agentui.error.whatsappIncomplete": "Otwórz tę stronę z połączonego projektu i wypełnij wszystkie wymagane pola dla wybranego dostawcy WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1484,6 +1486,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bota (opcjonalnie — zostaw puste, aby współdzielić globalnego bota)",
   "settings.agentui.field.telegramToken.hint": "Wklej token od @BotFather, aby nadać temu agentowi własnego dedykowanego bota Telegram. Zostaw puste, aby uzyskać dostęp przez współdzielonego bota w Ustawienia → Integracje, używając jego prefiksu komendy.",
+  "settings.agentui.field.whatsapp": "Odpowiadaj na WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Używa nieoficjalnego API WhatsApp (przez waconector) — wybierz dostawcę i wypełnij dane połączenia. Dostawcy self-hosted wymagają własnego, osobno działającego serwera/kontenera; to tylko się z nim łączy.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhooka — wklej go w panelu dostawcy",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhooka do skonfigurowania u dostawcy pojawia się tutaj po zapisaniu.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

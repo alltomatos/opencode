@@ -835,6 +835,7 @@ export const dict = {
   "common.dismiss": "Largoje",
   "common.moreCountSuffix": " (+{{count}} më shumë)",
   "common.requestFailed": "Kërkesa dështoi",
+  "common.optional": "opsionale",
   "common.moreOptions": "Më shumë opsione",
   "common.learnMore": "Mësoni më shumë",
   "common.rename": "Riemërto",
@@ -1448,6 +1449,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Hapni këtë faqe nga një projekt i lidhur për t'i dhënë këtij agjenti botin e vet të Telegram.",
+  "settings.agentui.error.whatsappIncomplete": "Hapni këtë faqe nga një projekt i lidhur dhe plotësoni të gjitha fushat e detyrueshme për ofruesin e zgjedhur të WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1463,6 +1465,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token i botit (opsional — lëreni bosh për të ndarë botin global)",
   "settings.agentui.field.telegramToken.hint": "Ngjitni një token nga @BotFather për t'i dhënë këtij agjenti botin e tij të dedikuar të Telegram. Lëreni bosh për ta arritur përmes botit të përbashkët në Cilësimet → Integrimet, duke përdorur prefiksin e tij të komandës.",
+  "settings.agentui.field.whatsapp": "Përgjigju në WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Përdor një API jozyrtare WhatsApp (përmes waconector) — zgjidhni një ofrues dhe plotësoni detajet e lidhjes. Ofruesit e vetë-strehuar kërkojnë serverin/kontejnerin e tyre që funksionon veçmas.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL i webhook — ngjiteni në panelin e ofruesit",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL i webhook për t'u konfiguruar te ofruesi shfaqet këtu pas ruajtjes.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

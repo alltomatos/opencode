@@ -845,6 +845,7 @@ export const dict = {
   "common.dismiss": "Atsisakyti",
   "common.moreCountSuffix": "(+{{count}} daugiau)",
   "common.requestFailed": "Užklausa nepavyko",
+  "common.optional": "neprivaloma",
   "common.moreOptions": "Daugiau parinkčių",
   "common.learnMore": "Sužinokite daugiau",
   "common.rename": "Pervardyti",
@@ -1458,6 +1459,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Atidarykite šį puslapį iš prijungto projekto, kad suteiktumėte šiam agentui savo Telegram botą.",
+  "settings.agentui.error.whatsappIncomplete": "Atidarykite šį puslapį iš prijungto projekto ir užpildykite visus privalomus pasirinkto WhatsApp teikėjo laukus.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1473,6 +1475,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Boto žetonas (neprivaloma — palikite tuščią, kad bendrintumėte globalų botą)",
   "settings.agentui.field.telegramToken.hint": "Įklijuokite žetoną iš @BotFather, kad suteiktumėte šiam agentui savo skirtąjį Telegram botą. Palikite tuščią, kad pasiektumėte per bendrą botą skiltyje Nustatymai → Integracijos, naudojant jo komandos priešdėlį.",
+  "settings.agentui.field.whatsapp": "Atsakyti WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Naudoja neoficialų WhatsApp API (per waconector) — pasirinkite teikėją ir užpildykite ryšio duomenis. Savarankiškai talpinamiems teikėjams reikia atskirai veikiančio savo serverio/konteinerio.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — įklijuokite jį teikėjo skydelyje",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook URL, kurį reikia sukonfigūruoti pas teikėją, pasirodo čia išsaugojus.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

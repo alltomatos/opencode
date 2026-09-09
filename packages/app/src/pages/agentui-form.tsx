@@ -20,6 +20,11 @@ import { createHomeController } from "@/pages/home/home-controller"
 import { showToast } from "@/utils/toast"
 import { ModelPickerV2 } from "@/components/batuta/model-picker-v2"
 import { DialogAgentUISandbox } from "@/components/settings-v2/dialog-agentui-sandbox"
+import {
+  WHATSAPP_PROVIDER_FIELDS,
+  WHATSAPP_PROVIDER_LABELS,
+  type WhatsAppProvider,
+} from "@/components/settings-v2/whatsapp-providers"
 import "@/components/settings-v2/settings-v2.css"
 
 type RagSource = { id: string; kind: "text" | "url"; label: string; value: string }
@@ -34,6 +39,10 @@ type AgentUIFormState = {
   guardrailsLevel: "basic" | "strict"
   telegram: boolean
   telegramToken: string
+  whatsapp: boolean
+  whatsappProvider: WhatsAppProvider
+  whatsappConfig: Record<string, string>
+  whatsappWebhookSecret: string
   enabled: boolean
 }
 
@@ -49,6 +58,10 @@ function emptyForm(): AgentUIFormState {
     guardrailsLevel: "basic",
     telegram: false,
     telegramToken: "",
+    whatsapp: false,
+    whatsappProvider: "waha",
+    whatsappConfig: {},
+    whatsappWebhookSecret: "",
     enabled: true,
   }
 }
@@ -109,6 +122,10 @@ export function AgentUIFormPage() {
       guardrailsLevel: agent.guardrails.level,
       telegram: agent.channels.some((c) => c.type === "telegram"),
       telegramToken: agent.channels.find((c) => c.type === "telegram")?.token ?? "",
+      whatsapp: agent.channels.some((c) => c.type === "whatsapp"),
+      whatsappProvider: (agent.channels.find((c) => c.type === "whatsapp")?.provider as WhatsAppProvider) ?? "waha",
+      whatsappConfig: agent.channels.find((c) => c.type === "whatsapp")?.config ?? {},
+      whatsappWebhookSecret: agent.channels.find((c) => c.type === "whatsapp")?.webhookSecret ?? "",
       enabled: agent.enabled !== false,
     })
   })
@@ -162,12 +179,33 @@ export function AgentUIFormPage() {
       setError(language.t("settings.agentui.error.telegramNeedsProject"))
       return
     }
+    const whatsappFields = WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]
+    const whatsappMissingField = form.whatsapp && whatsappFields.some((f) => f.required && !form.whatsappConfig[f.key]?.trim())
+    if (form.whatsapp && (!directory() || whatsappMissingField)) {
+      setError(language.t("settings.agentui.error.whatsappIncomplete"))
+      return
+    }
     setError(undefined)
     setSaving(true)
     const triggers = form.commandTriggers
       .split(/\s+/)
       .map((t) => t.trim())
       .filter(Boolean)
+    const channels: Array<
+      | { type: "telegram"; token?: string; directory?: string }
+      | { type: "whatsapp"; provider: WhatsAppProvider; config: Record<string, string>; directory?: string; webhookSecret: string }
+    > = []
+    if (form.telegram) channels.push({ type: "telegram", token: ownBotToken || undefined, directory: ownBotToken ? directory() : undefined })
+    const whatsappWebhookSecret = form.whatsappWebhookSecret || crypto.randomUUID()
+    if (form.whatsapp) {
+      channels.push({
+        type: "whatsapp",
+        provider: form.whatsappProvider,
+        config: form.whatsappConfig,
+        directory: directory(),
+        webhookSecret: whatsappWebhookSecret,
+      })
+    }
     try {
       await serverSDK().client.agentui.add({
         agentUiAgent: {
@@ -175,15 +213,14 @@ export function AgentUIFormPage() {
           name: form.name,
           personality: form.personality,
           model: form.model,
-          channels: form.telegram
-            ? [{ type: "telegram", token: ownBotToken || undefined, directory: ownBotToken ? directory() : undefined }]
-            : [],
+          channels,
           commandTriggers: triggers,
           ragSources: form.ragSources.filter((s) => s.label && s.value),
           guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
           enabled: form.enabled,
         },
       })
+      if (form.whatsapp) setForm("whatsappWebhookSecret", whatsappWebhookSecret)
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.agentui.toast.saved") })
       setEverSaved(true)
       if (!isEdit) navigate(`/agentui/${form.id}/edit`, { replace: true })
@@ -205,6 +242,18 @@ export function AgentUIFormPage() {
   const title = createMemo(() =>
     isEdit ? language.t("settings.agentui.form.title.edit") : language.t("settings.agentui.form.title.create"),
   )
+
+  // Shown so the user can paste it into the selected provider's dashboard.
+  // Only meaningful once the agent has actually been saved with WhatsApp
+  // enabled (before that, there's no webhookSecret yet — server.url is the
+  // opencode API base the app itself talks to, which must be publicly
+  // reachable for the provider's webhook calls to land here).
+  const whatsappWebhookUrl = createMemo(() => {
+    const secret = form.whatsappWebhookSecret
+    if (!secret) return undefined
+    const base = serverSDK().url.replace(/\/$/, "")
+    return `${base}/whatsapp/webhook/${form.id}/${secret}?directory=${encodeURIComponent(directory() ?? "")}`
+  })
 
   return (
     <div
@@ -330,6 +379,49 @@ export function AgentUIFormPage() {
                     placeholder={language.t("settings.agentui.field.telegramToken.placeholder")}
                   />
                   <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.telegramToken.hint")}</p>
+                </Show>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.whatsapp")}</label>
+                  <Switch checked={form.whatsapp} onChange={(checked) => setForm("whatsapp", checked)} />
+                </div>
+                <Show when={form.whatsapp}>
+                  <select
+                    class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
+                    value={form.whatsappProvider}
+                    onChange={(event) =>
+                      setForm({ whatsappProvider: event.currentTarget.value as WhatsAppProvider, whatsappConfig: {} })
+                    }
+                  >
+                    <For each={Object.entries(WHATSAPP_PROVIDER_LABELS)}>
+                      {([value, label]) => <option value={value}>{label}</option>}
+                    </For>
+                  </select>
+                  <For each={WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]}>
+                    {(field) => (
+                      <TextInputV2
+                        value={form.whatsappConfig[field.key] ?? ""}
+                        onInput={(event) => setForm("whatsappConfig", (cfg) => ({ ...cfg, [field.key]: event.currentTarget.value }))}
+                        placeholder={field.label + (field.required ? "" : ` (${language.t("common.optional")})`)}
+                      />
+                    )}
+                  </For>
+                  <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
+                  <Show
+                    when={whatsappWebhookUrl()}
+                    fallback={
+                      <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.webhookAfterSave")}</p>
+                    }
+                  >
+                    {(url) => (
+                      <div class="flex flex-col gap-1">
+                        <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.whatsapp.webhookUrl")}</label>
+                        <TextInputV2 value={url()} readOnly />
+                      </div>
+                    )}
+                  </Show>
                 </Show>
               </div>
 

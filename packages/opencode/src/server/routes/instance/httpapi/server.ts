@@ -23,6 +23,7 @@ import { Memory } from "@/memory"
 import { Batuta } from "@/batuta"
 import { Combo } from "@/combo"
 import { AgentUI } from "@/agentui"
+import { WhatsApp } from "@/whatsapp"
 import { McpAuth } from "@/mcp/auth"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
@@ -110,6 +111,7 @@ import { syncHandlers } from "./handlers/sync"
 import { telegramHandlers } from "./handlers/telegram"
 import { memoryHandlers } from "./handlers/memory"
 import { tuiHandlers } from "./handlers/tui"
+import { whatsappHandlers } from "./handlers/whatsapp"
 import { handlers } from "@opencode-ai/server/handlers"
 import { buildLocationServiceMap, LocationServiceMap } from "@opencode-ai/core/location-services"
 import { layer as locationLayer } from "@opencode-ai/server/location"
@@ -184,6 +186,7 @@ const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
     telegramHandlers,
     memoryHandlers,
     tuiHandlers,
+    whatsappHandlers,
     workspaceHandlers,
   ]),
 )
@@ -271,6 +274,7 @@ const app = LayerNode.group([
   Batuta.node,
   Combo.node,
   AgentUI.node,
+  WhatsApp.node,
   Command.node,
   Truncate.node,
   ToolRegistry.node,

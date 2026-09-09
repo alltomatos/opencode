@@ -553,6 +553,7 @@ export const dict = {
   "common.closeTab": "탭 닫기",
   "common.dismiss": "닫기",
   "common.requestFailed": "요청 실패",
+  "common.optional": "선택 사항",
   "common.moreOptions": "더 많은 옵션",
   "common.learnMore": "더 알아보기",
   "common.rename": "이름 바꾸기",
@@ -1452,6 +1453,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "이 에이전트에 전용 텔레그램 봇을 부여하려면 연결된 프로젝트에서 이 페이지를 여세요.",
+  "settings.agentui.error.whatsappIncomplete": "연결된 프로젝트에서 이 페이지를 열고 선택한 WhatsApp 제공업체의 모든 필수 필드를 입력하세요.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1467,6 +1469,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "봇 토큰(선택 사항 — 글로벌 봇을 공유하려면 비워 두세요)",
   "settings.agentui.field.telegramToken.hint": "이 에이전트에 전용 텔레그램 봇을 부여하려면 @BotFather의 토큰을 붙여넣으세요. 비워 두면 설정 → 통합에 있는 공유 봇을 명령 트리거를 통해 대신 사용합니다.",
+  "settings.agentui.field.whatsapp": "WhatsApp에서 응답",
+  "settings.agentui.field.whatsapp.hint": "비공식 WhatsApp API를 사용합니다(waconector 경유) — 제공업체를 선택하고 연결 세부 정보를 입력하세요. 자체 호스팅 제공업체는 별도로 실행되는 자체 서버/컨테이너가 필요합니다. 이것은 단지 거기에 연결할 뿐입니다.",
+  "settings.agentui.field.whatsapp.webhookUrl": "웹훅 URL — 제공업체의 대시보드에 붙여넣으세요",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "제공업체 측에서 설정할 웹훅 URL은 저장 후 여기에 표시됩니다.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

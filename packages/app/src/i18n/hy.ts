@@ -838,6 +838,7 @@ export const dict = {
   "common.dismiss": "Փակել",
   "common.moreCountSuffix": " (+{{count}} ավելին)",
   "common.requestFailed": "Հարցումը ձախողվեց",
+  "common.optional": "ընտրովի",
   "common.moreOptions": "Լրացուցիչ ընտրանքներ",
   "common.learnMore": "Իմանալ ավելին",
   "common.rename": "Վերանվանել",
@@ -1450,6 +1451,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Բացեք այս էջը միացված նախագծից՝ այս գործակալին իր սեփական Telegram բոտը տալու համար։",
+  "settings.agentui.error.whatsappIncomplete": "Բացեք այս էջը միացված նախագծից և լրացրեք ընտրված WhatsApp մատակարարի բոլոր պարտադիր դաշտերը։",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1465,6 +1467,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Բոտի թոքեն (ընտրովի — թողեք դատարկ՝ գլոբալ բոտը կիսելու համար)",
   "settings.agentui.field.telegramToken.hint": "Փակցրեք թոքեն @BotFather-ից՝ այս գործակալին իր սեփական հատուկ Telegram բոտը տալու համար։ Թողեք դատարկ՝ Կարգավորումներ → Ինտեգրումներում ընդհանուր բոտի միջոցով հասանելի լինելու համար՝ օգտագործելով դրա հրամանի նախածանցը։",
+  "settings.agentui.field.whatsapp": "Պատասխանել WhatsApp-ում",
+  "settings.agentui.field.whatsapp.hint": "Օգտագործում է ոչ պաշտոնական WhatsApp API (waconector-ի միջոցով) — ընտրեք մատակարար և լրացրեք կապի տվյալները։ Ինքնահյուրընկալվող մատակարարներին անհրաժեշտ է իրենց սեփական սերվերը/կոնտեյները առանձին աշխատեցնել.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — տեղադրեք մատակարարի վահանակում",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Մատակարարի կողմից կարգավորվող Webhook URL-ը հայտնվում է այստեղ պահպանելուց հետո։",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

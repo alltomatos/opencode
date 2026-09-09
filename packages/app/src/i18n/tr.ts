@@ -870,6 +870,7 @@ export const dict = {
   "common.closeTab": "Sekmeyi kapat",
   "common.dismiss": "Kapat",
   "common.requestFailed": "İstek başarısız",
+  "common.optional": "isteğe bağlı",
   "common.moreOptions": "Daha fazla seçenek",
   "common.learnMore": "Daha fazla bilgi",
   "common.rename": "Yeniden adlandır",
@@ -1545,6 +1546,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Bu ajana kendi Telegram botunu vermek için bu sayfayı bağlı bir projeden açın.",
+  "settings.agentui.error.whatsappIncomplete": "Bu sayfayı bağlı bir projeden açın ve seçilen WhatsApp sağlayıcısı için tüm gerekli alanları doldurun.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1560,6 +1562,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Bot tokeni (isteğe bağlı — genel botu paylaşmak için boş bırakın)",
   "settings.agentui.field.telegramToken.hint": "Bu ajana kendine özel bir Telegram botu vermek için @BotFather'dan bir token yapıştırın. Boş bırakırsanız, Ayarlar → Entegrasyonlar bölümündeki paylaşılan bot üzerinden, komut önekini kullanarak erişilir.",
+  "settings.agentui.field.whatsapp": "WhatsApp'ta yanıtla",
+  "settings.agentui.field.whatsapp.hint": "Resmi olmayan bir WhatsApp API'si kullanır (waconector üzerinden) — bir sağlayıcı seçin ve bağlantı bilgilerini doldurun. Kendi kendine barındırılan sağlayıcılar, ayrı çalışan kendi sunucusuna/konteynerine ihtiyaç duyar.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL'si — sağlayıcının panosuna yapıştırın",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Sağlayıcı tarafında yapılandırılacak Webhook URL'si kaydettikten sonra burada görünür.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

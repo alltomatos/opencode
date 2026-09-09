@@ -837,6 +837,7 @@ export const dict = {
   "common.dismiss": "Aizvērt",
   "common.moreCountSuffix": " (+{{count}} vēl)",
   "common.requestFailed": "Pieprasījums neizdevās",
+  "common.optional": "neobligāti",
   "common.moreOptions": "Vairāk opciju",
   "common.learnMore": "Uzzināt vairāk",
   "common.rename": "Pārdēvēt",
@@ -1447,6 +1448,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Atveriet šo lapu no savienota projekta, lai piešķirtu šim aģentam savu Telegram botu.",
+  "settings.agentui.error.whatsappIncomplete": "Atveriet šo lapu no savienota projekta un aizpildiet visus obligātos laukus izvēlētajam WhatsApp nodrošinātājam.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1462,6 +1464,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Bota pilnvara (neobligāti — atstājiet tukšu, lai koplietotu globālo botu)",
   "settings.agentui.field.telegramToken.hint": "Ielīmējiet pilnvaru no @BotFather, lai piešķirtu šim aģentam savu īpašo Telegram botu. Atstājiet tukšu, lai piekļūtu, izmantojot kopīgo botu sadaļā Iestatījumi → Integrācijas, ar tā komandas prefiksu.",
+  "settings.agentui.field.whatsapp": "Atbildēt WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Izmanto neoficiālu WhatsApp API (izmantojot waconector) — izvēlieties nodrošinātāju un aizpildiet savienojuma datus. Pašmitinātiem nodrošinātājiem nepieciešams savs, atsevišķi darbojošs serveris/konteiners.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ielīmējiet to nodrošinātāja panelī",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook URL, kas jākonfigurē pie nodrošinātāja, parādās šeit pēc saglabāšanas.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

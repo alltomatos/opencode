@@ -865,6 +865,7 @@ export const dict = {
   "common.closeTab": "Zatvori karticu",
   "common.dismiss": "Odbaci",
   "common.requestFailed": "Zahtjev nije uspio",
+  "common.optional": "opcionalno",
   "common.moreOptions": "Više opcija",
   "common.learnMore": "Saznaj više",
   "common.rename": "Preimenuj",
@@ -1542,6 +1543,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Otvorite ovu stranicu iz povezanog projekta da biste ovom agentu dali vlastiti Telegram bot.",
+  "settings.agentui.error.whatsappIncomplete": "Otvorite ovu stranicu iz povezanog projekta i popunite sva obavezna polja za odabranog WhatsApp dobavljača.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1557,6 +1559,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Token bota (opcionalno — ostavite prazno za dijeljenje globalnog bota)",
   "settings.agentui.field.telegramToken.hint": "Zalijepite token od @BotFather da biste ovom agentu dali vlastiti namjenski Telegram bot. Ostavite prazno da bude dostupan preko zajedničkog bota u Postavke → Integracije, koristeći njegov prefiks komande.",
+  "settings.agentui.field.whatsapp": "Odgovori na WhatsAppu",
+  "settings.agentui.field.whatsapp.hint": "Koristi neslužbeni WhatsApp API (putem waconector) — odaberite dobavljača i popunite podatke za povezivanje. Samostalno hostovani dobavljači zahtijevaju vlastiti server/kontejner koji radi odvojeno; ovo se samo povezuje s njim.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL webhooka — nalijepite ga u kontrolnu ploču dobavljača",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhooka za konfiguraciju kod dobavljača pojavljuje se ovdje nakon spremanja.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

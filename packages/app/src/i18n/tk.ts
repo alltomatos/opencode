@@ -832,6 +832,7 @@ export const dict = {
   "common.dismiss": "Işden aýyrmak",
   "common.moreCountSuffix": " (+ {{count}} has köp)",
   "common.requestFailed": "Talap başa barmady",
+  "common.optional": "islege görä",
   "common.moreOptions": "Has köp wariant",
   "common.learnMore": "Has giňişleýin öwreniň",
   "common.rename": "Adyny üýtgetmek",
@@ -1444,6 +1445,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Bu agenta öz Telegram botuny bermek üçin bu sahypany baglanan taslamadan açyň.",
+  "settings.agentui.error.whatsappIncomplete": "Bu sahypany baglanan taslamadan açyň we saýlanan WhatsApp üpjün edijisi üçin ähli zerur meýdanlary dolduryň.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1459,6 +1461,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Bot tokeni (islege görä — global boty paýlaşmak üçin boş goýuň)",
   "settings.agentui.field.telegramToken.hint": "Bu agenta öz aýratyn Telegram botuny bermek üçin @BotFather-den token ýelmäň. Sazlamalar → Integrasiýalar bölümindäki paýlaşylan bot arkaly, onuň buýruk öňki goşulmasy bilen ýetmek üçin boş goýuň.",
+  "settings.agentui.field.whatsapp": "WhatsApp-da jogap ber",
+  "settings.agentui.field.whatsapp.hint": "Resmi bolmadyk WhatsApp API-ni ulanýar (waconector arkaly) — üpjün edijini saýlaň we baglanyşyk maglumatlaryny dolduryň. Öz-özüni ýerleşdirýän üpjün edijiler aýratyn işleýän öz serwerini/gapyny talap edýär.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ony üpjün edijiniň paneline ýelmäň",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Üpjün edijiniň tarapynda sazlanmaly Webhook URL ýatda saklanandan soň şu ýerde görkezilýär.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

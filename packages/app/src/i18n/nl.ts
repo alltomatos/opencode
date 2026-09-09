@@ -841,6 +841,7 @@ export const dict = {
   "common.dismiss": "Negeren",
   "common.moreCountSuffix": " (+{{count}} meer)",
   "common.requestFailed": "Verzoek mislukt",
+  "common.optional": "optioneel",
   "common.moreOptions": "Meer opties",
   "common.learnMore": "Meer informatie",
   "common.rename": "Hernoemen",
@@ -1456,6 +1457,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Open deze pagina vanuit een verbonden project om deze agent zijn eigen Telegram-bot te geven.",
+  "settings.agentui.error.whatsappIncomplete": "Open deze pagina vanuit een verbonden project en vul alle verplichte velden in voor de geselecteerde WhatsApp-provider.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1471,6 +1473,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Bot-token (optioneel — laat leeg om de globale bot te delen)",
   "settings.agentui.field.telegramToken.hint": "Plak een token van @BotFather om deze agent zijn eigen toegewijde Telegram-bot te geven. Laat leeg om hem te bereiken via de gedeelde bot in Instellingen → Integraties, met zijn opdrachtprefix.",
+  "settings.agentui.field.whatsapp": "Reageren op WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Gebruikt een niet-officiële WhatsApp-API (via waconector) — kies een provider en vul de verbindingsgegevens in. Self-hosted providers hebben hun eigen, apart draaiende server/container nodig; dit maakt er alleen verbinding mee.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — plak deze in het dashboard van de provider",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "De bij de provider te configureren webhook-URL verschijnt hier na het opslaan.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

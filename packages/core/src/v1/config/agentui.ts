@@ -2,10 +2,8 @@ export * as ConfigAgentUIV1 from "./agentui"
 
 import { Schema } from "effect"
 
-export const ChannelBinding = Schema.Struct({
-  type: Schema.Literals(["telegram"]).annotate({
-    description: "Which channel this AgentUI listens/replies on. Only 'telegram' exists today — more (whatsapp, discord, ...) land as new Channel implementations without changing this shape.",
-  }),
+export const TelegramChannelBinding = Schema.Struct({
+  type: Schema.Literal("telegram"),
   // Per-agent bot token (from @BotFather) — when set, this agent gets its
   // own dedicated Telegram bot/poll loop that responds to every message
   // directly, no command-trigger prefix needed. When absent, the agent
@@ -23,7 +21,56 @@ export const ChannelBinding = Schema.Struct({
   directory: Schema.optional(Schema.String).annotate({
     description: "Connected project directory this agent's dedicated bot operates against. Required alongside token.",
   }),
-}).annotate({ identifier: "AgentUIChannelBinding" })
+}).annotate({ identifier: "AgentUITelegramChannelBinding" })
+export type TelegramChannelBinding = Schema.Schema.Type<typeof TelegramChannelBinding>
+
+// The waconector package (https://alltomatos.github.io/waconector/) wraps 9
+// unofficial WhatsApp APIs behind one contract — some self-hosted (need a
+// Docker container the user runs themselves), some SaaS (need only an API
+// key). Every provider's real required fields differ (see
+// packages/opencode/src/whatsapp/index.ts PROVIDER_FIELDS, sourced directly
+// from each adapter's shipped .d.ts, not the docs site — which uses
+// different factory names than the actual package). `config` is therefore
+// untyped here on purpose: validating it against the right shape for the
+// selected `provider` is WhatsApp.Service's job, at connect time.
+export const WHATSAPP_PROVIDERS = [
+  "waha",
+  "evolution",
+  "zapi",
+  "uazapi",
+  "whapi",
+  "wuzapi",
+  "quepasa",
+  "wppconnect",
+  "izapia",
+] as const
+export type WhatsAppProvider = (typeof WHATSAPP_PROVIDERS)[number]
+
+export const WhatsAppChannelBinding = Schema.Struct({
+  type: Schema.Literal("whatsapp"),
+  provider: Schema.Literals(WHATSAPP_PROVIDERS).annotate({
+    description: "Which unofficial WhatsApp API this channel connects through (see waconector).",
+  }),
+  config: Schema.Record(Schema.String, Schema.String).annotate({
+    description: "Provider-specific connection fields (e.g. baseUrl+apiKey for WAHA, instanceId+token for Z-API). Shape depends on `provider`.",
+  }),
+  directory: Schema.optional(Schema.String).annotate({
+    description: "Connected project directory this agent's WhatsApp channel operates against.",
+  }),
+  // Generated once, embedded in the webhook URL handed to the provider —
+  // this inbound endpoint is called by a third-party service (not our own
+  // authenticated client), so it can't go through the normal Authorization
+  // middleware; this secret is the only thing standing between it and the
+  // public internet. See WhatsApp.Service.handleWebhook.
+  webhookSecret: Schema.String.annotate({
+    description: "Random per-channel secret embedded in the webhook URL — authenticates inbound webhook calls from the provider.",
+  }),
+}).annotate({ identifier: "AgentUIWhatsAppChannelBinding" })
+export type WhatsAppChannelBinding = Schema.Schema.Type<typeof WhatsAppChannelBinding>
+
+export const ChannelBinding = Schema.Union([TelegramChannelBinding, WhatsAppChannelBinding]).annotate({
+  identifier: "AgentUIChannelBinding",
+})
 export type ChannelBinding = Schema.Schema.Type<typeof ChannelBinding>
 
 export const RagSource = Schema.Struct({

@@ -846,6 +846,7 @@ export const dict: Record<string, string> = {
   "common.dismiss": "ཁུངས༌མེད༌བརྩི༌ནི",
   "common.moreCountSuffix": "(+{{count}} མང་།",
   "common.requestFailed": "ཞུ་བ་འཐུས་ཤོར་འབྱུང་ཡོདཔ།",
+  "common.optional": "དགའ་གདམ་",
   "common.moreOptions": "གདམ་ཁ་མང་བ།",
   "common.learnMore": "ཁ་གསལ་ཤེས།",
   "common.rename": "མིང་བསྒྱུར།",
@@ -1466,6 +1467,7 @@ export const dict: Record<string, string> = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "འ་ཨེན་ཊི་འདི་ལུ་རང་གི་ཊེལེགིརམ་བོཊ་སྤྲོད་ནི་དོན་ལས་མཐུད་ཡོད་པའི་ལས་འགུལ་ནང་ལས་ཤོག་ལེབ་འདི་ཁ་ཕྱེ།",
+  "settings.agentui.error.whatsappIncomplete": "མཐུད་ཡོད་པའི་ལས་འགུལ་ནང་ལས་ཤོག་ལེབ་འདི་ཁ་ཕྱེ་ཞིནམ་ འདེམས་བཟུང་ WhatsApp ཞབས་ཏོག་སྤྲོད་མིའི་དོན་ལས་གནད་སྤྱོད་ཀྱི་ས་སྒོ་ཆ་མཉམ་བཀང་།",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1481,6 +1483,10 @@ export const dict: Record<string, string> = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "བོཊ་ཊོ་ཀེན (དགའ་གདམ་ — སྤྱི་ཡོངས་བོཊ་མཉམ་སྤྱོད་འབད་ནི་ལུ་སྟོངམ་བཞག)",
   "settings.agentui.field.telegramToken.hint": "འ་ཨེན་ཊི་འདི་ལུ་རང་གི་སྒོས་ཊེལེགིརམ་བོཊ་སྤྲོད་ནི་དོན་ལས་@BotFather་ལས་ཊོ་ཀེན་ཅིག་སྦྱར། སྟོངམ་བཞག་པ་ཅིན་སྒྲིག་སྟངས → མཐུད་ལམ་ནང་ཡོད་པའི་མཉམ་སྤྱོད་བོཊ་ཐོག་ལས་ འདེམས་བརྗོད་ཀྱི་སྔོན་ཚིག་བཀོལ་ཏེ་འབྱོར་ཚུགས།",
+  "settings.agentui.field.whatsapp": "WhatsApp ནང་ལན་གནང་",
+  "settings.agentui.field.whatsapp.hint": "ཁྲིམས་མཐུན་མེད་པའི་ WhatsApp API (waconector བརྒྱུད) ལག་ལེན་འཐབ — ཞབས་ཏོག་སྤྲོད་མི་ཅིག་འདེམས་ཞིནམ་ མཐུད་གནས་ཀྱི་ཞིབ་ཕྲ་བཀང་།",
+  "settings.agentui.field.whatsapp.webhookUrl": "ཝེབ་ཧུཀ་ ཡུ་ཨར་ཨེལ — ཞབས་ཏོག་སྤྲོད་མིའི་ཌེཤ་བོརཌ་ནང་སྦྱར",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "ཞབས་ཏོག་སྤྲོད་མིའི་ཁར་སྒྲིག་འབད་དགོཔའི་ཝེབ་ཧུཀ་ ཡུ་ཨར་ཨེལ་སྲུང་བཞག་འབད་བའི་ཤུལ་ལས་འདི་ནང་སྟོན་ཡི།",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

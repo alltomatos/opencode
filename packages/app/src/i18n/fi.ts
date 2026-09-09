@@ -731,6 +731,7 @@ export const dict = {
   "common.dismiss": "Hylkää",
   "common.moreCountSuffix": " (+{{count}} muuta)",
   "common.requestFailed": "Pyyntö epäonnistui",
+  "common.optional": "valinnainen",
   "common.moreOptions": "Lisää vaihtoehtoja",
   "common.learnMore": "Lue lisää",
   "common.rename": "Nimeä uudelleen",
@@ -1453,6 +1454,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Avaa tämä sivu yhdistetystä projektista antaaksesi tälle agentille oman Telegram-botin.",
+  "settings.agentui.error.whatsappIncomplete": "Avaa tämä sivu yhdistetystä projektista ja täytä kaikki valitun WhatsApp-palveluntarjoajan pakolliset kentät.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1468,6 +1470,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Botin token (valinnainen — jätä tyhjäksi jakaaksesi globaalin botin)",
   "settings.agentui.field.telegramToken.hint": "Liitä token @BotFatherilta antaaksesi tälle agentille oman omistetun Telegram-botin. Jätä tyhjäksi käyttääksesi jaettua bottia kohdassa Asetukset → Integraatiot, sen komentoetuliitteellä.",
+  "settings.agentui.field.whatsapp": "Vastaa WhatsAppissa",
+  "settings.agentui.field.whatsapp.hint": "Käyttää epävirallista WhatsApp-rajapintaa (waconectorin kautta) — valitse palveluntarjoaja ja täytä yhteystiedot. Itse isännöidyt palveluntarjoajat tarvitsevat oman erikseen käynnissä olevan palvelimen/säiliön; tämä vain yhdistää siihen.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — liitä se palveluntarjoajan hallintapaneeliin",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Palveluntarjoajalle määritettävä webhook-URL näkyy tässä tallennuksen jälkeen.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

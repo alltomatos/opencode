@@ -840,6 +840,7 @@ export const dict = {
   "common.dismiss": "برخاست کرو",
   "common.moreCountSuffix": " (+{{count}} ہور)",
   "common.requestFailed": "درخواست ناکام ہو گئی",
+  "common.optional": "ਵਿਕਲਪਿਕ",
   "common.moreOptions": "ہور اختیارات",
   "common.learnMore": "ہور جانو",
   "common.rename": "ناں بدلو",
@@ -1446,6 +1447,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "ਇਸ ਏਜੰਟ ਨੂੰ ਆਪਣਾ ਖੁਦ ਦਾ ਟੈਲੀਗ੍ਰਾਮ ਬੋਟ ਦੇਣ ਲਈ ਇੱਕ ਕਨੈਕਟ ਕੀਤੇ ਪ੍ਰੋਜੈਕਟ ਤੋਂ ਇਹ ਪੰਨਾ ਖੋਲ੍ਹੋ।",
+  "settings.agentui.error.whatsappIncomplete": "ਇੱਕ ਕਨੈਕਟ ਕੀਤੇ ਪ੍ਰੋਜੈਕਟ ਤੋਂ ਇਹ ਪੰਨਾ ਖੋਲ੍ਹੋ ਅਤੇ ਚੁਣੇ ਗਏ WhatsApp ਪ੍ਰਦਾਤਾ ਲਈ ਸਾਰੇ ਲੋੜੀਂਦੇ ਖੇਤਰ ਭਰੋ।",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1461,6 +1463,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "ਬੋਟ ਟੋਕਨ (ਵਿਕਲਪਿਕ — ਗਲੋਬਲ ਬੋਟ ਸਾਂਝਾ ਕਰਨ ਲਈ ਖਾਲੀ ਛੱਡੋ)",
   "settings.agentui.field.telegramToken.hint": "ਇਸ ਏਜੰਟ ਨੂੰ ਆਪਣਾ ਸਮਰਪਿਤ ਟੈਲੀਗ੍ਰਾਮ ਬੋਟ ਦੇਣ ਲਈ @BotFather ਤੋਂ ਟੋਕਨ ਪੇਸਟ ਕਰੋ। ਸੈਟਿੰਗਾਂ → ਏਕੀਕਰਨ ਵਿੱਚ ਸਾਂਝੇ ਬੋਟ ਰਾਹੀਂ, ਇਸਦੇ ਕਮਾਂਡ ਟਰਿੱਗਰ ਦੀ ਵਰਤੋਂ ਕਰਕੇ ਪਹੁੰਚਣ ਲਈ ਖਾਲੀ ਛੱਡੋ।",
+  "settings.agentui.field.whatsapp": "WhatsApp 'ਤੇ ਜਵਾਬ ਦਿਓ",
+  "settings.agentui.field.whatsapp.hint": "ਇੱਕ ਗੈਰ-ਅਧਿਕਾਰਤ WhatsApp API ਵਰਤਦਾ ਹੈ (waconector ਰਾਹੀਂ) — ਇੱਕ ਪ੍ਰਦਾਤਾ ਚੁਣੋ ਅਤੇ ਕਨੈਕਸ਼ਨ ਵੇਰਵੇ ਭਰੋ। ਸਵੈ-ਹੋਸਟ ਕੀਤੇ ਪ੍ਰਦਾਤਾਵਾਂ ਨੂੰ ਆਪਣਾ ਵੱਖਰੇ ਤੌਰ 'ਤੇ ਚੱਲ ਰਿਹਾ ਸਰਵਰ/ਕੰਟੇਨਰ ਚਾਹੀਦਾ ਹੈ।",
+  "settings.agentui.field.whatsapp.webhookUrl": "ਵੈਬਹੁੱਕ URL — ਇਸਨੂੰ ਪ੍ਰਦਾਤਾ ਦੇ ਡੈਸ਼ਬੋਰਡ ਵਿੱਚ ਪੇਸਟ ਕਰੋ",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "ਪ੍ਰਦਾਤਾ ਵੱਲੋਂ ਕੌਂਫਿਗਰ ਕਰਨ ਲਈ ਵੈਬਹੁੱਕ URL ਸੰਭਾਲਣ ਤੋਂ ਬਾਅਦ ਇੱਥੇ ਦਿਖਾਈ ਦਿੰਦਾ ਹੈ।",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

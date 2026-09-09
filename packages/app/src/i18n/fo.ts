@@ -832,6 +832,7 @@ export const dict = {
   "common.dismiss": "Loysa úr starvi",
   "common.moreCountSuffix": " (+{{count}} fleiri)",
   "common.requestFailed": "Umbønin miseydnaðist",
+  "common.optional": "valfrítt",
   "common.moreOptions": "Fleiri møguleikar",
   "common.learnMore": "Lær meira",
   "common.rename": "Umnevna",
@@ -1439,6 +1440,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Opna hesa síðuna frá einum tengdum verkætlan fyri at geva hesum umboðsmanni sín egna Telegram bot.",
+  "settings.agentui.error.whatsappIncomplete": "Opna hesa síðuna frá einum tengdum verkætlan og fyll út allar neyðugar felti fyri valdan WhatsApp veitara.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1454,6 +1456,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Bot token (valfrítt — lat tómt fyri at deila globala botin)",
   "settings.agentui.field.telegramToken.hint": "Set inn token frá @BotFather fyri at geva hesum umboðsmanni sín egna serligan Telegram bot. Lat tómt fyri at náa hann gjøgnum deildan botin í Stillingar → Sameiningar, við hansara boð-forstavi.",
+  "settings.agentui.field.whatsapp": "Svara á WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Brúkar ein óformligan WhatsApp API (um waconector) — vel ein veitara og fyll út sambandsupplýsingar. Sjálvhýstir veitarar krevja sín egnan ambátt/container koyrandi sundurskild; hetta bert tengir til hann.",
+  "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — set hana inn í veitarans mannaborð",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook URL'in, sum skal setast upp hjá veitaranum, sæst her aftaná goymt verður.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

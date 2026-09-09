@@ -845,6 +845,7 @@ export const dict = {
   "common.dismiss": "ދުރުކޮށްލުން",
   "common.moreCountSuffix": " (+{{count}} އިތުރަށް)",
   "common.requestFailed": "ރިކުއެސްޓް ފެއިލްވިއެވެ",
+  "common.optional": "އިޚްތިޔާރީ",
   "common.moreOptions": "އިތުރު އިޚްތިޔާރުތަކެކެވެ",
   "common.learnMore": "އިތުރަށް ދަސްކުރައްވާށެވެ",
   "common.rename": "ނަން ބަދަލުކޮށްލާށެވެ",
@@ -1462,6 +1463,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "މި އެޖެންޓަށް އަމިއްލަ ޓެލެގްރާމް ބޮޓެއް ދިނުމަށް، ކަނެކްޓް ކުރެވިފައިވާ ޕްރޮޖެކްޓަކުން މި ޞަފްޙާ ހުޅުވާ.",
+  "settings.agentui.error.whatsappIncomplete": "ކަނެކްޓް ކުރެވިފައިވާ ޕްރޮޖެކްޓަކުން މި ޞަފްޙާ ހުޅުވާ އަދި ހޮވިފައިވާ WhatsApp ފޯރުކޮށްދޭ ފަރާތުގެ ހުރިހާ ބޭނުންވާ ފީލްޑްތައް ފުރިހަމަ ކުރޭ.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1477,6 +1479,10 @@ export const dict = {
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "ބޮޓް ޓޯކަން (އިޚްތިޔާރީ — ގްލޯބަލް ބޮޓް ޝެއަރ ކުރުމަށް ހުސްކޮށް ބަހައްޓާ)",
   "settings.agentui.field.telegramToken.hint": "މި އެޖެންޓަށް އަމިއްލަ ޓެލެގްރާމް ބޮޓެއް ދިނުމަށް @BotFather އިން ޓޯކަނެއް ޕޭސްޓް ކުރޭ. ހުސްކޮށް ބެހެއްޓުމުން ސެޓިންގްސް → އިންޓަގްރޭޝަންސްގައި ހުންނަ ޝެއަރޑް ބޮޓް މެދުވެރިކޮށް، އޭގެ ކޮމާންޑް ޓްރިގާ ބޭނުންކޮށްގެން ފޯރުކޮށްދެވޭނެ.",
+  "settings.agentui.field.whatsapp": "ވަޓްސްއެޕްގައި ޖަވާބުދޭ",
+  "settings.agentui.field.whatsapp.hint": "ރަސްމީ ނޫން WhatsApp API އެއް ބޭނުންކުރެވޭ (waconector މެދުވެރިކޮށް) — ފޯރުކޮށްދޭ ފަރާތެއް ހޮވާ އަދި ކަނެކްޝަން ތަފްޞީލްތައް ފުރިހަމަ ކުރޭ. ސެލްފް-ހޯސްޓެޑް ފޯރުކޮށްދޭ ފަރާތްތަކަށް ވަކިން ސާވަރ/ކޮންޓެއިނަރެއް ބޭނުންވޭ.",
+  "settings.agentui.field.whatsapp.webhookUrl": "ވެބްހުކް ޔޫއާރްއެލް — ފޯރުކޮށްދޭ ފަރާތުގެ ޑޭޝްބޯޑަށް ފޭސްޓް ކުރޭ",
+  "settings.agentui.field.whatsapp.webhookAfterSave": "ފޯރުކޮށްދޭ ފަރާތުގައި ސެޓަޕް ކުރަންޖެހޭ ވެބްހުކް ޔޫއާރްއެލް ސޭވް ކުރުމަށްފަހު މިތާ ފެންނާނެ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)
