@@ -15,12 +15,84 @@ import "./settings-v2.css"
 type ConnectionType = "local" | "remote"
 type KeyValueRow = { key: string; value: string }
 
+// Brand marks kept as inline monochrome SVGs (currentColor) so no external asset/network
+// dependency is introduced just to render a known-connector button.
+const LOGOS = {
+  cloudflare: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M16.5 15.5c1.5-1.6 1.2-3.2.3-4.2-.8-.9-2-1.2-3.1-.9-.4-1.9-2-3.3-4-3.3-2.2 0-4 1.8-4 4 0 .2 0 .3.1.5C4.2 12 3 13.4 3 15c0 1.9 1.6 3.5 3.5 3.5h9.6c1.6 0 2.9-1.3 2.9-2.9 0-1.1-.6-2-1.5-2.5-.4.9-1 1.6-1 1.4Z" />
+    </svg>
+  ),
+  gmail: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M3 5.5C3 4.7 3.7 4 4.5 4h15c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5h-15C3.7 20 3 19.3 3 18.5v-13Zm2 .6v.2l7 5.2 7-5.2v-.2H5Zm14 2.5-6.4 4.8a1 1 0 0 1-1.2 0L5 8.6V18h14V8.6Z" />
+    </svg>
+  ),
+  mercadopago: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 3.5c1.2 0 2.2.3 2.2 1.5 0 .9-.7 1.3-1.4 1.6l-.5.2c-.6.2-1 .4-1 .9 0 .5.5.8 1.2.8.8 0 1.3-.3 1.6-.6l.9 1.2c-.5.5-1.3.9-2.4 1v1.2h-1.4v-1.2c-1.4-.1-2.4-.8-2.8-1.4l1-1.1c.4.5 1.1 1 2 1 .7 0 1.1-.3 1.1-.8 0-.4-.4-.6-1.1-.9l-.5-.2c-1.1-.4-1.9-.9-1.9-2.1 0-1.2 1-1.9 2.3-2.1V4.3h1.4v1.2Z" />
+    </svg>
+  ),
+  context7: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm10.5 0a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+    </svg>
+  ),
+  "github-copilot": (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M12 2C6.5 2 2 6.5 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.5-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .6 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v3c0 .3.2.6.7.5A10 10 0 0 0 22 12c0-5.5-4.5-10-10-10Z" />
+    </svg>
+  ),
+  facebook: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z" />
+    </svg>
+  ),
+} as const
+
 const KNOWN_SERVERS = [
-  { id: "cloudflare", name: "Cloudflare", url: "https://bindings.mcp.cloudflare.com/mcp" },
-  { id: "gmail", name: "Gmail", url: "https://gmailmcp.googleapis.com/mcp/v1" },
-  { id: "mercadopago", name: "Mercado Pago", url: "https://mcp.mercadopago.com/mcp" },
-  { id: "context7", name: "Context7", url: "https://mcp.context7.com/mcp" },
-  { id: "github-copilot", name: "GitHub Copilot", url: "https://api.githubcopilot.com/mcp" },
+  {
+    id: "cloudflare",
+    name: "Cloudflare",
+    url: "https://bindings.mcp.cloudflare.com/mcp",
+    logo: LOGOS.cloudflare,
+    oauth: true,
+  },
+  {
+    id: "gmail",
+    name: "Gmail",
+    url: "https://gmailmcp.googleapis.com/mcp/v1",
+    logo: LOGOS.gmail,
+    oauth: true,
+  },
+  {
+    id: "mercadopago",
+    name: "Mercado Pago",
+    url: "https://mcp.mercadopago.com/mcp",
+    logo: LOGOS.mercadopago,
+    oauth: true,
+  },
+  {
+    id: "context7",
+    name: "Context7",
+    url: "https://mcp.context7.com/mcp",
+    logo: LOGOS.context7,
+    oauth: false,
+  },
+  {
+    id: "github-copilot",
+    name: "GitHub Copilot",
+    url: "https://api.githubcopilot.com/mcp",
+    logo: LOGOS["github-copilot"],
+    oauth: true,
+  },
+  {
+    id: "facebook-ads",
+    name: "Facebook Ads",
+    url: "https://graph.facebook.com/mcp",
+    logo: LOGOS.facebook,
+    oauth: true,
+  },
 ] as const
 
 export type McpExistingServer = {
@@ -69,22 +141,22 @@ function KeyValueEditor(props: { label: string; rows: KeyValueRow[]; onChange: (
       <div class="flex flex-col gap-1.5">
         <For each={props.rows}>
           {(row, index) => (
-            <div class="flex items-center gap-1.5">
+            <div class="flex w-full min-w-0 items-center gap-1.5">
               <TextInputV2
                 type="text"
-                class="!w-full"
+                class="!w-full min-w-0 flex-1"
                 value={row.key}
                 placeholder="KEY"
                 onInput={(e) => setRow(index(), "key", e.currentTarget.value)}
               />
               <TextInputV2
                 type="text"
-                class="!w-full"
+                class="!w-full min-w-0 flex-1"
                 value={row.value}
                 placeholder="value"
                 onInput={(e) => setRow(index(), "value", e.currentTarget.value)}
               />
-              <ButtonV2 type="button" variant="ghost-muted" size="normal" onClick={() => removeRow(index())}>
+              <ButtonV2 type="button" variant="ghost-muted" size="normal" class="shrink-0" onClick={() => removeRow(index())}>
                 <Icon name="close" size="small" />
               </ButtonV2>
             </div>
@@ -215,13 +287,14 @@ export const DialogMcpAddV2: Component<{
           <Show when={!isEdit}>
             <div class="flex w-full min-w-0 flex-col gap-2">
               <label class="settings-v2-server-dialog-label">{language.t("settings.mcp.add.known.label")}</label>
-              <div class="flex flex-wrap gap-2">
+              <div class="grid w-full min-w-0 grid-cols-2 gap-2">
                 <For each={KNOWN_SERVERS}>
                   {(server) => (
                     <ButtonV2
                       type="button"
                       variant="neutral"
                       size="normal"
+                      class="!w-full !justify-start gap-1.5 overflow-hidden"
                       onClick={() => {
                         setForm("name", server.name)
                         setForm("type", "remote")
@@ -229,11 +302,20 @@ export const DialogMcpAddV2: Component<{
                         setForm("err", {})
                       }}
                     >
-                      {server.name}
+                      <span class="shrink-0">{server.logo}</span>
+                      <span class="truncate">{server.name}</span>
+                      <Show when={server.oauth}>
+                        <span class="settings-v2-server-dialog-oauth-badge shrink-0">
+                          {language.t("settings.mcp.add.known.oauthBadge")}
+                        </span>
+                      </Show>
                     </ButtonV2>
                   )}
                 </For>
               </div>
+              <Show when={KNOWN_SERVERS.some((s) => s.name === form.name && s.oauth)}>
+                <span class="settings-v2-server-dialog-hint">{language.t("settings.mcp.add.known.oauthHint")}</span>
+              </Show>
             </div>
           </Show>
 
