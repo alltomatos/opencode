@@ -35,8 +35,19 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const language = useLanguage()
   const providers = useProviders(() => undefined)
 
+  // Only providers actually connected (auth configured) with at least one
+  // model to pick — the full catalog (`providers.all()`) includes every
+  // provider opencode knows about, most of which aren't usable without
+  // setup, and would otherwise flood this dropdown with hundreds of dead
+  // options. A connected provider can still have zero synced models in this
+  // global (non-directory-scoped) catalog — Omniroute is one such case,
+  // since its catalog only populates once synced against a specific
+  // project — which would be a dead end if left selectable here.
   const providerList = createMemo(() =>
-    Array.from(providers.all().values()).sort((a, b) => a.name.localeCompare(b.name)),
+    providers
+      .connected()
+      .filter((provider) => Object.keys(provider.models).length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name)),
   )
   const isCombo = createMemo(() => props.value.startsWith(COMBO_PREFIX))
   const selectedComboID = createMemo(() => (isCombo() ? props.value.slice(COMBO_PREFIX.length) : ""))
@@ -97,7 +108,7 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
       </select>
       <Show when={!isCombo()}>
         <div class="flex min-w-0 flex-1 flex-col gap-1">
-          <Show when={allModels().length > MODEL_RENDER_CAP}>
+          <Show when={allModels().length > 0}>
             <input
               type="text"
               class="h-8 min-w-0 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2.5 text-13-regular text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint focus-visible:border-v2-border-border-focus"
