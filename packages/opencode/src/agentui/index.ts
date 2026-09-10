@@ -18,6 +18,7 @@ import { Provider } from "@/provider/provider"
 import { Context, Effect, Layer, Schema } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
 import { type LanguageModelV3 } from "@ai-sdk/provider"
+import { McpCatalog } from "@/mcp/catalog"
 
 // Phase 1 of the AgentUI epic (#144) — CRUD only. No channel routing, RAG
 // retrieval, or guardrail enforcement yet (those are Phases 3-5); this just
@@ -93,8 +94,12 @@ export interface Interface {
   // 3. sessionPermission returns a restricted PermissionV1.Ruleset —
   //    AgentUI sessions are conversational by default and get no shell/
   //    file access, regardless of guardrails.enabled, the same way Batuta's
-  //    pipeline-chat sessions are scoped (see Batuta.Service).
-  readonly sessionPermission: () => PermissionV1.Ruleset
+  //    pipeline-chat sessions are scoped (see Batuta.Service). `mcpServers`
+  //    (an agent's configured allowlist, see ConfigAgentUIV1.Agent) adds one
+  //    allow rule per server so its tool calls don't fall through to the
+  //    default "ask" action — which would hang forever, since a channel
+  //    dispatch has no human attached to answer a permission prompt.
+  readonly sessionPermission: (mcpServers?: readonly string[]) => PermissionV1.Ruleset
   // Resolves an agent's `model` field ("providerID/modelID" or
   // "combo:<id>", same encoding ModelPickerV2 uses) to a concrete pair.
   // Shared by every channel (Telegram, the sandbox test chat below) so
@@ -280,12 +285,19 @@ const layer = Layer.effect(
       return { allowed: true }
     }
 
-    const sessionPermission = (): PermissionV1.Ruleset => [
+    const sessionPermission = (mcpServers?: readonly string[]): PermissionV1.Ruleset => [
       { permission: "bash", pattern: "*", action: "deny" },
       { permission: "task", pattern: "*", action: "deny" },
       { permission: "edit", pattern: "*", action: "deny" },
       { permission: "write", pattern: "*", action: "deny" },
       { permission: "external_directory", pattern: "*", action: "deny" },
+      ...(mcpServers ?? []).map(
+        (server): PermissionV1.Rule => ({
+          permission: `${McpCatalog.sanitize(server)}_*`,
+          pattern: "*",
+          action: "allow",
+        }),
+      ),
     ]
 
     const resolveModel = Effect.fn("AgentUI.resolveModel")(function* (spec: string) {
@@ -333,7 +345,11 @@ const layer = Layer.effect(
         const existing = channelSessions.get(sessionKey)
         if (existing) return existing
         const session = yield* sessions
-          .create({ title: `${agent.name}: ${input.chatKey}`, directory: input.directory, permission: sessionPermission() })
+          .create({
+            title: `${agent.name}: ${input.chatKey}`,
+            directory: input.directory,
+            permission: sessionPermission(agent.mcpServers),
+          })
           .pipe(Effect.provideService(InstanceRef, ctx))
         channelSessions.set(sessionKey, session.id)
         return session.id

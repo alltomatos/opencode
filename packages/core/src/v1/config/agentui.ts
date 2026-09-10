@@ -110,6 +110,15 @@ export const Agent = Schema.Struct({
     description: "Knowledge sources this agent can retrieve from",
   }),
   guardrails: Guardrails,
+  // Names of MCP servers (as configured for `channels[].directory`/the
+  // sandbox `directory`) this agent's session is allowed to call tools
+  // from — matched by prefix against the sanitized tool names MCP.tools()
+  // produces (see McpCatalog.toolName/sanitize). Absent/empty means none:
+  // AgentUI sessions are conversational-only by default (see
+  // AgentUI.Service.sessionPermission), same as before this field existed.
+  mcpServers: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "Names of MCP servers this agent is allowed to call tools from. Empty/absent means none.",
+  }),
   // Absent/undefined means enabled — old configs saved before this field
   // existed must keep working exactly as before. Read via isEnabled()
   // below rather than this field directly.

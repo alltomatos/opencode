@@ -2052,6 +2052,10 @@ export type AgentUiAgent = {
    */
   ragSources: Array<AgentUiRagSource>
   guardrails: AgentUiGuardrails
+  /**
+   * Names of MCP servers this agent is allowed to call tools from. Empty/absent means none.
+   */
+  mcpServers?: Array<string>
   enabled?: boolean
 }
 

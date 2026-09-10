@@ -491,8 +491,13 @@ const layer = Layer.effect(
       if (agentKey) {
         const existing = agentSessionsByChat.get(agentKey)
         if (existing) return SessionID.make(existing)
+        const agent = yield* agentUI.get(agentKey).pipe(Effect.orElseSucceed(() => undefined))
         const session = yield* sessions
-          .create({ title: `Telegram AgentUI: ${agentKey}`, directory, permission: agentUI.sessionPermission() })
+          .create({
+            title: `Telegram AgentUI: ${agentKey}`,
+            directory,
+            permission: agentUI.sessionPermission(agent?.mcpServers),
+          })
           .pipe(Effect.provideService(InstanceRef, ctx))
         agentSessionsByChat.set(agentKey, session.id)
         return session.id

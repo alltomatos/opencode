@@ -87,11 +87,15 @@ export const PROVIDER_FIELDS: Record<ConfigAgentUIV1.WhatsAppProvider, readonly 
     { key: "token", required: true, label: "Token Bearer da sessão" },
   ],
   izapia: [
-    { key: "baseUrl", required: true, label: "URL base (ex.: https://api.izapia.com)" },
     { key: "apiKey", required: true, label: "API key do tenant" },
     { key: "sid", required: true, label: "ID de uma sessão já criada" },
   ],
 }
+
+// izapia é SaaS multi-tenant de URL fixa (https://api.izapia.com) — ao
+// contrário dos outros providers self-hosted/SaaS acima, não há servidor do
+// usuário para apontar, então esse campo nem aparece no form.
+const IZAPIA_BASE_URL = "https://api.izapia.com"
 
 function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding): WaAdapter {
   const cfg = channel.config
@@ -113,7 +117,7 @@ function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding): WaAdapte
     case "wppconnect":
       return wppconnect({ baseUrl: cfg.baseUrl ?? "", session: cfg.session ?? "", token: cfg.token ?? "" })
     case "izapia":
-      return izapia({ baseUrl: cfg.baseUrl ?? "", apiKey: cfg.apiKey ?? "", sid: cfg.sid ?? "" })
+      return izapia({ baseUrl: IZAPIA_BASE_URL, apiKey: cfg.apiKey ?? "", sid: cfg.sid ?? "" })
   }
 }
 

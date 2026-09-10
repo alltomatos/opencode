@@ -10,6 +10,7 @@ import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { TextareaV2 } from "@opencode-ai/ui/v2/textarea-v2"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
@@ -23,6 +24,7 @@ import { DialogAgentUISandbox } from "@/components/settings-v2/dialog-agentui-sa
 import {
   WHATSAPP_PROVIDER_FIELDS,
   WHATSAPP_PROVIDER_LABELS,
+  WHATSAPP_PROVIDER_LINKS,
   type WhatsAppProvider,
 } from "@/components/settings-v2/whatsapp-providers"
 import "@/components/settings-v2/settings-v2.css"
@@ -43,6 +45,7 @@ type AgentUIFormState = {
   whatsappProvider: WhatsAppProvider
   whatsappConfig: Record<string, string>
   whatsappWebhookSecret: string
+  mcpServers: string[]
   enabled: boolean
 }
 
@@ -62,6 +65,7 @@ function emptyForm(): AgentUIFormState {
     whatsappProvider: "waha",
     whatsappConfig: {},
     whatsappWebhookSecret: "",
+    mcpServers: [],
     enabled: true,
   }
 }
@@ -92,6 +96,17 @@ export function AgentUIFormPage() {
   const [combos] = createResource(async () => {
     const result = await serverSDK().client.combo.list()
     return (result.data ?? []).map((c) => ({ id: c.id, name: c.name }))
+  })
+
+  // MCP servers this agent could be given tool access to — scoped to
+  // whichever connected project's config the agent's channels/sandbox run
+  // against (same `directory` model.ts and the WhatsApp/Telegram bindings
+  // already use). Re-fetches whenever the directory changes since MCP
+  // config is per-project, not global.
+  const [mcpServers] = createResource(directory, async (dir) => {
+    if (!dir) return []
+    const result = await serverSDK().client.mcp.status({ directory: dir })
+    return Object.keys(result.data ?? {})
   })
 
   const [existing] = createResource(
@@ -126,6 +141,7 @@ export function AgentUIFormPage() {
       whatsappProvider: (agent.channels.find((c) => c.type === "whatsapp")?.provider as WhatsAppProvider) ?? "waha",
       whatsappConfig: agent.channels.find((c) => c.type === "whatsapp")?.config ?? {},
       whatsappWebhookSecret: agent.channels.find((c) => c.type === "whatsapp")?.webhookSecret ?? "",
+      mcpServers: agent.mcpServers ?? [],
       enabled: agent.enabled !== false,
     })
   })
@@ -133,6 +149,9 @@ export function AgentUIFormPage() {
   const addRagSource = () =>
     setForm("ragSources", (list) => [...list, { id: crypto.randomUUID(), kind: "text", label: "", value: "" }])
   const removeRagSource = (id: string) => setForm("ragSources", (list) => list.filter((s) => s.id !== id))
+
+  const toggleMcpServer = (name: string, checked: boolean) =>
+    setForm("mcpServers", (list) => (checked ? [...list, name] : list.filter((item) => item !== name)))
 
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
@@ -217,6 +236,7 @@ export function AgentUIFormPage() {
           commandTriggers: triggers,
           ragSources: form.ragSources.filter((s) => s.label && s.value),
           guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
+          mcpServers: form.mcpServers,
           enabled: form.enabled,
         },
       })
@@ -355,138 +375,213 @@ export function AgentUIFormPage() {
             </div>
           </ScrollView>
 
-          <ScrollView class="min-h-0 w-[340px] shrink-0 border-l border-v2-border-border-base">
-            <div class="flex w-full flex-col gap-5 px-4 py-6">
-              <div class="flex items-center justify-between">
-                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.enabled")}</label>
-                <Switch checked={form.enabled} onChange={(checked) => setForm("enabled", checked)} />
-              </div>
+          <div class="flex min-h-0 w-[340px] shrink-0 flex-col border-l border-v2-border-border-base">
+            <TabsV2 defaultValue="general" class="flex min-h-0 flex-1 flex-col">
+              <TabsV2.List>
+                <TabsV2.Trigger value="general">{language.t("settings.agentui.tabs.general")}</TabsV2.Trigger>
+                <TabsV2.Trigger value="channels">{language.t("settings.agentui.tabs.channels")}</TabsV2.Trigger>
+                <TabsV2.Trigger value="tools">{language.t("settings.agentui.tabs.tools")}</TabsV2.Trigger>
+                <TabsV2.Trigger value="knowledge">{language.t("settings.agentui.tabs.knowledge")}</TabsV2.Trigger>
+              </TabsV2.List>
 
-              <div class="flex flex-col gap-1.5">
-                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.model")}</label>
-                <ModelPickerV2 value={form.model} onChange={(value) => setForm("model", value)} combos={combos() ?? []} />
-              </div>
+              <ScrollView class="min-h-0 flex-1">
+                <TabsV2.Content value="general">
+                  <div class="flex w-full flex-col gap-5 px-4 py-6">
+                    <div class="flex items-center justify-between">
+                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.enabled")}</label>
+                      <Switch checked={form.enabled} onChange={(checked) => setForm("enabled", checked)} />
+                    </div>
 
-              <div class="flex flex-col gap-1.5">
-                <div class="flex items-center justify-between">
-                  <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.telegram")}</label>
-                  <Switch checked={form.telegram} onChange={(checked) => setForm("telegram", checked)} />
-                </div>
-                <Show when={form.telegram}>
-                  <TextInputV2
-                    value={form.telegramToken}
-                    onInput={(event) => setForm("telegramToken", event.currentTarget.value)}
-                    placeholder={language.t("settings.agentui.field.telegramToken.placeholder")}
-                  />
-                  <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.telegramToken.hint")}</p>
-                </Show>
-              </div>
+                    <div class="flex flex-col gap-1.5">
+                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.model")}</label>
+                      <ModelPickerV2 value={form.model} onChange={(value) => setForm("model", value)} combos={combos() ?? []} />
+                    </div>
 
-              <div class="flex flex-col gap-1.5">
-                <div class="flex items-center justify-between">
-                  <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.whatsapp")}</label>
-                  <Switch checked={form.whatsapp} onChange={(checked) => setForm("whatsapp", checked)} />
-                </div>
-                <Show when={form.whatsapp}>
-                  <select
-                    class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
-                    value={form.whatsappProvider}
-                    onChange={(event) =>
-                      setForm({ whatsappProvider: event.currentTarget.value as WhatsAppProvider, whatsappConfig: {} })
-                    }
-                  >
-                    <For each={Object.entries(WHATSAPP_PROVIDER_LABELS)}>
-                      {([value, label]) => <option value={value}>{label}</option>}
-                    </For>
-                  </select>
-                  <For each={WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]}>
-                    {(field) => (
+                    <div class="flex flex-col gap-1.5">
+                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.commandTriggers")}</label>
                       <TextInputV2
-                        value={form.whatsappConfig[field.key] ?? ""}
-                        onInput={(event) => setForm("whatsappConfig", (cfg) => ({ ...cfg, [field.key]: event.currentTarget.value }))}
-                        placeholder={field.label + (field.required ? "" : ` (${language.t("common.optional")})`)}
-                      />
-                    )}
-                  </For>
-                  <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
-                  <Show
-                    when={whatsappWebhookUrl()}
-                    fallback={
-                      <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.webhookAfterSave")}</p>
-                    }
-                  >
-                    {(url) => (
-                      <div class="flex flex-col gap-1">
-                        <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.whatsapp.webhookUrl")}</label>
-                        <TextInputV2 value={url()} readOnly />
-                      </div>
-                    )}
-                  </Show>
-                </Show>
-              </div>
-
-              <div class="flex flex-col gap-1.5">
-                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.commandTriggers")}</label>
-                <TextInputV2
-                  value={form.commandTriggers}
-                  onInput={(event) => setForm("commandTriggers", event.currentTarget.value)}
-                  placeholder="! #"
-                />
-              </div>
-
-              <div class="flex items-center justify-between">
-                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.guardrails")}</label>
-                <Switch checked={form.guardrailsEnabled} onChange={(checked) => setForm("guardrailsEnabled", checked)} />
-              </div>
-              <Show when={form.guardrailsEnabled}>
-                <div class="flex flex-col gap-1.5">
-                  <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.guardrailsLevel")}</label>
-                  <select
-                    class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
-                    value={form.guardrailsLevel}
-                    onChange={(event) => setForm("guardrailsLevel", event.currentTarget.value as "basic" | "strict")}
-                  >
-                    <option value="basic">{language.t("settings.agentui.guardrails.basic")}</option>
-                    <option value="strict">{language.t("settings.agentui.guardrails.strict")}</option>
-                  </select>
-                </div>
-              </Show>
-
-              <div class="flex flex-col gap-2">
-                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.ragSources")}</label>
-                <For each={form.ragSources}>
-                  {(source, index) => (
-                    <div class="flex items-start gap-2">
-                      <TextInputV2
-                        class="w-[100px]"
-                        placeholder={language.t("settings.agentui.rag.label")}
-                        value={source.label}
-                        onInput={(event) => setForm("ragSources", index(), "label", event.currentTarget.value)}
-                      />
-                      <TextInputV2
-                        class="flex-1"
-                        placeholder={language.t("settings.agentui.rag.value")}
-                        value={source.value}
-                        onInput={(event) => setForm("ragSources", index(), "value", event.currentTarget.value)}
-                      />
-                      <IconButtonV2
-                        type="button"
-                        variant="ghost-muted"
-                        size="small"
-                        icon={<IconV2 name="xmark-small" />}
-                        aria-label={language.t("common.remove")}
-                        onClick={() => removeRagSource(source.id)}
+                        value={form.commandTriggers}
+                        onInput={(event) => setForm("commandTriggers", event.currentTarget.value)}
+                        placeholder="! #"
                       />
                     </div>
-                  )}
-                </For>
-                <ButtonV2 variant="outline" onClick={addRagSource}>
-                  {language.t("settings.agentui.rag.add")}
-                </ButtonV2>
-                <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.rag.note")}</p>
-              </div>
-            </div>
-          </ScrollView>
+
+                    <div class="flex items-center justify-between">
+                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.guardrails")}</label>
+                      <Switch checked={form.guardrailsEnabled} onChange={(checked) => setForm("guardrailsEnabled", checked)} />
+                    </div>
+                    <Show when={form.guardrailsEnabled}>
+                      <div class="flex flex-col gap-1.5">
+                        <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.guardrailsLevel")}</label>
+                        <select
+                          class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
+                          value={form.guardrailsLevel}
+                          onChange={(event) => setForm("guardrailsLevel", event.currentTarget.value as "basic" | "strict")}
+                        >
+                          <option value="basic">{language.t("settings.agentui.guardrails.basic")}</option>
+                          <option value="strict">{language.t("settings.agentui.guardrails.strict")}</option>
+                        </select>
+                      </div>
+                    </Show>
+                  </div>
+                </TabsV2.Content>
+
+                <TabsV2.Content value="channels">
+                  <div class="flex w-full flex-col gap-5 px-4 py-6">
+                    <div class="flex flex-col gap-1.5">
+                      <div class="flex items-center justify-between">
+                        <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.telegram")}</label>
+                        <Switch checked={form.telegram} onChange={(checked) => setForm("telegram", checked)} />
+                      </div>
+                      <Show when={form.telegram}>
+                        <TextInputV2
+                          value={form.telegramToken}
+                          onInput={(event) => setForm("telegramToken", event.currentTarget.value)}
+                          placeholder={language.t("settings.agentui.field.telegramToken.placeholder")}
+                        />
+                        <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.telegramToken.hint")}</p>
+                      </Show>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                      <div class="flex items-center justify-between">
+                        <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.whatsapp")}</label>
+                        <Switch checked={form.whatsapp} onChange={(checked) => setForm("whatsapp", checked)} />
+                      </div>
+                      <Show when={form.whatsapp}>
+                        <select
+                          class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
+                          value={form.whatsappProvider}
+                          onChange={(event) =>
+                            setForm({ whatsappProvider: event.currentTarget.value as WhatsAppProvider, whatsappConfig: {} })
+                          }
+                        >
+                          <For each={Object.entries(WHATSAPP_PROVIDER_LABELS)}>
+                            {([value, label]) => <option value={value}>{label}</option>}
+                          </For>
+                        </select>
+                        <Show when={WHATSAPP_PROVIDER_LINKS[form.whatsappProvider]}>
+                          {(url) => (
+                            <a
+                              href={url()}
+                              target="_blank"
+                              rel="noreferrer"
+                              class="text-11-regular text-v2-text-text-accent underline"
+                            >
+                              {language.t("settings.agentui.field.whatsapp.providerLink", {
+                                provider: WHATSAPP_PROVIDER_LABELS[form.whatsappProvider],
+                              })}
+                            </a>
+                          )}
+                        </Show>
+                        <For each={WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]}>
+                          {(field) => (
+                            <TextInputV2
+                              value={form.whatsappConfig[field.key] ?? ""}
+                              onInput={(event) =>
+                                setForm("whatsappConfig", (cfg) => ({ ...cfg, [field.key]: event.currentTarget.value }))
+                              }
+                              placeholder={field.label + (field.required ? "" : ` (${language.t("common.optional")})`)}
+                            />
+                          )}
+                        </For>
+                        <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
+                        <Show
+                          when={whatsappWebhookUrl()}
+                          fallback={
+                            <p class="text-11-regular text-v2-text-text-faint">
+                              {language.t("settings.agentui.field.whatsapp.webhookAfterSave")}
+                            </p>
+                          }
+                        >
+                          {(url) => (
+                            <div class="flex flex-col gap-1">
+                              <label class="settings-v2-server-dialog-label">
+                                {language.t("settings.agentui.field.whatsapp.webhookUrl")}
+                              </label>
+                              <TextInputV2 value={url()} readOnly />
+                            </div>
+                          )}
+                        </Show>
+                      </Show>
+                    </div>
+                  </div>
+                </TabsV2.Content>
+
+                <TabsV2.Content value="tools">
+                  <div class="flex w-full flex-col gap-3 px-4 py-6">
+                    <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.mcpServers")}</label>
+                    <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.mcpServers.hint")}</p>
+                    <Show
+                      when={!mcpServers.loading}
+                      fallback={<p class="text-11-regular text-v2-text-text-faint">{language.t("common.loading")}</p>}
+                    >
+                      <Show
+                        when={(mcpServers() ?? []).length > 0}
+                        fallback={
+                          <p class="text-11-regular text-v2-text-text-faint">
+                            {directory()
+                              ? language.t("settings.agentui.field.mcpServers.empty")
+                              : language.t("settings.agentui.field.mcpServers.noDirectory")}
+                          </p>
+                        }
+                      >
+                        <For each={mcpServers()}>
+                          {(name) => (
+                            <div class="flex items-center justify-between">
+                              <span class="text-13-regular text-v2-text-text-base">{name}</span>
+                              <Switch
+                                checked={form.mcpServers.includes(name)}
+                                onChange={(checked) => toggleMcpServer(name, checked)}
+                              />
+                            </div>
+                          )}
+                        </For>
+                      </Show>
+                    </Show>
+                  </div>
+                </TabsV2.Content>
+
+                <TabsV2.Content value="knowledge">
+                  <div class="flex w-full flex-col gap-5 px-4 py-6">
+                    <div class="flex flex-col gap-2">
+                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.ragSources")}</label>
+                      <For each={form.ragSources}>
+                        {(source, index) => (
+                          <div class="flex items-start gap-2">
+                            <TextInputV2
+                              class="w-[100px]"
+                              placeholder={language.t("settings.agentui.rag.label")}
+                              value={source.label}
+                              onInput={(event) => setForm("ragSources", index(), "label", event.currentTarget.value)}
+                            />
+                            <TextInputV2
+                              class="flex-1"
+                              placeholder={language.t("settings.agentui.rag.value")}
+                              value={source.value}
+                              onInput={(event) => setForm("ragSources", index(), "value", event.currentTarget.value)}
+                            />
+                            <IconButtonV2
+                              type="button"
+                              variant="ghost-muted"
+                              size="small"
+                              icon={<IconV2 name="xmark-small" />}
+                              aria-label={language.t("common.remove")}
+                              onClick={() => removeRagSource(source.id)}
+                            />
+                          </div>
+                        )}
+                      </For>
+                      <ButtonV2 variant="outline" onClick={addRagSource}>
+                        {language.t("settings.agentui.rag.add")}
+                      </ButtonV2>
+                      <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.rag.note")}</p>
+                    </div>
+                  </div>
+                </TabsV2.Content>
+              </ScrollView>
+            </TabsV2>
+          </div>
         </div>
       </Show>
     </div>

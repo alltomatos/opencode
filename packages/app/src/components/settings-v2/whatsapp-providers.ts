@@ -21,6 +21,7 @@ export interface WhatsAppProviderField {
 }
 
 export const WHATSAPP_PROVIDER_LABELS: Record<WhatsAppProvider, string> = {
+  izapia: "izapia",
   waha: "WAHA (self-hosted, Docker)",
   evolution: "Evolution GO (self-hosted, Docker)",
   zapi: "Z-API (SaaS)",
@@ -29,7 +30,14 @@ export const WHATSAPP_PROVIDER_LABELS: Record<WhatsAppProvider, string> = {
   wuzapi: "Wuzapi (self-hosted, Docker)",
   quepasa: "QuePasa (self-hosted, Docker)",
   wppconnect: "WPPConnect Server (self-hosted, Docker)",
-  izapia: "izapia",
+}
+
+// Painel/dashboard oficial do provider, onde a pessoa consegue criar a conta
+// e pegar as credenciais pedidas nos campos abaixo. Só preenchido quando
+// existe uma URL confirmada (não um chute) — providers self-hosted não têm
+// uma, já que rodam no servidor da própria pessoa.
+export const WHATSAPP_PROVIDER_LINKS: Partial<Record<WhatsAppProvider, string>> = {
+  izapia: "https://app.izapia.com/login",
 }
 
 export const WHATSAPP_PROVIDER_FIELDS: Record<WhatsAppProvider, WhatsAppProviderField[]> = {
@@ -66,7 +74,6 @@ export const WHATSAPP_PROVIDER_FIELDS: Record<WhatsAppProvider, WhatsAppProvider
     { key: "token", required: true, label: "Token Bearer da sessão" },
   ],
   izapia: [
-    { key: "baseUrl", required: true, label: "URL base (ex.: https://api.izapia.com)" },
     { key: "apiKey", required: true, label: "API key do tenant" },
     { key: "sid", required: true, label: "ID de uma sessão já criada" },
   ],
