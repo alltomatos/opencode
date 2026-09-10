@@ -1465,6 +1465,15 @@ export const dict = {
   "settings.agentui.ai.generate": "生成",
   "settings.agentui.ai.generating": "生成中…",
   "settings.agentui.ai.toast.generated": "下書きを生成しました — 保存前に確認してください",
+  "settings.agentui.tabs.general": "General", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.channels": "Channels", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.tools": "Tools", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.knowledge": "Knowledge", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers": "MCP servers", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers.hint": "Let this agent call tools from the MCP servers below, connected to the same project as its channels. Off by default — agents are conversational-only until you turn one on.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers.empty": "No MCP servers configured for this project yet. Add one in Settings → MCP first.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers.noDirectory": "Open a project first to see its MCP servers.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.providerLink": "Open {{provider}} dashboard →", // TODO: translate (auto-filled from en)
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
