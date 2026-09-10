@@ -2926,6 +2926,11 @@ export type WhatsAppInvalidWebhookError = {
   reason: string
 }
 
+export type WhatsAppProviderApiError = {
+  _tag: "WhatsAppProviderApiError"
+  reason: string
+}
+
 export type Workspace = {
   id: string
   type: string
@@ -12559,6 +12564,44 @@ export type WhatsappWebhookResponses = {
 }
 
 export type WhatsappWebhookResponse = WhatsappWebhookResponses[keyof WhatsappWebhookResponses]
+
+export type IzapiaSession = {
+  id: string
+  name?: string
+  status: string
+  jid?: string
+}
+
+export type WhatsappIzapiaSessionsData = {
+  body?: {
+    apiKey: string
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/izapia/sessions"
+}
+
+export type WhatsappIzapiaSessionsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * WhatsAppProviderApiError
+   */
+  500: WhatsAppProviderApiError
+}
+
+export type WhatsappIzapiaSessionsError = WhatsappIzapiaSessionsErrors[keyof WhatsappIzapiaSessionsErrors]
+
+export type WhatsappIzapiaSessionsResponses = {
+  /**
+   * Sessions for this izapia tenant
+   */
+  200: Array<IzapiaSession>
+}
+
+export type WhatsappIzapiaSessionsResponse = WhatsappIzapiaSessionsResponses[keyof WhatsappIzapiaSessionsResponses]
 
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never

@@ -41,6 +41,23 @@ export class WhatsAppInvalidWebhookError extends Schema.TaggedErrorClass<WhatsAp
   }
 }
 
+export class WhatsAppProviderApiError extends Schema.TaggedErrorClass<WhatsAppProviderApiError>()(
+  "WhatsAppProviderApiError",
+  { reason: Schema.String },
+) {
+  override get message() {
+    return `Falha ao consultar a API do provedor de WhatsApp: ${this.reason}`
+  }
+}
+
+export const IzapiaSession = Schema.Struct({
+  id: Schema.String,
+  name: Schema.optional(Schema.String),
+  status: Schema.String,
+  jid: Schema.optional(Schema.String),
+})
+export type IzapiaSession = Schema.Schema.Type<typeof IzapiaSession>
+
 export interface ProviderField {
   readonly key: string
   readonly required: boolean
@@ -132,6 +149,11 @@ export interface Interface {
     body: unknown
     headers: Record<string, string>
   }) => Effect.Effect<{ ok: true }, AgentUINotFoundError | WhatsAppChannelNotConfiguredError | WhatsAppInvalidWebhookError>
+  // Lets the form fetch the tenant's existing WhatsApp sessions (izapia
+  // calls them that, not "instances") right after the person pastes their
+  // API key, instead of making them go find and copy a sid by hand from
+  // the izapia dashboard.
+  readonly listIzapiaSessions: (input: { apiKey: string }) => Effect.Effect<IzapiaSession[], WhatsAppProviderApiError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/WhatsApp") {}
@@ -188,7 +210,40 @@ const layer = Layer.effect(
       return { ok: true as const }
     })
 
-    return Service.of({ handleWebhook })
+    // Raw fetch, not the `izapia()` WaAdapter — listing every session for a
+    // tenant is an account-level operation (see docs/providers/izapia.md's
+    // "Modelo de instância/sessão"), outside the WaAdapter contract, which
+    // only ever operates against one already-known `sid`.
+    const listIzapiaSessions = Effect.fn("WhatsApp.listIzapiaSessions")(function* (input: { apiKey: string }) {
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          fetch(`${IZAPIA_BASE_URL}/api/v1/sessions/`, {
+            headers: { authorization: `Bearer ${input.apiKey}` },
+          }),
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })
+      if (!response.ok) {
+        return yield* new WhatsAppProviderApiError({ reason: `izapia respondeu ${response.status}` })
+      }
+      const body = yield* Effect.tryPromise({
+        try: () => response.json() as Promise<unknown>,
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })
+      const record = body && typeof body === "object" ? (body as Record<string, unknown>) : undefined
+      const list = Array.isArray(body) ? body : Array.isArray(record?.data) ? record.data : undefined
+      if (!list) return yield* new WhatsAppProviderApiError({ reason: "resposta inesperada da API do izapia" })
+      return list
+        .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+        .map((item) => ({
+          id: String(item.id ?? ""),
+          name: typeof item.name === "string" && item.name ? item.name : undefined,
+          status: String(item.status ?? "unknown"),
+          jid: typeof item.jid === "string" ? item.jid : undefined,
+        }))
+        .filter((session) => session.id)
+    })
+
+    return Service.of({ handleWebhook, listIzapiaSessions })
   }),
 )
 

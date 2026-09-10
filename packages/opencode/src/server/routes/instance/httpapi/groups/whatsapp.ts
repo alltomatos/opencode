@@ -1,7 +1,7 @@
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { AgentUINotFoundError } from "@/agentui"
-import { WhatsAppChannelNotConfiguredError, WhatsAppInvalidWebhookError } from "@/whatsapp"
+import { IzapiaSession, WhatsAppChannelNotConfiguredError, WhatsAppInvalidWebhookError, WhatsAppProviderApiError } from "@/whatsapp"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
 import { described } from "./metadata"
@@ -9,6 +9,7 @@ import { described } from "./metadata"
 const root = "/whatsapp"
 
 export const WebhookResponse = Schema.Struct({ ok: Schema.Literal(true) })
+export const IzapiaSessionsPayload = Schema.Struct({ apiKey: Schema.String })
 
 export const WhatsAppApi = HttpApi.make("whatsapp")
   .add(
@@ -37,6 +38,25 @@ export const WhatsAppApi = HttpApi.make("whatsapp")
             summary: "Receive a WhatsApp webhook for an AgentUI agent",
             description:
               "Inbound webhook endpoint for the agent's configured WhatsApp channel (via waconector). Never call this directly — it's the URL configured on the WhatsApp gateway itself.",
+          }),
+        ),
+        // Called by our own client (the agent form's "buscar sessões"
+        // button) — deliberately not gated by the Authorization middleware
+        // either, but for a different reason than the webhook route above:
+        // it carries no server-side secret at all, just proxies the caller-
+        // supplied `apiKey` straight to izapia's own API. Worst case, a
+        // caller who already holds some izapia API key uses this endpoint
+        // to list that key's own sessions — nothing an authenticated opencode
+        // session wouldn't already let them do directly against izapia.
+        HttpApiEndpoint.post("izapiaSessions", `${root}/izapia/sessions`, {
+          payload: IzapiaSessionsPayload,
+          success: described(Schema.Array(IzapiaSession), "Sessions for this izapia tenant"),
+          error: WhatsAppProviderApiError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "whatsapp.izapiaSessions",
+            summary: "List izapia sessions",
+            description: "Lists the WhatsApp sessions already created for the tenant that owns the given izapia API key.",
           }),
         ),
       )

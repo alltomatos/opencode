@@ -153,6 +153,31 @@ export function AgentUIFormPage() {
   const toggleMcpServer = (name: string, checked: boolean) =>
     setForm("mcpServers", (list) => (checked ? [...list, name] : list.filter((item) => item !== name)))
 
+  // izapia-only: fetches the tenant's existing WhatsApp sessions for the
+  // API key already typed in, so the person can pick one instead of going
+  // to find and paste a sid by hand from the izapia dashboard.
+  const [izapiaSessions, setIzapiaSessions] = createSignal<
+    { id: string; name?: string; status: string; jid?: string }[]
+  >([])
+  const [izapiaSessionsLoading, setIzapiaSessionsLoading] = createSignal(false)
+  const [izapiaSessionsError, setIzapiaSessionsError] = createSignal<string | undefined>()
+
+  const fetchIzapiaSessions = async () => {
+    const apiKey = form.whatsappConfig.apiKey?.trim()
+    if (!apiKey || izapiaSessionsLoading()) return
+    setIzapiaSessionsError(undefined)
+    setIzapiaSessionsLoading(true)
+    try {
+      const result = await serverSDK().client.whatsapp.izapiaSessions({ apiKey })
+      setIzapiaSessions(result.data ?? [])
+      if (!result.data?.length) setIzapiaSessionsError(language.t("settings.agentui.field.whatsapp.izapiaSessions.empty"))
+    } catch (cause) {
+      setIzapiaSessionsError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setIzapiaSessionsLoading(false)
+    }
+  }
+
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
 
@@ -452,9 +477,11 @@ export function AgentUIFormPage() {
                         <select
                           class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
                           value={form.whatsappProvider}
-                          onChange={(event) =>
+                          onChange={(event) => {
                             setForm({ whatsappProvider: event.currentTarget.value as WhatsAppProvider, whatsappConfig: {} })
-                          }
+                            setIzapiaSessions([])
+                            setIzapiaSessionsError(undefined)
+                          }}
                         >
                           <For each={Object.entries(WHATSAPP_PROVIDER_LABELS)}>
                             {([value, label]) => <option value={value}>{label}</option>}
@@ -485,6 +512,48 @@ export function AgentUIFormPage() {
                             />
                           )}
                         </For>
+                        <Show when={form.whatsappProvider === "izapia"}>
+                          <ButtonV2
+                            variant="outline"
+                            disabled={!form.whatsappConfig.apiKey?.trim() || izapiaSessionsLoading()}
+                            onClick={() => void fetchIzapiaSessions()}
+                          >
+                            {izapiaSessionsLoading()
+                              ? language.t("settings.agentui.field.whatsapp.izapiaSessions.loading")
+                              : language.t("settings.agentui.field.whatsapp.izapiaSessions.fetch")}
+                          </ButtonV2>
+                          <Show when={izapiaSessionsError()}>
+                            <span class="settings-v2-server-dialog-error">{izapiaSessionsError()}</span>
+                          </Show>
+                          <Show when={izapiaSessions().length > 0}>
+                            <div class="flex flex-col gap-1">
+                              <For each={izapiaSessions()}>
+                                {(session) => (
+                                  <button
+                                    type="button"
+                                    class={`
+                                      flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5
+                                      text-left text-13-regular
+                                      ${
+                                        form.whatsappConfig.sid === session.id
+                                          ? "border-v2-border-border-focus bg-v2-background-bg-layer-01"
+                                          : "border-v2-border-border-base bg-v2-background-bg-base hover:bg-v2-background-bg-layer-01"
+                                      }
+                                    `}
+                                    onClick={() =>
+                                      setForm("whatsappConfig", (cfg) => ({ ...cfg, sid: session.id }))
+                                    }
+                                  >
+                                    <span class="truncate text-v2-text-text-base">
+                                      {session.name || session.jid || session.id}
+                                    </span>
+                                    <span class="shrink-0 text-11-regular text-v2-text-text-faint">{session.status}</span>
+                                  </button>
+                                )}
+                              </For>
+                            </div>
+                          </Show>
+                        </Show>
                         <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
                         <Show
                           when={whatsappWebhookUrl()}

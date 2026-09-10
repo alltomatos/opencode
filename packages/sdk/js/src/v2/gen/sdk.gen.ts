@@ -475,6 +475,8 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  WhatsappIzapiaSessionsErrors,
+  WhatsappIzapiaSessionsResponses,
   WhatsappWebhookErrors,
   WhatsappWebhookResponses,
   WorktreeCreateErrors,
@@ -6386,6 +6388,41 @@ export class Whatsapp extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<WhatsappWebhookResponses, WhatsappWebhookErrors, ThrowOnError>({
       url: "/whatsapp/webhook/{agentId}/{secret}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List izapia sessions
+   *
+   * Lists the WhatsApp sessions already created for the tenant that owns the given izapia API key.
+   */
+  public izapiaSessions<ThrowOnError extends boolean = false>(
+    parameters: {
+      apiKey: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [{ in: "body", key: "apiKey" }],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      WhatsappIzapiaSessionsResponses,
+      WhatsappIzapiaSessionsErrors,
+      ThrowOnError
+    >({
+      url: "/whatsapp/izapia/sessions",
       ...options,
       ...params,
       headers: {
