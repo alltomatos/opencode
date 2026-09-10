@@ -67,30 +67,37 @@ describe("opencode run (non-interactive subprocess)", () => {
   // makes the SDK call surface an error promptly so the process exits nonzero.
   // We assert nonzero exit AND wall-clock under the harness timeout — a hang
   // would expire the timeout and produce a different (signal-killed) failure.
-  // The bound is generous (25s) rather than tight to the ~13s observed
+  // The bound is generous (32s) rather than tight to the ~13s observed
   // locally: bun's transpile + plugin init dominates startup time and varies
   // under CI load, so a tight bound flakes without indicating a real
   // regression (a genuine hang would still expire this and fail loudly).
-  // Kept well under 30s (rather than 45s+) so this .concurrent test doesn't
-  // hog the shared runner long enough to push sibling concurrent tests in
-  // this file past their own timeouts.
+  // Was 25s, still observed a 25383ms run under CI load (2026-09-09) — bumped
+  // with headroom rather than shaving the margin to the exact miss. Kept well
+  // under 45s (rather than 60s+) so this .concurrent test doesn't hog the
+  // shared runner long enough to push sibling concurrent tests in this file
+  // past their own timeouts.
   cliIt.concurrent(
     "exits nonzero promptly when the model is unknown (regression for #27371)",
     ({ opencode }) =>
       Effect.gen(function* () {
         const result = yield* opencode.run("say hi", {
           model: "test/nonexistent-model",
-          timeoutMs: 25_000,
+          timeoutMs: 32_000,
         })
         expect(result.exitCode).not.toBe(0)
-        expect(result.durationMs).toBeLessThan(25_000)
+        expect(result.durationMs).toBeLessThan(32_000)
       }),
-    40_000,
+    45_000,
   )
 
   // The test provider's SSE error item is interpreted by the SDK as an unknown
   // finish, not a fatal provider/session error. Unknown finishes should continue
   // the prompt loop so a subsequent response can complete the run.
+  //
+  // timeoutMs was 30s, tight enough against the 60s outer test timeout that
+  // CI load pushed the subprocess past it (killed mid-run, exitCode -1
+  // instead of 0) on 2026-09-09. Bumped with headroom, same rationale as the
+  // sibling test above.
   cliIt.concurrent(
     "unknown stream finish preserves partial output and continues",
     ({ llm, opencode }) =>
@@ -103,7 +110,7 @@ describe("opencode run (non-interactive subprocess)", () => {
         )
         yield* llm.fail("upstream provider exploded mid-stream")
         yield* llm.text("recovered")
-        const result = yield* opencode.run("trigger midstream error", { timeoutMs: 30_000 })
+        const result = yield* opencode.run("trigger midstream error", { timeoutMs: 45_000 })
         expect(result.exitCode).toBe(0)
         expect(result.stdout).toBe("partial response\nrecovered\n")
         expect(result.stderr).not.toContain("upstream provider exploded mid-stream")
