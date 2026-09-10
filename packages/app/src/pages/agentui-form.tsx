@@ -62,7 +62,7 @@ function emptyForm(): AgentUIFormState {
     telegram: false,
     telegramToken: "",
     whatsapp: false,
-    whatsappProvider: "waha",
+    whatsappProvider: "izapia",
     whatsappConfig: {},
     whatsappWebhookSecret: "",
     mcpServers: [],
