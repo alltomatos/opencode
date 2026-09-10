@@ -44,6 +44,8 @@ type AgentUIFormState = {
   whatsapp: boolean
   whatsappProvider: WhatsAppProvider
   whatsappConfig: Record<string, string>
+  whatsappSessionIds: string[]
+  whatsappAllowedGroups: string[]
   whatsappWebhookSecret: string
   mcpServers: string[]
   enabled: boolean
@@ -64,6 +66,8 @@ function emptyForm(): AgentUIFormState {
     whatsapp: false,
     whatsappProvider: "izapia",
     whatsappConfig: {},
+    whatsappSessionIds: [],
+    whatsappAllowedGroups: [],
     whatsappWebhookSecret: "",
     mcpServers: [],
     enabled: true,
@@ -140,6 +144,8 @@ export function AgentUIFormPage() {
       whatsapp: agent.channels.some((c) => c.type === "whatsapp"),
       whatsappProvider: (agent.channels.find((c) => c.type === "whatsapp")?.provider as WhatsAppProvider) ?? "waha",
       whatsappConfig: agent.channels.find((c) => c.type === "whatsapp")?.config ?? {},
+      whatsappSessionIds: [...(agent.channels.find((c) => c.type === "whatsapp")?.sessionIds ?? [])],
+      whatsappAllowedGroups: [...(agent.channels.find((c) => c.type === "whatsapp")?.allowedGroups ?? [])],
       whatsappWebhookSecret: agent.channels.find((c) => c.type === "whatsapp")?.webhookSecret ?? "",
       mcpServers: agent.mcpServers ?? [],
       enabled: agent.enabled !== false,
@@ -177,6 +183,46 @@ export function AgentUIFormPage() {
       setIzapiaSessionsLoading(false)
     }
   }
+
+  const toggleIzapiaSession = (id: string, checked: boolean) => {
+    setForm("whatsappSessionIds", (list) => (checked ? [...list, id] : list.filter((item) => item !== id)))
+    // Group access was scoped to the sessions previously selected — drop
+    // anything that no longer belongs to any selected session once the
+    // session set changes, rather than silently keeping a stale allow-list.
+    setIzapiaGroups([])
+    setIzapiaGroupsError(undefined)
+    setForm("whatsappAllowedGroups", [])
+  }
+
+  // izapia-only, second step: once at least one session is picked, fetches
+  // the groups those sessions belong to so the person can check exactly
+  // which ones the agent should be allowed to answer in (see
+  // ConfigAgentUIV1.WhatsAppChannelBinding.allowedGroups — direct messages
+  // are always answered regardless of this list).
+  const [izapiaGroups, setIzapiaGroups] = createSignal<
+    { id: string; subject: string; sessionId: string; participantCount: number }[]
+  >([])
+  const [izapiaGroupsLoading, setIzapiaGroupsLoading] = createSignal(false)
+  const [izapiaGroupsError, setIzapiaGroupsError] = createSignal<string | undefined>()
+
+  const fetchIzapiaGroups = async () => {
+    const apiKey = form.whatsappConfig.apiKey?.trim()
+    if (!apiKey || form.whatsappSessionIds.length === 0 || izapiaGroupsLoading()) return
+    setIzapiaGroupsError(undefined)
+    setIzapiaGroupsLoading(true)
+    try {
+      const result = await serverSDK().client.whatsapp.izapiaGroups({ apiKey, sids: form.whatsappSessionIds })
+      setIzapiaGroups(result.data ?? [])
+      if (!result.data?.length) setIzapiaGroupsError(language.t("settings.agentui.field.whatsapp.izapiaGroups.empty"))
+    } catch (cause) {
+      setIzapiaGroupsError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setIzapiaGroupsLoading(false)
+    }
+  }
+
+  const toggleIzapiaGroup = (id: string, checked: boolean) =>
+    setForm("whatsappAllowedGroups", (list) => (checked ? [...list, id] : list.filter((item) => item !== id)))
 
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
@@ -225,7 +271,9 @@ export function AgentUIFormPage() {
     }
     const whatsappFields = WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]
     const whatsappMissingField = form.whatsapp && whatsappFields.some((f) => f.required && !form.whatsappConfig[f.key]?.trim())
-    if (form.whatsapp && (!directory() || whatsappMissingField)) {
+    const whatsappMissingSession =
+      form.whatsapp && form.whatsappProvider === "izapia" && form.whatsappSessionIds.length === 0
+    if (form.whatsapp && (!directory() || whatsappMissingField || whatsappMissingSession)) {
       setError(language.t("settings.agentui.error.whatsappIncomplete"))
       return
     }
@@ -237,7 +285,15 @@ export function AgentUIFormPage() {
       .filter(Boolean)
     const channels: Array<
       | { type: "telegram"; token?: string; directory?: string }
-      | { type: "whatsapp"; provider: WhatsAppProvider; config: Record<string, string>; directory?: string; webhookSecret: string }
+      | {
+          type: "whatsapp"
+          provider: WhatsAppProvider
+          config: Record<string, string>
+          sessionIds?: string[]
+          allowedGroups?: string[]
+          directory?: string
+          webhookSecret: string
+        }
     > = []
     if (form.telegram) channels.push({ type: "telegram", token: ownBotToken || undefined, directory: ownBotToken ? directory() : undefined })
     const whatsappWebhookSecret = form.whatsappWebhookSecret || crypto.randomUUID()
@@ -246,6 +302,8 @@ export function AgentUIFormPage() {
         type: "whatsapp",
         provider: form.whatsappProvider,
         config: form.whatsappConfig,
+        sessionIds: form.whatsappProvider === "izapia" ? form.whatsappSessionIds : undefined,
+        allowedGroups: form.whatsappProvider === "izapia" ? form.whatsappAllowedGroups : undefined,
         directory: directory(),
         webhookSecret: whatsappWebhookSecret,
       })
@@ -478,9 +536,16 @@ export function AgentUIFormPage() {
                           class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
                           value={form.whatsappProvider}
                           onChange={(event) => {
-                            setForm({ whatsappProvider: event.currentTarget.value as WhatsAppProvider, whatsappConfig: {} })
+                            setForm({
+                              whatsappProvider: event.currentTarget.value as WhatsAppProvider,
+                              whatsappConfig: {},
+                              whatsappSessionIds: [],
+                              whatsappAllowedGroups: [],
+                            })
                             setIzapiaSessions([])
                             setIzapiaSessionsError(undefined)
+                            setIzapiaGroups([])
+                            setIzapiaGroupsError(undefined)
                           }}
                         >
                           <For each={Object.entries(WHATSAPP_PROVIDER_LABELS)}>
@@ -513,6 +578,9 @@ export function AgentUIFormPage() {
                           )}
                         </For>
                         <Show when={form.whatsappProvider === "izapia"}>
+                          <label class="settings-v2-server-dialog-label">
+                            {language.t("settings.agentui.field.whatsapp.izapiaSessions.label")}
+                          </label>
                           <ButtonV2
                             variant="outline"
                             disabled={!form.whatsappConfig.apiKey?.trim() || izapiaSessionsLoading()}
@@ -529,26 +597,79 @@ export function AgentUIFormPage() {
                             <div class="flex flex-col gap-1">
                               <For each={izapiaSessions()}>
                                 {(session) => (
-                                  <button
-                                    type="button"
+                                  <label
                                     class={`
-                                      flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5
-                                      text-left text-13-regular
+                                      flex cursor-pointer items-center justify-between gap-2 rounded-md border
+                                      px-2.5 py-1.5 text-13-regular
                                       ${
-                                        form.whatsappConfig.sid === session.id
+                                        form.whatsappSessionIds.includes(session.id)
                                           ? "border-v2-border-border-focus bg-v2-background-bg-layer-01"
                                           : "border-v2-border-border-base bg-v2-background-bg-base hover:bg-v2-background-bg-layer-01"
                                       }
                                     `}
-                                    onClick={() =>
-                                      setForm("whatsappConfig", (cfg) => ({ ...cfg, sid: session.id }))
-                                    }
                                   >
-                                    <span class="truncate text-v2-text-text-base">
-                                      {session.name || session.jid || session.id}
+                                    <span class="flex min-w-0 items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={form.whatsappSessionIds.includes(session.id)}
+                                        onChange={(event) => toggleIzapiaSession(session.id, event.currentTarget.checked)}
+                                      />
+                                      <span class="truncate text-v2-text-text-base">
+                                        {session.name || session.jid || session.id}
+                                      </span>
                                     </span>
                                     <span class="shrink-0 text-11-regular text-v2-text-text-faint">{session.status}</span>
-                                  </button>
+                                  </label>
+                                )}
+                              </For>
+                            </div>
+                          </Show>
+
+                          <label class="settings-v2-server-dialog-label">
+                            {language.t("settings.agentui.field.whatsapp.izapiaGroups.label")}
+                          </label>
+                          <p class="text-11-regular text-v2-text-text-faint">
+                            {language.t("settings.agentui.field.whatsapp.izapiaGroups.hint")}
+                          </p>
+                          <ButtonV2
+                            variant="outline"
+                            disabled={form.whatsappSessionIds.length === 0 || izapiaGroupsLoading()}
+                            onClick={() => void fetchIzapiaGroups()}
+                          >
+                            {izapiaGroupsLoading()
+                              ? language.t("settings.agentui.field.whatsapp.izapiaGroups.loading")
+                              : language.t("settings.agentui.field.whatsapp.izapiaGroups.fetch")}
+                          </ButtonV2>
+                          <Show when={izapiaGroupsError()}>
+                            <span class="settings-v2-server-dialog-error">{izapiaGroupsError()}</span>
+                          </Show>
+                          <Show when={izapiaGroups().length > 0}>
+                            <div class="flex flex-col gap-1">
+                              <For each={izapiaGroups()}>
+                                {(group) => (
+                                  <label
+                                    class={`
+                                      flex cursor-pointer items-center justify-between gap-2 rounded-md border
+                                      px-2.5 py-1.5 text-13-regular
+                                      ${
+                                        form.whatsappAllowedGroups.includes(group.id)
+                                          ? "border-v2-border-border-focus bg-v2-background-bg-layer-01"
+                                          : "border-v2-border-border-base bg-v2-background-bg-base hover:bg-v2-background-bg-layer-01"
+                                      }
+                                    `}
+                                  >
+                                    <span class="flex min-w-0 items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={form.whatsappAllowedGroups.includes(group.id)}
+                                        onChange={(event) => toggleIzapiaGroup(group.id, event.currentTarget.checked)}
+                                      />
+                                      <span class="truncate text-v2-text-text-base">{group.subject}</span>
+                                    </span>
+                                    <span class="shrink-0 text-11-regular text-v2-text-text-faint">
+                                      {group.participantCount}
+                                    </span>
+                                  </label>
                                 )}
                               </For>
                             </div>

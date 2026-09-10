@@ -1995,6 +1995,14 @@ export type AgentUiWhatsAppChannelBinding = {
   config: {
     [key: string]: string
   }
+  /**
+   * Session IDs this channel listens on, for providers with multiple sessions per tenant (izapia). Absent means single-session (see config.sid).
+   */
+  sessionIds?: Array<string>
+  /**
+   * WhatsApp group JIDs this agent may respond in, in addition to direct messages. Empty/absent means direct messages only.
+   */
+  allowedGroups?: Array<string>
   directory?: string
   /**
    * Random per-channel secret embedded in the webhook URL — authenticates inbound webhook calls from the provider.
@@ -12602,6 +12610,41 @@ export type WhatsappIzapiaSessionsResponses = {
 }
 
 export type WhatsappIzapiaSessionsResponse = WhatsappIzapiaSessionsResponses[keyof WhatsappIzapiaSessionsResponses]
+
+export type IzapiaGroup = {
+  id: string
+  subject: string
+  sessionId: string
+  participantCount: number
+}
+
+export type WhatsappIzapiaGroupsData = {
+  body: {
+    apiKey: string
+    sids: Array<string>
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/izapia/groups"
+}
+
+export type WhatsappIzapiaGroupsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type WhatsappIzapiaGroupsError = WhatsappIzapiaGroupsErrors[keyof WhatsappIzapiaGroupsErrors]
+
+export type WhatsappIzapiaGroupsResponses = {
+  /**
+   * Groups across the given izapia sessions
+   */
+  200: Array<IzapiaGroup>
+}
+
+export type WhatsappIzapiaGroupsResponse = WhatsappIzapiaGroupsResponses[keyof WhatsappIzapiaGroupsResponses]
 
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never

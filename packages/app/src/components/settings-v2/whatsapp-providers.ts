@@ -73,8 +73,8 @@ export const WHATSAPP_PROVIDER_FIELDS: Record<WhatsAppProvider, WhatsAppProvider
     { key: "session", required: true, label: "Nome da sessão" },
     { key: "token", required: true, label: "Token Bearer da sessão" },
   ],
-  izapia: [
-    { key: "apiKey", required: true, label: "API key do tenant" },
-    { key: "sid", required: true, label: "ID de uma sessão já criada" },
-  ],
+  // No "sid" field here — izapia is multi-session, picked via the "buscar
+  // sessões" checkboxes in agentui-form.tsx (WhatsAppChannelBinding.sessionIds),
+  // not typed in as config.
+  izapia: [{ key: "apiKey", required: true, label: "API key do tenant" }],
 }

@@ -58,6 +58,14 @@ export const IzapiaSession = Schema.Struct({
 })
 export type IzapiaSession = Schema.Schema.Type<typeof IzapiaSession>
 
+export const IzapiaGroup = Schema.Struct({
+  id: Schema.String,
+  subject: Schema.String,
+  sessionId: Schema.String,
+  participantCount: Schema.Number,
+})
+export type IzapiaGroup = Schema.Schema.Type<typeof IzapiaGroup>
+
 export interface ProviderField {
   readonly key: string
   readonly required: boolean
@@ -103,10 +111,10 @@ export const PROVIDER_FIELDS: Record<ConfigAgentUIV1.WhatsAppProvider, readonly 
     { key: "session", required: true, label: "Nome da sessão" },
     { key: "token", required: true, label: "Token Bearer da sessão" },
   ],
-  izapia: [
-    { key: "apiKey", required: true, label: "API key do tenant" },
-    { key: "sid", required: true, label: "ID de uma sessão já criada" },
-  ],
+  // No "sid" field here on purpose — izapia is multi-session, so which
+  // session(s) this channel listens on is `WhatsAppChannelBinding.sessionIds`
+  // (picked from the "buscar sessões" list in the form), not a config field.
+  izapia: [{ key: "apiKey", required: true, label: "API key do tenant" }],
 }
 
 // izapia é SaaS multi-tenant de URL fixa (https://api.izapia.com) — ao
@@ -114,7 +122,12 @@ export const PROVIDER_FIELDS: Record<ConfigAgentUIV1.WhatsAppProvider, readonly 
 // usuário para apontar, então esse campo nem aparece no form.
 const IZAPIA_BASE_URL = "https://api.izapia.com"
 
-function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding): WaAdapter {
+// `sidOverride` exists for izapia's multi-session channels: a channel may
+// listen on several sessions at once (`channel.sessionIds`), but the
+// WaAdapter contract binds to exactly one at construction time — the
+// caller picks which one per call (parsing a webhook doesn't care, sending
+// a reply must go out through the same session the message arrived on).
+function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding, sidOverride?: string): WaAdapter {
   const cfg = channel.config
   switch (channel.provider) {
     case "waha":
@@ -134,8 +147,16 @@ function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding): WaAdapte
     case "wppconnect":
       return wppconnect({ baseUrl: cfg.baseUrl ?? "", session: cfg.session ?? "", token: cfg.token ?? "" })
     case "izapia":
-      return izapia({ baseUrl: IZAPIA_BASE_URL, apiKey: cfg.apiKey ?? "", sid: cfg.sid ?? "" })
+      return izapia({ baseUrl: IZAPIA_BASE_URL, apiKey: cfg.apiKey ?? "", sid: sidOverride ?? channel.sessionIds?.[0] ?? cfg.sid ?? "" })
   }
+}
+
+// A group JID (`...@g.us`) is only answered if explicitly allow-listed;
+// a direct-message JID (`...@s.whatsapp.net`) or anything else is always
+// answered. See ConfigAgentUIV1.WhatsAppChannelBinding.allowedGroups.
+function isChatAllowed(channel: ConfigAgentUIV1.WhatsAppChannelBinding, chatId: string): boolean {
+  if (!chatId.endsWith("@g.us")) return true
+  return (channel.allowedGroups ?? []).includes(chatId)
 }
 
 function findChannel(agent: ConfigAgentUIV1.Agent): ConfigAgentUIV1.WhatsAppChannelBinding | undefined {
@@ -154,6 +175,10 @@ export interface Interface {
   // API key, instead of making them go find and copy a sid by hand from
   // the izapia dashboard.
   readonly listIzapiaSessions: (input: { apiKey: string }) => Effect.Effect<IzapiaSession[], WhatsAppProviderApiError>
+  // Lets the form fetch the groups each selected session belongs to, so the
+  // person can pick exactly which ones this agent should respond in — see
+  // ConfigAgentUIV1.WhatsAppChannelBinding.allowedGroups.
+  readonly listIzapiaGroups: (input: { apiKey: string; sids: string[] }) => Effect.Effect<IzapiaGroup[], never>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/WhatsApp") {}
@@ -182,16 +207,25 @@ const layer = Layer.effect(
       if (!ConfigAgentUIV1.isEnabled(agent) || !channel.directory) return { ok: true as const }
       const directory = channel.directory
 
-      const adapter = buildAdapter(channel)
-      const connector = createConnector(adapter)
+      // Parsing itself doesn't depend on which session is bound (see
+      // izapia's parseWebhook — no sid in scope), so any configured session
+      // works to build the throwaway parsing adapter.
+      const parseAdapter = buildAdapter(channel)
       const events = yield* Effect.try({
-        try: () => connector.webhooks.parse({ body: input.body, headers: input.headers }),
+        try: () => createConnector(parseAdapter).webhooks.parse({ body: input.body, headers: input.headers }),
         catch: (cause) => new WhatsAppInvalidWebhookError({ reason: String(cause) }),
       })
 
+      // Multi-session channels (izapia) share one webhook URL/secret across
+      // every configured session — a legacy single-session channel (no
+      // `sessionIds` set) trusts whatever session sends to it, same as
+      // before this field existed.
+      const allowedSessions = channel.sessionIds
       for (const event of events) {
         if (event.type !== "message.received") continue
+        if (allowedSessions && event.instanceId && !allowedSessions.includes(event.instanceId)) continue
         if (event.message.fromMe) continue
+        if (!isChatAllowed(channel, event.message.chatId)) continue
         const text = event.message.text
         if (!text) continue
         const result = yield* agentUI.dispatchChannelMessage({
@@ -201,7 +235,12 @@ const layer = Layer.effect(
           message: text,
         })
         if (result.reply) {
-          yield* Effect.tryPromise(() => connector.messages.sendText({ to: event.message.chatId, text: result.reply })).pipe(
+          // Reply through the session the message actually arrived on, not
+          // necessarily the first configured one.
+          const replyAdapter = buildAdapter(channel, event.instanceId)
+          yield* Effect.tryPromise(() =>
+            createConnector(replyAdapter).messages.sendText({ to: event.message.chatId, text: result.reply }),
+          ).pipe(
             Effect.tapError((cause) => Effect.logError("whatsapp sendText failed", { agentID: input.agentID, cause })),
             Effect.ignore,
           )
@@ -243,7 +282,43 @@ const layer = Layer.effect(
         .filter((session) => session.id)
     })
 
-    return Service.of({ handleWebhook, listIzapiaSessions })
+    // Unlike listIzapiaSessions (account-level, no WaAdapter contract for
+    // it), listing a session's groups IS part of the contract
+    // (`groups.list`) — reuse the real, already-tested izapia adapter
+    // instead of hand-rolling another raw fetch. One session's failure
+    // (not yet paired, revoked key, ...) doesn't fail the others; a group
+    // that exists on more than one selected session is deduped by id.
+    const listIzapiaGroups = Effect.fn("WhatsApp.listIzapiaGroups")(function* (input: {
+      apiKey: string
+      sids: string[]
+    }) {
+      const byID = new Map<string, IzapiaGroup>()
+      yield* Effect.forEach(
+        input.sids,
+        (sid) =>
+          Effect.tryPromise(() =>
+            createConnector(izapia({ baseUrl: IZAPIA_BASE_URL, apiKey: input.apiKey, sid })).groups.list(),
+          ).pipe(
+            Effect.map((groups) => {
+              for (const group of groups) {
+                if (byID.has(group.id)) continue
+                byID.set(group.id, {
+                  id: group.id,
+                  subject: group.subject || group.id,
+                  sessionId: sid,
+                  participantCount: group.participants.length,
+                })
+              }
+            }),
+            Effect.tapError((cause) => Effect.logWarning("izapia groups.list failed for session", { sid, cause })),
+            Effect.ignore,
+          ),
+        { concurrency: "unbounded" },
+      )
+      return Array.from(byID.values())
+    })
+
+    return Service.of({ handleWebhook, listIzapiaSessions, listIzapiaGroups })
   }),
 )
 

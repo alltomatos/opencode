@@ -1,7 +1,13 @@
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { AgentUINotFoundError } from "@/agentui"
-import { IzapiaSession, WhatsAppChannelNotConfiguredError, WhatsAppInvalidWebhookError, WhatsAppProviderApiError } from "@/whatsapp"
+import {
+  IzapiaGroup,
+  IzapiaSession,
+  WhatsAppChannelNotConfiguredError,
+  WhatsAppInvalidWebhookError,
+  WhatsAppProviderApiError,
+} from "@/whatsapp"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
 import { described } from "./metadata"
@@ -10,6 +16,7 @@ const root = "/whatsapp"
 
 export const WebhookResponse = Schema.Struct({ ok: Schema.Literal(true) })
 export const IzapiaSessionsPayload = Schema.Struct({ apiKey: Schema.String })
+export const IzapiaGroupsPayload = Schema.Struct({ apiKey: Schema.String, sids: Schema.Array(Schema.String) })
 
 export const WhatsAppApi = HttpApi.make("whatsapp")
   .add(
@@ -57,6 +64,18 @@ export const WhatsAppApi = HttpApi.make("whatsapp")
             identifier: "whatsapp.izapiaSessions",
             summary: "List izapia sessions",
             description: "Lists the WhatsApp sessions already created for the tenant that owns the given izapia API key.",
+          }),
+        ),
+        // Same reasoning as izapiaSessions above — no server-side secret,
+        // just proxies the caller-supplied credentials.
+        HttpApiEndpoint.post("izapiaGroups", `${root}/izapia/groups`, {
+          payload: IzapiaGroupsPayload,
+          success: described(Schema.Array(IzapiaGroup), "Groups across the given izapia sessions"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "whatsapp.izapiaGroups",
+            summary: "List izapia groups",
+            description: "Lists WhatsApp groups across the given izapia sessions, deduped by group id.",
           }),
         ),
       )

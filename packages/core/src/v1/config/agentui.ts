@@ -54,6 +54,22 @@ export const WhatsAppChannelBinding = Schema.Struct({
   config: Schema.Record(Schema.String, Schema.String).annotate({
     description: "Provider-specific connection fields (e.g. baseUrl+apiKey for WAHA, instanceId+token for Z-API). Shape depends on `provider`.",
   }),
+  // izapia is multi-session per tenant (one API key, several WhatsApp
+  // numbers) — this agent can listen on more than one at once. Absent for
+  // single-session providers, which keep using `config.sid`/`config.session`
+  // instead. When present, it's the source of truth for which sessions this
+  // channel is bound to; `config.sid` (if still set from before this field
+  // existed) is ignored.
+  sessionIds: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "Session IDs this channel listens on, for providers with multiple sessions per tenant (izapia). Absent means single-session (see config.sid).",
+  }),
+  // Direct messages are always answered; a group is only answered if its
+  // JID is listed here. Empty/absent = groups off entirely (DMs only) —
+  // the safer default, since a bot answering in every group it's ever
+  // added to is rarely what someone wants.
+  allowedGroups: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "WhatsApp group JIDs this agent may respond in, in addition to direct messages. Empty/absent means direct messages only.",
+  }),
   directory: Schema.optional(Schema.String).annotate({
     description: "Connected project directory this agent's WhatsApp channel operates against.",
   }),

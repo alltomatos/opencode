@@ -475,6 +475,8 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  WhatsappIzapiaGroupsErrors,
+  WhatsappIzapiaGroupsResponses,
   WhatsappIzapiaSessionsErrors,
   WhatsappIzapiaSessionsResponses,
   WhatsappWebhookErrors,
@@ -6423,6 +6425,41 @@ export class Whatsapp extends HeyApiClient {
       ThrowOnError
     >({
       url: "/whatsapp/izapia/sessions",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List izapia groups
+   *
+   * Lists WhatsApp groups across the given izapia sessions, deduped by group id.
+   */
+  public izapiaGroups<ThrowOnError extends boolean = false>(
+    parameters: {
+      apiKey: string
+      sids: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "body", key: "apiKey" },
+            { in: "body", key: "sids" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<WhatsappIzapiaGroupsResponses, WhatsappIzapiaGroupsErrors, ThrowOnError>({
+      url: "/whatsapp/izapia/groups",
       ...options,
       ...params,
       headers: {
