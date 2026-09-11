@@ -152,6 +152,23 @@ export function AgentUIFormPage() {
     })
   })
 
+  // Auto-load the izapia session/group pickers on edit — without this, the
+  // lists start empty (see izapiaSessions/izapiaGroups below) even though
+  // form.whatsappSessionIds/whatsappAllowedGroups already hold the saved
+  // selection, so reopening an agent for editing looked like every
+  // session/group checkbox had to be picked again from scratch.
+  createEffect(() => {
+    const agent = existing()
+    if (!agent || !isEdit) return
+    const channel = agent.channels.find((c) => c.type === "whatsapp")
+    if (channel?.type !== "whatsapp" || channel.provider !== "izapia") return
+    const apiKey = channel.config.apiKey?.trim()
+    if (!apiKey) return
+    void fetchIzapiaSessions().then(() => {
+      if (form.whatsappSessionIds.length > 0) void fetchIzapiaGroups()
+    })
+  })
+
   const addRagSource = () =>
     setForm("ragSources", (list) => [...list, { id: crypto.randomUUID(), kind: "text", label: "", value: "" }])
   const removeRagSource = (id: string) => setForm("ragSources", (list) => list.filter((s) => s.id !== id))
