@@ -1489,6 +1489,7 @@ export const dict: Record<string, string> = {
   "settings.agentui.field.whatsapp": "WhatsApp-এ উত্তর দিন",
   "settings.agentui.field.whatsapp.hint": "একটি অনানুষ্ঠানিক WhatsApp API ব্যবহার করে (waconector এর মাধ্যমে) — একটি প্রদানকারী বেছে নিন এবং সংযোগের বিবরণ পূরণ করুন। স্ব-হোস্টেড প্রদানকারীদের নিজস্ব সার্ভার/কন্টেইনার আলাদাভাবে চালানো প্রয়োজন; এটি শুধু তার সাথে সংযোগ করে।",
   "settings.agentui.field.whatsapp.webhookUrl": "ওয়েবহুক URL — প্রদানকারীর ড্যাশবোর্ডে পেস্ট করুন",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "সংরক্ষণের পরে প্রদানকারীর পক্ষ থেকে কনফিগার করার জন্য ওয়েবহুক URL এখানে প্রদর্শিত হয়।",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

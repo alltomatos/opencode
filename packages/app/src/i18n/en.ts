@@ -992,6 +992,7 @@ export const dict = {
   "settings.agentui.field.whatsapp.tunnel.error": "Couldn't start the tunnel. Is cloudflared installed?",
   "settings.agentui.field.whatsapp.hint": "Uses an unofficial WhatsApp API (via waconector) — pick a provider and fill in its connection details. Self-hosted providers (WAHA, Evolution GO, Wuzapi, QuePasa, WPPConnect) need their own server/container running separately; this only connects to it.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — paste this into the provider's dashboard",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately",
   "settings.agentui.field.whatsapp.webhookAfterSave": "The webhook URL to configure on the provider's side appears here after you save.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)",
   "settings.agentui.field.guardrails": "Guardrails",

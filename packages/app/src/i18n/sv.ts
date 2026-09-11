@@ -1497,6 +1497,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Svara på WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Använder ett inofficiellt WhatsApp-API (via waconector) — välj en leverantör och fyll i anslutningsuppgifterna. Självhostade leverantörer kräver en egen, separat körande server/behållare.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — klistra in den i leverantörens dashboard",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook-URL:en som ska konfigureras hos leverantören visas här efter att du sparat.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

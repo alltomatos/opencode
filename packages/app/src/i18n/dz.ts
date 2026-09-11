@@ -1518,6 +1518,7 @@ export const dict: Record<string, string> = {
   "settings.agentui.field.whatsapp": "WhatsApp ནང་ལན་གནང་",
   "settings.agentui.field.whatsapp.hint": "ཁྲིམས་མཐུན་མེད་པའི་ WhatsApp API (waconector བརྒྱུད) ལག་ལེན་འཐབ — ཞབས་ཏོག་སྤྲོད་མི་ཅིག་འདེམས་ཞིནམ་ མཐུད་གནས་ཀྱི་ཞིབ་ཕྲ་བཀང་།",
   "settings.agentui.field.whatsapp.webhookUrl": "ཝེབ་ཧུཀ་ ཡུ་ཨར་ཨེལ — ཞབས་ཏོག་སྤྲོད་མིའི་ཌེཤ་བོརཌ་ནང་སྦྱར",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "ཞབས་ཏོག་སྤྲོད་མིའི་ཁར་སྒྲིག་འབད་དགོཔའི་ཝེབ་ཧུཀ་ ཡུ་ཨར་ཨེལ་སྲུང་བཞག་འབད་བའི་ཤུལ་ལས་འདི་ནང་སྟོན་ཡི།",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

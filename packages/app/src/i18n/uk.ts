@@ -1604,6 +1604,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Відповідати в WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Використовує неофіційний WhatsApp API (через waconector) — оберіть постачальника та заповніть дані підключення. Постачальники з самостійним хостингом потребують власного, окремо запущеного сервера/контейнера.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL вебхука — вставте його в панель постачальника",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL вебхука, який потрібно налаштувати у постачальника, з'явиться тут після збереження.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

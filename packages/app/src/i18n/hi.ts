@@ -1500,6 +1500,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp पर उत्तर दें",
   "settings.agentui.field.whatsapp.hint": "एक गैर-आधिकारिक WhatsApp API का उपयोग करता है (waconector के माध्यम से) — एक प्रदाता चुनें और कनेक्शन विवरण भरें। स्व-होस्टेड प्रदाताओं को अपना खुद का सर्वर/कंटेनर अलग से चलाने की आवश्यकता होती है; यह केवल उससे जुड़ता है।",
   "settings.agentui.field.whatsapp.webhookUrl": "वेबहुक URL — इसे प्रदाता के डैशबोर्ड में पेस्ट करें",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "प्रदाता की ओर से कॉन्फ़िगर करने के लिए वेबहुक URL सेव करने के बाद यहां दिखाई देता है।",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

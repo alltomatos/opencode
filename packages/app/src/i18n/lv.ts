@@ -1499,6 +1499,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Atbildēt WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Izmanto neoficiālu WhatsApp API (izmantojot waconector) — izvēlieties nodrošinātāju un aizpildiet savienojuma datus. Pašmitinātiem nodrošinātājiem nepieciešams savs, atsevišķi darbojošs serveris/konteiners.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ielīmējiet to nodrošinātāja panelī",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook URL, kas jākonfigurē pie nodrošinātāja, parādās šeit pēc saglabāšanas.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

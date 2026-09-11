@@ -1587,6 +1587,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Balas di WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Menggunakan API WhatsApp tidak resmi (melalui waconector) — pilih penyedia dan isi detail koneksi. Penyedia self-hosted memerlukan server/kontainer sendiri yang berjalan terpisah; ini hanya terhubung ke sana.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — tempelkan ke dasbor penyedia",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhook yang perlu dikonfigurasi di sisi penyedia muncul di sini setelah Anda menyimpan.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

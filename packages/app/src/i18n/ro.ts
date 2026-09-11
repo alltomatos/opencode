@@ -1499,6 +1499,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Răspunde pe WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Folosește un API WhatsApp neoficial (prin waconector) — alege un furnizor și completează detaliile de conexiune. Furnizorii auto-găzduiți necesită propriul server/container care rulează separat.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — lipește-l în panoul furnizorului",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL-ul webhook de configurat la furnizor apare aici după salvare.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

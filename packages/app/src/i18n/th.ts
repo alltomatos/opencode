@@ -1575,6 +1575,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "ตอบกลับใน WhatsApp",
   "settings.agentui.field.whatsapp.hint": "ใช้ WhatsApp API ที่ไม่เป็นทางการ (ผ่าน waconector) — เลือกผู้ให้บริการและกรอกรายละเอียดการเชื่อมต่อ ผู้ให้บริการแบบ self-hosted ต้องการเซิร์ฟเวอร์/คอนเทนเนอร์ของตนเองที่ทำงานแยกต่างหาก",
   "settings.agentui.field.whatsapp.webhookUrl": "URL Webhook — วางลงในแดชบอร์ดของผู้ให้บริการ",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL Webhook ที่ต้องตั้งค่าฝั่งผู้ให้บริการจะปรากฏที่นี่หลังจากบันทึก",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

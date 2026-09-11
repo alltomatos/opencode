@@ -1506,6 +1506,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Trả lời trên WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Sử dụng API WhatsApp không chính thức (thông qua waconector) — chọn nhà cung cấp và điền chi tiết kết nối. Các nhà cung cấp tự lưu trữ cần máy chủ/container riêng chạy tách biệt.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — dán nó vào bảng điều khiển của nhà cung cấp",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhook cần cấu hình ở phía nhà cung cấp sẽ xuất hiện ở đây sau khi bạn lưu.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

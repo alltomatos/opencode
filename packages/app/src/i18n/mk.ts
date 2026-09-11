@@ -1503,6 +1503,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Одговори на WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Користи неофицијален WhatsApp API (преку waconector) — изберете давател и пополнете ги деталите за врска. Самостојно хостираните даватели бараат сопствен сервер/контејнер кој работи одделно.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL на webhook — залепете го во таблата на давателот",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL-от на webhook за конфигурирање кај давателот се појавува тука по зачувувањето.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

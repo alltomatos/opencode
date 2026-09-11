@@ -1510,6 +1510,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Respon a WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Utilitza una API no oficial de WhatsApp (via waconector) — tria un proveïdor i omple les dades de connexió. Els proveïdors autoallotjats necessiten el seu propi servidor/contenidor en execució per separat; això només s'hi connecta.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL del webhook — enganxa-la al tauler del proveïdor",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "La URL del webhook per configurar al proveïdor apareix aquí després de desar.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

@@ -1514,6 +1514,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "ވަޓްސްއެޕްގައި ޖަވާބުދޭ",
   "settings.agentui.field.whatsapp.hint": "ރަސްމީ ނޫން WhatsApp API އެއް ބޭނުންކުރެވޭ (waconector މެދުވެރިކޮށް) — ފޯރުކޮށްދޭ ފަރާތެއް ހޮވާ އަދި ކަނެކްޝަން ތަފްޞީލްތައް ފުރިހަމަ ކުރޭ. ސެލްފް-ހޯސްޓެޑް ފޯރުކޮށްދޭ ފަރާތްތަކަށް ވަކިން ސާވަރ/ކޮންޓެއިނަރެއް ބޭނުންވޭ.",
   "settings.agentui.field.whatsapp.webhookUrl": "ވެބްހުކް ޔޫއާރްއެލް — ފޯރުކޮށްދޭ ފަރާތުގެ ޑޭޝްބޯޑަށް ފޭސްޓް ކުރޭ",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "ފޯރުކޮށްދޭ ފަރާތުގައި ސެޓަޕް ކުރަންޖެހޭ ވެބްހުކް ޔޫއާރްއެލް ސޭވް ކުރުމަށްފަހު މިތާ ފެންނާނެ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

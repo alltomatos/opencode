@@ -1506,6 +1506,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsAppで返信",
   "settings.agentui.field.whatsapp.hint": "非公式のWhatsApp API（waconector経由）を使用します — プロバイダーを選び、接続情報を入力してください。セルフホスト型プロバイダーは別途稼働する独自サーバー/コンテナが必要です。これはそこに接続するだけです。",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — プロバイダーのダッシュボードに貼り付けてください",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "プロバイダー側で設定するWebhook URLは、保存後にここに表示されます。",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

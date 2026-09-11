@@ -1510,6 +1510,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Atsakyti WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Naudoja neoficialų WhatsApp API (per waconector) — pasirinkite teikėją ir užpildykite ryšio duomenis. Savarankiškai talpinamiems teikėjams reikia atskirai veikiančio savo serverio/konteinerio.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — įklijuokite jį teikėjo skydelyje",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook URL, kurį reikia sukonfigūruoti pas teikėją, pasirodo čia išsaugojus.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

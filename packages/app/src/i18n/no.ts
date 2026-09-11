@@ -1604,6 +1604,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Svar på WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Bruker en uoffisiell WhatsApp-API (via waconector) — velg en leverandør og fyll ut tilkoblingsdetaljene. Selvhostede leverandører krever sin egen server/beholder som kjører separat.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — lim den inn i leverandørens dashbord",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook-URL-en som skal konfigureres hos leverandøren, vises her etter at du har lagret.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

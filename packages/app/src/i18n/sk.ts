@@ -1496,6 +1496,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Odpovedať na WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Používa neoficiálne WhatsApp API (cez waconector) — vyberte poskytovateľa a vyplňte údaje o pripojení. Self-hosted poskytovatelia potrebujú vlastný, samostatne bežiaci server/kontajner.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL webhooku — vložte ho do panela poskytovateľa",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhooku na konfiguráciu u poskytovateľa sa zobrazí tu po uložení.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

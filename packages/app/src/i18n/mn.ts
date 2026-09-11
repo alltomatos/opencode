@@ -1505,6 +1505,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp дээр хариулах",
   "settings.agentui.field.whatsapp.hint": "Албан бус WhatsApp API ашигладаг (waconector-оор дамжуулан) — үйлчилгээ үзүүлэгчийг сонгож, холболтын мэдээллийг бөглөнө үү. Өөрөө байршуулсан үйлчилгээ үзүүлэгчид тусад нь ажиллаж буй өөрийн серверийг шаарддаг.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — үйлчилгээ үзүүлэгчийн хяналтын самбарт буулгана уу",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Үйлчилгээ үзүүлэгч дээр тохируулах Webhook URL хадгалсны дараа энд харагдана.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

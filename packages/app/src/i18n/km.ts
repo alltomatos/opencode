@@ -1488,6 +1488,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "ឆ្លើយតបនៅលើ WhatsApp",
   "settings.agentui.field.whatsapp.hint": "ប្រើ API WhatsApp មិនផ្លូវការ (តាមរយៈ waconector) — ជ្រើសរើសអ្នកផ្តល់សេវា ហើយបំពេញព័ត៌មានលម្អិតការតភ្ជាប់។ អ្នកផ្តល់សេវាដែលបង្ហោះដោយខ្លួនឯងត្រូវការម៉ាស៊ីនមេ/កុងតឺន័រផ្ទាល់ខ្លួនរបស់ពួកគេដំណើរការដាច់ដោយឡែក។",
   "settings.agentui.field.whatsapp.webhookUrl": "URL Webhook — បិទភ្ជាប់វានៅក្នុងផ្ទាំងគ្រប់គ្រងរបស់អ្នកផ្តល់សេវា",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL Webhook ដែលត្រូវកំណត់រចនាសម្ព័ន្ធនៅខាងអ្នកផ្តល់សេវានឹងបង្ហាញនៅទីនេះបន្ទាប់ពីអ្នករក្សាទុក។",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

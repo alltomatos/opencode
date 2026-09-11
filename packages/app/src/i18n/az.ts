@@ -1505,6 +1505,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp-da cavabla",
   "settings.agentui.field.whatsapp.hint": "Qeyri-rəsmi WhatsApp API-dən (waconector vasitəsilə) istifadə edir — provayder seçin və bağlantı detallarını doldurun. Özü-host edilən provayderlər öz serverini/konteynerini ayrıca işlək tələb edir; bu yalnız ona qoşulur.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL-i — provayderin panelinə yapışdırın",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Provayder tərəfində sazlanmalı webhook URL-i yadda saxladıqdan sonra burada görünür.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

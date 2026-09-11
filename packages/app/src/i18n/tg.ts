@@ -1501,6 +1501,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Дар WhatsApp ҷавоб додан",
   "settings.agentui.field.whatsapp.hint": "API ғайрирасмии WhatsApp-ро истифода мебарад (тавассути waconector) — провайдерро интихоб кунед ва тафсилоти пайвастшавиро пур кунед. Провайдерони худмизбон ба сервери/контейнери алоҳидаи худ ниёз доранд.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL-и webhook — онро ба саҳифаи идоракунии провайдер часпонед",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL-и webhook, ки бояд аз тарафи провайдер танзим карда шавад, пас аз сабт дар ин ҷо намоён мешавад.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

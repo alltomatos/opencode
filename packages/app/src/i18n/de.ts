@@ -1522,6 +1522,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Auf WhatsApp antworten",
   "settings.agentui.field.whatsapp.hint": "Nutzt eine inoffizielle WhatsApp-API (über waconector) — wähle einen Anbieter und fülle die Verbindungsdaten aus. Selbst gehostete Anbieter benötigen einen eigenen, separat laufenden Server/Container; dies verbindet sich nur damit.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — in das Dashboard des Anbieters einfügen",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Die beim Anbieter zu konfigurierende Webhook-URL erscheint hier nach dem Speichern.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

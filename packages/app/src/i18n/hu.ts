@@ -1507,6 +1507,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Válasz WhatsAppon",
   "settings.agentui.field.whatsapp.hint": "Nem hivatalos WhatsApp API-t használ (a waconectoron keresztül) — válassz szolgáltatót, és töltsd ki a kapcsolati adatokat. Az önállóan üzemeltetett szolgáltatókhoz saját, külön futó szerver/konténer szükséges; ez csak csatlakozik hozzá.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — illeszd be a szolgáltató irányítópultjába",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "A szolgáltatónál beállítandó webhook URL mentés után itt jelenik meg.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

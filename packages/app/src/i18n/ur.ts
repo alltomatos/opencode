@@ -1501,6 +1501,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp پر جواب دیں",
   "settings.agentui.field.whatsapp.hint": "ایک غیر سرکاری WhatsApp API استعمال کرتا ہے (waconector کے ذریعے) — ایک فراہم کنندہ منتخب کریں اور کنکشن کی تفصیلات پُر کریں۔ خود میزبان فراہم کنندگان کو الگ سے چلنے والا اپنا سرور/کنٹینر درکار ہوتا ہے۔",
   "settings.agentui.field.whatsapp.webhookUrl": "ویب ہک URL — اسے فراہم کنندہ کے ڈیش بورڈ میں پیسٹ کریں",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "فراہم کنندہ کی طرف سے ترتیب دیا جانے والا ویب ہک URL محفوظ کرنے کے بعد یہاں ظاہر ہوتا ہے۔",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

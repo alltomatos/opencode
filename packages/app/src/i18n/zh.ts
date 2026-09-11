@@ -1564,6 +1564,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "在 WhatsApp 上回复",
   "settings.agentui.field.whatsapp.hint": "使用非官方 WhatsApp API（通过 waconector）— 选择提供商并填写连接详情。自托管提供商需要单独运行自己的服务器/容器；这里只是连接到它。",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — 将其粘贴到提供商的控制面板中",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "保存后，需要在提供商端配置的 Webhook URL 会显示在此处。",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

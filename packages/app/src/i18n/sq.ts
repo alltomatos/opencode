@@ -1500,6 +1500,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Përgjigju në WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Përdor një API jozyrtare WhatsApp (përmes waconector) — zgjidhni një ofrues dhe plotësoni detajet e lidhjes. Ofruesit e vetë-strehuar kërkojnë serverin/kontejnerin e tyre që funksionon veçmas.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL i webhook — ngjiteni në panelin e ofruesit",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL i webhook për t'u konfiguruar te ofruesi shfaqet këtu pas ruajtjes.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

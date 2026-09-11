@@ -1505,6 +1505,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Odgovori na WhatsAppu",
   "settings.agentui.field.whatsapp.hint": "Koristi neslužbeni WhatsApp API (putem waconector) — odaberite pružatelja i ispunite podatke o vezi. Samostalno hostirani pružatelji trebaju vlastiti poslužitelj/spremnik koji radi zasebno; ovo se samo povezuje s njim.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL webhooka — zalijepite ga na nadzornu ploču pružatelja",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL webhooka za konfiguraciju kod pružatelja pojavljuje se ovdje nakon spremanja.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

@@ -744,12 +744,20 @@ export function AgentUIFormPage() {
                           }
                         >
                           {(url) => (
-                            <div class="flex flex-col gap-1">
-                              <label class="settings-v2-server-dialog-label">
-                                {language.t("settings.agentui.field.whatsapp.webhookUrl")}
-                              </label>
-                              <TextInputV2 value={url()} readOnly />
-                            </div>
+                            <>
+                              <div class="flex flex-col gap-1">
+                                <label class="settings-v2-server-dialog-label">
+                                  {language.t("settings.agentui.field.whatsapp.webhookUrl")}
+                                </label>
+                                <TextInputV2 value={url()} readOnly />
+                              </div>
+                              <div class="flex flex-col gap-1">
+                                <label class="settings-v2-server-dialog-label">
+                                  {language.t("settings.agentui.field.whatsapp.webhookSecret")}
+                                </label>
+                                <TextInputV2 value={form.whatsappWebhookSecret} readOnly />
+                              </div>
+                            </>
                           )}
                         </Show>
                       </Show>

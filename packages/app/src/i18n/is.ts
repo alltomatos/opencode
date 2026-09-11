@@ -1494,6 +1494,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Svara á WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Notar óopinbert WhatsApp API (í gegnum waconector) — veldu veitanda og fylltu út tengingarupplýsingar. Sjálfhýstir veitendur þurfa eigin netþjón/gám sem keyrir sérstaklega; þetta tengist bara við hann.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook slóð — límdu hana inn í mælaborð veitanda",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Webhook slóðin sem stilla þarf hjá veitanda birtist hér eftir að þú vistar.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

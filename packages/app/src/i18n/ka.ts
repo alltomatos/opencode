@@ -1493,6 +1493,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "პასუხი WhatsApp-ზე",
   "settings.agentui.field.whatsapp.hint": "იყენებს არაოფიციალურ WhatsApp API-ს (waconector-ის მეშვეობით) — აირჩიეთ პროვაიდერი და შეავსეთ კავშირის დეტალები. თვით-ჰოსტინგის პროვაიდერებს სჭირდებათ საკუთარი სერვერი/კონტეინერი ცალკე გაშვებული.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ჩასვით პროვაიდერის დაშბორდში",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "პროვაიდერთან დასაკონფიგურირებელი Webhook URL აქ გამოჩნდება შენახვის შემდეგ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

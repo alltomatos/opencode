@@ -1504,6 +1504,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp에서 응답",
   "settings.agentui.field.whatsapp.hint": "비공식 WhatsApp API를 사용합니다(waconector 경유) — 제공업체를 선택하고 연결 세부 정보를 입력하세요. 자체 호스팅 제공업체는 별도로 실행되는 자체 서버/컨테이너가 필요합니다. 이것은 단지 거기에 연결할 뿐입니다.",
   "settings.agentui.field.whatsapp.webhookUrl": "웹훅 URL — 제공업체의 대시보드에 붙여넣으세요",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "제공업체 측에서 설정할 웹훅 URL은 저장 후 여기에 표시됩니다.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

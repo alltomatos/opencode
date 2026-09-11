@@ -1492,6 +1492,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "پاسخ در واتس‌اپ",
   "settings.agentui.field.whatsapp.hint": "از یک API غیررسمی واتس‌اپ استفاده می‌کند (از طریق waconector) — یک ارائه‌دهنده انتخاب کنید و جزئیات اتصال را پر کنید. ارائه‌دهندگان خودمیزبان به سرور/کانتینر جداگانه خود نیاز دارند؛ این فقط به آن متصل می‌شود.",
   "settings.agentui.field.whatsapp.webhookUrl": "آدرس webhook — آن را در داشبورد ارائه‌دهنده جای‌گذاری کنید",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "آدرس webhook که باید در سمت ارائه‌دهنده تنظیم شود، پس از ذخیره در اینجا نمایش داده می‌شود.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

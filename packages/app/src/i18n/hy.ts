@@ -1502,6 +1502,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Պատասխանել WhatsApp-ում",
   "settings.agentui.field.whatsapp.hint": "Օգտագործում է ոչ պաշտոնական WhatsApp API (waconector-ի միջոցով) — ընտրեք մատակարար և լրացրեք կապի տվյալները։ Ինքնահյուրընկալվող մատակարարներին անհրաժեշտ է իրենց սեփական սերվերը/կոնտեյները առանձին աշխատեցնել.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — տեղադրեք մատակարարի վահանակում",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Մատակարարի կողմից կարգավորվող Webhook URL-ը հայտնվում է այստեղ պահպանելուց հետո։",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

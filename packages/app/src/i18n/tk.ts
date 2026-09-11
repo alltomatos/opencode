@@ -1496,6 +1496,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp-da jogap ber",
   "settings.agentui.field.whatsapp.hint": "Resmi bolmadyk WhatsApp API-ni ulanýar (waconector arkaly) — üpjün edijini saýlaň we baglanyşyk maglumatlaryny dolduryň. Öz-özüni ýerleşdirýän üpjün edijiler aýratyn işleýän öz serwerini/gapyny talap edýär.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ony üpjün edijiniň paneline ýelmäň",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Üpjün edijiniň tarapynda sazlanmaly Webhook URL ýatda saklanandan soň şu ýerde görkezilýär.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

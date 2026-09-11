@@ -1508,6 +1508,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "الرد على واتساب",
   "settings.agentui.field.whatsapp.hint": "يستخدم واجهة برمجة تطبيقات واتساب غير رسمية (عبر waconector) — اختر مزودًا واملأ بيانات الاتصال. المزودات المستضافة ذاتيًا تحتاج خادمها/حاويتها الخاصة تعمل بشكل منفصل؛ هذا فقط يتصل بها.",
   "settings.agentui.field.whatsapp.webhookUrl": "رابط الويب هوك — الصقه في لوحة تحكم المزود",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "رابط الويب هوك الذي يجب إعداده لدى المزود يظهر هنا بعد الحفظ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

@@ -1510,6 +1510,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Απάντηση στο WhatsApp",
   "settings.agentui.field.whatsapp.hint": "Χρησιμοποιεί ένα ανεπίσημο API WhatsApp (μέσω waconector) — επιλέξτε πάροχο και συμπληρώστε τα στοιχεία σύνδεσης. Οι αυτοφιλοξενούμενοι πάροχοι χρειάζονται τον δικό τους διακομιστή/container να τρέχει ξεχωριστά· αυτό απλώς συνδέεται μαζί του.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL webhook — επικολλήστε το στον πίνακα του παρόχου",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Το URL webhook προς ρύθμιση στον πάροχο εμφανίζεται εδώ μετά την αποθήκευση.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

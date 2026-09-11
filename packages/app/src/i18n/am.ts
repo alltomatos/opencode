@@ -1467,6 +1467,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "በWhatsApp ይመልሱ",
   "settings.agentui.field.whatsapp.hint": "ኦፊሴላዊ ያልሆነ WhatsApp API (በ waconector በኩል) ይጠቀማል — አቅራቢ ይምረጡ እና የግንኙነት ዝርዝሮችን ይሙሉ። ራስን-ያስተናገዱ አቅራቢዎች የራሳቸው ሰርቨር/ኮንቴይነር ተለይተው እንዲሰራ ይፈልጋሉ፤ ይህ ከዚያ ጋር ብቻ ይገናኛል።",
   "settings.agentui.field.whatsapp.webhookUrl": "የዌብሁክ URL — በአቅራቢው ዳሽቦርድ ውስጥ ይለጥፉ",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "በአቅራቢው በኩል መዋቀር ያለበት የዌብሁክ URL ካስቀመጡ በኋላ እዚህ ይታያል።",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

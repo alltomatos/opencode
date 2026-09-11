@@ -1485,6 +1485,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "ຕອບໃນ WhatsApp",
   "settings.agentui.field.whatsapp.hint": "ໃຊ້ WhatsApp API ທີ່ບໍ່ເປັນທາງການ (ຜ່ານ waconector) — ເລືອກຜູ້ໃຫ້ບໍລິການ ແລະ ຕື່ມລາຍລະອຽດການເຊື່ອມຕໍ່. ຜູ້ໃຫ້ບໍລິການແບບ self-hosted ຕ້ອງການເຊີບເວີ/container ຂອງຕົນເອງແຍກຕ່າງຫາກ.",
   "settings.agentui.field.whatsapp.webhookUrl": "URL Webhook — ວາງມັນໃນແດັຊບອດຂອງຜູ້ໃຫ້ບໍລິການ",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "URL Webhook ທີ່ຕ້ອງຕັ້ງຄ່າຢູ່ຝັ່ງຜູ້ໃຫ້ບໍລິການຈະປາກົດຢູ່ບ່ອນນີ້ຫຼັງຈາກທ່ານບັນທຶກ.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

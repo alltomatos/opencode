@@ -1505,6 +1505,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "Vastaa WhatsAppissa",
   "settings.agentui.field.whatsapp.hint": "Käyttää epävirallista WhatsApp-rajapintaa (waconectorin kautta) — valitse palveluntarjoaja ja täytä yhteystiedot. Itse isännöidyt palveluntarjoajat tarvitsevat oman erikseen käynnissä olevan palvelimen/säiliön; tämä vain yhdistää siihen.",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook-URL — liitä se palveluntarjoajan hallintapaneeliin",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "Palveluntarjoajalle määritettävä webhook-URL näkyy tässä tallennuksen jälkeen.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)

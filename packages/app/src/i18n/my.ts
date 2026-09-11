@@ -1513,6 +1513,7 @@ export const dict = {
   "settings.agentui.field.whatsapp": "WhatsApp တွင် ပြန်ကြားမည်",
   "settings.agentui.field.whatsapp.hint": "တရားမဝင် WhatsApp API ကို အသုံးပြုသည် (waconector မှတဆင့်) — ဝန်ဆောင်မှုပေးသူတစ်ခုကို ရွေးပြီး ချိတ်ဆက်မှုအသေးစိတ်ကို ဖြည့်ပါ။",
   "settings.agentui.field.whatsapp.webhookUrl": "Webhook URL — ဝန်ဆောင်မှုပေးသူ၏ dashboard တွင် ကူးထည့်ပါ",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.webhookAfterSave": "ဝန်ဆောင်မှုပေးသူဘက်တွင် စီစဉ်ရမည့် Webhook URL သည် သိမ်းဆည်းပြီးနောက် ဤနေရာတွင် ပေါ်လာမည်။",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
