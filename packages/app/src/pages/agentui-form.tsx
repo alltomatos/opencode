@@ -346,15 +346,48 @@ export function AgentUIFormPage() {
     isEdit ? language.t("settings.agentui.form.title.edit") : language.t("settings.agentui.form.title.create"),
   )
 
+  // server.url is the opencode API base the app itself talks to — for a
+  // desktop install that's 127.0.0.1/localhost, which no remote waconector
+  // provider can ever call back into. publicTunnelUrl (a cloudflared quick
+  // tunnel, see Tunnel.Service) stands in for it once started; the webhook
+  // link below prefers it whenever the raw server URL is a private/loopback
+  // address.
+  const PRIVATE_HOST_PATTERN = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|localhost)/i
+  const isPrivateServerUrl = createMemo(() => {
+    try {
+      return PRIVATE_HOST_PATTERN.test(new URL(serverSDK().url).hostname)
+    } catch {
+      return false
+    }
+  })
+
+  const [publicTunnelUrl, setPublicTunnelUrl] = createSignal<string | undefined>()
+  const [tunnelStarting, setTunnelStarting] = createSignal(false)
+  const [tunnelError, setTunnelError] = createSignal<string | undefined>()
+
+  const startPublicTunnel = async () => {
+    if (tunnelStarting()) return
+    setTunnelError(undefined)
+    setTunnelStarting(true)
+    try {
+      const port = Number(new URL(serverSDK().url).port) || 80
+      const result = await serverSDK().client.tunnel.start({ port })
+      if (result.data?.url) setPublicTunnelUrl(result.data.url)
+      else setTunnelError(language.t("settings.agentui.field.whatsapp.tunnel.error"))
+    } catch (cause) {
+      setTunnelError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setTunnelStarting(false)
+    }
+  }
+
   // Shown so the user can paste it into the selected provider's dashboard.
   // Only meaningful once the agent has actually been saved with WhatsApp
-  // enabled (before that, there's no webhookSecret yet — server.url is the
-  // opencode API base the app itself talks to, which must be publicly
-  // reachable for the provider's webhook calls to land here).
+  // enabled (before that, there's no webhookSecret yet).
   const whatsappWebhookUrl = createMemo(() => {
     const secret = form.whatsappWebhookSecret
     if (!secret) return undefined
-    const base = serverSDK().url.replace(/\/$/, "")
+    const base = (publicTunnelUrl() ?? serverSDK().url).replace(/\/$/, "")
     return `${base}/whatsapp/webhook/${form.id}/${secret}?directory=${encodeURIComponent(directory() ?? "")}`
   })
 
@@ -676,6 +709,26 @@ export function AgentUIFormPage() {
                           </Show>
                         </Show>
                         <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
+                        <Show when={isPrivateServerUrl() && !publicTunnelUrl()}>
+                          <div class="flex flex-col gap-1.5 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 p-2.5">
+                            <p class="text-11-regular text-v2-text-text-faint">
+                              {language.t("settings.agentui.field.whatsapp.tunnel.hint")}
+                            </p>
+                            <ButtonV2 variant="outline" disabled={tunnelStarting()} onClick={() => void startPublicTunnel()}>
+                              {tunnelStarting()
+                                ? language.t("settings.agentui.field.whatsapp.tunnel.starting")
+                                : language.t("settings.agentui.field.whatsapp.tunnel.start")}
+                            </ButtonV2>
+                            <Show when={tunnelError()}>
+                              <span class="settings-v2-server-dialog-error">{tunnelError()}</span>
+                            </Show>
+                          </div>
+                        </Show>
+                        <Show when={publicTunnelUrl()}>
+                          <p class="text-11-regular text-v2-text-text-accent">
+                            {language.t("settings.agentui.field.whatsapp.tunnel.active", { url: publicTunnelUrl()! })}
+                          </p>
+                        </Show>
                         <Show
                           when={whatsappWebhookUrl()}
                           fallback={

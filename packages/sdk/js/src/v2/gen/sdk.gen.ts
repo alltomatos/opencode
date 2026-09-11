@@ -475,6 +475,12 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  TunnelStartErrors,
+  TunnelStartResponses,
+  TunnelStatusErrors,
+  TunnelStatusResponses,
+  TunnelStopErrors,
+  TunnelStopResponses,
   WhatsappIzapiaGroupsErrors,
   WhatsappIzapiaGroupsResponses,
   WhatsappIzapiaSessionsErrors,
@@ -6471,6 +6477,52 @@ export class Whatsapp extends HeyApiClient {
   }
 }
 
+export class Tunnel extends HeyApiClient {
+  /**
+   * Start public tunnel
+   *
+   * Starts a cloudflared quick tunnel exposing this server's given local port publicly.
+   */
+  public start<ThrowOnError extends boolean = false>(
+    parameters: {
+      port: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "port" }] }])
+    return (options?.client ?? this.client).post<TunnelStartResponses, TunnelStartErrors, ThrowOnError>({
+      url: "/tunnel/start",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get tunnel status
+   */
+  public status<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<TunnelStatusResponses, TunnelStatusErrors, ThrowOnError>({
+      url: "/tunnel/status",
+      ...options,
+    })
+  }
+
+  /**
+   * Stop public tunnel
+   */
+  public stop<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<TunnelStopResponses, TunnelStopErrors, ThrowOnError>({
+      url: "/tunnel/stop",
+      ...options,
+    })
+  }
+}
+
 export class Health extends HeyApiClient {
   /**
    * Check server health
@@ -8695,6 +8747,11 @@ export class OpencodeClient extends HeyApiClient {
   private _whatsapp?: Whatsapp
   get whatsapp(): Whatsapp {
     return (this._whatsapp ??= new Whatsapp({ client: this.client }))
+  }
+
+  private _tunnel?: Tunnel
+  get tunnel(): Tunnel {
+    return (this._tunnel ??= new Tunnel({ client: this.client }))
   }
 
   private _v2?: V2

@@ -12646,6 +12646,99 @@ export type WhatsappIzapiaGroupsResponses = {
 
 export type WhatsappIzapiaGroupsResponse = WhatsappIzapiaGroupsResponses[keyof WhatsappIzapiaGroupsResponses]
 
+export type TunnelStatus = {
+  running: boolean
+  url?: string
+}
+
+export type TunnelError = {
+  _tag: "TunnelError"
+  reason: string
+}
+
+export type TunnelStartData = {
+  body: {
+    port: number
+  }
+  path?: never
+  query?: never
+  url: "/tunnel/start"
+}
+
+export type TunnelStartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * TunnelError
+   */
+  500: TunnelError
+}
+
+export type TunnelStartError = TunnelStartErrors[keyof TunnelStartErrors]
+
+export type TunnelStartResponses = {
+  /**
+   * Tunnel started (or already running)
+   */
+  200: TunnelStatus
+}
+
+export type TunnelStartResponse = TunnelStartResponses[keyof TunnelStartResponses]
+
+export type TunnelStatusData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/status"
+}
+
+export type TunnelStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelStatusError = TunnelStatusErrors[keyof TunnelStatusErrors]
+
+export type TunnelStatusResponses = {
+  /**
+   * Current tunnel status
+   */
+  200: TunnelStatus
+}
+
+export type TunnelStatusResponse = TunnelStatusResponses[keyof TunnelStatusResponses]
+
+export type TunnelStopData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/stop"
+}
+
+export type TunnelStopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelStopError = TunnelStopErrors[keyof TunnelStopErrors]
+
+export type TunnelStopResponses = {
+  /**
+   * Tunnel stopped
+   */
+  200: {
+    ok: true
+  }
+}
+
+export type TunnelStopResponse = TunnelStopResponses[keyof TunnelStopResponses]
+
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never
   path?: never

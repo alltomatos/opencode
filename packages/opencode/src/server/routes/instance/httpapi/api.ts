@@ -30,6 +30,7 @@ import { SessionApi } from "./groups/session"
 import { SyncApi } from "./groups/sync"
 import { TelegramApi } from "./groups/telegram"
 import { TuiApi } from "./groups/tui"
+import { TunnelApi } from "./groups/tunnel"
 import { WhatsAppApi } from "./groups/whatsapp"
 import { WorkspaceApi } from "./groups/workspace"
 import { makeApi } from "@opencode-ai/protocol/api"
@@ -87,6 +88,7 @@ export const InstanceHttpApi = HttpApi.make("opencode-instance")
   .addHttpApi(MemoryApi)
   .addHttpApi(TuiApi)
   .addHttpApi(WhatsAppApi)
+  .addHttpApi(TunnelApi)
   .addHttpApi(WorkspaceApi)
   .middleware(SchemaErrorMiddleware)
 
