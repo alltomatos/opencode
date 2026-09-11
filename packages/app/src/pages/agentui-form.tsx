@@ -29,6 +29,17 @@ import {
 } from "@/components/settings-v2/whatsapp-providers"
 import "@/components/settings-v2/settings-v2.css"
 
+// Module-level (not component state) so it survives remounting the form —
+// reopening "Editar agente" for the same izapia agent used to re-hit
+// whatsapp.izapiaSessions/izapiaGroups every single time via the auto-load
+// effect below. Each visit is a handful of HTTP calls against izapia's own
+// account-wide rate limit; enough repeat visits during a session exhausted
+// that budget and made the *actual* reply-send fail too (see whatsapp/
+// index.ts's sendText retry). Caching by apiKey (and by apiKey+session set
+// for groups) means only the first visit per key pays that cost.
+const izapiaSessionsCache = new Map<string, { id: string; name?: string; status: string; jid?: string }[]>()
+const izapiaGroupsCache = new Map<string, { id: string; subject: string; sessionId: string; participantCount: number }[]>()
+
 type RagSource = { id: string; kind: "text" | "url"; label: string; value: string }
 type AgentUIFormState = {
   id: string
@@ -185,13 +196,21 @@ export function AgentUIFormPage() {
   const [izapiaSessionsLoading, setIzapiaSessionsLoading] = createSignal(false)
   const [izapiaSessionsError, setIzapiaSessionsError] = createSignal<string | undefined>()
 
-  const fetchIzapiaSessions = async () => {
+  const fetchIzapiaSessions = async (options?: { force?: boolean }) => {
     const apiKey = form.whatsappConfig.apiKey?.trim()
     if (!apiKey || izapiaSessionsLoading()) return
+    if (!options?.force) {
+      const cached = izapiaSessionsCache.get(apiKey)
+      if (cached) {
+        setIzapiaSessions(cached)
+        return
+      }
+    }
     setIzapiaSessionsError(undefined)
     setIzapiaSessionsLoading(true)
     try {
       const result = await serverSDK().client.whatsapp.izapiaSessions({ apiKey })
+      izapiaSessionsCache.set(apiKey, result.data ?? [])
       setIzapiaSessions(result.data ?? [])
       if (!result.data?.length) setIzapiaSessionsError(language.t("settings.agentui.field.whatsapp.izapiaSessions.empty"))
     } catch (cause) {
@@ -222,13 +241,22 @@ export function AgentUIFormPage() {
   const [izapiaGroupsLoading, setIzapiaGroupsLoading] = createSignal(false)
   const [izapiaGroupsError, setIzapiaGroupsError] = createSignal<string | undefined>()
 
-  const fetchIzapiaGroups = async () => {
+  const fetchIzapiaGroups = async (options?: { force?: boolean }) => {
     const apiKey = form.whatsappConfig.apiKey?.trim()
     if (!apiKey || form.whatsappSessionIds.length === 0 || izapiaGroupsLoading()) return
+    const cacheKey = `${apiKey}:${[...form.whatsappSessionIds].sort().join(",")}`
+    if (!options?.force) {
+      const cached = izapiaGroupsCache.get(cacheKey)
+      if (cached) {
+        setIzapiaGroups(cached)
+        return
+      }
+    }
     setIzapiaGroupsError(undefined)
     setIzapiaGroupsLoading(true)
     try {
       const result = await serverSDK().client.whatsapp.izapiaGroups({ apiKey, sids: form.whatsappSessionIds })
+      izapiaGroupsCache.set(cacheKey, result.data ?? [])
       setIzapiaGroups(result.data ?? [])
       if (!result.data?.length) setIzapiaGroupsError(language.t("settings.agentui.field.whatsapp.izapiaGroups.empty"))
     } catch (cause) {
@@ -340,7 +368,15 @@ export function AgentUIFormPage() {
           model: form.model,
           channels,
           commandTriggers: triggers,
-          ragSources: form.ragSources.filter((s) => s.label && s.value),
+          // Only `value` is actually required to be useful (it's the text/URL
+          // that gets fetched) — dropping a source just because its `label`
+          // was left blank silently threw away real content on save (a
+          // pasted URL with no title never made it past this filter, so it
+          // looked "saved" in the form but was gone after reloading). A
+          // missing label falls back to the value itself instead.
+          ragSources: form.ragSources
+            .filter((s) => s.value.trim())
+            .map((s) => ({ ...s, label: s.label.trim() || s.value.trim() })),
           guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
           mcpServers: form.mcpServers,
           enabled: form.enabled,
@@ -561,7 +597,12 @@ export function AgentUIFormPage() {
 
                     <div class="flex flex-col gap-1.5">
                       <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.model")}</label>
-                      <ModelPickerV2 value={form.model} onChange={(value) => setForm("model", value)} combos={combos() ?? []} />
+                      <ModelPickerV2
+                        value={form.model}
+                        onChange={(value) => setForm("model", value)}
+                        combos={combos() ?? []}
+                        directory={directory()}
+                      />
                     </div>
 
                     <div class="flex flex-col gap-1.5">
@@ -668,7 +709,7 @@ export function AgentUIFormPage() {
                           <ButtonV2
                             variant="outline"
                             disabled={!form.whatsappConfig.apiKey?.trim() || izapiaSessionsLoading()}
-                            onClick={() => void fetchIzapiaSessions()}
+                            onClick={() => void fetchIzapiaSessions({ force: true })}
                           >
                             {izapiaSessionsLoading()
                               ? language.t("settings.agentui.field.whatsapp.izapiaSessions.loading")
@@ -718,7 +759,7 @@ export function AgentUIFormPage() {
                           <ButtonV2
                             variant="outline"
                             disabled={form.whatsappSessionIds.length === 0 || izapiaGroupsLoading()}
-                            onClick={() => void fetchIzapiaGroups()}
+                            onClick={() => void fetchIzapiaGroups({ force: true })}
                           >
                             {izapiaGroupsLoading()
                               ? language.t("settings.agentui.field.whatsapp.izapiaGroups.loading")

@@ -14,6 +14,16 @@ export interface ModelPickerV2Props {
   onChange: (value: string) => void
   /** When provided, the provider dropdown also lists these as selectable combos. */
   combos?: { id: string; name: string }[]
+  /**
+   * Worktree to scope the provider catalog to. Without this, useProviders()
+   * falls back to the global catalog, which misses providers only connected
+   * per-project (e.g. Omniroute) — those still show in a real session's
+   * chat composer (project-scoped) but silently disappear from this picker.
+   * Pass the caller's own directory when one is available (AgentUI); other
+   * callers (Batuta, Memória) have no natural directory and keep the old
+   * global-catalog behavior by omitting this.
+   */
+  directory?: string
 }
 
 function splitModel(value: string) {
@@ -33,7 +43,7 @@ const selectClass = `
 
 export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const language = useLanguage()
-  const providers = useProviders(() => undefined)
+  const providers = useProviders(() => props.directory)
 
   // Only providers actually connected (auth configured) with at least one
   // model to pick — the full catalog (`providers.all()`) includes every

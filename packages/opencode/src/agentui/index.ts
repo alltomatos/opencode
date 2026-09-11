@@ -316,11 +316,20 @@ const layer = Layer.effect(
     }
 
     const sessionPermission = (mcpServers?: readonly string[]): PermissionV1.Ruleset => [
-      { permission: "bash", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-      { permission: "edit", pattern: "*", action: "deny" },
-      { permission: "write", pattern: "*", action: "deny" },
-      { permission: "external_directory", pattern: "*", action: "deny" },
+      // Wildcard deny-everything, not a per-category list: anything not
+      // covered by an explicit rule below falls through to the *default*
+      // permission action, which for tools outside this short list (e.g.
+      // todowrite, webfetch, lsp, skill — none of them bash/task/edit/
+      // write/external_directory) is "ask". A channel dispatch has no
+      // human attached to answer that prompt, so the tool call — and the
+      // whole assistant turn — silently stalls: the loop still exits (its
+      // finish reason isn't "tool-calls"/"unknown") but with zero parts,
+      // producing the "(sem resposta)" fallback with no error anywhere.
+      // Root-caused 2026-09-11 against a live izapia webhook: the model
+      // call itself completed fine (confirmed working in a normal
+      // session with the same model), only channel-dispatched sessions
+      // hit this. See git history for the per-category list this replaced.
+      { permission: "*", pattern: "*", action: "deny" },
       ...(mcpServers ?? []).map(
         (server): PermissionV1.Rule => ({
           permission: `${McpCatalog.sanitize(server)}_*`,
@@ -334,7 +343,17 @@ const layer = Layer.effect(
       if (spec.startsWith("combo:")) {
         return yield* combos.resolve(spec.slice("combo:".length)).pipe(Effect.orElseSucceed(() => undefined))
       }
-      const [providerID, modelID] = spec.split("/")
+      // Split on the FIRST "/" only — some providers (Omniroute) encode
+      // their own namespace into the model id itself (e.g.
+      // "omnrt/agy/gemini-3.7-flash-tiered"), so a full spec.split("/")
+      // truncated modelID to just "agy", losing everything after the
+      // second slash and producing a "Model not found: omnrt/agy" error.
+      // Same first-slash-only convention ModelPickerV2's splitModel() uses
+      // client-side.
+      const separator = spec.indexOf("/")
+      if (separator < 0) return undefined
+      const providerID = spec.slice(0, separator)
+      const modelID = spec.slice(separator + 1)
       if (!providerID || !modelID) return undefined
       return { providerID, modelID }
     })

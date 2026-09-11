@@ -3,7 +3,8 @@ export * as WhatsApp from "./index"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 import { AgentUI, AgentUINotFoundError } from "@/agentui"
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Duration, Effect, Fiber, Layer, Schedule, Schema } from "effect"
+import * as Scope from "effect/Scope"
 import { createConnector, type WaAdapter } from "waconector"
 import { waha } from "waconector/waha"
 import { evolution } from "waconector/evolution"
@@ -183,10 +184,114 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/WhatsApp") {}
 
+// How long to wait after a message arrives before actually dispatching it —
+// gives a person who fires off several WhatsApp bubbles in a row (very
+// common; WhatsApp itself encourages short messages) a window to finish
+// before the agent replies to just the first fragment. Each new message for
+// the same (agent, chat) pair during the window cancels and restarts the
+// wait and gets appended to the same batch, joined by newlines into one
+// prompt. Tune by feel — too short defeats the point, too long feels
+// unresponsive for genuinely single-shot messages.
+const DEBOUNCE = Duration.seconds(4)
+
+interface PendingBatch {
+  texts: string[]
+  fiber: Fiber.Fiber<void, never>
+}
+
 const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const agentUI = yield* AgentUI.Service
+    const scope = yield* Scope.Scope
+    const pending = new Map<string, PendingBatch>()
+
+    // Best-effort — a stalled/erroring provider presence call should never
+    // block or fail the actual reply. Not every provider implements
+    // presence.setTyping (optional in the WaAdapter contract), hence the
+    // Effect.sync wrapper: nothing to await when it's absent.
+    const setTyping = (channel: ConfigAgentUIV1.WhatsAppChannelBinding, sid: string | undefined, to: string) =>
+      Effect.gen(function* () {
+        const connector = createConnector(buildAdapter(channel, sid))
+        const setter = connector.presence?.setTyping
+        if (!setter) return
+        yield* Effect.tryPromise(() => setter({ to, state: "composing" }))
+      }).pipe(Effect.ignore)
+
+    const flushBatch = (input: {
+      agentID: string
+      directory: string
+      channel: ConfigAgentUIV1.WhatsAppChannelBinding
+      chatId: string
+      instanceId: string | undefined
+      key: string
+    }) =>
+      Effect.gen(function* () {
+        const batch = pending.get(input.key)
+        pending.delete(input.key)
+        if (!batch) return
+        yield* setTyping(input.channel, input.instanceId, input.chatId)
+        const result = yield* agentUI.dispatchChannelMessage({
+          id: input.agentID,
+          directory: input.directory,
+          chatKey: input.chatId,
+          message: batch.texts.join("\n"),
+        })
+        if (!result.reply) return
+        const replyAdapter = buildAdapter(input.channel, input.instanceId)
+        // The adapter's own HttpClient already retries a 429/5xx twice with a
+        // short (sub-second to few-second) backoff — fine for a background
+        // groups/sessions lookup, not enough once the whole tenant's rate
+        // budget is already exhausted (observed 2026-09-11: a burst of
+        // groups.list calls from repeatedly reopening the agent form starved
+        // the account's quota, and the actual reply send failed outright
+        // with no further attempt, silently dropping the answer the model
+        // had already produced). Actually delivering the reply matters far
+        // more than any background lookup, so it gets its own slower,
+        // longer-patience retry on top: a few attempts spread over ~30s.
+        yield* Effect.tryPromise(() =>
+          createConnector(replyAdapter).messages.sendText({ to: input.chatId, text: result.reply }),
+        ).pipe(
+          Effect.retry({ schedule: Schedule.exponential("2 seconds").pipe(Schedule.both(Schedule.recurs(4))) }),
+          Effect.tapError((cause) => Effect.logError("whatsapp sendText failed", { agentID: input.agentID, cause })),
+          Effect.ignore,
+        )
+      })
+
+    // Appends to the in-flight batch for this (agent, chat) pair if there is
+    // one, cancelling its pending flush and restarting the debounce window;
+    // otherwise starts a new batch. The flush runs as a daemon fiber so
+    // handleWebhook can return its 200 immediately without holding the
+    // provider's webhook request open for the whole debounce window.
+    const enqueue = (input: {
+      agentID: string
+      directory: string
+      channel: ConfigAgentUIV1.WhatsAppChannelBinding
+      chatId: string
+      instanceId: string | undefined
+      text: string
+    }) =>
+      Effect.gen(function* () {
+        const key = `${input.agentID}:${input.chatId}`
+        const existing = pending.get(key)
+        if (existing) yield* Fiber.interrupt(existing.fiber)
+        const texts = [...(existing?.texts ?? []), input.text]
+        const fiber = yield* Effect.sleep(DEBOUNCE)
+          .pipe(
+            Effect.andThen(() =>
+              flushBatch({
+                agentID: input.agentID,
+                directory: input.directory,
+                channel: input.channel,
+                chatId: input.chatId,
+                instanceId: input.instanceId,
+                key,
+              }),
+            ),
+          )
+          .pipe(Effect.ignore, Effect.forkIn(scope))
+        pending.set(key, { texts, fiber })
+      })
 
     const handleWebhook = Effect.fn("WhatsApp.handleWebhook")(function* (input: {
       agentID: string
@@ -228,23 +333,14 @@ const layer = Layer.effect(
         if (!isChatAllowed(channel, event.message.chatId)) continue
         const text = event.message.text
         if (!text) continue
-        const result = yield* agentUI.dispatchChannelMessage({
-          id: input.agentID,
+        yield* enqueue({
+          agentID: input.agentID,
           directory,
-          chatKey: event.message.chatId,
-          message: text,
+          channel,
+          chatId: event.message.chatId,
+          instanceId: event.instanceId,
+          text,
         })
-        if (result.reply) {
-          // Reply through the session the message actually arrived on, not
-          // necessarily the first configured one.
-          const replyAdapter = buildAdapter(channel, event.instanceId)
-          yield* Effect.tryPromise(() =>
-            createConnector(replyAdapter).messages.sendText({ to: event.message.chatId, text: result.reply }),
-          ).pipe(
-            Effect.tapError((cause) => Effect.logError("whatsapp sendText failed", { agentID: input.agentID, cause })),
-            Effect.ignore,
-          )
-        }
       }
       return { ok: true as const }
     })
