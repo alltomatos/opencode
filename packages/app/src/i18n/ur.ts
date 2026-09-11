@@ -1453,6 +1453,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI سے بنائیں",
+  "settings.agentui.ai.hint": "اپنے الفاظ میں وہ ایجنٹ بیان کریں جو آپ چاہتے ہیں — نام، شخصیت اور ترتیبات جائزے کے لیے نیچے تیار کی جائیں گی۔",
+  "settings.agentui.ai.placeholder": "مثلاً: ایک دوستانہ ڈینٹسٹ کلینک ریسیپشنسٹ جو اپائنٹمنٹ سے متعلق سوالات کے جواب دیتی ہے...",
+  "settings.agentui.ai.generate": "تخلیق کریں",
+  "settings.agentui.ai.generating": "تخلیق ہو رہا ہے…",
+  "settings.agentui.ai.toast.generated": "مسودہ تیار ہو گیا — محفوظ کرنے سے پہلے جائزہ لیں",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

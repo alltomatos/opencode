@@ -1539,6 +1539,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Buat dengan AI",
+  "settings.agentui.ai.hint": "Jelaskan agen yang Anda inginkan dengan kata-kata Anda sendiri — nama, kepribadian, dan pengaturan akan disusun di bawah untuk Anda tinjau.",
+  "settings.agentui.ai.placeholder": "mis. Resepsionis klinik gigi yang ramah dan menjawab pertanyaan seputar janji temu...",
+  "settings.agentui.ai.generate": "Buat",
+  "settings.agentui.ai.generating": "Membuat…",
+  "settings.agentui.ai.toast.generated": "Draf dibuat — tinjau sebelum menyimpan",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

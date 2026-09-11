@@ -1448,6 +1448,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Vytvoriť pomocou AI",
+  "settings.agentui.ai.hint": "Opíšte agenta, ktorého chcete, vlastnými slovami — meno, osobnosť a nastavenia sa nižšie pripravia na kontrolu.",
+  "settings.agentui.ai.placeholder": "napr. Priateľská recepčná v zubnej ordinácii, ktorá odpovedá na otázky o termínoch...",
+  "settings.agentui.ai.generate": "Vygenerovať",
+  "settings.agentui.ai.generating": "Generuje sa…",
+  "settings.agentui.ai.toast.generated": "Návrh vygenerovaný — pred uložením skontrolujte",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

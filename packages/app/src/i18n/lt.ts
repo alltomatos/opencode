@@ -1462,6 +1462,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Kurti su DI",
+  "settings.agentui.ai.hint": "Aprašykite norimą agentą savais žodžiais — pavadinimas, asmenybė ir nustatymai bus parengti žemiau peržiūrai.",
+  "settings.agentui.ai.placeholder": "pvz. Draugiška odontologijos klinikos registratorė, atsakanti į klausimus apie vizitus...",
+  "settings.agentui.ai.generate": "Generuoti",
+  "settings.agentui.ai.generating": "Generuojama…",
+  "settings.agentui.ai.toast.generated": "Juodraštis sukurtas — peržiūrėkite prieš išsaugant",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

@@ -1462,6 +1462,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Crear amb IA",
+  "settings.agentui.ai.hint": "Descriu l'agent que vols amb les teves paraules — el nom, la personalitat i la configuració es redactaran a sota perquè els revisis.",
+  "settings.agentui.ai.placeholder": "p. ex. Una recepcionista amable d'una clínica dental que respon preguntes sobre cites...",
+  "settings.agentui.ai.generate": "Genera",
+  "settings.agentui.ai.generating": "Generant…",
+  "settings.agentui.ai.toast.generated": "Esborrany generat — revisa'l abans de desar",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

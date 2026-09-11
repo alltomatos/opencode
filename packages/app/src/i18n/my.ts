@@ -1465,6 +1465,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI ဖြင့် ဖန်တီးမည်",
+  "settings.agentui.ai.hint": "သင်လိုချင်သော အေးဂျင့်ကို သင့်ကိုယ်ပိုင်စကားဖြင့် ဖော်ပြပါ — အမည်၊ စရိုက်လက္ခဏာနှင့် ဆက်တင်များကို အောက်တွင် စစ်ဆေးရန် မူကြမ်းရေးဆွဲပေးမည်။",
+  "settings.agentui.ai.placeholder": "ဥပမာ - ချိန်းဆိုမှုမေးခွန်းများကို ဖြေကြားပေးသော ဖော်ရွေသော သွားဆေးခန်းလက်ခံရေးမှူး...",
+  "settings.agentui.ai.generate": "ဖန်တီးမည်",
+  "settings.agentui.ai.generating": "ဖန်တီးနေသည်…",
+  "settings.agentui.ai.toast.generated": "မူကြမ်း ဖန်တီးပြီးပါပြီ — သိမ်းဆည်းမီ စစ်ဆေးပါ",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

@@ -1459,6 +1459,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Létrehozás AI-val",
+  "settings.agentui.ai.hint": "Írd le saját szavaiddal a kívánt ügynököt — a nevet, a személyiséget és a beállításokat az alábbiakban vázoljuk fel átnézésre.",
+  "settings.agentui.ai.placeholder": "pl.: Egy barátságos fogorvosi recepciós, aki válaszol az időpontokkal kapcsolatos kérdésekre...",
+  "settings.agentui.ai.generate": "Generálás",
+  "settings.agentui.ai.generating": "Generálás…",
+  "settings.agentui.ai.toast.generated": "Piszkozat elkészült — mentés előtt tekintsd át",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

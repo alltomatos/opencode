@@ -2240,6 +2240,11 @@ export type AgentUiNotFoundError = {
   id: string
 }
 
+export type AgentUiGenerateFailedError = {
+  _tag: "AgentUIGenerateFailedError"
+  reason: string
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -8322,6 +8327,45 @@ export type AgentuiGetResponses = {
 }
 
 export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
+
+export type AgentuiGenerateData = {
+  body?: {
+    description: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/generate"
+}
+
+export type AgentuiGenerateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUIGenerateFailedError
+   */
+  500: AgentUiGenerateFailedError
+}
+
+export type AgentuiGenerateError = AgentuiGenerateErrors[keyof AgentuiGenerateErrors]
+
+export type AgentuiGenerateResponses = {
+  /**
+   * Generated agent draft
+   */
+  200: {
+    name: string
+    personality: string
+    commandTriggers: Array<string>
+    guardrails: AgentUiGuardrails
+  }
+}
+
+export type AgentuiGenerateResponse = AgentuiGenerateResponses[keyof AgentuiGenerateResponses]
 
 export type AgentuiTestData = {
   body?: {

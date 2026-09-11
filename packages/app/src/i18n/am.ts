@@ -1419,6 +1419,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "በAI ይፍጠሩ",
+  "settings.agentui.ai.hint": "የሚፈልጉትን ወኪል በራስዎ ቃላት ይግለጹ — ስም፣ ባህሪ እና ቅንብሮች ከዚህ በታች ለክለሳ ይዘጋጃሉ።",
+  "settings.agentui.ai.placeholder": "ለምሳሌ፦ ስለ ቀጠሮ ጥያቄዎችን የሚመልስ ወዳጃዊ የጥርስ ክሊኒክ ተቀባይ...",
+  "settings.agentui.ai.generate": "ፍጠር",
+  "settings.agentui.ai.generating": "በመፍጠር ላይ…",
+  "settings.agentui.ai.toast.generated": "ረቂቅ ተፈጥሯል — ከማስቀመጥዎ በፊት ይከልሱ",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

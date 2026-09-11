@@ -1460,6 +1460,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI bilan yaratish",
+  "settings.agentui.ai.hint": "Xohlagan agentingizni o'z so'zlaringiz bilan tasvirlab bering — nomi, xarakteri va sozlamalari ko'rib chiqish uchun quyida tayyorlanadi.",
+  "settings.agentui.ai.placeholder": "masalan: Uchrashuv savollariga javob beradigan do'stona tish klinikasi qabulxonachisi...",
+  "settings.agentui.ai.generate": "Yaratish",
+  "settings.agentui.ai.generating": "Yaratilmoqda…",
+  "settings.agentui.ai.toast.generated": "Qoralama yaratildi — saqlashdan oldin ko'rib chiqing",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

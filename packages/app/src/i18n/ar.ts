@@ -1460,6 +1460,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "إنشاء بالذكاء الاصطناعي",
+  "settings.agentui.ai.hint": "صف الوكيل الذي تريده بكلماتك الخاصة — سيتم إعداد الاسم والشخصية والإعدادات أدناه لمراجعتك.",
+  "settings.agentui.ai.placeholder": "مثال: موظفة استقبال ودودة في عيادة أسنان تجيب عن أسئلة المواعيد...",
+  "settings.agentui.ai.generate": "إنشاء",
+  "settings.agentui.ai.generating": "جارٍ الإنشاء…",
+  "settings.agentui.ai.toast.generated": "تم إنشاء المسودة — راجعها قبل الحفظ",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

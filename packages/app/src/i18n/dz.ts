@@ -1470,6 +1470,12 @@ export const dict: Record<string, string> = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI དང་གཅིག་ཁར་བཟོ་",
+  "settings.agentui.ai.hint": "ཁྱོད་ཀྱིས་དགོས་མཁོའི་ལས་བྱེད་དེ་རང་གི་ཐ་སྙད་ཐོག་ལས་འགྲེལ་བརྗོད་གནང་ — མིང་དང་རང་བཞིན་ སྒྲིག་སྟངས་བཅས་འོག་ལུ་ཞིབ་བཤེར་གྱི་དོན་ལས་གྲ་སྒྲིག་འབད་ཡི།",
+  "settings.agentui.ai.placeholder": "དཔེར་ན: ཚབ་སྟོན་གྱི་དྲི་བ་ལན་སྟེར་མཁན་གྱི་སོ་སྨན་ཁང་གི་བདག་སྐྱོང་པ་ཞིག...",
+  "settings.agentui.ai.generate": "བཟོ་",
+  "settings.agentui.ai.generating": "བཟོ་བཞིན་འདུག…",
+  "settings.agentui.ai.toast.generated": "རྩ་ཤོག་བཟོ་ཡོདཔ — སྲུང་བཞག་མ་འབད་བའི་ཧེ་མར་ཞིབ་བཤེར་འབད",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

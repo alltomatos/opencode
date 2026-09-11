@@ -7,6 +7,8 @@ import type {
   AgentuiAddErrors,
   AgentuiAddResponses,
   AgentUiAgent,
+  AgentuiGenerateErrors,
+  AgentuiGenerateResponses,
   AgentuiGetErrors,
   AgentuiGetResponses,
   AgentuiListErrors,
@@ -2262,6 +2264,43 @@ export class Agentui extends HeyApiClient {
       url: "/agentui/{id}",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Generate an AgentUI draft from a natural-language description
+   *
+   * One-shot generation: drafts name, personality/system-prompt, command trigger and guardrail level from a free-text description, for the user to review before saving.
+   */
+  public generate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      description?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "description" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiGenerateResponses, AgentuiGenerateErrors, ThrowOnError>({
+      url: "/agentui/generate",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

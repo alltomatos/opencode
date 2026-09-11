@@ -1466,6 +1466,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "AI އިން ހަދާ",
+  "settings.agentui.ai.hint": "ބޭނުންވާ އެޖެންޓް ތިމާގެ ބަހުން ސިފަކޮށްދީ — ނަން، ސިފަ އަދި ސެޓިންގްސް ތިރީގައި ރިވިއު ކުރުމަށް ތައްޔާރު ކުރެވޭނެ.",
+  "settings.agentui.ai.placeholder": "މިސާލު: އެޕޮއިންޓްމަންޓް ސުވާލުތަކަށް ޖަވާބުދޭ އެކުވެރި ދަތުގެ ކްލިނިކެއްގެ ރިސެޕްޝަނިސްޓެއް...",
+  "settings.agentui.ai.generate": "އުފައްދާ",
+  "settings.agentui.ai.generating": "އުފައްދަނީ…",
+  "settings.agentui.ai.toast.generated": "ޑްރާފްޓް އުފެއްދިއްޖެ — ސޭވް ކުރުމުގެ ކުރިން ރިވިއު ކުރޭ",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)

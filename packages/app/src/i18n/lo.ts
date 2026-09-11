@@ -1437,6 +1437,12 @@ export const dict = {
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "ສ້າງດ້ວຍ AI",
+  "settings.agentui.ai.hint": "ອະທິບາຍຕົວແທນທີ່ທ່ານຕ້ອງການດ້ວຍຄຳເວົ້າຂອງທ່ານເອງ — ຊື່, ບຸກຄະລິກກະພາບ ແລະ ການຕັ້ງຄ່າຈະຖືກຮ່າງໄວ້ດ້ານລຸ່ມເພື່ອໃຫ້ທ່ານກວດສອບ.",
+  "settings.agentui.ai.placeholder": "ຕົວຢ່າງ: ພະນັກງານຕ້ອນຮັບຄລີນິກແຂ້ວທີ່ເປັນມິດ ຕອບຄຳຖາມກ່ຽວກັບການນັດໝາຍ...",
+  "settings.agentui.ai.generate": "ສ້າງ",
+  "settings.agentui.ai.generating": "ກຳລັງສ້າງ…",
+  "settings.agentui.ai.toast.generated": "ຮ່າງຖືກສ້າງແລ້ວ — ກວດສອບກ່ອນບັນທຶກ",
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
