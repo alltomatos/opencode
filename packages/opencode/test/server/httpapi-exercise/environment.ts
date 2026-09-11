@@ -11,6 +11,10 @@ process.env.XDG_CONFIG_HOME = path.join(exerciseGlobalRoot, "config")
 process.env.XDG_STATE_HOME = path.join(exerciseGlobalRoot, "state")
 process.env.XDG_CACHE_HOME = path.join(exerciseGlobalRoot, "cache")
 process.env.OPENCODE_DISABLE_SHARE = "true"
+// Isolates external-agent skill install/remove (~/<agent skills dir>/batuta-cli)
+// away from the real machine home directory — see Global.Path.home in
+// packages/core/src/global.ts, which reads this override when set.
+process.env.OPENCODE_TEST_HOME = path.join(exerciseGlobalRoot, "home")
 export const exerciseConfigDirectory = path.join(exerciseGlobalRoot, "config", "opencode")
 export const exerciseDataDirectory = path.join(exerciseGlobalRoot, "data", "opencode")
 
