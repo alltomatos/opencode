@@ -25,10 +25,17 @@ export const Status = Schema.Struct({
 })
 export type Status = Schema.Schema.Type<typeof Status>
 
+export const TailscaleStatus = Schema.Struct({
+  available: Schema.Boolean,
+  ip: Schema.optional(Schema.String),
+})
+export type TailscaleStatus = Schema.Schema.Type<typeof TailscaleStatus>
+
 export interface Interface {
   readonly start: (input: { port: number }) => Effect.Effect<Status, TunnelError>
   readonly status: () => Effect.Effect<Status>
   readonly stop: () => Effect.Effect<void>
+  readonly tailscale: () => Effect.Effect<TailscaleStatus>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Tunnel") {}
@@ -134,7 +141,52 @@ const layer = Layer.effect(
       reset()
     })
 
-    return Service.of({ start, status, stop })
+    // Simpler alternative to the cloudflared quick tunnel: if the user
+    // already has Tailscale running on both this machine and the remote
+    // provider (see izapia's own VPS in this project's Tailscale-based
+    // setups), the provider can reach this server directly over the
+    // tailnet at its 100.x.x.x address — no tunnel process needed at all.
+    // `tailscale ip -4` already scopes its output to the tailnet address,
+    // so no CGNAT-range parsing is needed here.
+    const detectTailscaleIp = (): Promise<TailscaleStatus> =>
+      new Promise((resolve) => {
+        let proc: NodeChildProcess.ChildProcess
+        try {
+          proc = NodeChildProcess.spawn("tailscale", ["ip", "-4"], { stdio: ["ignore", "pipe", "ignore"] })
+        } catch {
+          resolve({ available: false })
+          return
+        }
+        let out = ""
+        let settled = false
+        proc.stdout?.on("data", (chunk: Buffer) => {
+          out += chunk.toString()
+        })
+        proc.on("error", () => {
+          if (settled) return
+          settled = true
+          resolve({ available: false })
+        })
+        proc.on("exit", (code) => {
+          if (settled) return
+          settled = true
+          const ip = out.trim().split("\n")[0]?.trim()
+          resolve(code === 0 && ip ? { available: true, ip } : { available: false })
+        })
+        const timer = setTimeout(() => {
+          if (settled) return
+          settled = true
+          proc.kill()
+          resolve({ available: false })
+        }, 3_000)
+        proc.once("exit", () => clearTimeout(timer))
+      })
+
+    const tailscale = Effect.fn("Tunnel.tailscale")(function* () {
+      return yield* Effect.promise(detectTailscaleIp)
+    })
+
+    return Service.of({ start, status, stop, tailscale })
   }),
 )
 

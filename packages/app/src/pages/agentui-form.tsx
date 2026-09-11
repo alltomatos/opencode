@@ -387,6 +387,34 @@ export function AgentUIFormPage() {
     }
   }
 
+  // Simpler alternative to the cloudflared quick tunnel: if this machine
+  // already has Tailscale running (as our own izapia VPS setups do), the
+  // provider can reach this server directly over the tailnet at its
+  // 100.x.x.x address — no external process, no random URL that expires
+  // when the tunnel dies. Reuses publicTunnelUrl as the webhook base since
+  // both are just "however the provider reaches this server publicly".
+  const [tailscaleDetecting, setTailscaleDetecting] = createSignal(false)
+  const [tailscaleError, setTailscaleError] = createSignal<string | undefined>()
+
+  const useTailscaleIp = async () => {
+    if (tailscaleDetecting()) return
+    setTailscaleError(undefined)
+    setTailscaleDetecting(true)
+    try {
+      const port = Number(new URL(serverSDK().url).port) || 80
+      const result = await serverSDK().client.tunnel.tailscale()
+      if (result.data?.available && result.data.ip) {
+        setPublicTunnelUrl(`http://${result.data.ip}:${port}`)
+      } else {
+        setTailscaleError(language.t("settings.agentui.field.whatsapp.tunnel.tailscale.notFound"))
+      }
+    } catch (cause) {
+      setTailscaleError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setTailscaleDetecting(false)
+    }
+  }
+
   // Shown so the user can paste it into the selected provider's dashboard.
   // Only meaningful once the agent has actually been saved with WhatsApp
   // enabled (before that, there's no webhookSecret yet).
@@ -717,6 +745,21 @@ export function AgentUIFormPage() {
                         <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
                         <Show when={isPrivateServerUrl() && !publicTunnelUrl()}>
                           <div class="flex flex-col gap-1.5 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 p-2.5">
+                            <p class="text-11-regular text-v2-text-text-faint">
+                              {language.t("settings.agentui.field.whatsapp.tunnel.tailscale.hint")}
+                            </p>
+                            <ButtonV2
+                              variant="outline"
+                              disabled={tailscaleDetecting()}
+                              onClick={() => void useTailscaleIp()}
+                            >
+                              {tailscaleDetecting()
+                                ? language.t("settings.agentui.field.whatsapp.tunnel.tailscale.detecting")
+                                : language.t("settings.agentui.field.whatsapp.tunnel.tailscale.use")}
+                            </ButtonV2>
+                            <Show when={tailscaleError()}>
+                              <span class="settings-v2-server-dialog-error">{tailscaleError()}</span>
+                            </Show>
                             <p class="text-11-regular text-v2-text-text-faint">
                               {language.t("settings.agentui.field.whatsapp.tunnel.hint")}
                             </p>

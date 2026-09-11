@@ -12779,6 +12779,36 @@ export type TunnelStopResponses = {
 
 export type TunnelStopResponse = TunnelStopResponses[keyof TunnelStopResponses]
 
+export type TunnelTailscaleStatus = {
+  available: boolean
+  ip?: string
+}
+
+export type TunnelTailscaleData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/tailscale"
+}
+
+export type TunnelTailscaleErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelTailscaleError = TunnelTailscaleErrors[keyof TunnelTailscaleErrors]
+
+export type TunnelTailscaleResponses = {
+  /**
+   * Local Tailscale IP, if available
+   */
+  200: TunnelTailscaleStatus
+}
+
+export type TunnelTailscaleResponse = TunnelTailscaleResponses[keyof TunnelTailscaleResponses]
+
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never
   path?: never

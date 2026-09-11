@@ -483,6 +483,8 @@ import type {
   TunnelStatusResponses,
   TunnelStopErrors,
   TunnelStopResponses,
+  TunnelTailscaleErrors,
+  TunnelTailscaleResponses,
   WhatsappIzapiaGroupsErrors,
   WhatsappIzapiaGroupsResponses,
   WhatsappIzapiaSessionsErrors,
@@ -6552,6 +6554,16 @@ export class Tunnel extends HeyApiClient {
   public stop<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
     return (options?.client ?? this.client).post<TunnelStopResponses, TunnelStopErrors, ThrowOnError>({
       url: "/tunnel/stop",
+      ...options,
+    })
+  }
+
+  /**
+   * Detect local Tailscale IP
+   */
+  public tailscale<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<TunnelTailscaleResponses, TunnelTailscaleErrors, ThrowOnError>({
+      url: "/tunnel/tailscale",
       ...options,
     })
   }

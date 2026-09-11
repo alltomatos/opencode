@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { TunnelError, Status as TunnelStatus } from "@/tunnel"
+import { TunnelError, Status as TunnelStatus, TailscaleStatus } from "@/tunnel"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware } from "../middleware/workspace-routing"
@@ -44,6 +44,17 @@ export const TunnelApi = HttpApi.make("tunnel")
           OpenApi.annotations({
             identifier: "tunnel.stop",
             summary: "Stop public tunnel",
+          }),
+        ),
+        // Detects a local Tailscale IP as a simpler alternative to the
+        // cloudflared quick tunnel above — no process to start/stop, just
+        // whatever `tailscale ip -4` reports for this machine right now.
+        HttpApiEndpoint.get("tailscale", `${root}/tailscale`, {
+          success: described(TailscaleStatus, "Local Tailscale IP, if available"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "tunnel.tailscale",
+            summary: "Detect local Tailscale IP",
           }),
         ),
       )

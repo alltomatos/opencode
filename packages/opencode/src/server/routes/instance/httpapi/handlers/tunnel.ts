@@ -20,6 +20,10 @@ export const tunnelHandlers = HttpApiBuilder.group(InstanceHttpApi, "tunnel", (h
       return { ok: true as const }
     })
 
-    return handlers.handle("start", start).handle("status", status).handle("stop", stop)
+    const tailscale = Effect.fn("TunnelHttpApi.tailscale")(function* () {
+      return yield* tunnel.tailscale()
+    })
+
+    return handlers.handle("start", start).handle("status", status).handle("stop", stop).handle("tailscale", tailscale)
   }),
 )
