@@ -754,14 +754,17 @@ export const dict = {
   "session.question.minimize": "ސުވާލު އެންމެ ކުޑަކުރުން",
   "session.question.restore": "ސުވާލު އަލުން އާލާކުރުން",
   "session.question.pending.one": "{{count}} ކުރިއަށް އޮތް ސުވާލު",
+  "session.question.pending.many": "{{count}} ކުރިއަށް އޮތް ސުވާލުތައް",
   "session.question.pending.other": "{{count}} ކުރިއަށް އޮތް ސުވާލުތައް",
   "session.followupDock.summary.one": "{{count}} ކިއު ކޮށްފައިވާ މެސެޖެކެވެ",
+  "session.followupDock.summary.many": "{{count}} ކިއު ކުރެވިފައިވާ މެސެޖުތައް",
   "session.followupDock.summary.other": "{{count}} ކިއު ކުރެވިފައިވާ މެސެޖުތައް",
   "session.followupDock.sendNow": "މިހާރު ފޮނުއްވާ",
   "session.followupDock.edit": "ބަދަލު ގެނައުން",
   "session.followupDock.collapse": "ކިއު ޖަހާފައިވާ މެސެޖުތައް ކޮލަޕްސް ކޮށްލާށެވެ",
   "session.followupDock.expand": "ކިއު ކުރެވިފައިވާ މެސެޖުތައް ފުޅާކުރުން",
   "session.revertDock.summary.one": "{{count}} ރޯލް ބެކް މެސެޖެއް",
+  "session.revertDock.summary.many": "{{count}} ރޯލްބެކް މެސެޖުތައް",
   "session.revertDock.summary.other": "{{count}} ރޯލްބެކް މެސެޖުތައް",
   "session.revertDock.collapse": "ކޮލަޕްސް ރޯލް ބެކް މެސެޖުތަކެވެ",
   "session.revertDock.expand": "ރޯލް ބެކް މެސެޖުތައް ފުޅާކުރުން",
@@ -1485,6 +1488,17 @@ export const dict = {
   "settings.agentui.field.whatsapp.izapiaSessions.fetch": "Fetch sessions", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.izapiaSessions.loading": "Fetching…", // TODO: translate (auto-filled from en)
   "settings.agentui.field.whatsapp.izapiaSessions.empty": "No sessions found for this API key.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaSessions.label": "WhatsApp sessions (select one or more)", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.label": "Groups", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.hint": "Direct messages are always answered. Check any groups the agent should also answer in — groups left unchecked are ignored.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.fetch": "Fetch groups", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.loading": "Fetching…", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.empty": "No groups found for the selected sessions.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.hint": "This server's URL is local (127.0.0.1/localhost) — the provider can't call it back to deliver messages. Start a public tunnel so it can.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.start": "Start public tunnel", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.starting": "Starting…", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.active": "Public tunnel active: {{url}} — the webhook URL below now uses it.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.error": "Couldn't start the tunnel. Is cloudflared installed?", // TODO: translate (auto-filled from en)
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
