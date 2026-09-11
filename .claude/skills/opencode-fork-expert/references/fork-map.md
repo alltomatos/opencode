@@ -1,13 +1,13 @@
 # Mapa do fork alltomatos/opencode
 
-**Última verificação:** 2026-08-23. Este arquivo é um cache leve — os fatos abaixo (versões, quem está à frente de quem) mudam com o tempo. Se a pergunta depender de um número exato e atual (versão publicada agora, quantos commits de diferença), confirme ao vivo (ver seção final) antes de responder como definitivo.
+**Última verificação:** 2026-09-11. Este arquivo é um cache leve — os fatos abaixo (versões, quem está à frente de quem) mudam com o tempo. Se a pergunta depender de um número exato e atual (versão publicada agora, quantos commits de diferença), confirme ao vivo (ver seção final) antes de responder como definitivo.
 
 ## Remotes
 
 - `origin` → `https://github.com/alltomatos/opencode.git` (este fork)
 - `upstream` → `https://github.com/anomalyco/opencode.git` (projeto original)
 
-Ambos já configurados no clone local — não precisa adicionar de novo.
+Nem sempre já configurados: em clones frescos (ex.: sessões remotas/cloud, containers efêmeros) o remote `upstream` costuma não existir — rode `git remote add upstream https://github.com/anomalyco/opencode.git && git fetch upstream` antes de qualquer comparação. Não assuma que já está lá só porque uma sessão anterior configurou.
 
 ## Branches e o que cada um é
 

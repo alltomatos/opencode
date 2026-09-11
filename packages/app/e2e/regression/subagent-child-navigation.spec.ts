@@ -39,7 +39,11 @@ test("shows the not found fallback when the viewed session is deleted", async ({
   })
 
   await expect(page.getByText("This session cannot be found")).toBeVisible()
-  await expect(page.getByRole("button", { name: "Close Tab" })).toBeVisible()
+  // Exact match required: the tab strip's own "Close tab" icon button (a
+  // different control, common.closeTab) is also on screen at this point, and
+  // Playwright's getByRole name matching is case-insensitive by default — an
+  // inexact match here resolves to both buttons (strict mode violation).
+  await expect(page.getByRole("button", { name: "Close Tab", exact: true })).toBeVisible()
   await expect(page.getByRole("heading", { name: taskDescription })).toHaveCount(0)
 })
 
