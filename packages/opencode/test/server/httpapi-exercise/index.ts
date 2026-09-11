@@ -115,6 +115,22 @@ const scenarios: Scenario[] = [
       },
       "status",
     ),
+  http.protected
+    .get("/global/bug-relay/telemetry", "global.bugRelayTelemetry.get")
+    .global()
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.enabled === "boolean", "bug-relay telemetry get should return an enabled flag")
+    }),
+  http.protected
+    .put("/global/bug-relay/telemetry", "global.bugRelayTelemetry.set")
+    .global()
+    .mutating()
+    .at(() => ({ path: "/global/bug-relay/telemetry", body: { enabled: true } }))
+    .json(200, (body) => {
+      object(body)
+      check(body.enabled === true, "bug-relay telemetry set should return the patched flag")
+    }),
   http.protected.get("/path", "path.get").json(200, (body, ctx) => {
     object(body)
     check(body.directory === ctx.directory, "directory should resolve from x-opencode-directory")
@@ -162,6 +178,10 @@ const scenarios: Scenario[] = [
     .at((ctx) => ({ path: "/config", headers: ctx.headers(), body: { username: 1 } }))
     .status(400),
   http.protected.get("/config/providers", "config.providers").json(),
+  http.protected.get("/config/globalPath", "config.globalPath").json(200, (body) => {
+    object(body)
+    check(typeof body.path === "string" && body.path.length > 0, "globalPath should return a filesystem path")
+  }),
   http.protected.get("/project", "project.list").json(200, array, "status"),
   http.protected.get("/project/current", "project.current").json(
     200,
@@ -371,6 +391,251 @@ const scenarios: Scenario[] = [
         }),
       "status",
     ),
+  http.protected.get("/agentui", "agentui.list").json(200, array, "status"),
+  http.protected
+    .get("/agentui/{id}", "agentui.get.missing")
+    .at((ctx) => ({ path: route("/agentui/{id}", { id: "httpapi-missing" }), headers: ctx.headers() }))
+    .status(500),
+  http.protected
+    .post("/agentui", "agentui.add")
+    .mutating()
+    .at((ctx) => ({
+      path: "/agentui",
+      headers: ctx.headers(),
+      body: {
+        id: "httpapi-agent",
+        name: "HTTP API Agent",
+        personality: "Terse and helpful.",
+        model: "test/test-model",
+        channels: [],
+        commandTriggers: ["!httpapi"],
+        ragSources: [],
+        guardrails: { enabled: false, level: "basic" },
+      },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "httpapi-agent", "agentui add should return the saved agent")
+    }),
+  http.protected
+    .post("/agentui/{id}/test", "agentui.test.missing")
+    .at((ctx) => ({
+      path: route("/agentui/{id}/test", { id: "httpapi-missing" }),
+      headers: ctx.headers(),
+      body: { projectDirectory: ctx.directory ?? ".", message: "hi" },
+    }))
+    .status(500),
+  http.protected
+    .post("/agentui/{id}/sandbox/reset", "agentui.resetSandbox.missing")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/agentui/{id}/sandbox/reset", { id: "httpapi-missing" }),
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "resetSandbox should be a no-op that always succeeds")
+    }),
+  http.protected
+    .delete("/agentui/{id}", "agentui.remove")
+    .mutating()
+    .at((ctx) => ({ path: route("/agentui/{id}", { id: "httpapi-agent" }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "agentui remove should report success")
+    }),
+  http.protected.get("/batuta", "batuta.list").json(200, array, "status"),
+  http.protected
+    .get("/batuta/branches", "batuta.branches")
+    .json(200, (body) => {
+      object(body)
+      check(Array.isArray(body.branches), "batuta branches should return a branches array")
+    }),
+  http.protected
+    .post("/batuta", "batuta.add")
+    .mutating()
+    .at((ctx) => ({
+      path: "/batuta",
+      headers: ctx.headers(),
+      body: {
+        id: "httpapi-activity",
+        name: "HTTP API Activity",
+        goal: "Exercise the batuta HttpApi routes",
+        orchestratorModel: "test/test-model",
+        workers: [],
+        directory: ctx.directory,
+      },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "httpapi-activity", "batuta add should return the saved activity")
+    }),
+  http.protected
+    .get("/batuta/{id}/pipeline-definition", "batuta.getPipelineDefinition")
+    .at((ctx) => ({
+      path: route("/batuta/{id}/pipeline-definition", { id: "httpapi-activity" }),
+      headers: ctx.headers(),
+    }))
+    .json(200, object, "status"),
+  http.protected
+    .put("/batuta/{id}/pipeline-definition", "batuta.setPipelineDefinition")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/batuta/{id}/pipeline-definition", { id: "httpapi-activity" }),
+      headers: ctx.headers(),
+      body: { content: "# httpapi pipeline\n" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.content === "# httpapi pipeline\n", "setPipelineDefinition should return the saved content")
+    }),
+  http.protected
+    .post("/batuta/{id}/start", "batuta.start.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}/start", { id: "httpapi-missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/sync", "batuta.sync.missing")
+    .at((ctx) => ({ path: route("/batuta/{id}/sync", { id: "httpapi-missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/dispatch", "batuta.dispatch.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}/dispatch", { id: "httpapi-missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/pipeline-chat", "batuta.startPipelineChat.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}/pipeline-chat", { id: "httpapi-missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/delegate", "batuta.delegate.missing")
+    .at((ctx) => ({
+      path: route("/batuta/{id}/delegate", { id: "httpapi-missing" }),
+      headers: ctx.headers(),
+      body: { label: "worker", prompt: "hello" },
+    }))
+    .status(404),
+  http.protected
+    .delete("/batuta/{id}", "batuta.remove")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}", { id: "httpapi-activity" }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "batuta remove should report success")
+    }),
+  http.protected.get("/combo", "combo.list").json(200, array, "status"),
+  http.protected
+    .post("/combo", "combo.add")
+    .mutating()
+    .at((ctx) => ({
+      path: "/combo",
+      headers: ctx.headers(),
+      body: {
+        id: "httpapi-combo",
+        name: "HTTP API Combo",
+        models: [{ model: "test/test-model", priority: 0 }],
+        failover: { enabled: false, strategy: "priority" },
+      },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "httpapi-combo", "combo add should return the saved combo")
+    }),
+  http.protected
+    .get("/combo/{id}/resolve", "combo.resolve")
+    .withLlm()
+    .at((ctx) => ({ path: route("/combo/{id}/resolve", { id: "httpapi-combo" }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.providerID === "test", "combo resolve should return the resolved provider")
+      check(body.modelID === "test-model", "combo resolve should return the resolved model")
+    }),
+  http.protected
+    .delete("/combo/{id}", "combo.remove")
+    .mutating()
+    .at((ctx) => ({ path: route("/combo/{id}", { id: "httpapi-combo" }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "combo remove should report success")
+    }),
+  http.protected.get("/memory", "memory.getConfig").json(200, undefined, "status"),
+  http.protected
+    .put("/memory", "memory.setConfig")
+    .mutating()
+    .at((ctx) => ({ path: "/memory", headers: ctx.headers(), body: { enabled: true } }))
+    .json(200, (body) => {
+      object(body)
+      check(body.enabled === true, "memory setConfig should return the patched config")
+    }),
+  http.protected
+    .get("/memory/project", "memory.projectMemoryStatus")
+    .at((ctx) => ({
+      path: `/memory/project?${new URLSearchParams({ directory: ctx.directory ?? "." })}`,
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.hasMemory === "boolean", "projectMemoryStatus should report whether memory exists")
+    }),
+  http.protected
+    .delete("/memory/project", "memory.forgetProject")
+    .mutating()
+    .at((ctx) => ({
+      path: `/memory/project?${new URLSearchParams({ directory: ctx.directory ?? "." })}`,
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      check(body === true, "forgetProject should return true")
+    }),
+  http.protected.get("/telegram", "telegram.status").json(200, (body) => {
+    object(body)
+    check(typeof body.connected === "boolean", "telegram status should report connected flag")
+  }),
+  http.protected
+    .post("/telegram/connect", "telegram.connect.invalid")
+    .at((ctx) => ({ path: "/telegram/connect", headers: ctx.headers(), body: { token: "httpapi-invalid-token" } }))
+    .status(500),
+  http.protected
+    .post("/telegram/disconnect", "telegram.disconnect")
+    .mutating()
+    .json(200, (body) => {
+      check(body === true, "telegram disconnect should return true")
+    }),
+  http.protected.get("/external-agent/detect", "externalAgent.detect").json(200, (body) => {
+    array(body)
+    check(
+      body.every((item) => isRecord(item) && typeof item.id === "string" && typeof item.installed === "boolean"),
+      "detect should return known agents with id/installed",
+    )
+  }),
+  http.protected
+    .post("/external-agent/{id}/skill", "externalAgent.setSkill")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/external-agent/{id}/skill", { id: "claude" }),
+      headers: ctx.headers(),
+      body: { install: true },
+    }))
+    .jsonEffect(200, (body) =>
+      Effect.gen(function* () {
+        object(body)
+        check(body.installed === true, "setSkill should report the skill as installed")
+        yield* Effect.void
+      }),
+    ),
+  http.protected
+    .post("/external-agent/{id}/skill", "externalAgent.setSkill.remove")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/external-agent/{id}/skill", { id: "claude" }),
+      headers: ctx.headers(),
+      body: { install: false },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.installed === false, "setSkill should report the skill as removed")
+    }),
   http.protected.get("/mcp", "mcp.status").json(),
   http.protected
     .post("/mcp", "mcp.add")
@@ -430,6 +695,15 @@ const scenarios: Scenario[] = [
     .post("/mcp/{name}/disconnect", "mcp.disconnect")
     .mutating()
     .at((ctx) => ({ path: route("/mcp/{name}/disconnect", { name: "httpapi-missing" }), headers: ctx.headers() }))
+    .json(404, object, "status"),
+  http.protected
+    .delete("/mcp/{name}", "mcp.remove")
+    .mutating()
+    .at((ctx) => ({ path: route("/mcp/{name}", { name: "httpapi-missing" }), headers: ctx.headers() }))
+    .json(404, object, "status"),
+  http.protected
+    .get("/mcp/{name}/catalog", "mcp.catalog")
+    .at((ctx) => ({ path: route("/mcp/{name}/catalog", { name: "httpapi-missing" }), headers: ctx.headers() }))
     .json(404, object, "status"),
   http.protected.get("/pty/shells", "pty.shells").json(200, array),
   http.protected.get("/pty", "pty.list").json(200, array),
@@ -594,6 +868,17 @@ const scenarios: Scenario[] = [
       check(body === false, "background route should be a no-op without running subagents")
     }),
   http.protected.get("/experimental/resource", "experimental.resource.list").json(),
+  http.protected.get("/experimental/background-job", "experimental.backgroundJob.list").json(200, array),
+  http.protected
+    .post("/experimental/background-job/{id}/cancel", "experimental.backgroundJob.cancel")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/experimental/background-job/{id}/cancel", { id: "httpapi-missing" }),
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      check(body === false, "cancelling an unknown background job should return false")
+    }),
   http.protected
     .post("/sync/history", "sync.history.list")
     .at((ctx) => ({ path: "/sync/history", headers: ctx.headers(), body: {} }))
