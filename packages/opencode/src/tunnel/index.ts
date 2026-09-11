@@ -148,11 +148,24 @@ const layer = Layer.effect(
     // tailnet at its 100.x.x.x address — no tunnel process needed at all.
     // `tailscale ip -4` already scopes its output to the tailnet address,
     // so no CGNAT-range parsing is needed here.
-    const detectTailscaleIp = (): Promise<TailscaleStatus> =>
+    //
+    // The GUI installs of Tailscale (Windows, macOS App Store build) don't
+    // put `tailscale` on PATH, only the CLI-first installs (winget's CLI
+    // package, Linux, Homebrew) do — so a plain spawn("tailscale", ...)
+    // silently ENOENTs on a very common, fully-working setup. Fall back to
+    // each platform's known GUI-bundled CLI location before giving up.
+    const TAILSCALE_CANDIDATES =
+      process.platform === "win32"
+        ? ["tailscale", "C:\\Program Files\\Tailscale\\tailscale.exe"]
+        : process.platform === "darwin"
+          ? ["tailscale", "/Applications/Tailscale.app/Contents/MacOS/Tailscale", "/usr/local/bin/tailscale"]
+          : ["tailscale"]
+
+    const tryTailscaleIp = (command: string): Promise<TailscaleStatus> =>
       new Promise((resolve) => {
         let proc: NodeChildProcess.ChildProcess
         try {
-          proc = NodeChildProcess.spawn("tailscale", ["ip", "-4"], { stdio: ["ignore", "pipe", "ignore"] })
+          proc = NodeChildProcess.spawn(command, ["ip", "-4"], { stdio: ["ignore", "pipe", "ignore"] })
         } catch {
           resolve({ available: false })
           return
@@ -181,6 +194,14 @@ const layer = Layer.effect(
         }, 3_000)
         proc.once("exit", () => clearTimeout(timer))
       })
+
+    const detectTailscaleIp = async (): Promise<TailscaleStatus> => {
+      for (const command of TAILSCALE_CANDIDATES) {
+        const result = await tryTailscaleIp(command)
+        if (result.available) return result
+      }
+      return { available: false }
+    }
 
     const tailscale = Effect.fn("Tunnel.tailscale")(function* () {
       return yield* Effect.promise(detectTailscaleIp)
