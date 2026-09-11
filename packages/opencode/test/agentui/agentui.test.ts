@@ -9,6 +9,7 @@ import { SessionSummary } from "../../src/session/summary"
 import { LSP } from "../../src/lsp/lsp"
 import { MCP } from "../../src/mcp"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { Storage } from "@/storage/storage"
 import { testEffect } from "../lib/effect"
 
 // AgentUI.Service now pulls in Session/SessionPrompt/InstanceStore (for the
@@ -70,6 +71,40 @@ const noopMcp = Layer.succeed(
 )
 const noopRuntimeFlags = RuntimeFlags.layer({ experimentalEventSystem: true })
 
+// In-memory stand-in for the audit log's persistence (see
+// AgentUI.Service.logAudit/listAudit) — the real Storage.node does actual
+// filesystem I/O and pulls in Git.node (real `git` calls for its migration
+// step), neither of which anything below actually needs to exercise.
+const storageState = new Map<string, unknown>()
+function storageRead<T>(key: string[]) {
+  return storageState.has(key.join("/"))
+    ? Effect.succeed(storageState.get(key.join("/")) as T)
+    : Effect.fail(new Storage.NotFoundError({ message: "not found" }))
+}
+function storageUpdate<T>(key: string[], fn: (draft: T) => void) {
+  return Effect.sync(() => {
+    const current = storageState.get(key.join("/")) as T
+    fn(current)
+    return current
+  })
+}
+const noopStorage = Layer.succeed(
+  Storage.Service,
+  Storage.Service.of({
+    read: storageRead,
+    write: (key, content) =>
+      Effect.sync(() => {
+        storageState.set(key.join("/"), content)
+      }),
+    update: storageUpdate,
+    remove: (key) =>
+      Effect.sync(() => {
+        storageState.delete(key.join("/"))
+      }),
+    list: () => Effect.succeed([]),
+  }),
+)
+
 const it = testEffect(
   LayerNode.compile(AgentUI.node, [
     [InstanceStore.bootstrapNode, noopBootstrap],
@@ -78,6 +113,7 @@ const it = testEffect(
     [MCP.node, noopMcp],
     [RuntimeFlags.node, noopRuntimeFlags],
     [LocationServiceMap.node, locationServiceMapLayer],
+    [Storage.node, noopStorage],
   ]),
 )
 

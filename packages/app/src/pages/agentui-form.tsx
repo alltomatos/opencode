@@ -224,6 +224,40 @@ export function AgentUIFormPage() {
   const toggleIzapiaGroup = (id: string, checked: boolean) =>
     setForm("whatsappAllowedGroups", (list) => (checked ? [...list, id] : list.filter((item) => item !== id)))
 
+  // Audit log: one row per real turn (incoming message + the agent's
+  // reply), across every channel — see AgentUI.Service.logAudit. Only
+  // meaningful once the agent has actually been saved and dispatched at
+  // least one message, so it's fetched lazily (on tab open / refresh
+  // click) rather than eagerly on mount.
+  type AuditEntry = {
+    id: string
+    timestamp: number
+    channel: "whatsapp" | "telegram" | "sandbox"
+    chatKey: string
+    incoming: string
+    outgoing: string
+    blocked: boolean
+  }
+  const [auditEntries, setAuditEntries] = createSignal<AuditEntry[]>([])
+  const [auditLoading, setAuditLoading] = createSignal(false)
+  const [auditError, setAuditError] = createSignal<string | undefined>()
+  const [auditLoaded, setAuditLoaded] = createSignal(false)
+
+  const fetchAudit = async () => {
+    if (!everSaved() || auditLoading()) return
+    setAuditError(undefined)
+    setAuditLoading(true)
+    try {
+      const result = await serverSDK().client.agentui.audit({ id: form.id, directory: directory() })
+      setAuditEntries(result.data ?? [])
+      setAuditLoaded(true)
+    } catch (cause) {
+      setAuditError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setAuditLoading(false)
+    }
+  }
+
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
 
@@ -491,13 +525,14 @@ export function AgentUIFormPage() {
             </div>
           </ScrollView>
 
-          <div class="flex min-h-0 w-[340px] shrink-0 flex-col border-l border-v2-border-border-base">
+          <div class="flex min-h-0 w-[420px] shrink-0 flex-col border-l border-v2-border-border-base">
             <TabsV2 defaultValue="general" class="flex min-h-0 flex-1 flex-col">
               <TabsV2.List>
                 <TabsV2.Trigger value="general">{language.t("settings.agentui.tabs.general")}</TabsV2.Trigger>
                 <TabsV2.Trigger value="channels">{language.t("settings.agentui.tabs.channels")}</TabsV2.Trigger>
                 <TabsV2.Trigger value="tools">{language.t("settings.agentui.tabs.tools")}</TabsV2.Trigger>
                 <TabsV2.Trigger value="knowledge">{language.t("settings.agentui.tabs.knowledge")}</TabsV2.Trigger>
+                <TabsV2.Trigger value="audit">{language.t("settings.agentui.tabs.audit")}</TabsV2.Trigger>
               </TabsV2.List>
 
               <ScrollView class="min-h-0 flex-1">
@@ -820,6 +855,56 @@ export function AgentUIFormPage() {
                       </ButtonV2>
                       <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.rag.note")}</p>
                     </div>
+                  </div>
+                </TabsV2.Content>
+
+                <TabsV2.Content value="audit">
+                  <div class="flex w-full flex-col gap-3 px-4 py-6">
+                    <div class="flex items-center justify-between">
+                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.audit.title")}</label>
+                      <ButtonV2
+                        variant="outline"
+                        disabled={!everSaved() || auditLoading()}
+                        onClick={() => void fetchAudit()}
+                      >
+                        {auditLoading()
+                          ? language.t("settings.agentui.audit.loading")
+                          : language.t("settings.agentui.audit.refresh")}
+                      </ButtonV2>
+                    </div>
+                    <Show when={!everSaved()}>
+                      <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.audit.needsSave")}</p>
+                    </Show>
+                    <Show when={auditError()}>
+                      <span class="settings-v2-server-dialog-error">{auditError()}</span>
+                    </Show>
+                    <Show when={everSaved() && auditLoaded() && auditEntries().length === 0 && !auditError()}>
+                      <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.audit.empty")}</p>
+                    </Show>
+                    <For each={auditEntries()}>
+                      {(entry) => (
+                        <div class="flex flex-col gap-1.5 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 p-2.5">
+                          <div class="flex items-center justify-between text-11-regular text-v2-text-text-faint">
+                            <span>
+                              {new Date(entry.timestamp).toLocaleString()} · {entry.channel} · {entry.chatKey}
+                            </span>
+                            <Show when={entry.blocked}>
+                              <span class="rounded bg-v2-background-bg-layer-02 px-1.5 py-0.5 text-v2-text-text-accent">
+                                {language.t("settings.agentui.audit.blocked")}
+                              </span>
+                            </Show>
+                          </div>
+                          <p class="text-13-regular text-v2-text-text-base">
+                            <span class="text-v2-text-text-faint">{language.t("settings.agentui.audit.incoming")}: </span>
+                            {entry.incoming}
+                          </p>
+                          <p class="text-13-regular text-v2-text-text-base">
+                            <span class="text-v2-text-text-faint">{language.t("settings.agentui.audit.outgoing")}: </span>
+                            {entry.outgoing}
+                          </p>
+                        </div>
+                      )}
+                    </For>
                   </div>
                 </TabsV2.Content>
               </ScrollView>

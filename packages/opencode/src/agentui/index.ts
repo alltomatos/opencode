@@ -15,6 +15,7 @@ import { InstanceStore } from "@/project/instance-store"
 import { InstanceRef } from "@/effect/instance-ref"
 import { SessionID } from "@/session/schema"
 import { Provider } from "@/provider/provider"
+import { Storage } from "@/storage/storage"
 import { Context, Effect, Layer, Schema } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
 import { type LanguageModelV3 } from "@ai-sdk/provider"
@@ -48,6 +49,25 @@ export interface GeneratedDraft {
   readonly commandTriggers: string[]
   readonly guardrails: { enabled: boolean; level: "basic" | "strict" }
 }
+
+// One row per real turn — the incoming message and the agent's reply
+// together, not split into separate in/out entries — since what an
+// auditor actually wants to see is "what came in, what went out", not
+// reconstruct pairs from an interleaved log. Persisted via Storage.Service
+// (global, not per-project — an agent's audit trail should survive
+// switching which connected project its channel runs against) under
+// ["agentui", "audit", <agentID>], capped to the most recent
+// AUDIT_LOG_CAP turns per agent so this can't grow unbounded.
+export const AuditEntry = Schema.Struct({
+  id: Schema.String,
+  timestamp: Schema.Number,
+  channel: Schema.Literals(["whatsapp", "telegram", "sandbox"]),
+  chatKey: Schema.String,
+  incoming: Schema.String,
+  outgoing: Schema.String,
+  blocked: Schema.Boolean,
+})
+export type AuditEntry = Schema.Schema.Type<typeof AuditEntry>
 
 // Same cheap/fast/reliable-at-tool-calling candidates Memory.Service tries
 // for its own one-shot structured extraction (see resolveModel there) —
@@ -128,7 +148,16 @@ export interface Interface {
     directory: string
     chatKey: string
     message: string
+    channel?: AuditEntry["channel"]
   }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
+  // Appends one turn to an agent's audit log — called by every channel
+  // (WhatsApp/sandbox via dispatchChannelMessage, Telegram from its own
+  // separate dispatch path since it doesn't go through that function) so
+  // "what messages came in, what the agent said back" is inspectable
+  // after the fact, not just visible live in the channel itself.
+  readonly logAudit: (id: string, input: Omit<AuditEntry, "id" | "timestamp">) => Effect.Effect<void>
+  // Newest first, capped — see AUDIT_LOG_CAP.
+  readonly listAudit: (id: string) => Effect.Effect<AuditEntry[]>
   // "Criar com IA": one-shot generation — the user describes the agent
   // they want in natural language, this drafts the form fields a real
   // conversation-builder would otherwise ask about turn by turn (name,
@@ -153,6 +182,7 @@ const layer = Layer.effect(
     const promptSvc = yield* SessionPrompt.Service
     const instanceStore = yield* InstanceStore.Service
     const provider = yield* Provider.Service
+    const storage = yield* Storage.Service
 
     // Same overlay-on-top-of-disk-config pattern as Batuta.Service and
     // Combo.Service (packages/opencode/src/batuta/index.ts, src/combo/index.ts)
@@ -326,18 +356,49 @@ const layer = Layer.effect(
     // gets their own conversation with the agent.
     const channelSessions = new Map<string, string>()
 
+    const AUDIT_LOG_CAP = 300
+    const auditKey = (id: string) => ["agentui", "audit", id]
+
+    const readAuditLog = (id: string) =>
+      storage.read<AuditEntry[]>(auditKey(id)).pipe(Effect.orElseSucceed(() => [] as AuditEntry[]))
+
+    const logAudit = Effect.fn("AgentUI.logAudit")(function* (
+      id: string,
+      input: Omit<AuditEntry, "id" | "timestamp">,
+    ) {
+      const key = auditKey(id)
+      const existing = yield* readAuditLog(id)
+      const entry: AuditEntry = { id: crypto.randomUUID(), timestamp: Date.now(), ...input }
+      const next = [...existing, entry].slice(-AUDIT_LOG_CAP)
+      yield* storage.write(key, next).pipe(
+        Effect.tapError((cause) => Effect.logWarning("agentui audit write failed", { id, cause })),
+        Effect.ignore,
+      )
+    })
+
+    const listAudit = Effect.fn("AgentUI.listAudit")(function* (id: string) {
+      const entries = yield* readAuditLog(id)
+      return [...entries].reverse()
+    })
+
     const dispatchChannelMessage = Effect.fn("AgentUI.dispatchChannelMessage")(function* (input: {
       id: string
       directory: string
       chatKey: string
       message: string
+      channel?: AuditEntry["channel"]
     }) {
+      const channel: AuditEntry["channel"] = input.channel ?? (input.chatKey === "sandbox" ? "sandbox" : "whatsapp")
       const agent = yield* get(input.id)
       if (!ConfigAgentUIV1.isEnabled(agent)) {
         return { reply: "Este agente está desativado. Ative-o para testar.", blocked: true }
       }
       const guard = checkInput(agent, input.message)
-      if (!guard.allowed) return { reply: `🛡️ ${guard.reason}`, blocked: true }
+      if (!guard.allowed) {
+        const reply = `🛡️ ${guard.reason}`
+        yield* logAudit(input.id, { channel, chatKey: input.chatKey, incoming: input.message, outgoing: reply, blocked: true })
+        return { reply, blocked: true }
+      }
 
       const ctx = yield* instanceStore.load({ directory: input.directory })
       const sessionKey = `${input.id}:${input.chatKey}`
@@ -379,6 +440,7 @@ const layer = Layer.effect(
             ),
           ),
         )
+      yield* logAudit(input.id, { channel, chatKey: input.chatKey, incoming: input.message, outgoing: reply, blocked: false })
       return { reply, blocked: false }
     })
 
@@ -496,6 +558,8 @@ const layer = Layer.effect(
       resetSandbox,
       generateDraft,
       dispatchChannelMessage,
+      logAudit,
+      listAudit,
     })
   }),
 )
@@ -503,5 +567,5 @@ const layer = Layer.effect(
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node, Provider.node],
+  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node, Provider.node, Storage.node],
 })

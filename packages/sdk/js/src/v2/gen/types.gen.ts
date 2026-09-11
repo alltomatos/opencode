@@ -8378,6 +8378,46 @@ export type AgentuiGetResponses = {
 
 export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
 
+export type AgentUiAuditEntry = {
+  id: string
+  timestamp: number
+  channel: "whatsapp" | "telegram" | "sandbox"
+  chatKey: string
+  incoming: string
+  outgoing: string
+  blocked: boolean
+}
+
+export type AgentuiAuditData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/audit"
+}
+
+export type AgentuiAuditErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiAuditError = AgentuiAuditErrors[keyof AgentuiAuditErrors]
+
+export type AgentuiAuditResponses = {
+  /**
+   * Audit log entries, newest first
+   */
+  200: Array<AgentUiAuditEntry>
+}
+
+export type AgentuiAuditResponse = AgentuiAuditResponses[keyof AgentuiAuditResponses]
+
 export type AgentuiGenerateData = {
   body?: {
     description: string
