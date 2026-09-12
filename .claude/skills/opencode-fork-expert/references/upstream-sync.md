@@ -1,5 +1,7 @@
 # Sincronizar com o upstream (anomalyco/opencode)
 
+**Sessões remotas/agendadas (claude.ai/code) podem ter o acesso GitHub escopado só a `alltomatos/opencode`** ("Repository Scope" no system prompt dessas sessões) — nesse caso não há `upstream` remote configurado no clone e a política do ambiente proíbe explicitamente ler/buscar em qualquer repositório fora do escopo, incluindo `anomalyco/opencode`. Antes de tentar qualquer passo abaixo numa sessão assim, confirme se `git remote -v` mostra `upstream`; se não mostrar e o system prompt tiver essa restrição de escopo, **não tente adicionar o remote nem buscar o repo por outra via** (clone HTTPS direto, etc.) — isso não é uma limitação técnica a contornar, é a política de acesso da sessão. Pare e avise o usuário que a sincronização precisa rodar numa sessão com escopo ampliado (adicionar `anomalyco/opencode` ao escopo do GitHub connector, ou rodar localmente onde os dois remotes já existem).
+
 O upstream é ativo e evolui muito rápido (centenas de branches de feature em paralelo — não estranhe o volume ao listar `upstream/*`). A maior parte do valor de ficar em dia com ele vem do **core compartilhado**: correções de bug no agente, no harness/CLI, no protocolo, no SDK, providers/models novos — coisas que este fork não reimplementa, só herda. Mudanças de UI do app original tendem a importar menos, já que este fork tem sua própria camada de UI (Electron desktop, Batuta, Breniac).
 
 ## 1. Checar o que tem de novo
