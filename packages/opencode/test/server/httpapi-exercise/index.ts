@@ -57,6 +57,45 @@ function locationData(validate: (value: any) => void) {
   }
 }
 
+// AgentUI/Batuta/Combo are config-overlay services only wired into the full
+// HttpApiApp (see server.ts), not the plain AppLayer the other seed helpers
+// (ctx.session, ctx.project, ...) run against. Seeding them for a later
+// assertion goes through the real POST route via `ctx.seedPost` instead of a
+// direct service call, and these small builders keep that call's payload and
+// the scenario's return type in sync.
+function agentUIFixture(id: string, overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id,
+    name: `HTTP API Agent (${id})`,
+    personality: "You are a helpful test agent.",
+    model: "test/test-model",
+    channels: [] as unknown[],
+    commandTriggers: [] as string[],
+    ragSources: [] as unknown[],
+    guardrails: { enabled: false, level: "basic" as const },
+    ...overrides,
+  }
+}
+
+function batutaActivityFixture(id: string) {
+  return {
+    id,
+    name: `HTTP API Activity (${id})`,
+    goal: "exercise coverage",
+    orchestratorModel: "test/test-model",
+    workers: [] as unknown[],
+  }
+}
+
+function comboFixture(id: string) {
+  return {
+    id,
+    name: `HTTP API Combo (${id})`,
+    models: [{ model: "test/test-model", priority: 1 }],
+    failover: { enabled: true, strategy: "priority" as const },
+  }
+}
+
 const scenarios: Scenario[] = [
   http.protected
     .get("/global/health", "global.health")
@@ -1740,6 +1779,372 @@ const scenarios: Scenario[] = [
     .probe({ path: "/global/upgrade", body: { target: 1 } })
     .at(() => ({ path: "/global/upgrade", body: { target: 1 } }))
     .status(400),
+  http.protected
+    .get("/global/bug-relay/telemetry", "global.bugRelayTelemetry.get")
+    .global()
+    .json(200, (body) => {
+      object(body)
+      boolean(body.enabled)
+    }),
+  http.protected
+    .put("/global/bug-relay/telemetry", "global.bugRelayTelemetry.set")
+    .global()
+    .mutating()
+    .at(() => ({ path: "/global/bug-relay/telemetry", body: { enabled: true } }))
+    .json(200, (body) => {
+      object(body)
+      check(body.enabled === true, "bug-relay telemetry update should return the new setting")
+    }),
+
+  // --- AgentUI (Batuta module: custom conversational agents) ---
+  http.protected
+    .post("/agentui", "agentui.add")
+    .mutating()
+    .at((ctx) => ({ path: "/agentui", headers: ctx.headers(), body: agentUIFixture("agentui_httpapi_add") }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "agentui_httpapi_add", "agentui add should return the created agent")
+    }),
+  http.protected
+    .get("/agentui", "agentui.list")
+    .seeded((ctx) => {
+      const agent = agentUIFixture("agentui_httpapi_list")
+      return Effect.as(ctx.seedPost("/agentui", agent), agent)
+    })
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((item) => isRecord(item) && item.id === "agentui_httpapi_list"),
+        "agentui list should include the seeded agent",
+      )
+    }),
+  http.protected
+    .get("/agentui/{id}", "agentui.get")
+    .seeded((ctx) => {
+      const agent = agentUIFixture("agentui_httpapi_get")
+      return Effect.as(ctx.seedPost("/agentui", agent), agent)
+    })
+    .at((ctx) => ({ path: route("/agentui/{id}", { id: ctx.state.id }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "agentui_httpapi_get", "agentui get should return the requested agent")
+    }),
+  http.protected
+    .delete("/agentui/{id}", "agentui.remove")
+    .mutating()
+    .seeded((ctx) => {
+      const agent = agentUIFixture("agentui_httpapi_remove")
+      return Effect.as(ctx.seedPost("/agentui", agent), agent)
+    })
+    .at((ctx) => ({ path: route("/agentui/{id}", { id: ctx.state.id }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "agentui remove should return success")
+    }),
+  http.protected
+    .post("/agentui/{id}/sandbox/reset", "agentui.resetSandbox")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/agentui/{id}/sandbox/reset", { id: "agentui_httpapi_missing" }),
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "resetting an unknown agent's sandbox should still succeed (no-op)")
+    }),
+  http.protected
+    .post("/agentui/{id}/test", "agentui.test")
+    .mutating()
+    .withLlm()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        const agent = agentUIFixture("agentui_httpapi_test")
+        yield* ctx.seedPost("/agentui", agent)
+        yield* ctx.llmText("fake agentui reply")
+        return agent
+      }),
+    )
+    .at((ctx) => ({
+      path: route("/agentui/{id}/test", { id: ctx.state.id }),
+      headers: ctx.headers(),
+      body: { projectDirectory: ctx.directory, message: "hello agent" },
+    }))
+    .jsonEffect(200, (body, ctx) =>
+      Effect.gen(function* () {
+        object(body)
+        check(body.blocked === false, "sandbox test message should not be blocked")
+        check(body.reply === "fake agentui reply", "sandbox test should use the fake LLM reply")
+        yield* ctx.llmWait(1)
+      }),
+    ),
+
+  // --- Batuta (external-agent orchestration) ---
+  http.protected
+    .post("/batuta", "batuta.add")
+    .mutating()
+    .at((ctx) => ({ path: "/batuta", headers: ctx.headers(), body: batutaActivityFixture("batuta_httpapi_add") }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "batuta_httpapi_add", "batuta add should return the created activity")
+    }),
+  http.protected
+    .get("/batuta", "batuta.list")
+    .seeded((ctx) => {
+      const activity = batutaActivityFixture("batuta_httpapi_list")
+      return Effect.as(ctx.seedPost("/batuta", activity), activity)
+    })
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((item) => isRecord(item) && item.id === "batuta_httpapi_list"),
+        "batuta list should include the seeded activity",
+      )
+    }),
+  http.protected
+    .delete("/batuta/{id}", "batuta.remove")
+    .mutating()
+    .seeded((ctx) => {
+      const activity = batutaActivityFixture("batuta_httpapi_remove")
+      return Effect.as(ctx.seedPost("/batuta", activity), activity)
+    })
+    .at((ctx) => ({ path: route("/batuta/{id}", { id: ctx.state.id }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "batuta remove should return success")
+    }),
+  http.protected
+    .get("/batuta/branches", "batuta.branches")
+    .json(200, (body) => {
+      object(body)
+      array(body.branches)
+    }),
+  http.protected
+    .get("/batuta/{id}/pipeline-definition", "batuta.getPipelineDefinition.missing")
+    .at((ctx) => ({
+      path: route("/batuta/{id}/pipeline-definition", { id: "batuta_httpapi_missing" }),
+      headers: ctx.headers(),
+    }))
+    .status(404),
+  http.protected
+    .put("/batuta/{id}/pipeline-definition", "batuta.setPipelineDefinition.missing")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/batuta/{id}/pipeline-definition", { id: "batuta_httpapi_missing" }),
+      headers: ctx.headers(),
+      body: { content: "# pipeline" },
+    }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/start", "batuta.start.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}/start", { id: "batuta_httpapi_missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/sync", "batuta.sync.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}/sync", { id: "batuta_httpapi_missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/dispatch", "batuta.dispatch.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/batuta/{id}/dispatch", { id: "batuta_httpapi_missing" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/delegate", "batuta.delegate.missing")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/batuta/{id}/delegate", { id: "batuta_httpapi_missing" }),
+      headers: ctx.headers(),
+      body: { label: "worker", prompt: "do it" },
+    }))
+    .status(404),
+  http.protected
+    .post("/batuta/{id}/pipeline-chat", "batuta.startPipelineChat.missing")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/batuta/{id}/pipeline-chat", { id: "batuta_httpapi_missing" }),
+      headers: ctx.headers(),
+    }))
+    .status(404),
+
+  // --- Combo (model failover groups) ---
+  http.protected
+    .post("/combo", "combo.add")
+    .mutating()
+    .at((ctx) => ({ path: "/combo", headers: ctx.headers(), body: comboFixture("combo_httpapi_add") }))
+    .json(200, (body) => {
+      object(body)
+      check(body.id === "combo_httpapi_add", "combo add should return the created combo")
+    }),
+  http.protected
+    .get("/combo", "combo.list")
+    .seeded((ctx) => {
+      const combo = comboFixture("combo_httpapi_list")
+      return Effect.as(ctx.seedPost("/combo", combo), combo)
+    })
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((item) => isRecord(item) && item.id === "combo_httpapi_list"),
+        "combo list should include the seeded combo",
+      )
+    }),
+  http.protected
+    .delete("/combo/{id}", "combo.remove")
+    .mutating()
+    .seeded((ctx) => {
+      const combo = comboFixture("combo_httpapi_remove")
+      return Effect.as(ctx.seedPost("/combo", combo), combo)
+    })
+    .at((ctx) => ({ path: route("/combo/{id}", { id: ctx.state.id }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "combo remove should return success")
+    }),
+  http.protected
+    .get("/combo/{id}/resolve", "combo.resolve")
+    .withLlm()
+    .seeded((ctx) => {
+      const combo = comboFixture("combo_httpapi_resolve")
+      return Effect.as(ctx.seedPost("/combo", combo), combo)
+    })
+    .at((ctx) => ({ path: route("/combo/{id}/resolve", { id: ctx.state.id }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(body.providerID === "test" && body.modelID === "test-model", "combo resolve should return its model")
+    }),
+
+  // --- MCP (missing-server error paths) ---
+  http.protected
+    .delete("/mcp/{name}", "mcp.remove.missing")
+    .mutating()
+    .at((ctx) => ({ path: route("/mcp/{name}", { name: "httpapi_missing_mcp" }), headers: ctx.headers() }))
+    .status(404),
+  http.protected
+    .get("/mcp/{name}/catalog", "mcp.catalog.missing")
+    .at((ctx) => ({ path: route("/mcp/{name}/catalog", { name: "httpapi_missing_mcp" }), headers: ctx.headers() }))
+    .status(404),
+
+  // --- Memory (cross-session memory config) ---
+  http.protected.get("/memory", "memory.getConfig").json(200, (body) => {
+    object(body)
+  }),
+  http.protected
+    .put("/memory", "memory.setConfig")
+    .mutating()
+    .at((ctx) => ({
+      path: "/memory",
+      headers: ctx.headers(),
+      body: { enabled: true, memoryModel: "test/test-model" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.enabled === true, "memory setConfig should return the updated config")
+    }),
+  http.protected
+    .get("/memory/project", "memory.projectMemoryStatus")
+    .at((ctx) => ({ path: `/memory/project?directory=${encodeURIComponent(ctx.directory ?? "")}`, headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      boolean(body.hasMemory)
+    }),
+  http.protected
+    .delete("/memory/project", "memory.forgetProject")
+    .mutating()
+    .at((ctx) => ({ path: `/memory/project?directory=${encodeURIComponent(ctx.directory ?? "")}`, headers: ctx.headers() }))
+    .json(200, (body) => {
+      check(body === true, "memory forgetProject should return true")
+    }),
+
+  // --- Config ---
+  http.protected.get("/config/globalPath", "config.globalPath").json(200, (body) => {
+    object(body)
+    check(typeof body.path === "string" && body.path.length > 0, "config globalPath should return a filesystem path")
+  }),
+
+  // --- Experimental (background jobs) ---
+  http.protected.get("/experimental/background-job", "experimental.backgroundJob.list").json(200, array, "status"),
+  http.protected
+    .post("/experimental/background-job/{id}/cancel", "experimental.backgroundJob.cancel")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/experimental/background-job/{id}/cancel", { id: "httpapi_missing_job" }),
+      headers: ctx.headers(),
+    }))
+    .json(
+      200,
+      (body) => {
+        check(body === false, "cancelling an unknown background job should return false")
+      },
+      "status",
+    ),
+
+  // --- External agent (Batuta external CLI detection — see CLAUDE.md invariants) ---
+  http.protected.get("/external-agent/detect", "externalAgent.detect").json(200, array, "status"),
+  http.protected
+    .post("/external-agent/{id}/skill", "externalAgent.setSkill.unknown")
+    .mutating()
+    // Uses an id outside KNOWN_EXTERNAL_AGENTS so this never touches a real
+    // skill directory on the machine running the test (CLAUDE.md: skill
+    // install/detect must only ever target the connected server, and must
+    // never spawn a subprocess) — the handler's unknown-agent branch still
+    // runs for real, it's just a safe no-op.
+    .at((ctx) => ({
+      path: route("/external-agent/{id}/skill", { id: "httpapi_unknown_agent" }),
+      headers: ctx.headers(),
+      body: { install: false },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.installed === false, "setSkill for an unknown agent id should no-op")
+    }),
+
+  // --- Telegram ---
+  http.protected.get("/telegram", "telegram.status").json(200, (body) => {
+    object(body)
+    boolean(body.connected)
+  }),
+  http.protected
+    .post("/telegram/connect", "telegram.connect")
+    .mutating()
+    .seeded(() =>
+      Effect.sync(() => {
+        const original = globalThis.fetch
+        // Telegram.connect always calls the real Bot API's getMe endpoint —
+        // stub it for the duration of this scenario so route coverage
+        // doesn't depend on outbound network access (the flakiness this
+        // whole issue exists to stop introducing more of).
+        globalThis.fetch = (async (input: RequestInfo | URL) => {
+          const url = typeof input === "string" ? input : input.toString()
+          if (url.includes("api.telegram.org")) {
+            return new Response(
+              JSON.stringify({ ok: true, result: { id: 987654321, username: "httpapi_bot", first_name: "HTTP API Bot" } }),
+              { status: 200, headers: { "content-type": "application/json" } },
+            )
+          }
+          return original(input as never)
+        }) as typeof fetch
+        return original
+      }),
+    )
+    .at((ctx) => ({
+      path: "/telegram/connect",
+      headers: ctx.headers(),
+      body: { token: "httpapi-fake-token" },
+    }))
+    .jsonEffect(200, (body, ctx) =>
+      Effect.sync(() => {
+        globalThis.fetch = ctx.state
+        object(body)
+        check(body.username === "httpapi_bot", "telegram connect should return the (stubbed) bot info")
+      }),
+    ),
+  http.protected
+    .post("/telegram/disconnect", "telegram.disconnect")
+    .mutating()
+    .json(200, (body) => {
+      check(body === true, "telegram disconnect should return true")
+    }),
 ]
 
 const llmScenarios = new Set([
