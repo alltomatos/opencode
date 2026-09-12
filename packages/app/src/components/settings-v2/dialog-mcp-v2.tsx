@@ -48,12 +48,18 @@ const LOGOS = {
       <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z" />
     </svg>
   ),
+  mcpmail: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M3 5.5C3 4.7 3.7 4 4.5 4h15c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5h-15C3.7 20 3 19.3 3 18.5v-13Zm2 .6v.2l7 5.2 7-5.2v-.2H5Zm14 2.5-6.4 4.8a1 1 0 0 1-1.2 0L5 8.6V18h14V8.6Z" />
+    </svg>
+  ),
 } as const
 
 const KNOWN_SERVERS = [
   {
     id: "cloudflare",
     name: "Cloudflare",
+    kind: "remote",
     url: "https://bindings.mcp.cloudflare.com/mcp",
     logo: LOGOS.cloudflare,
     oauth: true,
@@ -61,6 +67,7 @@ const KNOWN_SERVERS = [
   {
     id: "gmail",
     name: "Gmail",
+    kind: "remote",
     url: "https://gmailmcp.googleapis.com/mcp/v1",
     logo: LOGOS.gmail,
     oauth: true,
@@ -68,6 +75,7 @@ const KNOWN_SERVERS = [
   {
     id: "mercadopago",
     name: "Mercado Pago",
+    kind: "remote",
     url: "https://mcp.mercadopago.com/mcp",
     logo: LOGOS.mercadopago,
     oauth: true,
@@ -75,6 +83,7 @@ const KNOWN_SERVERS = [
   {
     id: "context7",
     name: "Context7",
+    kind: "remote",
     url: "https://mcp.context7.com/mcp",
     logo: LOGOS.context7,
     oauth: false,
@@ -82,6 +91,7 @@ const KNOWN_SERVERS = [
   {
     id: "github-copilot",
     name: "GitHub Copilot",
+    kind: "remote",
     url: "https://api.githubcopilot.com/mcp",
     logo: LOGOS["github-copilot"],
     oauth: true,
@@ -89,9 +99,19 @@ const KNOWN_SERVERS = [
   {
     id: "facebook-ads",
     name: "Facebook Ads",
+    kind: "remote",
     url: "https://graph.facebook.com/mcp",
     logo: LOGOS.facebook,
     oauth: true,
+  },
+  {
+    id: "mcpmail",
+    name: "MailMCP",
+    kind: "local",
+    command: ["node", "dist/index.js"],
+    environment: { MAIL_MCP_ACCOUNTS_PATH: "" },
+    logo: LOGOS.mcpmail,
+    oauth: false,
   },
 ] as const
 
@@ -297,8 +317,14 @@ export const DialogMcpAddV2: Component<{
                       class="!w-full !justify-start gap-1.5 overflow-hidden"
                       onClick={() => {
                         setForm("name", server.name)
-                        setForm("type", "remote")
-                        setForm("url", server.url)
+                        if (server.kind === "local") {
+                          setForm("type", "local")
+                          setForm("command", server.command.join(" "))
+                          setForm("environment", toRows(server.environment))
+                        } else {
+                          setForm("type", "remote")
+                          setForm("url", server.url)
+                        }
                         setForm("err", {})
                       }}
                     >
@@ -315,6 +341,9 @@ export const DialogMcpAddV2: Component<{
               </div>
               <Show when={KNOWN_SERVERS.some((s) => s.name === form.name && s.oauth)}>
                 <span class="settings-v2-server-dialog-hint">{language.t("settings.mcp.add.known.oauthHint")}</span>
+              </Show>
+              <Show when={KNOWN_SERVERS.some((s) => s.name === form.name && s.kind === "local")}>
+                <span class="settings-v2-server-dialog-hint">{language.t("settings.mcp.add.known.localHint")}</span>
               </Show>
             </div>
           </Show>
