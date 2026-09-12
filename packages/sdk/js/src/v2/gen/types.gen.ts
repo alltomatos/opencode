@@ -1977,11 +1977,40 @@ export type ComboConfig = {
   [key: string]: Combo
 }
 
-export type AgentUiChannelBinding = {
+export type AgentUiTelegramChannelBinding = {
   type: "telegram"
   token?: string
   directory?: string
 }
+
+export type AgentUiWhatsAppChannelBinding = {
+  type: "whatsapp"
+  /**
+   * Which unofficial WhatsApp API this channel connects through (see waconector).
+   */
+  provider: "waha" | "evolution" | "zapi" | "uazapi" | "whapi" | "wuzapi" | "quepasa" | "wppconnect" | "izapia"
+  /**
+   * Provider-specific connection fields (e.g. baseUrl+apiKey for WAHA, instanceId+token for Z-API). Shape depends on `provider`.
+   */
+  config: {
+    [key: string]: string
+  }
+  /**
+   * Session IDs this channel listens on, for providers with multiple sessions per tenant (izapia). Absent means single-session (see config.sid).
+   */
+  sessionIds?: Array<string>
+  /**
+   * WhatsApp group JIDs this agent may respond in, in addition to direct messages. Empty/absent means direct messages only.
+   */
+  allowedGroups?: Array<string>
+  directory?: string
+  /**
+   * Random per-channel secret embedded in the webhook URL — authenticates inbound webhook calls from the provider.
+   */
+  webhookSecret: string
+}
+
+export type AgentUiChannelBinding = AgentUiTelegramChannelBinding | AgentUiWhatsAppChannelBinding
 
 export type AgentUiRagSource = {
   id: string
@@ -2031,6 +2060,10 @@ export type AgentUiAgent = {
    */
   ragSources: Array<AgentUiRagSource>
   guardrails: AgentUiGuardrails
+  /**
+   * Names of MCP servers this agent is allowed to call tools from. Empty/absent means none.
+   */
+  mcpServers?: Array<string>
   enabled?: boolean
 }
 
@@ -2889,6 +2922,21 @@ export type EventTuiSessionSelect = {
      */
     sessionID: string
   }
+}
+
+export type WhatsAppChannelNotConfiguredError = {
+  _tag: "WhatsAppChannelNotConfiguredError"
+  id: string
+}
+
+export type WhatsAppInvalidWebhookError = {
+  _tag: "WhatsAppInvalidWebhookError"
+  reason: string
+}
+
+export type WhatsAppProviderApiError = {
+  _tag: "WhatsAppProviderApiError"
+  reason: string
 }
 
 export type Workspace = {
@@ -8330,6 +8378,46 @@ export type AgentuiGetResponses = {
 
 export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
 
+export type AgentUiAuditEntry = {
+  id: string
+  timestamp: number
+  channel: "whatsapp" | "telegram" | "sandbox"
+  chatKey: string
+  incoming: string
+  outgoing: string
+  blocked: boolean
+}
+
+export type AgentuiAuditData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/audit"
+}
+
+export type AgentuiAuditErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiAuditError = AgentuiAuditErrors[keyof AgentuiAuditErrors]
+
+export type AgentuiAuditResponses = {
+  /**
+   * Audit log entries, newest first
+   */
+  200: Array<AgentUiAuditEntry>
+}
+
+export type AgentuiAuditResponse = AgentuiAuditResponses[keyof AgentuiAuditResponses]
+
 export type AgentuiGenerateData = {
   body?: {
     description: string
@@ -12487,6 +12575,239 @@ export type TuiControlResponseResponses = {
 }
 
 export type TuiControlResponseResponse = TuiControlResponseResponses[keyof TuiControlResponseResponses]
+
+export type WhatsappWebhookData = {
+  body?: unknown
+  path: {
+    agentId: string
+    secret: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/whatsapp/webhook/{agentId}/{secret}"
+}
+
+export type WhatsappWebhookErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError | WhatsAppChannelNotConfiguredError | WhatsAppInvalidWebhookError
+   */
+  500: AgentUiNotFoundError | WhatsAppChannelNotConfiguredError | WhatsAppInvalidWebhookError
+}
+
+export type WhatsappWebhookError = WhatsappWebhookErrors[keyof WhatsappWebhookErrors]
+
+export type WhatsappWebhookResponses = {
+  /**
+   * Webhook processed
+   */
+  200: {
+    ok: true
+  }
+}
+
+export type WhatsappWebhookResponse = WhatsappWebhookResponses[keyof WhatsappWebhookResponses]
+
+export type IzapiaSession = {
+  id: string
+  name?: string
+  status: string
+  jid?: string
+}
+
+export type WhatsappIzapiaSessionsData = {
+  body?: {
+    apiKey: string
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/izapia/sessions"
+}
+
+export type WhatsappIzapiaSessionsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * WhatsAppProviderApiError
+   */
+  500: WhatsAppProviderApiError
+}
+
+export type WhatsappIzapiaSessionsError = WhatsappIzapiaSessionsErrors[keyof WhatsappIzapiaSessionsErrors]
+
+export type WhatsappIzapiaSessionsResponses = {
+  /**
+   * Sessions for this izapia tenant
+   */
+  200: Array<IzapiaSession>
+}
+
+export type WhatsappIzapiaSessionsResponse = WhatsappIzapiaSessionsResponses[keyof WhatsappIzapiaSessionsResponses]
+
+export type IzapiaGroup = {
+  id: string
+  subject: string
+  sessionId: string
+  participantCount: number
+}
+
+export type WhatsappIzapiaGroupsData = {
+  body: {
+    apiKey: string
+    sids: Array<string>
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/izapia/groups"
+}
+
+export type WhatsappIzapiaGroupsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type WhatsappIzapiaGroupsError = WhatsappIzapiaGroupsErrors[keyof WhatsappIzapiaGroupsErrors]
+
+export type WhatsappIzapiaGroupsResponses = {
+  /**
+   * Groups across the given izapia sessions
+   */
+  200: Array<IzapiaGroup>
+}
+
+export type WhatsappIzapiaGroupsResponse = WhatsappIzapiaGroupsResponses[keyof WhatsappIzapiaGroupsResponses]
+
+export type TunnelStatus = {
+  running: boolean
+  url?: string
+}
+
+export type TunnelError = {
+  _tag: "TunnelError"
+  reason: string
+}
+
+export type TunnelStartData = {
+  body: {
+    port: number
+  }
+  path?: never
+  query?: never
+  url: "/tunnel/start"
+}
+
+export type TunnelStartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * TunnelError
+   */
+  500: TunnelError
+}
+
+export type TunnelStartError = TunnelStartErrors[keyof TunnelStartErrors]
+
+export type TunnelStartResponses = {
+  /**
+   * Tunnel started (or already running)
+   */
+  200: TunnelStatus
+}
+
+export type TunnelStartResponse = TunnelStartResponses[keyof TunnelStartResponses]
+
+export type TunnelStatusData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/status"
+}
+
+export type TunnelStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelStatusError = TunnelStatusErrors[keyof TunnelStatusErrors]
+
+export type TunnelStatusResponses = {
+  /**
+   * Current tunnel status
+   */
+  200: TunnelStatus
+}
+
+export type TunnelStatusResponse = TunnelStatusResponses[keyof TunnelStatusResponses]
+
+export type TunnelStopData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/stop"
+}
+
+export type TunnelStopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelStopError = TunnelStopErrors[keyof TunnelStopErrors]
+
+export type TunnelStopResponses = {
+  /**
+   * Tunnel stopped
+   */
+  200: {
+    ok: true
+  }
+}
+
+export type TunnelStopResponse = TunnelStopResponses[keyof TunnelStopResponses]
+
+export type TunnelTailscaleStatus = {
+  available: boolean
+  ip?: string
+}
+
+export type TunnelTailscaleData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/tailscale"
+}
+
+export type TunnelTailscaleErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelTailscaleError = TunnelTailscaleErrors[keyof TunnelTailscaleErrors]
+
+export type TunnelTailscaleResponses = {
+  /**
+   * Local Tailscale IP, if available
+   */
+  200: TunnelTailscaleStatus
+}
+
+export type TunnelTailscaleResponse = TunnelTailscaleResponses[keyof TunnelTailscaleResponses]
 
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never

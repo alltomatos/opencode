@@ -8,7 +8,9 @@ import { InstanceBootstrap } from "../../src/project/bootstrap-service"
 import { SessionSummary } from "../../src/session/summary"
 import { LSP } from "../../src/lsp/lsp"
 import { MCP } from "../../src/mcp"
+import { Wildcard } from "@opencode-ai/core/util/wildcard"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { Storage } from "@/storage/storage"
 import { testEffect } from "../lib/effect"
 
 // AgentUI.Service now pulls in Session/SessionPrompt/InstanceStore (for the
@@ -70,6 +72,40 @@ const noopMcp = Layer.succeed(
 )
 const noopRuntimeFlags = RuntimeFlags.layer({ experimentalEventSystem: true })
 
+// In-memory stand-in for the audit log's persistence (see
+// AgentUI.Service.logAudit/listAudit) — the real Storage.node does actual
+// filesystem I/O and pulls in Git.node (real `git` calls for its migration
+// step), neither of which anything below actually needs to exercise.
+const storageState = new Map<string, unknown>()
+function storageRead<T>(key: string[]) {
+  return storageState.has(key.join("/"))
+    ? Effect.succeed(storageState.get(key.join("/")) as T)
+    : Effect.fail(new Storage.NotFoundError({ message: "not found" }))
+}
+function storageUpdate<T>(key: string[], fn: (draft: T) => void) {
+  return Effect.sync(() => {
+    const current = storageState.get(key.join("/")) as T
+    fn(current)
+    return current
+  })
+}
+const noopStorage = Layer.succeed(
+  Storage.Service,
+  Storage.Service.of({
+    read: storageRead,
+    write: (key, content) =>
+      Effect.sync(() => {
+        storageState.set(key.join("/"), content)
+      }),
+    update: storageUpdate,
+    remove: (key) =>
+      Effect.sync(() => {
+        storageState.delete(key.join("/"))
+      }),
+    list: () => Effect.succeed([]),
+  }),
+)
+
 const it = testEffect(
   LayerNode.compile(AgentUI.node, [
     [InstanceStore.bootstrapNode, noopBootstrap],
@@ -78,6 +114,7 @@ const it = testEffect(
     [MCP.node, noopMcp],
     [RuntimeFlags.node, noopRuntimeFlags],
     [LocationServiceMap.node, locationServiceMapLayer],
+    [Storage.node, noopStorage],
   ]),
 )
 
@@ -232,12 +269,29 @@ it.instance("generateDraft() fails with AgentUIGenerateFailedError when no provi
   }),
 )
 
-it.instance("sessionPermission() denies bash/edit/write/task/external_directory", () =>
+it.instance(
+  "sessionPermission() denies everything by default, including tools outside the old bash/edit/write/task/external_directory list",
+  () =>
+    Effect.gen(function* () {
+      const svc = yield* AgentUI.Service
+      const ruleset = svc.sessionPermission()
+      // A wildcard deny, not a per-category list: anything the model tries
+      // that isn't bash/edit/write/task/external_directory used to fall
+      // through to the *default* permission action ("ask"), which hangs a
+      // channel dispatch forever (no human to answer it) — see
+      // agentui/index.ts's sessionPermission for the incident this fixed.
+      for (const permission of ["bash", "edit", "write", "task", "external_directory", "todowrite", "webfetch", "lsp"]) {
+        const rule = ruleset.findLast((r) => Wildcard.match(permission, r.permission))
+        expect(rule?.action).toBe("deny")
+      }
+    }),
+)
+
+it.instance("sessionPermission() still allows an agent's configured MCP servers", () =>
   Effect.gen(function* () {
     const svc = yield* AgentUI.Service
-    const ruleset = svc.sessionPermission()
-    for (const permission of ["bash", "edit", "write", "task", "external_directory"]) {
-      expect(ruleset.some((rule) => rule.permission === permission && rule.action === "deny")).toBe(true)
-    }
+    const ruleset = svc.sessionPermission(["my-server"])
+    const rule = ruleset.findLast((r) => Wildcard.match("my-server_some_tool", r.permission))
+    expect(rule?.action).toBe("allow")
   }),
 )

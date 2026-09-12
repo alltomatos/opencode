@@ -7,6 +7,8 @@ import type {
   AgentuiAddErrors,
   AgentuiAddResponses,
   AgentUiAgent,
+  AgentuiAuditErrors,
+  AgentuiAuditResponses,
   AgentuiGenerateErrors,
   AgentuiGenerateResponses,
   AgentuiGetErrors,
@@ -475,6 +477,20 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  TunnelStartErrors,
+  TunnelStartResponses,
+  TunnelStatusErrors,
+  TunnelStatusResponses,
+  TunnelStopErrors,
+  TunnelStopResponses,
+  TunnelTailscaleErrors,
+  TunnelTailscaleResponses,
+  WhatsappIzapiaGroupsErrors,
+  WhatsappIzapiaGroupsResponses,
+  WhatsappIzapiaSessionsErrors,
+  WhatsappIzapiaSessionsResponses,
+  WhatsappWebhookErrors,
+  WhatsappWebhookResponses,
   WorktreeCreateErrors,
   WorktreeCreateInput,
   WorktreeCreateResponses,
@@ -2230,6 +2246,38 @@ export class Agentui extends HeyApiClient {
     )
     return (options?.client ?? this.client).delete<AgentuiRemoveResponses, AgentuiRemoveErrors, ThrowOnError>({
       url: "/agentui/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get an AgentUI agent's audit log
+   *
+   * Lists recent turns (incoming message + the agent's reply) across every channel this agent is reachable on, newest first.
+   */
+  public audit<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiAuditResponses, AgentuiAuditErrors, ThrowOnError>({
+      url: "/agentui/{id}/audit",
       ...options,
       ...params,
     })
@@ -6352,6 +6400,175 @@ export class Tui extends HeyApiClient {
   }
 }
 
+export class Whatsapp extends HeyApiClient {
+  /**
+   * Receive a WhatsApp webhook for an AgentUI agent
+   *
+   * Inbound webhook endpoint for the agent's configured WhatsApp channel (via waconector). Never call this directly — it's the URL configured on the WhatsApp gateway itself.
+   */
+  public webhook<ThrowOnError extends boolean = false>(
+    parameters: {
+      agentId: string
+      secret: string
+      directory?: string
+      workspace?: string
+      body?: unknown
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "agentId" },
+            { in: "path", key: "secret" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "body", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<WhatsappWebhookResponses, WhatsappWebhookErrors, ThrowOnError>({
+      url: "/whatsapp/webhook/{agentId}/{secret}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List izapia sessions
+   *
+   * Lists the WhatsApp sessions already created for the tenant that owns the given izapia API key.
+   */
+  public izapiaSessions<ThrowOnError extends boolean = false>(
+    parameters: {
+      apiKey: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [{ in: "body", key: "apiKey" }],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      WhatsappIzapiaSessionsResponses,
+      WhatsappIzapiaSessionsErrors,
+      ThrowOnError
+    >({
+      url: "/whatsapp/izapia/sessions",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List izapia groups
+   *
+   * Lists WhatsApp groups across the given izapia sessions, deduped by group id.
+   */
+  public izapiaGroups<ThrowOnError extends boolean = false>(
+    parameters: {
+      apiKey: string
+      sids: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "body", key: "apiKey" },
+            { in: "body", key: "sids" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<WhatsappIzapiaGroupsResponses, WhatsappIzapiaGroupsErrors, ThrowOnError>({
+      url: "/whatsapp/izapia/groups",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class Tunnel extends HeyApiClient {
+  /**
+   * Start public tunnel
+   *
+   * Starts a cloudflared quick tunnel exposing this server's given local port publicly.
+   */
+  public start<ThrowOnError extends boolean = false>(
+    parameters: {
+      port: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "port" }] }])
+    return (options?.client ?? this.client).post<TunnelStartResponses, TunnelStartErrors, ThrowOnError>({
+      url: "/tunnel/start",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get tunnel status
+   */
+  public status<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<TunnelStatusResponses, TunnelStatusErrors, ThrowOnError>({
+      url: "/tunnel/status",
+      ...options,
+    })
+  }
+
+  /**
+   * Stop public tunnel
+   */
+  public stop<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<TunnelStopResponses, TunnelStopErrors, ThrowOnError>({
+      url: "/tunnel/stop",
+      ...options,
+    })
+  }
+
+  /**
+   * Detect local Tailscale IP
+   */
+  public tailscale<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<TunnelTailscaleResponses, TunnelTailscaleErrors, ThrowOnError>({
+      url: "/tunnel/tailscale",
+      ...options,
+    })
+  }
+}
+
 export class Health extends HeyApiClient {
   /**
    * Check server health
@@ -8571,6 +8788,16 @@ export class OpencodeClient extends HeyApiClient {
   private _tui?: Tui
   get tui(): Tui {
     return (this._tui ??= new Tui({ client: this.client }))
+  }
+
+  private _whatsapp?: Whatsapp
+  get whatsapp(): Whatsapp {
+    return (this._whatsapp ??= new Whatsapp({ client: this.client }))
+  }
+
+  private _tunnel?: Tunnel
+  get tunnel(): Tunnel {
+    return (this._tunnel ??= new Tunnel({ client: this.client }))
   }
 
   private _v2?: V2

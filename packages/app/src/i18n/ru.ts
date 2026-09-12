@@ -867,6 +867,7 @@ export const dict = {
   "common.closeTab": "Закрыть вкладку",
   "common.dismiss": "Закрыть",
   "common.requestFailed": "Запрос не выполнен",
+  "common.optional": "необязательно",
   "common.moreOptions": "Дополнительные опции",
   "common.learnMore": "Подробнее",
   "common.rename": "Переименовать",
@@ -1547,6 +1548,7 @@ export const dict = {
   "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
   "settings.agentui.error.telegramNeedsProject": "Откройте эту страницу из подключённого проекта, чтобы дать этому агенту собственного Telegram-бота.",
+  "settings.agentui.error.whatsappIncomplete": "Откройте эту страницу из подключённого проекта и заполните все обязательные поля для выбранного провайдера WhatsApp.",
   "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
   "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
@@ -1556,12 +1558,53 @@ export const dict = {
   "settings.agentui.ai.generate": "Сгенерировать",
   "settings.agentui.ai.generating": "Генерация…",
   "settings.agentui.ai.toast.generated": "Черновик создан — проверьте перед сохранением",
+  "settings.agentui.tabs.general": "General", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.channels": "Channels", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.tools": "Tools", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.knowledge": "Knowledge", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers": "MCP servers", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers.hint": "Let this agent call tools from the MCP servers below, connected to the same project as its channels. Off by default — agents are conversational-only until you turn one on.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers.empty": "No MCP servers configured for this project yet. Add one in Settings → MCP first.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.mcpServers.noDirectory": "Open a project first to see its MCP servers.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.providerLink": "Open {{provider}} dashboard →", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaSessions.fetch": "Fetch sessions", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaSessions.loading": "Fetching…", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaSessions.empty": "No sessions found for this API key.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaSessions.label": "WhatsApp sessions (select one or more)", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.label": "Groups", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.hint": "Direct messages are always answered. Check any groups the agent should also answer in — groups left unchecked are ignored.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.fetch": "Fetch groups", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.loading": "Fetching…", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.izapiaGroups.empty": "No groups found for the selected sessions.", // TODO: translate (auto-filled from en)
+    "settings.agentui.field.whatsapp.tunnel.tailscale.hint": "Simplest option if you already have Tailscale running on this machine and the provider's server: use this machine's Tailscale IP directly, no tunnel process needed.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.tailscale.use": "Use Tailscale IP", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.tailscale.detecting": "Detecting…", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.tailscale.notFound": "No Tailscale IP found. Is Tailscale installed and running?", // TODO: translate (auto-filled from en)
+"settings.agentui.field.whatsapp.tunnel.hint": "This server's URL is local (127.0.0.1/localhost) — the provider can't call it back to deliver messages. Start a public tunnel so it can.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.start": "Start public tunnel", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.starting": "Starting…", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.active": "Public tunnel active: {{url}} — the webhook URL below now uses it.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.tunnel.error": "Couldn't start the tunnel. Is cloudflared installed?", // TODO: translate (auto-filled from en)
+  "settings.agentui.tabs.audit": "Audit", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.title": "Message log", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.refresh": "Refresh", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.loading": "Loading…", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.needsSave": "Save the agent first to see its message log.", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.empty": "No messages logged yet.", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.blocked": "Blocked", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.incoming": "Received", // TODO: translate (auto-filled from en)
+  "settings.agentui.audit.outgoing": "Replied", // TODO: translate (auto-filled from en)
   "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
   "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
   "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
   "settings.agentui.field.telegramToken.placeholder": "Токен бота (необязательно — оставьте пустым, чтобы использовать общий бот)",
   "settings.agentui.field.telegramToken.hint": "Вставьте токен от @BotFather, чтобы дать этому агенту собственного выделенного Telegram-бота. Оставьте пустым, чтобы обращаться к нему через общий бот в Настройки → Интеграции, используя его командный префикс.",
+  "settings.agentui.field.whatsapp": "Отвечать в WhatsApp",
+  "settings.agentui.field.whatsapp.hint": "Использует неофициальный WhatsApp API (через waconector) — выберите провайдера и заполните данные подключения. Провайдерам с самостоятельным хостингом нужен собственный, отдельно работающий сервер/контейнер; это лишь подключается к нему.",
+  "settings.agentui.field.whatsapp.webhookUrl": "URL вебхука — вставьте его в панель провайдера",
+  "settings.agentui.field.whatsapp.webhookSecret": "Webhook secret — some providers (e.g. izapia) ask for this separately", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.whatsapp.webhookAfterSave": "URL вебхука, который нужно настроить у провайдера, появится здесь после сохранения.",
   "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
   "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)

@@ -1,7 +1,7 @@
 import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { AgentUINotFoundError, AgentUIGenerateFailedError } from "@/agentui"
+import { AgentUINotFoundError, AgentUIGenerateFailedError, AuditEntry } from "@/agentui"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
@@ -99,6 +99,18 @@ export const AgentUIApi = HttpApi.make("agentui")
             identifier: "agentui.resetSandbox",
             summary: "Reset an AgentUI agent's sandbox conversation",
             description: "Starts a fresh sandbox session for this agent on the next test message.",
+          }),
+        ),
+        HttpApiEndpoint.get("audit", `${root}/:id/audit`, {
+          params: { id: Schema.String },
+          query: WorkspaceRoutingQuery,
+          success: described(Schema.Array(AuditEntry), "Audit log entries, newest first"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "agentui.audit",
+            summary: "Get an AgentUI agent's audit log",
+            description:
+              "Lists recent turns (incoming message + the agent's reply) across every channel this agent is reachable on, newest first.",
           }),
         ),
         HttpApiEndpoint.delete("remove", `${root}/:id`, {

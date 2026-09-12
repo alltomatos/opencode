@@ -86,7 +86,12 @@ test("animates todo lifecycle without replaying it across session tabs", async (
   await switchSession(page, otherID, otherTitle)
   await expect(dock).toHaveCount(0)
 
-  const returningOpen = sampleDock(page, 700)
+  // Was 700ms: under CI load the session-switch render can take long enough
+  // that the sampling window closes before the dock ever mounts, leaving
+  // zero "present" samples and failing on a load artifact rather than a
+  // real animation regression (observed 2026-09-09, all 3 attempts failing
+  // identically in one run — a systemic-load run, not a rare flake).
+  const returningOpen = sampleDock(page, 1_400)
   await switchSession(page, sourceID, sourceTitle)
   const openSamples = (await returningOpen).filter((sample) => sample.present)
   expect(openSamples.length).toBeGreaterThan(0)
