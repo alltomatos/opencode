@@ -7,7 +7,7 @@ import type { Config } from "../../../src/config/config"
 
 import type { MessageV2 } from "../../../src/session/message-v2"
 import { MessageID, PartID } from "../../../src/session/schema"
-import { call, callAuthProbe, disposeApps } from "./backend"
+import { call, callAuthProbe, disposeApps, rawRequest } from "./backend"
 import { original } from "./environment"
 import { runtime } from "./runtime"
 import type { ActiveScenario, Options, ProjectOptions, Result, Scenario, ScenarioContext, SeededContext } from "./types"
@@ -183,6 +183,15 @@ function withContext<A, E>(
           llmText: (value) => Effect.suspend(() => llm().text(value)),
           llmWait: (count) => Effect.suspend(() => llm().wait(count)),
           tuiRequest: (request) => Effect.sync(() => modules.Tui.submitTuiRequest(request)),
+          seedPost: (path, body) =>
+            rawRequest(path, {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                ...(context.dir?.path ? { "x-opencode-directory": context.dir.path } : {}),
+              },
+              body: JSON.stringify(body),
+            }),
         }
         yield* trace(options, scenario, `${label} seed start`)
         const state = yield* scenario.seed(base)
