@@ -1307,6 +1307,7 @@ export const dict = {
   "settings.mcp.add.known.label": "Known connectors",
   "settings.mcp.add.known.oauthBadge": "OAuth",
   "settings.mcp.add.known.oauthHint": "This connector requires OAuth. Fill in the Client ID / Client secret below, or leave them empty to authorize on first connection.",
+  "settings.mcp.add.known.localHint": "This connector runs locally. Build it first (npm install and npm run build), then set the command working directory and the MAIL_MCP_ACCOUNTS_PATH environment variable below to your accounts.json file.",
   "settings.mcp.add.field.name.label": "Name",
   "settings.mcp.add.field.name.placeholder": "my-server",
   "settings.mcp.add.field.type.label": "Connection type",
