@@ -17,7 +17,7 @@
  * - `.json(...)` / `.jsonEffect(...)` assert response shape and optional side effects.
  * - `.mutating()` tells the runner to reset isolated state after destructive routes.
  */
-import { Effect } from "effect"
+import { Effect, Scope } from "effect"
 import { OpenApi } from "effect/unstable/httpapi"
 import { TestLLMServer } from "../../lib/llm-server"
 import path from "path"
@@ -2157,6 +2157,19 @@ const llmScenarios = new Set([
 
 const main = Effect.gen(function* () {
   yield* Effect.addFinalizer(() => Effect.promise(() => disposeApps()).pipe(Effect.andThen(cleanupExercisePaths)))
+  // The AppLayer is memoized (via a shared MemoMap) and reused across every
+  // scenario for speed. That means any service inside it that captures
+  // `yield* Scope.Scope` to fork long-lived background work (e.g. session
+  // title generation, auto-summarize) gets a scope tied to whichever
+  // scenario happened to trigger the first build. If that were a
+  // per-scenario scope, it would close the instant that first scenario's
+  // own `Effect.scoped` finished — silently killing every later
+  // `forkIn(scope)` across ALL subsequent scenarios in the same process
+  // (they'd fork into an already-closed scope and never run). Pass this
+  // run's own top-level scope instead, so it stays open for the whole
+  // exerciser process, matching how the app is actually scoped in
+  // production (built once against the server's own lifetime scope).
+  const appScope = yield* Scope.Scope
   const options = parseOptions(Bun.argv.slice(2))
   const modules = yield* Effect.promise(() => runtime())
   const effectRoutes = routeKeys(OpenApi.fromApi(modules.PublicApi))
@@ -2183,7 +2196,7 @@ const main = Effect.gen(function* () {
           (scenario) =>
             Effect.gen(function* () {
               if (options.progress) console.log(`${color.dim}RUN ${routeKey(scenario)} ${scenario.name}${color.reset}`)
-              return yield* runScenario(options)(scenario)
+              return yield* runScenario(options, appScope)(scenario)
             }),
           { concurrency: 1 },
         )
