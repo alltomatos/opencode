@@ -155,7 +155,11 @@ function expectExitContains(exit: Exit.Exit<unknown, unknown>, ...messages: stri
   for (const message of messages) expect(String(exit.cause)).toContain(message)
 }
 
-function eventuallyEffect(effect: Effect.Effect<void>, timeout = 1500) {
+// 5000ms (was 1500ms): under CI-load, workspace sync status transitions (e.g. detecting
+// a missing target directory) can take longer than 1.5s to propagate, causing this poll
+// to exhaust its budget before the expected status is observed. Observed a 16875ms failure
+// on "local start reports error when the target directory is missing" on 2026-09-12.
+function eventuallyEffect(effect: Effect.Effect<void>, timeout = 5000) {
   return Effect.gen(function* () {
     const started = Date.now()
     let last: unknown
