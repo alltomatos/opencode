@@ -8,6 +8,7 @@ import { InstanceBootstrap } from "../../src/project/bootstrap-service"
 import { SessionSummary } from "../../src/session/summary"
 import { LSP } from "../../src/lsp/lsp"
 import { MCP } from "../../src/mcp"
+import { Wildcard } from "@opencode-ai/core/util/wildcard"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Storage } from "@/storage/storage"
 import { testEffect } from "../lib/effect"
@@ -268,12 +269,29 @@ it.instance("generateDraft() fails with AgentUIGenerateFailedError when no provi
   }),
 )
 
-it.instance("sessionPermission() denies bash/edit/write/task/external_directory", () =>
+it.instance(
+  "sessionPermission() denies everything by default, including tools outside the old bash/edit/write/task/external_directory list",
+  () =>
+    Effect.gen(function* () {
+      const svc = yield* AgentUI.Service
+      const ruleset = svc.sessionPermission()
+      // A wildcard deny, not a per-category list: anything the model tries
+      // that isn't bash/edit/write/task/external_directory used to fall
+      // through to the *default* permission action ("ask"), which hangs a
+      // channel dispatch forever (no human to answer it) — see
+      // agentui/index.ts's sessionPermission for the incident this fixed.
+      for (const permission of ["bash", "edit", "write", "task", "external_directory", "todowrite", "webfetch", "lsp"]) {
+        const rule = ruleset.findLast((r) => Wildcard.match(permission, r.permission))
+        expect(rule?.action).toBe("deny")
+      }
+    }),
+)
+
+it.instance("sessionPermission() still allows an agent's configured MCP servers", () =>
   Effect.gen(function* () {
     const svc = yield* AgentUI.Service
-    const ruleset = svc.sessionPermission()
-    for (const permission of ["bash", "edit", "write", "task", "external_directory"]) {
-      expect(ruleset.some((rule) => rule.permission === permission && rule.action === "deny")).toBe(true)
-    }
+    const ruleset = svc.sessionPermission(["my-server"])
+    const rule = ruleset.findLast((r) => Wildcard.match("my-server_some_tool", r.permission))
+    expect(rule?.action).toBe("allow")
   }),
 )
