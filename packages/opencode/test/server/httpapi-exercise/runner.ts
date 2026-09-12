@@ -14,10 +14,10 @@ import type { ActiveScenario, Options, ProjectOptions, Result, Scenario, Scenari
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
 
-export function runScenario(options: Options) {
+export function runScenario(options: Options, appScope: Scope.Scope) {
   return (scenario: Scenario) => {
     if (scenario.kind === "todo") return Effect.succeed({ status: "skip", scenario } as Result)
-    return runActive(options, scenario).pipe(
+    return runActive(options, scenario, appScope).pipe(
       Effect.timeoutOrElse({
         duration: options.scenarioTimeout,
         orElse: () => Effect.die(new Error(`scenario timed out after ${Duration.format(options.scenarioTimeout)}`)),
@@ -29,10 +29,10 @@ export function runScenario(options: Options) {
   }
 }
 
-function runActive(options: Options, scenario: ActiveScenario) {
+function runActive(options: Options, scenario: ActiveScenario, appScope: Scope.Scope) {
   if (options.mode === "auth") return runAuth(scenario)
 
-  return withContext(options, scenario, "shared", (ctx) =>
+  return withContext(options, scenario, "shared", appScope, (ctx) =>
     Effect.gen(function* () {
       yield* trace(options, scenario, "request start")
       const result = yield* call(scenario, ctx)
@@ -63,6 +63,7 @@ function withContext<A, E>(
   options: Options,
   scenario: ActiveScenario,
   label: string,
+  appScope: Scope.Scope,
   use: (ctx: SeededContext<unknown>) => Effect.Effect<A, E>,
 ) {
   return Effect.acquireRelease(
@@ -89,8 +90,13 @@ function withContext<A, E>(
       Effect.gen(function* () {
         yield* trace(options, scenario, `${label} runtime start`)
         const modules = yield* Effect.promise(() => runtime())
-        const scope = yield* Scope.Scope
-        const app = yield* Layer.buildWithMemoMap(modules.AppLayer, modules.memoMap, scope)
+        // Build against the run's shared top-level scope (see `main` in
+        // index.ts), not this scenario's own scope — the AppLayer is
+        // memoized and reused across scenarios, so any service inside it
+        // that forks background work into "its" scope would otherwise have
+        // that fork silently die the moment the FIRST scenario to build the
+        // layer finishes and closes its own scope.
+        const app = yield* Layer.buildWithMemoMap(modules.AppLayer, modules.memoMap, appScope)
         yield* trace(options, scenario, `${label} runtime done`)
         const path = context.dir?.path
         const instance = path
