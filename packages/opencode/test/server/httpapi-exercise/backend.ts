@@ -17,6 +17,22 @@ export function call(scenario: ActiveScenario, ctx: SeededContext<unknown>, opti
   )
 }
 
+/**
+ * Fire a request straight at the same in-process app/instance `call(...)` uses,
+ * bypassing the scenario abstraction entirely. Used by seed helpers that need to
+ * create config-overlay state (AgentUI/Batuta/Combo) through the real HTTP route
+ * instead of poking a service directly — those services aren't part of the plain
+ * `AppLayer` the rest of the seed helpers run against, only the full HttpApiApp.
+ */
+export function rawRequest(path: string, init?: RequestInit & { method?: string }) {
+  return Effect.promise(async () => {
+    const response = await app(await runtime(), {}).request(new Request(new URL(path, "http://localhost"), init))
+    const text = await response.text()
+    if (!response.ok) throw new Error(`rawRequest ${init?.method ?? "GET"} ${path} failed: ${response.status} ${text}`)
+    return parse(text)
+  })
+}
+
 export function callAuthProbe(scenario: ActiveScenario, credentials: "missing" | "valid" = "missing") {
   return Effect.promise(async () => {
     const controller = new AbortController()
