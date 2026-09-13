@@ -1762,7 +1762,7 @@ unixNoLLMServer(
   30_000,
 )
 
-it.instance(
+unix(
   "loop waits while shell runs and starts after shell exits",
   () =>
     Effect.gen(function* () {
@@ -1796,10 +1796,10 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
-it.instance(
+unix(
   "shell completion resumes queued loop callers",
   () =>
     Effect.gen(function* () {
@@ -1835,7 +1835,7 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
 unix(

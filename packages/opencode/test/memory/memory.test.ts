@@ -133,3 +133,24 @@ it.instance("forgetProject() removes only that project's memory, not global", ()
     expect(context).toContain("Continua global depois de esquecer um projeto.")
   }),
 )
+
+it.instance("loadProject() and loadGlobal() return separate contents", () =>
+  Effect.gen(function* () {
+    const memory = yield* Memory.Service
+    const directory = "/tmp/load-separate-test"
+
+    yield* memory.remember({ directory, note: "Nota especifica do projeto." })
+    yield* memory.promoteGlobal({ summary: "Nota especifica global." })
+
+    const { content: projectContent } = yield* memory.loadProject(directory)
+    const { content: globalContent } = yield* memory.loadGlobal()
+
+    expect(projectContent).toContain("Nota especifica do projeto.")
+    expect(projectContent).not.toContain("Nota especifica global.")
+
+    expect(globalContent).toContain("Nota especifica global.")
+    expect(globalContent).not.toContain("Nota especifica do projeto.")
+
+    yield* memory.forgetProject(directory)
+  }),
+)
