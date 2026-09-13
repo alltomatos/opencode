@@ -218,6 +218,20 @@ it.instance("checkInput() always allows when guardrails are disabled", () =>
   }),
 )
 
+it.instance("generateDraft() fails with AgentUIGenerateFailedError when no provider is configured", () =>
+  Effect.gen(function* () {
+    // Same reasoning as testMessage() above: actually exercising a
+    // successful generation needs a TestLLMServer, which would duplicate
+    // prompt.test.ts's harness for no extra coverage. The one deterministic,
+    // harness-free behavior worth locking in here is that a test
+    // environment with no connected provider fails clearly instead of
+    // hanging or throwing an unhandled error.
+    const svc = yield* AgentUI.Service
+    const exit = yield* svc.generateDraft({ description: "A friendly support agent" }).pipe(Effect.exit)
+    expect(Exit.isFailure(exit)).toBe(true)
+  }),
+)
+
 it.instance("sessionPermission() denies bash/edit/write/task/external_directory", () =>
   Effect.gen(function* () {
     const svc = yield* AgentUI.Service

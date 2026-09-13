@@ -14,7 +14,10 @@ import { SessionPrompt } from "@/session/prompt"
 import { InstanceStore } from "@/project/instance-store"
 import { InstanceRef } from "@/effect/instance-ref"
 import { SessionID } from "@/session/schema"
+import { Provider } from "@/provider/provider"
 import { Context, Effect, Layer, Schema } from "effect"
+import { jsonSchema, streamText, tool } from "ai"
+import { type LanguageModelV3 } from "@ai-sdk/provider"
 
 // Phase 1 of the AgentUI epic (#144) — CRUD only. No channel routing, RAG
 // retrieval, or guardrail enforcement yet (those are Phases 3-5); this just
@@ -28,6 +31,35 @@ export class AgentUINotFoundError extends Schema.TaggedErrorClass<AgentUINotFoun
     return `Agente não encontrado: ${this.id}`
   }
 }
+
+export class AgentUIGenerateFailedError extends Schema.TaggedErrorClass<AgentUIGenerateFailedError>()(
+  "AgentUIGenerateFailedError",
+  { reason: Schema.String },
+) {
+  override get message() {
+    return `Falha ao gerar o agente a partir da descrição: ${this.reason}`
+  }
+}
+
+export interface GeneratedDraft {
+  readonly name: string
+  readonly personality: string
+  readonly commandTriggers: string[]
+  readonly guardrails: { enabled: boolean; level: "basic" | "strict" }
+}
+
+// Same cheap/fast/reliable-at-tool-calling candidates Memory.Service tries
+// for its own one-shot structured extraction (see resolveModel there) —
+// generation here is a single tool call, not a conversation, so the exact
+// same tradeoff applies: prefer whatever's already connected over whatever's
+// "best".
+const DRAFT_MODEL_CANDIDATES = [
+  "openrouter/google/gemini-3.5-flash-lite",
+  "kc/anthropic/claude-haiku-4.5",
+  "kc/google/gemini-2.5-flash-lite",
+  "antigravity/gemini-3.1-flash-lite",
+  "agy/gemini-3.1-flash-lite",
+]
 
 export interface Interface {
   readonly list: () => Effect.Effect<ConfigAgentUIV1.Agent[]>
@@ -81,6 +113,17 @@ export interface Interface {
     message: string
   }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
   readonly resetSandbox: (id: string) => Effect.Effect<void>
+  // "Criar com IA": one-shot generation — the user describes the agent
+  // they want in natural language, this drafts the form fields a real
+  // conversation-builder would otherwise ask about turn by turn (name,
+  // personality/system-prompt, trigger prefix, guardrail level). No
+  // conversation state, no follow-up questions: the result lands in the
+  // form for the user to review/edit before saving, same as filling it by
+  // hand. Model choice and RAG sources stay manual — those depend on what's
+  // actually connected/uploaded, which the model can't know.
+  readonly generateDraft: (input: {
+    description: string
+  }) => Effect.Effect<GeneratedDraft, AgentUIGenerateFailedError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/AgentUI") {}
@@ -93,6 +136,7 @@ const layer = Layer.effect(
     const sessions = yield* Session.Service
     const promptSvc = yield* SessionPrompt.Service
     const instanceStore = yield* InstanceStore.Service
+    const provider = yield* Provider.Service
 
     // Same overlay-on-top-of-disk-config pattern as Batuta.Service and
     // Combo.Service (packages/opencode/src/batuta/index.ts, src/combo/index.ts)
@@ -309,6 +353,94 @@ const layer = Layer.effect(
       sandboxSessions.delete(id)
     })
 
+    const tryResolveDraftModel = (spec: string) =>
+      Effect.gen(function* () {
+        const separator = spec.indexOf("/")
+        if (separator < 0) return undefined
+        const providerID = spec.slice(0, separator)
+        const modelID = spec.slice(separator + 1)
+        const providerInfo = yield* provider.getProvider(providerID as any).pipe(Effect.orElseSucceed(() => undefined))
+        const modelInfo = providerInfo?.models[modelID]
+        if (!modelInfo) return undefined
+        return yield* provider
+          .getLanguage(modelInfo)
+          .pipe(Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)))
+      })
+
+    const generateDraft = Effect.fn("AgentUI.generateDraft")(function* (input: { description: string }) {
+      let language: LanguageModelV3 | undefined
+      for (const candidate of DRAFT_MODEL_CANDIDATES) {
+        language = yield* tryResolveDraftModel(candidate)
+        if (language) break
+      }
+      if (!language) {
+        return yield* new AgentUIGenerateFailedError({
+          reason: "Nenhum provider configurado para gerar o rascunho. Conecte um provider em Configurações.",
+        })
+      }
+
+      const saveDraft = tool({
+        description: "Salvar o rascunho estruturado do agente descrito pelo usuário.",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Nome curto e descritivo para o agente." },
+            personality: {
+              type: "string",
+              description:
+                "System prompt completo definindo papel, tom, limites e instruções de comportamento do agente, em português, pronto para uso — não um resumo, o texto final.",
+            },
+            commandTrigger: {
+              type: "string",
+              description: "Um único caractere/prefixo curto (ex.: '!', '#') usado para endereçar este agente num canal compartilhado. Nunca '/'.",
+            },
+            guardrailsLevel: {
+              type: "string",
+              enum: ["basic", "strict"],
+              description: "'strict' se o agente lida com dados sensíveis ou público externo; 'basic' caso contrário.",
+            },
+          },
+          required: ["name", "personality", "commandTrigger", "guardrailsLevel"],
+        }),
+      })
+
+      const toolCalls = yield* Effect.tryPromise({
+        try: async () => {
+          const stream = streamText({
+            model: language,
+            system:
+              "Você ajuda a configurar um agente conversacional customizado (AgentUI) a partir da descrição em " +
+              "linguagem natural de um usuário. Extraia um nome, escreva um system prompt (personality) completo " +
+              "e bem estruturado que capture o papel pedido, escolha um prefixo de comando curto, e avalie o " +
+              "nível de guardrail apropriado. Chame a tool save_draft sempre, mesmo com descrições vagas — nesse " +
+              "caso, use bom senso para preencher os detalhes.",
+            prompt: input.description,
+            tools: { save_draft: saveDraft },
+            toolChoice: "required",
+          })
+          return await stream.toolCalls
+        },
+        catch: (cause) => new AgentUIGenerateFailedError({ reason: String(cause) }),
+      })
+
+      const call = toolCalls[0]
+      if (!call) return yield* new AgentUIGenerateFailedError({ reason: "modelo não chamou save_draft" })
+
+      const toolInput = call.input as {
+        name: string
+        personality: string
+        commandTrigger: string
+        guardrailsLevel: "basic" | "strict"
+      }
+
+      return {
+        name: toolInput.name,
+        personality: toolInput.personality,
+        commandTriggers: [toolInput.commandTrigger || "!"],
+        guardrails: { enabled: true, level: toolInput.guardrailsLevel },
+      } satisfies GeneratedDraft
+    })
+
     return Service.of({
       list,
       get,
@@ -321,6 +453,7 @@ const layer = Layer.effect(
       resolveModel,
       testMessage,
       resetSandbox,
+      generateDraft,
     })
   }),
 )
@@ -328,5 +461,5 @@ const layer = Layer.effect(
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node],
+  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node, Provider.node],
 })

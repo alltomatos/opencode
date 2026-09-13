@@ -117,6 +117,38 @@ export function AgentUIFormPage() {
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
 
+  // "Criar com IA": one-shot generation, not a conversation — the user
+  // describes the agent once, the draft lands in the form fields below for
+  // review/editing, same as if they'd typed it by hand. Open by default
+  // only for a brand-new agent; editing an existing one hides it until
+  // asked for, so it can't be mistaken for "regenerate this agent".
+  const [aiOpen, setAiOpen] = createSignal(!isEdit)
+  const [aiDescription, setAiDescription] = createSignal("")
+  const [aiGenerating, setAiGenerating] = createSignal(false)
+  const [aiError, setAiError] = createSignal<string | undefined>()
+
+  const generateWithAI = async () => {
+    if (!aiDescription().trim() || aiGenerating()) return
+    setAiError(undefined)
+    setAiGenerating(true)
+    try {
+      const result = await serverSDK().client.agentui.generate({ description: aiDescription() })
+      const draft = result.data
+      if (!draft) throw new Error(language.t("common.requestFailed"))
+      setForm("name", draft.name)
+      setForm("personality", draft.personality)
+      setForm("commandTriggers", draft.commandTriggers.join(" "))
+      setForm("guardrailsEnabled", draft.guardrails.enabled)
+      setForm("guardrailsLevel", draft.guardrails.level as "basic" | "strict")
+      showToast({ variant: "success", icon: "circle-check", title: language.t("settings.agentui.ai.toast.generated") })
+      setAiOpen(false)
+    } catch (cause) {
+      setAiError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setAiGenerating(false)
+    }
+  }
+
   const save = async () => {
     if (!form.name.trim() || !form.model) {
       setError(language.t("settings.agentui.error.incomplete"))
@@ -204,6 +236,38 @@ export function AgentUIFormPage() {
         <div class="flex min-h-0 flex-1">
           <ScrollView class="min-h-0 flex-1">
             <div class="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-3 py-8 lg:px-6">
+              <div class="flex w-full min-w-0 flex-col gap-2 rounded-[8px] border border-v2-border-border-base bg-v2-background-bg-raised p-3">
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-13-medium text-v2-text-text-base"
+                  onClick={() => setAiOpen((open) => !open)}
+                >
+                  <Icon name="brain" />
+                  {language.t("settings.agentui.ai.title")}
+                  <IconV2 name={aiOpen() ? "chevron-up" : "chevron-down"} class="ml-auto" />
+                </button>
+                <Show when={aiOpen()}>
+                  <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.ai.hint")}</p>
+                  <TextareaV2
+                    class="!w-full self-stretch"
+                    rows={3}
+                    value={aiDescription()}
+                    placeholder={language.t("settings.agentui.ai.placeholder")}
+                    onInput={(event) => setAiDescription(event.currentTarget.value)}
+                  />
+                  <Show when={aiError()}>
+                    <span class="settings-v2-server-dialog-error">{aiError()}</span>
+                  </Show>
+                  <ButtonV2
+                    variant="outline"
+                    disabled={aiGenerating() || !aiDescription().trim()}
+                    onClick={() => void generateWithAI()}
+                  >
+                    {aiGenerating() ? language.t("settings.agentui.ai.generating") : language.t("settings.agentui.ai.generate")}
+                  </ButtonV2>
+                </Show>
+              </div>
+
               <div class="flex w-full min-w-0 flex-col gap-2">
                 <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.name")}</label>
                 <TextInputV2

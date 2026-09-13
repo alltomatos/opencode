@@ -1877,6 +1877,14 @@ const scenarios: Scenario[] = [
         yield* ctx.llmWait(1)
       }),
     ),
+  http.protected
+    .post("/agentui/generate", "agentui.generate")
+    .at((ctx) => ({
+      path: "/agentui/generate",
+      headers: ctx.headers(),
+      body: { description: "assistente que ajuda a programar em python" },
+    }))
+    .status(500, undefined, "status"),
 
   // --- Batuta (external-agent orchestration) ---
   http.protected
