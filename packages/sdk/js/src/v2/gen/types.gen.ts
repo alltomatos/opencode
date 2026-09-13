@@ -12101,6 +12101,131 @@ export type MemoryProjectMemoryStatusResponses = {
 export type MemoryProjectMemoryStatusResponse =
   MemoryProjectMemoryStatusResponses[keyof MemoryProjectMemoryStatusResponses]
 
+export type MemoryGetProjectEntriesData = {
+  body?: never
+  path?: never
+  query: {
+    directory: string
+  }
+  url: "/memory/project/entries"
+}
+
+export type MemoryGetProjectEntriesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetProjectEntriesError = MemoryGetProjectEntriesErrors[keyof MemoryGetProjectEntriesErrors]
+
+export type MemoryGetProjectEntriesResponses = {
+  /**
+   * Project memory entries
+   */
+  200: {
+    content: string
+  }
+}
+
+export type MemoryGetProjectEntriesResponse = MemoryGetProjectEntriesResponses[keyof MemoryGetProjectEntriesResponses]
+
+export type MemoryGetGlobalEntriesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/global"
+}
+
+export type MemoryGetGlobalEntriesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetGlobalEntriesError = MemoryGetGlobalEntriesErrors[keyof MemoryGetGlobalEntriesErrors]
+
+export type MemoryGetGlobalEntriesResponses = {
+  /**
+   * Global memory entries
+   */
+  200: {
+    content: string
+  }
+}
+
+export type MemoryGetGlobalEntriesResponse = MemoryGetGlobalEntriesResponses[keyof MemoryGetGlobalEntriesResponses]
+
+export type MemoryAddEntryData = {
+  body?: {
+    directory?: string
+    note: string
+    global?: boolean
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/entry"
+}
+
+export type MemoryAddEntryErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryAddEntryError = MemoryAddEntryErrors[keyof MemoryAddEntryErrors]
+
+export type MemoryAddEntryResponses = {
+  /**
+   * Path of written memory file
+   */
+  200: {
+    path: string
+  }
+}
+
+export type MemoryAddEntryResponse = MemoryAddEntryResponses[keyof MemoryAddEntryResponses]
+
+export type MemoryPromoteData = {
+  body?: {
+    summary: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/promote"
+}
+
+export type MemoryPromoteErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryPromoteError = MemoryPromoteErrors[keyof MemoryPromoteErrors]
+
+export type MemoryPromoteResponses = {
+  /**
+   * Path of written global memory file
+   */
+  200: {
+    path: string
+  }
+}
+
+export type MemoryPromoteResponse = MemoryPromoteResponses[keyof MemoryPromoteResponses]
+
 export type TuiAppendPromptData = {
   body?: {
     text: string
