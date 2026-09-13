@@ -1762,7 +1762,7 @@ unixNoLLMServer(
   30_000,
 )
 
-it.instance(
+unix(
   "loop waits while shell runs and starts after shell exits",
   () =>
     Effect.gen(function* () {
@@ -1799,7 +1799,7 @@ it.instance(
   30_000,
 )
 
-it.instance(
+unix(
   "shell completion resumes queued loop callers",
   () =>
     Effect.gen(function* () {
