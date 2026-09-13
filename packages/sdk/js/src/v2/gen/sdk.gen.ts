@@ -174,13 +174,21 @@ import type {
   McpRemoveResponses,
   McpStatusErrors,
   McpStatusResponses,
+  MemoryAddEntryErrors,
+  MemoryAddEntryResponses,
   MemoryConfig,
   MemoryForgetProjectErrors,
   MemoryForgetProjectResponses,
   MemoryGetConfigErrors,
   MemoryGetConfigResponses,
+  MemoryGetGlobalEntriesErrors,
+  MemoryGetGlobalEntriesResponses,
+  MemoryGetProjectEntriesErrors,
+  MemoryGetProjectEntriesResponses,
   MemoryProjectMemoryStatusErrors,
   MemoryProjectMemoryStatusResponses,
+  MemoryPromoteErrors,
+  MemoryPromoteResponses,
   MemorySetConfigErrors,
   MemorySetConfigResponses,
   ModelRef,
@@ -5862,6 +5870,149 @@ export class Memory extends HeyApiClient {
       url: "/memory/project",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Get project memory content
+   *
+   * Returns markdown content of recorded memories for the given project directory.
+   */
+  public getProjectEntries<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<
+      MemoryGetProjectEntriesResponses,
+      MemoryGetProjectEntriesErrors,
+      ThrowOnError
+    >({
+      url: "/memory/project/entries",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get global memory content
+   *
+   * Returns markdown content of recorded global memories across all projects.
+   */
+  public getGlobalEntries<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MemoryGetGlobalEntriesResponses,
+      MemoryGetGlobalEntriesErrors,
+      ThrowOnError
+    >({
+      url: "/memory/global",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add a memory note
+   *
+   * Directly records a note in project memory or global memory without requiring LLM execution.
+   */
+  public addEntry<ThrowOnError extends boolean = false>(
+    parameters?: {
+      query_directory?: string
+      workspace?: string
+      body_directory?: string
+      note?: string
+      global?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            {
+              in: "query",
+              key: "query_directory",
+              map: "directory",
+            },
+            { in: "query", key: "workspace" },
+            {
+              in: "body",
+              key: "body_directory",
+              map: "directory",
+            },
+            { in: "body", key: "note" },
+            { in: "body", key: "global" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryAddEntryResponses, MemoryAddEntryErrors, ThrowOnError>({
+      url: "/memory/entry",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Promote memory to global
+   *
+   * Promotes a summary/decision to global memory and regenerates the global memory skill file.
+   */
+  public promote<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      summary?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "summary" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryPromoteResponses, MemoryPromoteErrors, ThrowOnError>({
+      url: "/memory/promote",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
