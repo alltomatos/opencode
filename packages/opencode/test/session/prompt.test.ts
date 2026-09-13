@@ -567,13 +567,24 @@ it.instance("loop calls LLM and returns assistant message", () =>
 
 // Skipped: fails on `dev` HEAD itself (independent of any feature branch —
 // confirmed on 5+ consecutive `dev` CI runs since 2026-09-06), always with
-// the same InterruptError signature at a tight ~20.5s-21.1s cluster. That
-// clustering is too tight for generic CI-load contention (compare the
-// subprocess-timeout flakes fixed alongside this, which varied by hundreds
-// of ms around their bound) — suspected fixed idle/read timeout somewhere
-// in the HTTP client stack firing on the deliberately-hung SSE stream
-// (`llm.hang()`), not an actual hang in prompt.loop. Not yet root-caused;
-// tracked in #185 so this doesn't keep blocking unrelated PRs.
+// the same InterruptError signature ("All fibers interrupted without
+// error"), at a tight ~20.5s-21.1s cluster in CI. That clustering is too
+// tight for generic CI-load contention (compare the subprocess-timeout
+// flakes fixed alongside this, which varied by hundreds of ms around their
+// bound). Two independent investigations, two different leads, neither
+// confirmed yet:
+//  - #185: suspects a fixed idle/read timeout somewhere in the HTTP client
+//    stack firing on the deliberately-hung SSE stream (`llm.hang()`), not
+//    an actual hang in prompt.loop.
+//  - #181: reproduces locally in isolation too, and traces the
+//    InterruptError to this test's own `.instance` scope teardown (tmpdir +
+//    git init + LSP boot + mock LLM server, all released together) racing
+//    against the still-hanging `llm.hang()` fiber's interruption. Wrapping
+//    the explicit `Fiber.interrupt(fiber)` below in `Effect.ignore` did not
+//    fix it, so the error isn't coming from that call — needs someone with
+//    more Effect-runtime/Scope-finalizer context to trace which finalizer
+//    is responsible.
+// See both issues for the full investigations before re-enabling.
 withMcpInstructions.instance.skip(
   "loop includes MCP instructions in model system context",
   () =>
@@ -1755,7 +1766,7 @@ unixNoLLMServer(
   30_000,
 )
 
-it.instance(
+unix(
   "loop waits while shell runs and starts after shell exits",
   () =>
     Effect.gen(function* () {
@@ -1789,10 +1800,10 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
-it.instance(
+unix(
   "shell completion resumes queued loop callers",
   () =>
     Effect.gen(function* () {
@@ -1828,7 +1839,7 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
 unix(

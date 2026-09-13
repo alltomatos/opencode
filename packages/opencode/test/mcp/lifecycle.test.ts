@@ -318,6 +318,7 @@ it.instance("disconnect removes protocol data and reconnect establishes a new se
     yield* pollWithTimeout(
       Effect.sync(() => (server.state.aborted > 0 ? server.state.aborted : undefined)),
       "disconnected HTTP session was not aborted",
+      "10 seconds",
     )
 
     yield* Effect.promise(server.restart)
@@ -338,6 +339,7 @@ it.instance("add() closes the old protocol session when replacing a server", () 
     yield* pollWithTimeout(
       Effect.sync(() => (first.state.aborted > 0 ? first.state.aborted : undefined)),
       "replaced HTTP session was not aborted",
+      "10 seconds",
     )
     expect(second.state.aborted).toBe(0)
     expect(Object.keys(yield* mcp.tools())).toEqual(["replace-server_test_tool"])
@@ -543,6 +545,7 @@ it.instance("remote timeout aborts both real HTTP transport attempts", () =>
     yield* pollWithTimeout(
       Effect.sync(() => (server.aborted() >= 2 ? server.aborted() : undefined)),
       "remote transport requests were not aborted",
+      "10 seconds",
     )
     expect(server.requests).toEqual(["POST", "GET"])
   }),
