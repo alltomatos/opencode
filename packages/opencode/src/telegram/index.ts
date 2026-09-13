@@ -491,8 +491,13 @@ const layer = Layer.effect(
       if (agentKey) {
         const existing = agentSessionsByChat.get(agentKey)
         if (existing) return SessionID.make(existing)
+        const agent = yield* agentUI.get(agentKey).pipe(Effect.orElseSucceed(() => undefined))
         const session = yield* sessions
-          .create({ title: `Telegram AgentUI: ${agentKey}`, directory, permission: agentUI.sessionPermission() })
+          .create({
+            title: `Telegram AgentUI: ${agentKey}`,
+            directory,
+            permission: agentUI.sessionPermission(agent?.mcpServers),
+          })
           .pipe(Effect.provideService(InstanceRef, ctx))
         agentSessionsByChat.set(agentKey, session.id)
         return session.id
@@ -839,12 +844,33 @@ const layer = Layer.effect(
         const guard = agentUI.checkInput(agent, rest)
         if (!guard.allowed) {
           reply = `🛡️ ${guard.reason}`
+          yield* agentUI.logAudit(agent.id, {
+            channel: "telegram",
+            chatKey: String(chatId),
+            incoming: rest,
+            outgoing: reply,
+            blocked: true,
+          })
         } else {
           const model = yield* agentUI.resolveModel(agent.model)
           const knowledge = yield* agentUI.buildKnowledgeContext(agent)
           const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
           const system = agentUI.hardenSystemPrompt(agent, personality)
           reply = yield* dispatchTask(token, chatId, directory, rest, attachments, { system, model }, `${chatId}:${agent.id}`)
+          // dispatchTask can return undefined when the reply is queued as a
+          // background task instead of answered inline (e.g. a parallel
+          // run) — that final answer isn't captured here; a real fix would
+          // hook the background-task completion path too, out of scope for
+          // this first pass at an audit log.
+          if (reply) {
+            yield* agentUI.logAudit(agent.id, {
+              channel: "telegram",
+              chatKey: String(chatId),
+              incoming: rest,
+              outgoing: reply,
+              blocked: false,
+            })
+          }
         }
       } else if (text.startsWith("/")) {
         const [command, ...rest] = text.slice(1).split(/\s+/)

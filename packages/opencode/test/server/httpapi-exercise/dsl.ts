@@ -96,13 +96,16 @@ class ScenarioBuilder<S = undefined> {
   }
 
   status(
-    status = 200,
+    status: number | number[] = 200,
     inspect?: (ctx: SeededContext<S>, result: CallResult) => Effect.Effect<void>,
     compare: Comparison = "status",
   ) {
+    const statuses = Array.isArray(status) ? status : [status]
     return this.done(compare, (ctx, result) =>
       Effect.gen(function* () {
-        if (result.status !== status) throw new Error(`expected ${status}, got ${result.status}: ${result.text}`)
+        if (!statuses.includes(result.status)) {
+          throw new Error(`expected ${statuses.join(" or ")}, got ${result.status}: ${result.text}`)
+        }
         if (inspect) yield* inspect(ctx, result)
       }),
     )
