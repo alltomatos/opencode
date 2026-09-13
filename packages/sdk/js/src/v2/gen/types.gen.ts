@@ -1979,6 +1979,8 @@ export type ComboConfig = {
 
 export type AgentUiChannelBinding = {
   type: "telegram"
+  token?: string
+  directory?: string
 }
 
 export type AgentUiRagSource = {

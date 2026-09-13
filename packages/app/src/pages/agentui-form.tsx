@@ -33,6 +33,7 @@ type AgentUIFormState = {
   guardrailsEnabled: boolean
   guardrailsLevel: "basic" | "strict"
   telegram: boolean
+  telegramToken: string
   enabled: boolean
 }
 
@@ -47,6 +48,7 @@ function emptyForm(): AgentUIFormState {
     guardrailsEnabled: true,
     guardrailsLevel: "basic",
     telegram: false,
+    telegramToken: "",
     enabled: true,
   }
 }
@@ -106,6 +108,7 @@ export function AgentUIFormPage() {
       guardrailsEnabled: agent.guardrails.enabled,
       guardrailsLevel: agent.guardrails.level,
       telegram: agent.channels.some((c) => c.type === "telegram"),
+      telegramToken: agent.channels.find((c) => c.type === "telegram")?.token ?? "",
       enabled: agent.enabled !== false,
     })
   })
@@ -154,6 +157,11 @@ export function AgentUIFormPage() {
       setError(language.t("settings.agentui.error.incomplete"))
       return
     }
+    const ownBotToken = form.telegram ? form.telegramToken.trim() : ""
+    if (ownBotToken && !directory()) {
+      setError(language.t("settings.agentui.error.telegramNeedsProject"))
+      return
+    }
     setError(undefined)
     setSaving(true)
     const triggers = form.commandTriggers
@@ -167,7 +175,9 @@ export function AgentUIFormPage() {
           name: form.name,
           personality: form.personality,
           model: form.model,
-          channels: form.telegram ? [{ type: "telegram" }] : [],
+          channels: form.telegram
+            ? [{ type: "telegram", token: ownBotToken || undefined, directory: ownBotToken ? directory() : undefined }]
+            : [],
           commandTriggers: triggers,
           ragSources: form.ragSources.filter((s) => s.label && s.value),
           guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
@@ -308,9 +318,19 @@ export function AgentUIFormPage() {
                 <ModelPickerV2 value={form.model} onChange={(value) => setForm("model", value)} combos={combos() ?? []} />
               </div>
 
-              <div class="flex items-center justify-between">
-                <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.telegram")}</label>
-                <Switch checked={form.telegram} onChange={(checked) => setForm("telegram", checked)} />
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.telegram")}</label>
+                  <Switch checked={form.telegram} onChange={(checked) => setForm("telegram", checked)} />
+                </div>
+                <Show when={form.telegram}>
+                  <TextInputV2
+                    value={form.telegramToken}
+                    onInput={(event) => setForm("telegramToken", event.currentTarget.value)}
+                    placeholder={language.t("settings.agentui.field.telegramToken.placeholder")}
+                  />
+                  <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.telegramToken.hint")}</p>
+                </Show>
               </div>
 
               <div class="flex flex-col gap-1.5">
