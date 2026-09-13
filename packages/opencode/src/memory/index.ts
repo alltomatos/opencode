@@ -143,6 +143,8 @@ export interface Interface {
   // to global silently.
   readonly promoteGlobal: (input: { summary: string }) => Effect.Effect<{ path: string }>
   readonly load: (input: { directory?: string }) => Effect.Effect<{ context: string }>
+  readonly loadProject: (directory: string) => Effect.Effect<{ content: string }>
+  readonly loadGlobal: () => Effect.Effect<{ content: string }>
   readonly forgetProject: (directory: string) => Effect.Effect<void>
   // Used to decide whether closing a project should even ask about
   // forgetting its memory — no memory recorded means no dialog, no
@@ -306,6 +308,22 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       return { context: [global, project].filter(Boolean).join("\n\n") }
     })
 
+    const loadProject = Effect.fn("Memory.loadProject")(function* (directory: string) {
+      const content = yield* Effect.tryPromise({
+        try: () => readRecentMemoryFiles(projectDir(directory), 30),
+        catch: () => "",
+      }).pipe(Effect.orElseSucceed(() => ""))
+      return { content }
+    })
+
+    const loadGlobal = Effect.fn("Memory.loadGlobal")(function* () {
+      const content = yield* Effect.tryPromise({
+        try: () => readRecentMemoryFiles(globalDir(), 30),
+        catch: () => "",
+      }).pipe(Effect.orElseSucceed(() => ""))
+      return { content }
+    })
+
     const forgetProject = Effect.fn("Memory.forgetProject")(function* (directory: string) {
       yield* Effect.tryPromise({ try: () => rm(projectDir(directory), { recursive: true, force: true }), catch: () => undefined }).pipe(
         Effect.orDie,
@@ -319,7 +337,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       return entries.some((entry) => entry.endsWith(".md"))
     })
 
-    return Service.of({ get, set, summarize, promoteGlobal, load, forgetProject, hasProjectMemory, remember })
+    return Service.of({ get, set, summarize, promoteGlobal, load, loadProject, loadGlobal, forgetProject, hasProjectMemory, remember })
   }),
 )
 

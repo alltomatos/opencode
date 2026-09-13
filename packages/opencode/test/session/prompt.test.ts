@@ -1762,7 +1762,7 @@ unixNoLLMServer(
   30_000,
 )
 
-it.instance(
+unix(
   "loop waits while shell runs and starts after shell exits",
   () =>
     Effect.gen(function* () {
@@ -1796,13 +1796,10 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  // 30s to match sibling instance tests in this file that spawn a subprocess shell —
-  // 10s was tight enough that CI-load cold-start variance on the "sleep 0.2" child
-  // process could push it past the bound. Observed 10000.96ms on 2026-09-12.
   30_000,
 )
 
-it.instance(
+unix(
   "shell completion resumes queued loop callers",
   () =>
     Effect.gen(function* () {
@@ -1838,7 +1835,7 @@ it.instance(
       expect(yield* llm.calls).toBe(1)
     }),
   { git: true },
-  10_000,
+  30_000,
 )
 
 unix(

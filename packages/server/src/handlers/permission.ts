@@ -1,6 +1,7 @@
 import { Location } from "@opencode-ai/core/location"
 import { PermissionV2 } from "@opencode-ai/core/permission"
 import { PermissionSaved } from "@opencode-ai/core/permission/saved"
+import { PluginInternal } from "@opencode-ai/core/plugin/internal"
 import { Effect } from "effect"
 import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
 import { Api } from "../api"
@@ -24,6 +25,20 @@ export const PermissionHandler = HttpApiBuilder.group(Api, "server.permission", 
         "session.permission.create",
         Effect.fn(function* (ctx) {
           const permission = yield* PermissionV2.Service
+          // Built-in agents (and the permission rulesets attached to them,
+          // e.g. the default agent's "*.env" -> ask rule) are registered by
+          // AgentPlugin/ConfigAgentPlugin, which PluginInternal runs in a
+          // forked, non-blocking fiber right after a location is built
+          // rather than blocking the location layer itself (see
+          // PluginInternal.Service's doc comment, and provider.ts's
+          // catalogProviders for the same pattern applied to the Catalog).
+          // A permission check that races a freshly-created session can
+          // otherwise observe an empty agent registry and fall back to
+          // deny-all instead of the agent's real ruleset. Wait for it,
+          // bounded by a timeout so a slow/misbehaving plugin can't hang
+          // this request indefinitely.
+          const internal = yield* PluginInternal.Service
+          yield* internal.ready.pipe(Effect.timeout("5 seconds"), Effect.catch(() => Effect.void))
           return {
             data: yield* permission
               .ask({

@@ -175,9 +175,6 @@ describe("opencode run (non-interactive subprocess)", () => {
         })
         expect(result.stdout.split("\n").filter(Boolean)).toHaveLength(1)
       }),
-    // 60s to match the harness's own subprocess timeout default (test/lib/cli-process.ts) —
-    // a 30s outer bound was tighter than the process it's timing, so CI-load variance could
-    // trip the outer timeout before the subprocess itself finished. Observed 30060ms on 2026-09-12.
     60_000,
   )
 

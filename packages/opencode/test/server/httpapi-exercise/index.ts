@@ -2055,6 +2055,41 @@ const scenarios: Scenario[] = [
     .json(200, (body) => {
       check(body === true, "memory forgetProject should return true")
     }),
+  http.protected
+    .get("/memory/project/entries", "memory.getProjectEntries")
+    .at((ctx) => ({ path: `/memory/project/entries?directory=${encodeURIComponent(ctx.directory ?? "")}`, headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.content === "string", "memory getProjectEntries should return content string")
+    }),
+  http.protected.get("/memory/global", "memory.getGlobalEntries").json(200, (body) => {
+    object(body)
+    check(typeof body.content === "string", "memory getGlobalEntries should return content string")
+  }),
+  http.protected
+    .post("/memory/entry", "memory.addEntry")
+    .mutating()
+    .at((ctx) => ({
+      path: "/memory/entry",
+      headers: ctx.headers(),
+      body: { note: "test note from httpapi exercise", directory: ctx.directory },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.path === "string", "memory addEntry should return file path")
+    }),
+  http.protected
+    .post("/memory/promote", "memory.promote")
+    .mutating()
+    .at((ctx) => ({
+      path: "/memory/promote",
+      headers: ctx.headers(),
+      body: { summary: "test summary promoted from httpapi exercise" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.path === "string", "memory promote should return file path")
+    }),
 
   // --- Config ---
   http.protected.get("/config/globalPath", "config.globalPath").json(200, (body) => {
