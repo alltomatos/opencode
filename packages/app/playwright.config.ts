@@ -6,14 +6,17 @@ const serverHost = process.env.PLAYWRIGHT_SERVER_HOST ?? "127.0.0.1"
 const serverPort = process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"
 const command = `bun run dev -- --host 0.0.0.0 --port ${port}`
 const reuse = !process.env.CI
-const workers = Number(process.env.PLAYWRIGHT_WORKERS ?? (process.env.CI ? 5 : 0)) || undefined
+const isWindows = process.platform === "win32"
+const workers = Number(
+  process.env.PLAYWRIGHT_WORKERS ?? (process.env.CI ? (isWindows ? 3 : 5) : 0),
+) || undefined
 export default defineConfig({
   testDir: "./e2e",
   testIgnore: process.env.OPENCODE_PERFORMANCE === "1" ? "performance/**/*.test.ts" : "performance/**",
   outputDir: "./e2e/test-results",
-  timeout: 60_000,
+  timeout: isWindows ? 90_000 : 60_000,
   expect: {
-    timeout: 10_000,
+    timeout: isWindows ? 25_000 : 10_000,
   },
   fullyParallel: process.env.PLAYWRIGHT_FULLY_PARALLEL === "1",
   forbidOnly: !!process.env.CI,
