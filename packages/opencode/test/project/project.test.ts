@@ -234,6 +234,70 @@ describe("Project.fromDirectory", () => {
       ).toBe(remoteID)
     }),
   )
+
+  // Confirma o mecanismo já existente (fromDirectory, linhas com o UPDATE
+  // condicionado a `projectID !== ProjectV2.ID.global`) especificamente
+  // pro cenário reportado ao vivo: uma sessão criada num repo git SEM
+  // commit ainda (cai em ID.global, ver "should handle git repository
+  // with no commits" acima) deve ser resgatada assim que esse mesmo
+  // diretório ganhar um commit e fromDirectory rodar de novo — sem
+  // afetar uma sessão não relacionada que também está em "global" (outro
+  // diretório sem VCS nenhum).
+  it.live("promotes a session out of the shared global bucket once its directory gets a real project ID", () =>
+    Effect.gen(function* () {
+      const { db } = yield* Database.Service
+      const projects = yield* Project.Service
+
+      const tmp = yield* tmpdirScoped()
+      yield* Effect.promise(() => $`git init`.cwd(tmp).quiet())
+      const otherGlobalDir = yield* tmpdirScoped()
+
+      const before = yield* projects.fromDirectory(tmp)
+      expect(before.project.id).toBe(ProjectV2.ID.global)
+
+      const sessionID = crypto.randomUUID() as SessionID
+      const otherSessionID = crypto.randomUUID() as SessionID
+      yield* db
+        .insert(SessionTable)
+        .values([
+          {
+            id: sessionID,
+            project_id: ProjectV2.ID.global,
+            slug: sessionID,
+            directory: tmp,
+            title: "test",
+            version: "0.0.0-test",
+            time_created: Date.now(),
+            time_updated: Date.now(),
+          },
+          {
+            id: otherSessionID,
+            project_id: ProjectV2.ID.global,
+            slug: otherSessionID,
+            directory: otherGlobalDir,
+            title: "unrelated",
+            version: "0.0.0-test",
+            time_created: Date.now(),
+            time_updated: Date.now(),
+          },
+        ])
+        .run()
+        .pipe(Effect.orDie)
+
+      yield* Effect.promise(() => $`git commit --allow-empty -m root`.cwd(tmp).quiet())
+      const after = yield* projects.fromDirectory(tmp)
+
+      expect(after.project.id).not.toBe(ProjectV2.ID.global)
+      expect(
+        (yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie))
+          ?.project_id,
+      ).toBe(after.project.id)
+      expect(
+        (yield* db.select().from(SessionTable).where(eq(SessionTable.id, otherSessionID)).get().pipe(Effect.orDie))
+          ?.project_id,
+      ).toBe(ProjectV2.ID.global)
+    }),
+  )
 })
 
 describe("Project.fromDirectory git failure paths", () => {

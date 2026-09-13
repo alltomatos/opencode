@@ -10,13 +10,39 @@ export const ForgetProjectQuery = Schema.Struct({
   directory: Schema.String,
 })
 
+export const ProjectEntriesQuery = Schema.Struct({
+  directory: Schema.String,
+})
+
 export const ProjectMemoryStatus = Schema.Struct({
   hasMemory: Schema.Boolean,
+})
+
+export const MemoryContent = Schema.Struct({
+  content: Schema.String,
+})
+
+export const AddMemoryPayload = Schema.Struct({
+  directory: Schema.optional(Schema.String),
+  note: Schema.String,
+  global: Schema.optional(Schema.Boolean),
+})
+
+export const PromoteMemoryPayload = Schema.Struct({
+  summary: Schema.String,
+})
+
+export const MemoryFileResult = Schema.Struct({
+  path: Schema.String,
 })
 
 export const MemoryPaths = {
   config: "/memory",
   forgetProject: "/memory/project",
+  projectEntries: "/memory/project/entries",
+  globalEntries: "/memory/global",
+  addEntry: "/memory/entry",
+  promote: "/memory/promote",
 } as const
 
 export const MemoryApi = HttpApi.make("memory")
@@ -63,6 +89,48 @@ export const MemoryApi = HttpApi.make("memory")
             identifier: "memory.forgetProject",
             summary: "Delete a project's memory",
             description: "Deletes all memory entries recorded for the given project directory. Global memory is untouched.",
+          }),
+        ),
+        HttpApiEndpoint.get("getProjectEntries", MemoryPaths.projectEntries, {
+          query: ProjectEntriesQuery,
+          success: described(MemoryContent, "Project memory entries"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "memory.getProjectEntries",
+            summary: "Get project memory content",
+            description: "Returns markdown content of recorded memories for the given project directory.",
+          }),
+        ),
+        HttpApiEndpoint.get("getGlobalEntries", MemoryPaths.globalEntries, {
+          query: WorkspaceRoutingQuery,
+          success: described(MemoryContent, "Global memory entries"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "memory.getGlobalEntries",
+            summary: "Get global memory content",
+            description: "Returns markdown content of recorded global memories across all projects.",
+          }),
+        ),
+        HttpApiEndpoint.post("addEntry", MemoryPaths.addEntry, {
+          query: WorkspaceRoutingQuery,
+          payload: AddMemoryPayload,
+          success: described(MemoryFileResult, "Path of written memory file"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "memory.addEntry",
+            summary: "Add a memory note",
+            description: "Directly records a note in project memory or global memory without requiring LLM execution.",
+          }),
+        ),
+        HttpApiEndpoint.post("promote", MemoryPaths.promote, {
+          query: WorkspaceRoutingQuery,
+          payload: PromoteMemoryPayload,
+          success: described(MemoryFileResult, "Path of written global memory file"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "memory.promote",
+            summary: "Promote memory to global",
+            description: "Promotes a summary/decision to global memory and regenerates the global memory skill file.",
           }),
         ),
       )
