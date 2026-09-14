@@ -42,6 +42,28 @@ describe("ScheduleRegistry", () => {
       expect(matchesCron("*/15 * * * *", specific)).toBe(true) // 30 is divisible by 15
       expect(matchesCron("*/20 * * * *", specific)).toBe(false) // 30 is not divisible by 20
     })
+
+    test("matchesCron uses OR (not AND) between day-of-month and day-of-week when both are restricted", () => {
+      // Sep 14, 2026 is a Monday (day 14 of the month)
+      const mondayThe14th = new Date(2026, 8, 14, 0, 0, 0)
+      // Sep 18, 2026 is a Friday (day 18 of the month)
+      const fridayThe18th = new Date(2026, 8, 18, 0, 0, 0)
+      // Sep 1, 2026 is a Tuesday (day 1 of the month)
+      const tuesdayThe1st = new Date(2026, 8, 1, 0, 0, 0)
+
+      // "day 1 of the month OR every Friday" — both restricted, must be OR
+      expect(matchesCron("0 0 1 * 5", tuesdayThe1st)).toBe(true) // matches day-of-month
+      expect(matchesCron("0 0 1 * 5", fridayThe18th)).toBe(true) // matches day-of-week
+      expect(matchesCron("0 0 1 * 5", mondayThe14th)).toBe(false) // matches neither
+
+      // Only day-of-week restricted: behavior unchanged (day-of-month wildcard doesn't gate)
+      expect(matchesCron("0 0 * * 5", fridayThe18th)).toBe(true)
+      expect(matchesCron("0 0 * * 5", mondayThe14th)).toBe(false)
+
+      // Only day-of-month restricted: behavior unchanged (day-of-week wildcard doesn't gate)
+      expect(matchesCron("0 0 1 * *", tuesdayThe1st)).toBe(true)
+      expect(matchesCron("0 0 1 * *", mondayThe14th)).toBe(false)
+    })
   })
 
   describe("legacy migration", () => {

@@ -92,13 +92,24 @@ export function matchesCron(cron: string, date: Date = new Date()): boolean {
 
   if (!matchCronPart(parts[0], minute, 0)) return false
   if (!matchCronPart(parts[1], hour, 0)) return false
-  if (!matchCronPart(parts[2], dayOfMonth, 1)) return false
   if (!matchCronPart(parts[3], month, 1)) return false
 
   // For day of week, both 0 and 7 are Sunday
+  const domPart = parts[2]
   const dowPart = parts[4]
+  const domRestricted = domPart !== "*"
+  const dowRestricted = dowPart !== "*"
+  const domMatch = matchCronPart(domPart, dayOfMonth, 1)
   const dowMatch = matchCronPart(dowPart, dayOfWeek, 0) || (dayOfWeek === 0 && matchCronPart(dowPart, 7, 0))
-  if (!dowMatch) return false
+
+  // Standard cron (Vixie) semantics: when BOTH day-of-month and day-of-week are
+  // restricted (not "*"), the match is an OR between them, not an AND.
+  if (domRestricted && dowRestricted) {
+    if (!domMatch && !dowMatch) return false
+  } else {
+    if (domRestricted && !domMatch) return false
+    if (dowRestricted && !dowMatch) return false
+  }
 
   return true
 }
