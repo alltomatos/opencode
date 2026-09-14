@@ -239,6 +239,7 @@ Ver [issue #25](https://github.com/alltomatos/opencode/issues/25) pra lista comp
 - Desktop local usa o agendador **nativo do SO** desde a v1 (schtasks/launchd/systemd), não só tick in-process — senão a rotina não dispara com o app fechado, o que quebraria a expectativa de "agendado".
 - Servidor remoto continua com tick in-process (`ScheduleRunner.tick()`), só precisa ser efetivamente ligado no bootstrap do `opencode serve`.
 - Duas fontes de dados hoje (config markdown `schedule/*.md` vs JSON registry do CLI) serão unificadas: JSON registry como fonte de verdade em runtime, markdown como seed/import que nunca sobrescreve edição feita pela UI.
+- (2026-09-14) Desktop local **não** traduz cron para a sintaxe nativa de cada SO (schtasks/launchd/systemd têm modelos de trigger incompatíveis entre si e com cron arbitrário). Em vez disso, `opencode service enable` instala o `opencode serve` como serviço persistente de login (sem elevação/admin) em cada SO — o motor de tick que já roda dentro do servidor (#219) decide toda a lógica de cron/interval; o SO só garante que o processo não morre.
 
 Fila sequencial, um PR por issue, ordem de dependência:
 
@@ -251,9 +252,9 @@ Fila sequencial, um PR por issue, ordem de dependência:
 | [#218](https://github.com/alltomatos/opencode/issues/218) | Timeout + self-healing nos executores `shell`/`mcp_tool` |
 | [#219](https://github.com/alltomatos/opencode/issues/219) | Ligar `ScheduleRunner.tick()` no bootstrap do servidor remoto |
 | [#220](https://github.com/alltomatos/opencode/issues/220) | Comando CLI `opencode schedule run <id>` (stateless) |
-| [#221](https://github.com/alltomatos/opencode/issues/221) | Desktop Windows: espelhar Routine em `schtasks` |
-| [#222](https://github.com/alltomatos/opencode/issues/222) | Desktop macOS: espelhar Routine em `launchd` |
-| [#223](https://github.com/alltomatos/opencode/issues/223) | Desktop Linux: espelhar Routine em `systemd --user timer` (fallback `cron`) |
+| [#221](https://github.com/alltomatos/opencode/issues/221) | Desktop Windows: `opencode service enable/disable` via Task Scheduler (serviço persistente de login) |
+| [#222](https://github.com/alltomatos/opencode/issues/222) | Desktop macOS: `opencode service enable/disable` via LaunchAgent persistente |
+| [#223](https://github.com/alltomatos/opencode/issues/223) | Desktop Linux: `opencode service enable/disable` via `systemd --user` persistente |
 | [#224](https://github.com/alltomatos/opencode/issues/224) | UI: tela "Rotinas" (form trigger/action + histórico) |
 | [#225](https://github.com/alltomatos/opencode/issues/225) | Import declarativo de `schedule/*.md` sem sobrescrever edições da UI |
 
