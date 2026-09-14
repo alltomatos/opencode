@@ -19,21 +19,27 @@ export function createDesktopDraftStore(filename: string) {
     "PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS document (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS blob (id TEXT PRIMARY KEY, data BLOB NOT NULL);",
   )
   const db = drizzle({ client: native })
-  const used = new Set<string>()
-  db.select({ value: documents.value })
-    .from(documents)
-    .all()
-    .forEach(({ value }) =>
-      JSON.parse(value, (_key, item) => {
-        if (item?.blob && typeof item.blob.id === "string") used.add(item.blob.id)
-        return item
-      }),
-    )
-  db.select({ id: blobs.id })
-    .from(blobs)
-    .all()
-    .filter(({ id }) => !used.has(id))
-    .forEach(({ id }) => db.delete(blobs).where(eq(blobs.id, id)).run())
+  setTimeout(() => {
+    try {
+      const used = new Set<string>()
+      db.select({ value: documents.value })
+        .from(documents)
+        .all()
+        .forEach(({ value }) =>
+          JSON.parse(value, (_key, item) => {
+            if (item?.blob && typeof item.blob.id === "string") used.add(item.blob.id)
+            return item
+          }),
+        )
+      db.select({ id: blobs.id })
+        .from(blobs)
+        .all()
+        .filter(({ id }) => !used.has(id))
+        .forEach(({ id }) => db.delete(blobs).where(eq(blobs.id, id)).run())
+    } catch {
+      // ignore background cleanup error
+    }
+  }, 5000).unref?.()
   const pending = new Map<string, string | null>()
   let timer: ReturnType<typeof setTimeout> | undefined
   const flush = () => {
