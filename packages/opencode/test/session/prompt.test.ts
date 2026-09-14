@@ -566,15 +566,26 @@ it.instance("loop calls LLM and returns assistant message", () =>
   }),
 )
 
-// Skipped: intermittently fails in CI (and reproduces locally in isolation) with
-// `InterruptError: All fibers interrupted without error`, thrown from this test's own
-// `.instance` scope teardown (tmpdir + git init + LSP boot + mock LLM server, all
-// released together) racing against the still-hanging `llm.hang()` (Stream.never-backed)
-// fiber's interruption. Tried wrapping the explicit `Fiber.interrupt(fiber)` below in
-// `Effect.ignore` — did not fix it, so the error isn't coming from that call. Root cause
-// needs someone with more Effect-runtime/Scope-finalizer context to trace which finalizer
-// is responsible. See https://github.com/alltomatos/opencode/issues/181 for the full
-// investigation before re-enabling.
+// Skipped: fails on `dev` HEAD itself (independent of any feature branch —
+// confirmed on 5+ consecutive `dev` CI runs since 2026-09-06), always with
+// the same InterruptError signature ("All fibers interrupted without
+// error"), at a tight ~20.5s-21.1s cluster in CI. That clustering is too
+// tight for generic CI-load contention (compare the subprocess-timeout
+// flakes fixed alongside this, which varied by hundreds of ms around their
+// bound). Two independent investigations, two different leads, neither
+// confirmed yet:
+//  - #185: suspects a fixed idle/read timeout somewhere in the HTTP client
+//    stack firing on the deliberately-hung SSE stream (`llm.hang()`), not
+//    an actual hang in prompt.loop.
+//  - #181: reproduces locally in isolation too, and traces the
+//    InterruptError to this test's own `.instance` scope teardown (tmpdir +
+//    git init + LSP boot + mock LLM server, all released together) racing
+//    against the still-hanging `llm.hang()` fiber's interruption. Wrapping
+//    the explicit `Fiber.interrupt(fiber)` below in `Effect.ignore` did not
+//    fix it, so the error isn't coming from that call — needs someone with
+//    more Effect-runtime/Scope-finalizer context to trace which finalizer
+//    is responsible.
+// See both issues for the full investigations before re-enabling.
 withMcpInstructions.instance.skip(
   "loop includes MCP instructions in model system context",
   () =>
@@ -598,14 +609,7 @@ withMcpInstructions.instance.skip(
       expect(body).toContain("Use lookup before mutate.")
       yield* Fiber.interrupt(fiber)
     }),
-  // Was 15s: this is a real `.instance` test (tmpdir + git init + LSP
-  // location-services boot, not mocked), and that setup overhead alone can
-  // exceed 15s under load before prompt.loop's own 10s-budgeted wait
-  // (llm.wait(1), below) ever gets a chance to run — surfacing as a bare
-  // bun-test timeout instead of that wait's own distinct error message.
-  // Confirmed by reproducing this test's timeout locally, consistently,
-  // outside of any CI load. See 2026-09-08 CI investigation.
-  40_000,
+  60_000,
 )
 
 it.instance("legacy prompt emits message events without session.next events", () =>

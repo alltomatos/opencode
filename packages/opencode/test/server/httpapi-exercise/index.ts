@@ -1914,6 +1914,13 @@ const scenarios: Scenario[] = [
       body: { description: "assistente que ajuda a programar em python" },
     }))
     .status(500, undefined, "status"),
+  http.protected
+    .get("/agentui/{id}/audit", "agentui.audit")
+    .at((ctx) => ({
+      path: route("/agentui/{id}/audit", { id: "httpapi-test-agent" }),
+      headers: ctx.headers(),
+    }))
+    .json(200, array),
 
   // --- Batuta (external-agent orchestration) ---
   http.protected
@@ -2217,6 +2224,45 @@ const scenarios: Scenario[] = [
     .json(200, (body) => {
       check(body === true, "telegram disconnect should return true")
     }),
+
+  // --- Tunnel ---
+  http.protected.get("/tunnel/status", "tunnel.status").json(200, object),
+  http.protected.get("/tunnel/tailscale", "tunnel.tailscale").json(200, object),
+  http.protected.post("/tunnel/stop", "tunnel.stop").mutating().json(200, object),
+  http.protected
+    .post("/tunnel/start", "tunnel.start")
+    .at((ctx) => ({
+      path: "/tunnel/start",
+      headers: ctx.headers(),
+      body: { port: 4096 },
+    }))
+    .status([200, 500], undefined, "status"),
+
+  // --- WhatsApp ---
+  http.public
+    .post("/whatsapp/izapia/groups", "whatsapp.izapiaGroups")
+    .at((ctx) => ({
+      path: "/whatsapp/izapia/groups",
+      headers: ctx.headers(),
+      body: { apiKey: "test-api-key", sids: [] },
+    }))
+    .json(200, array),
+  http.public
+    .post("/whatsapp/izapia/sessions", "whatsapp.izapiaSessions")
+    .at((ctx) => ({
+      path: "/whatsapp/izapia/sessions",
+      headers: ctx.headers(),
+      body: { apiKey: "invalid-key" },
+    }))
+    .status(500, undefined, "status"),
+  http.public
+    .post("/whatsapp/webhook/{agentId}/{secret}", "whatsapp.webhook")
+    .at((ctx) => ({
+      path: route("/whatsapp/webhook/{agentId}/{secret}", { agentId: "missing-agent", secret: "secret" }),
+      headers: ctx.headers(),
+      body: {},
+    }))
+    .status(500, undefined, "status"),
 ]
 
 const llmScenarios = new Set([

@@ -45,6 +45,10 @@ export const agentuiHandlers = HttpApiBuilder.group(InstanceHttpApi, "agentui", 
       return yield* agentui.generateDraft({ description: ctx.payload.description })
     })
 
+    const audit = Effect.fn("AgentUIHttpApi.audit")(function* (ctx: { params: { id: string } }) {
+      return yield* agentui.listAudit(ctx.params.id)
+    })
+
     return handlers
       .handle("list", list)
       .handle("get", get)
@@ -53,5 +57,6 @@ export const agentuiHandlers = HttpApiBuilder.group(InstanceHttpApi, "agentui", 
       .handle("test", test)
       .handle("resetSandbox", resetSandbox)
       .handle("generate", generate)
+      .handle("audit", audit)
   }),
 )

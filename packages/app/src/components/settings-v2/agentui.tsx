@@ -93,6 +93,14 @@ export const SettingsAgentUIV2: Component<{ directory?: string }> = (props) => {
                       type="button"
                       variant="ghost-muted"
                       size="small"
+                      icon={<IconV2 name="review" />}
+                      aria-label={language.t("settings.agentui.audit.title")}
+                      onClick={() => navigate(`/agentui/${agent.id}/audit`)}
+                    />
+                    <IconButtonV2
+                      type="button"
+                      variant="ghost-muted"
+                      size="small"
                       icon={<IconV2 name="edit" />}
                       aria-label={language.t("dialog.server.menu.edit")}
                       onClick={() => navigate(`/agentui/${agent.id}/edit`)}
