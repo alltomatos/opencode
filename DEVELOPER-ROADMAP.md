@@ -22,7 +22,9 @@ GitHub (`alltomatos/opencode`, branch default `dev`) é a fonte persistente de r
 | [**[E12] AgentUI — Agentes Personalizados**](https://github.com/alltomatos/opencode/issues/144) | Criação de agentes conversacionais customizados com canais, guardrails, prompts e RAG | done | [#144](https://github.com/alltomatos/opencode/issues/144) |
 | [**[E13] CI Flaky e Isolamento de Testes**](https://github.com/alltomatos/opencode/issues/181) | Eliminação de testes instáveis no Windows/Linux, isolamento de camadas e estabilização de suítes | in_progress | [#181](https://github.com/alltomatos/opencode/issues/181) |
 | [**[E14] Sincronização com Upstream Anomalyco**](https://github.com/alltomatos/opencode/issues/200) | Port de correções e patches estáveis do repositório upstream mantendo compatibilidade | done | [#200](https://github.com/alltomatos/opencode/issues/200) |
-| [**[E15] Dashboard de KPIs & Estatísticas de Uso de Tokens (/stats)**](https://github.com/alltomatos/opencode/issues/212) | Painel central de métricas agregadas de consumo de tokens (input/output/reasoning/cache) e custos | in_progress | [#212](https://github.com/alltomatos/opencode/issues/212) |
+| [**[E15] Dashboard de KPIs & Estatísticas de Uso de Tokens (/stats)**](https://github.com/alltomatos/opencode/issues/212) | Painel central de métricas agregadas de consumo de tokens (input/output/reasoning/cache) e custos | done | [#212](https://github.com/alltomatos/opencode/issues/212) |
+| [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) | Agendamento e automação de rotinas em segundo plano multiplataforma | in_progress | [#213](https://github.com/alltomatos/opencode/issues/213) |
+| [**[E17] Otimização de Performance e Latência de UI/Navegação**](https://github.com/alltomatos/opencode/issues/228) | Otimização de queries SQLite, transição de timeline sem render stall, favicon glob e desoneração do boot desktop | done | [#228](https://github.com/alltomatos/opencode/issues/228) |
 
 ---
 
@@ -65,5 +67,12 @@ GitHub (`alltomatos/opencode`, branch default `dev`) é a fonte persistente de r
 - **Epics vinculadas:**
   - [**[E13] CI Flaky e Isolamento de Testes**](https://github.com/alltomatos/opencode/issues/181) (`in_progress`)
   - [**[E14] Sincronização com Upstream Anomalyco**](https://github.com/alltomatos/opencode/issues/200) (`done`)
-  - [**[E15] Dashboard de KPIs & Estatísticas de Uso de Tokens (/stats)**](https://github.com/alltomatos/opencode/issues/212) (`in_progress`)
+  - [**[E15] Dashboard de KPIs & Estatísticas de Uso de Tokens (/stats)**](https://github.com/alltomatos/opencode/issues/212) (`done`)
+- **Estado:** `in_progress`
+
+### M6: Automation & High Performance
+- **Objetivo:** Execução contínua de rotinas agendadas em background e eliminação de gargalos críticos de latência de UI, banco e boot.
+- **Epics vinculadas:**
+  - [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) (`in_progress`)
+  - [**[E17] Otimização de Performance e Latência de UI/Navegação**](https://github.com/alltomatos/opencode/issues/228) (`done`)
 - **Estado:** `in_progress`

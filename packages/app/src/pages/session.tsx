@@ -346,13 +346,7 @@ export default function Page() {
 
   createComputed((prev) => {
     const key = sessionKey()
-    if (key !== prev) {
-      setStore("deferRender", true)
-      const owner = sessionOwnership.capture()
-      requestAnimationFrame(() => {
-        setTimeout(() => owner.run(() => setStore("deferRender", false)), 0)
-      })
-    }
+    // Intentionally omit artificial deferRender 1-frame delay to prevent UI render stalls
     return key
   })
 
@@ -1207,7 +1201,15 @@ export default function Page() {
             </div>
           </Match>
           <Match when={params.id}>
-            <Show when={messagesReady() ? params.id : undefined} keyed>
+            <Show
+              when={messagesReady() ? params.id : undefined}
+              fallback={
+                <div class="h-full flex-1 flex flex-col items-center justify-center text-text-weak">
+                  <div class="animate-pulse">{language.t("session.messages.loading")}</div>
+                </div>
+              }
+              keyed
+            >
               {(_id) => (
                 <MessageTimeline
                   actions={actions}

@@ -115,6 +115,7 @@
     "bonjour-service": "1.3.0",
     "bun-pty": "0.4.8",
     "chokidar": "4.0.3",
+    "waconector": "1.3.0",
     "cross-spawn": "catalog:",
     "decimal.js": "10.5.0",
     "diff": "catalog:",

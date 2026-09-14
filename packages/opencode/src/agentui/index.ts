@@ -15,9 +15,11 @@ import { InstanceStore } from "@/project/instance-store"
 import { InstanceRef } from "@/effect/instance-ref"
 import { SessionID } from "@/session/schema"
 import { Provider } from "@/provider/provider"
+import { Storage } from "@/storage/storage"
 import { Context, Effect, Layer, Schema } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
 import { type LanguageModelV3 } from "@ai-sdk/provider"
+import { McpCatalog } from "@/mcp/catalog"
 
 // Phase 1 of the AgentUI epic (#144) — CRUD only. No channel routing, RAG
 // retrieval, or guardrail enforcement yet (those are Phases 3-5); this just
@@ -47,6 +49,25 @@ export interface GeneratedDraft {
   readonly commandTriggers: string[]
   readonly guardrails: { enabled: boolean; level: "basic" | "strict" }
 }
+
+// One row per real turn — the incoming message and the agent's reply
+// together, not split into separate in/out entries — since what an
+// auditor actually wants to see is "what came in, what went out", not
+// reconstruct pairs from an interleaved log. Persisted via Storage.Service
+// (global, not per-project — an agent's audit trail should survive
+// switching which connected project its channel runs against) under
+// ["agentui", "audit", <agentID>], capped to the most recent
+// AUDIT_LOG_CAP turns per agent so this can't grow unbounded.
+export const AuditEntry = Schema.Struct({
+  id: Schema.String,
+  timestamp: Schema.Number,
+  channel: Schema.Literals(["whatsapp", "telegram", "sandbox"]),
+  chatKey: Schema.String,
+  incoming: Schema.String,
+  outgoing: Schema.String,
+  blocked: Schema.Boolean,
+})
+export type AuditEntry = Schema.Schema.Type<typeof AuditEntry>
 
 // Same cheap/fast/reliable-at-tool-calling candidates Memory.Service tries
 // for its own one-shot structured extraction (see resolveModel there) —
@@ -93,8 +114,12 @@ export interface Interface {
   // 3. sessionPermission returns a restricted PermissionV1.Ruleset —
   //    AgentUI sessions are conversational by default and get no shell/
   //    file access, regardless of guardrails.enabled, the same way Batuta's
-  //    pipeline-chat sessions are scoped (see Batuta.Service).
-  readonly sessionPermission: () => PermissionV1.Ruleset
+  //    pipeline-chat sessions are scoped (see Batuta.Service). `mcpServers`
+  //    (an agent's configured allowlist, see ConfigAgentUIV1.Agent) adds one
+  //    allow rule per server so its tool calls don't fall through to the
+  //    default "ask" action — which would hang forever, since a channel
+  //    dispatch has no human attached to answer a permission prompt.
+  readonly sessionPermission: (mcpServers?: readonly string[]) => PermissionV1.Ruleset
   // Resolves an agent's `model` field ("providerID/modelID" or
   // "combo:<id>", same encoding ModelPickerV2 uses) to a concrete pair.
   // Shared by every channel (Telegram, the sandbox test chat below) so
@@ -113,6 +138,26 @@ export interface Interface {
     message: string
   }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
   readonly resetSandbox: (id: string) => Effect.Effect<void>
+  // Generalizes testMessage() beyond the fixed sandbox session: any real
+  // channel (WhatsApp today) that just needs "guardrail check -> hardened
+  // system prompt -> resolved model -> RAG -> one prompt call -> reply
+  // text", one independent session per (agent, chatKey) pair, without
+  // Telegram's own richer background-task/typing-indicator machinery.
+  readonly dispatchChannelMessage: (input: {
+    id: string
+    directory: string
+    chatKey: string
+    message: string
+    channel?: AuditEntry["channel"]
+  }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
+  // Appends one turn to an agent's audit log — called by every channel
+  // (WhatsApp/sandbox via dispatchChannelMessage, Telegram from its own
+  // separate dispatch path since it doesn't go through that function) so
+  // "what messages came in, what the agent said back" is inspectable
+  // after the fact, not just visible live in the channel itself.
+  readonly logAudit: (id: string, input: Omit<AuditEntry, "id" | "timestamp">) => Effect.Effect<void>
+  // Newest first, capped — see AUDIT_LOG_CAP.
+  readonly listAudit: (id: string) => Effect.Effect<AuditEntry[]>
   // "Criar com IA": one-shot generation — the user describes the agent
   // they want in natural language, this drafts the form fields a real
   // conversation-builder would otherwise ask about turn by turn (name,
@@ -137,6 +182,7 @@ const layer = Layer.effect(
     const promptSvc = yield* SessionPrompt.Service
     const instanceStore = yield* InstanceStore.Service
     const provider = yield* Provider.Service
+    const storage = yield* Storage.Service
 
     // Same overlay-on-top-of-disk-config pattern as Batuta.Service and
     // Combo.Service (packages/opencode/src/batuta/index.ts, src/combo/index.ts)
@@ -269,19 +315,45 @@ const layer = Layer.effect(
       return { allowed: true }
     }
 
-    const sessionPermission = (): PermissionV1.Ruleset => [
-      { permission: "bash", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-      { permission: "edit", pattern: "*", action: "deny" },
-      { permission: "write", pattern: "*", action: "deny" },
-      { permission: "external_directory", pattern: "*", action: "deny" },
+    const sessionPermission = (mcpServers?: readonly string[]): PermissionV1.Ruleset => [
+      // Wildcard deny-everything, not a per-category list: anything not
+      // covered by an explicit rule below falls through to the *default*
+      // permission action, which for tools outside this short list (e.g.
+      // todowrite, webfetch, lsp, skill — none of them bash/task/edit/
+      // write/external_directory) is "ask". A channel dispatch has no
+      // human attached to answer that prompt, so the tool call — and the
+      // whole assistant turn — silently stalls: the loop still exits (its
+      // finish reason isn't "tool-calls"/"unknown") but with zero parts,
+      // producing the "(sem resposta)" fallback with no error anywhere.
+      // Root-caused 2026-09-11 against a live izapia webhook: the model
+      // call itself completed fine (confirmed working in a normal
+      // session with the same model), only channel-dispatched sessions
+      // hit this. See git history for the per-category list this replaced.
+      { permission: "*", pattern: "*", action: "deny" },
+      ...(mcpServers ?? []).map(
+        (server): PermissionV1.Rule => ({
+          permission: `${McpCatalog.sanitize(server)}_*`,
+          pattern: "*",
+          action: "allow",
+        }),
+      ),
     ]
 
     const resolveModel = Effect.fn("AgentUI.resolveModel")(function* (spec: string) {
       if (spec.startsWith("combo:")) {
         return yield* combos.resolve(spec.slice("combo:".length)).pipe(Effect.orElseSucceed(() => undefined))
       }
-      const [providerID, modelID] = spec.split("/")
+      // Split on the FIRST "/" only — some providers (Omniroute) encode
+      // their own namespace into the model id itself (e.g.
+      // "omnrt/agy/gemini-3.7-flash-tiered"), so a full spec.split("/")
+      // truncated modelID to just "agy", losing everything after the
+      // second slash and producing a "Model not found: omnrt/agy" error.
+      // Same first-slash-only convention ModelPickerV2's splitModel() uses
+      // client-side.
+      const separator = spec.indexOf("/")
+      if (separator < 0) return undefined
+      const providerID = spec.slice(0, separator)
+      const modelID = spec.slice(separator + 1)
       if (!providerID || !modelID) return undefined
       return { providerID, modelID }
     })
@@ -294,31 +366,72 @@ const layer = Layer.effect(
         .trim()
     }
 
-    // One sandbox session per agent, independent of any real channel's
-    // sessions (Telegram keeps its own, keyed by chat+agent) — testing an
-    // agent never touches or gets touched by its real conversations.
-    const sandboxSessions = new Map<string, string>()
+    // One session per (agent, chatKey) pair — the sandbox test chat uses a
+    // fixed "sandbox" chatKey (so it's independent of any real channel's
+    // sessions), while a real channel (WhatsApp today; Telegram's dedicated
+    // per-agent bots keep their own richer session map in Telegram.Service,
+    // with background-task queueing this generalized path intentionally
+    // doesn't have) passes its own chat/contact identifier so each sender
+    // gets their own conversation with the agent.
+    const channelSessions = new Map<string, string>()
 
-    const testMessage = Effect.fn("AgentUI.testMessage")(function* (input: {
+    const AUDIT_LOG_CAP = 300
+    const auditKey = (id: string) => ["agentui", "audit", id]
+
+    const readAuditLog = (id: string) =>
+      storage.read<AuditEntry[]>(auditKey(id)).pipe(Effect.orElseSucceed(() => [] as AuditEntry[]))
+
+    const logAudit = Effect.fn("AgentUI.logAudit")(function* (
+      id: string,
+      input: Omit<AuditEntry, "id" | "timestamp">,
+    ) {
+      const key = auditKey(id)
+      const existing = yield* readAuditLog(id)
+      const entry: AuditEntry = { id: crypto.randomUUID(), timestamp: Date.now(), ...input }
+      const next = [...existing, entry].slice(-AUDIT_LOG_CAP)
+      yield* storage.write(key, next).pipe(
+        Effect.tapError((cause) => Effect.logWarning("agentui audit write failed", { id, cause })),
+        Effect.ignore,
+      )
+    })
+
+    const listAudit = Effect.fn("AgentUI.listAudit")(function* (id: string) {
+      const entries = yield* readAuditLog(id)
+      return [...entries].reverse()
+    })
+
+    const dispatchChannelMessage = Effect.fn("AgentUI.dispatchChannelMessage")(function* (input: {
       id: string
       directory: string
+      chatKey: string
       message: string
+      channel?: AuditEntry["channel"]
     }) {
+      const channel: AuditEntry["channel"] = input.channel ?? (input.chatKey === "sandbox" ? "sandbox" : "whatsapp")
       const agent = yield* get(input.id)
       if (!ConfigAgentUIV1.isEnabled(agent)) {
         return { reply: "Este agente está desativado. Ative-o para testar.", blocked: true }
       }
       const guard = checkInput(agent, input.message)
-      if (!guard.allowed) return { reply: `🛡️ ${guard.reason}`, blocked: true }
+      if (!guard.allowed) {
+        const reply = `🛡️ ${guard.reason}`
+        yield* logAudit(input.id, { channel, chatKey: input.chatKey, incoming: input.message, outgoing: reply, blocked: true })
+        return { reply, blocked: true }
+      }
 
       const ctx = yield* instanceStore.load({ directory: input.directory })
+      const sessionKey = `${input.id}:${input.chatKey}`
       const sessionID = yield* Effect.gen(function* () {
-        const existing = sandboxSessions.get(input.id)
+        const existing = channelSessions.get(sessionKey)
         if (existing) return existing
         const session = yield* sessions
-          .create({ title: `Sandbox: ${agent.name}`, directory: input.directory, permission: sessionPermission() })
+          .create({
+            title: `${agent.name}: ${input.chatKey}`,
+            directory: input.directory,
+            permission: sessionPermission(agent.mcpServers),
+          })
           .pipe(Effect.provideService(InstanceRef, ctx))
-        sandboxSessions.set(input.id, session.id)
+        channelSessions.set(sessionKey, session.id)
         return session.id
       })
 
@@ -341,16 +454,25 @@ const layer = Layer.effect(
           Effect.map((result) => extractText(result) || "(sem resposta)"),
           Effect.provideService(InstanceRef, ctx),
           Effect.catch((cause) =>
-            Effect.logError("agentui sandbox prompt failed", { id: input.id, cause }).pipe(
+            Effect.logError("agentui channel prompt failed", { id: input.id, chatKey: input.chatKey, cause }).pipe(
               Effect.as(`⚠️ ${cause instanceof Error ? cause.message : String(cause)}`),
             ),
           ),
         )
+      yield* logAudit(input.id, { channel, chatKey: input.chatKey, incoming: input.message, outgoing: reply, blocked: false })
       return { reply, blocked: false }
     })
 
+    const testMessage = Effect.fn("AgentUI.testMessage")(function* (input: {
+      id: string
+      directory: string
+      message: string
+    }) {
+      return yield* dispatchChannelMessage({ ...input, chatKey: "sandbox" })
+    })
+
     const resetSandbox = Effect.fn("AgentUI.resetSandbox")(function* (id: string) {
-      sandboxSessions.delete(id)
+      channelSessions.delete(`${id}:sandbox`)
     })
 
     const tryResolveDraftModel = (spec: string) =>
@@ -454,6 +576,9 @@ const layer = Layer.effect(
       testMessage,
       resetSandbox,
       generateDraft,
+      dispatchChannelMessage,
+      logAudit,
+      listAudit,
     })
   }),
 )
@@ -461,5 +586,5 @@ const layer = Layer.effect(
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node, Provider.node],
+  deps: [Config.node, Combo.node, Session.node, SessionPrompt.node, InstanceStore.node, Provider.node, Storage.node],
 })

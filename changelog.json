@@ -1,6 +1,32 @@
 {
   "releases": [
     {
+      "tag": "v1.21.20",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Navegação e abertura de telas ultrarrápidas",
+              "description": "Adicionado índice composto no banco SQLite para acelerar o carregamento de diretórios e histórico de sessões. Otimizada a transição da timeline de mensagens eliminando engasgos de renderização e forced reflows."
+            },
+            {
+              "title": "Inicialização imediata do app desktop",
+              "description": "Desacoplamento da checagem inicial do subsistema WSL da tela de splash e adiamento de limpezas pesadas em disco no boot, liberando a interface instantaneamente."
+            },
+            {
+              "title": "Rotinas: timeout configurável e executor MCP direto",
+              "description": "As rotinas agendadas agora possuem suporte a timeout e encerramento automático em caso de travamento de comandos shell ou ferramentas MCP, além de execução direta e determinística de ações MCP sem abrir sessões desnecessárias."
+            },
+            {
+              "title": "Otimização de descoberta de arquivos em projetos",
+              "description": "Busca de favicons e ícones de projeto agora ignora automaticamente node_modules, pastas de build (.turbo, dist, build) e .git, reduzindo drasticamente acessos a disco."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.19",
       "highlights": [
         {

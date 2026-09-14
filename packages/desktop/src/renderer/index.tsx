@@ -390,8 +390,13 @@ function DesktopRoot(props: { windowState: DesktopWindowState }) {
     const wslServers = useWslServers()
     const sshServers = useSshServers()
     const language = useLanguage()
+    const isWslDefault = () => defaultServer.latest?.startsWith("wsl:")
     const ready = createMemo(
-      () => !defaultServer.loading && !sidecar.loading && !locale.loading && !wslServers.isLoading,
+      () =>
+        !defaultServer.loading &&
+        !sidecar.loading &&
+        !locale.loading &&
+        (!isWslDefault() || !wslServers.isLoading),
     )
     const servers = createMemo(() => {
       const data = initializationData(sidecar)

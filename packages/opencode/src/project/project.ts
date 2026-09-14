@@ -319,6 +319,15 @@ const layer = Layer.effect(
           cwd: input.worktree,
           absolute: true,
           include: "file",
+          ignore: [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.turbo/**",
+            "**/.cache/**",
+            "**/.next/**",
+          ],
         })
         .pipe(Effect.orDie)
       const shortest = matches.sort((a, b) => a.length - b.length)[0]

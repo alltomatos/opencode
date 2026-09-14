@@ -150,14 +150,17 @@ function formatUsage(
     return undefined
   }
 
+  const outputTokens = tokens?.output ?? 0
   const text =
     limit && limit > 0 ? `${Locale.number(total)} (${Math.round((total / limit) * 100)}%)` : Locale.number(total)
 
+  const outputText = outputTokens > 0 ? ` · out ${Locale.number(outputTokens)}` : ""
+
   if (typeof cost === "number" && cost > 0) {
-    return `${text} · ${money.format(cost)}`
+    return `${text}${outputText} · ${money.format(cost)}`
   }
 
-  return text
+  return `${text}${outputText}`
 }
 
 export function formatError(error: {
