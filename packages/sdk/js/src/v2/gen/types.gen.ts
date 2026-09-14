@@ -1754,8 +1754,11 @@ export type ProviderConfig = {
      * Timeout in milliseconds to wait for response headers. Provider integrations may set defaults. Set to false to disable timeout.
      */
     headerTimeout?: number | false
-    chunkTimeout?: number
-    [key: string]: unknown | string | boolean | number | false | number | false | number | undefined
+    /**
+     * Timeout in milliseconds between streamed SSE chunks for this provider. If no chunk arrives within this window, the request is aborted. Set to false to disable timeout.
+     */
+    chunkTimeout?: number | false
+    [key: string]: unknown | string | boolean | number | false | number | false | number | false | undefined
   }
   models?: {
     [key: string]: {
@@ -3024,6 +3027,10 @@ export type ProviderNotFoundError = {
   message: string
 }
 
+export type ScheduleValidationError = {
+  message: string
+}
+
 export type OutputFormat1 =
   | {
       type: "text"
@@ -4090,6 +4097,17 @@ export type PtyTicketConnectToken = {
   ticket: string
   expires_in: number
 }
+
+export type WorkspaceSource =
+  | {
+      type: "clone"
+      url: string
+      destination?: string
+    }
+  | {
+      type: "existing"
+      path: string
+    }
 
 export type WorkspaceEventConnectionStatus = {
   workspaceID: string
@@ -5216,6 +5234,99 @@ export type IntegrationAttemptStatus =
         expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       }
     }
+
+export type CredentialOAuth = {
+  type: "oauth"
+  methodID: string
+  refresh: string
+  access: string
+  expires: number
+  metadata?: {
+    [key: string]: unknown
+  }
+}
+
+export type CredentialKey = {
+  type: "key"
+  key: string
+  metadata?: {
+    [key: string]: unknown
+  }
+}
+
+export type CredentialCreateInput = {
+  integrationID: string
+  label?: string
+  value: CredentialValue
+}
+
+export type CredentialInfo = {
+  id: string
+  integrationID: string
+  label: string
+  value: CredentialValue
+}
+
+export type ScheduleCronTrigger = {
+  kind: "cron"
+  expr: string
+}
+
+export type ScheduleIntervalTrigger = {
+  kind: "interval"
+  ms: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ScheduleManualTrigger = {
+  kind: "manual"
+}
+
+export type ScheduleTrigger = ScheduleCronTrigger | ScheduleIntervalTrigger | ScheduleManualTrigger
+
+export type ScheduleShellAction = {
+  kind: "shell"
+  command: string
+}
+
+export type ScheduleMcpToolAction = {
+  kind: "mcp_tool"
+  server: string
+  tool: string
+  args?: {
+    [key: string]: unknown
+  }
+}
+
+export type ScheduleSkillMcpTool = {
+  server: string
+  tool: string
+}
+
+export type ScheduleSkillAction = {
+  kind: "skill"
+  instructions: string
+  mcpTools?: Array<ScheduleSkillMcpTool>
+}
+
+export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction
+
+export type ScheduleInfo = {
+  id: string
+  trigger: ScheduleTrigger
+  action: ScheduleAction
+  workspace?: string
+  enabled?: boolean
+  lastRunAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  lastStatus?: "success" | "error"
+  lastError?: string
+}
+
+export type ScheduleCreateInput = {
+  trigger: ScheduleTrigger
+  action: ScheduleAction
+  workspace?: string
+  enabled?: boolean
+}
 
 export type PermissionV2Request = {
   id: string
@@ -7285,25 +7396,6 @@ export type EventGlobalDisposed = {
   id: string
   type: "global.disposed"
   properties: {
-    [key: string]: unknown
-  }
-}
-
-export type CredentialOAuth = {
-  type: "oauth"
-  methodID: string
-  refresh: string
-  access: string
-  expires: number
-  metadata?: {
-    [key: string]: unknown
-  }
-}
-
-export type CredentialKey = {
-  type: "key"
-  key: string
-  metadata?: {
     [key: string]: unknown
   }
 }
@@ -12680,6 +12772,7 @@ export type ExperimentalWorkspaceCreateData = {
     type: string
     branch?: string | null
     extra?: unknown | null
+    source?: WorkspaceSource
   }
   path?: never
   query?: {
@@ -12708,6 +12801,44 @@ export type ExperimentalWorkspaceCreateResponses = {
 
 export type ExperimentalWorkspaceCreateResponse =
   ExperimentalWorkspaceCreateResponses[keyof ExperimentalWorkspaceCreateResponses]
+
+export type V2WorkspaceCreateData = {
+  body: {
+    id?: string
+    type: string
+    branch?: string
+    extra?: unknown
+    source?: WorkspaceSource
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/api/workspaces"
+}
+
+export type V2WorkspaceCreateErrors = {
+  /**
+   * WorkspaceCreateError | BadRequest | InvalidRequestError
+   */
+  400: WorkspaceCreateError | EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * Unauthorized
+   */
+  401: unknown
+}
+
+export type V2WorkspaceCreateError = V2WorkspaceCreateErrors[keyof V2WorkspaceCreateErrors]
+
+export type V2WorkspaceCreateResponses = {
+  /**
+   * Workspace created
+   */
+  200: Workspace
+}
+
+export type V2WorkspaceCreateResponse = V2WorkspaceCreateResponses[keyof V2WorkspaceCreateResponses]
 
 export type ExperimentalWorkspaceSyncListData = {
   body?: never
@@ -12868,6 +12999,41 @@ export type V2HealthGetResponses = {
 }
 
 export type V2HealthGetResponse = V2HealthGetResponses[keyof V2HealthGetResponses]
+
+export type V2SystemUpdateData = {
+  body: {
+    confirm: boolean
+  }
+  path?: never
+  query?: never
+  url: "/api/system/update"
+}
+
+export type V2SystemUpdateErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2SystemUpdateError = V2SystemUpdateErrors[keyof V2SystemUpdateErrors]
+
+export type V2SystemUpdateResponses = {
+  /**
+   * Success
+   */
+  200: {
+    status: string
+    message: string
+    currentVersion?: string
+  }
+}
+
+export type V2SystemUpdateResponse = V2SystemUpdateResponses[keyof V2SystemUpdateResponses]
 
 export type V2LocationGetData = {
   body?: never
@@ -14049,6 +14215,40 @@ export type V2IntegrationAttemptCompleteResponses = {
 export type V2IntegrationAttemptCompleteResponse =
   V2IntegrationAttemptCompleteResponses[keyof V2IntegrationAttemptCompleteResponses]
 
+export type V2CredentialCreateData = {
+  body: CredentialCreateInput
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/credential"
+}
+
+export type V2CredentialCreateErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2CredentialCreateError = V2CredentialCreateErrors[keyof V2CredentialCreateErrors]
+
+export type V2CredentialCreateResponses = {
+  /**
+   * Credential.Info
+   */
+  200: CredentialInfo
+}
+
+export type V2CredentialCreateResponse = V2CredentialCreateResponses[keyof V2CredentialCreateResponses]
+
 export type V2CredentialRemoveData = {
   body?: never
   path: {
@@ -14122,6 +14322,146 @@ export type V2CredentialUpdateResponses = {
 }
 
 export type V2CredentialUpdateResponse = V2CredentialUpdateResponses[keyof V2CredentialUpdateResponses]
+
+export type V2ScheduleListData = {
+  body?: never
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule"
+}
+
+export type V2ScheduleListErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleListError = V2ScheduleListErrors[keyof V2ScheduleListErrors]
+
+export type V2ScheduleListResponses = {
+  /**
+   * Success
+   */
+  200: Array<ScheduleInfo>
+}
+
+export type V2ScheduleListResponse = V2ScheduleListResponses[keyof V2ScheduleListResponses]
+
+export type V2ScheduleCreateData = {
+  body: ScheduleCreateInput
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule"
+}
+
+export type V2ScheduleCreateErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleCreateError = V2ScheduleCreateErrors[keyof V2ScheduleCreateErrors]
+
+export type V2ScheduleCreateResponses = {
+  /**
+   * Schedule.Info
+   */
+  200: ScheduleInfo
+}
+
+export type V2ScheduleCreateResponse = V2ScheduleCreateResponses[keyof V2ScheduleCreateResponses]
+
+export type V2ScheduleRunData = {
+  body?: never
+  path: {
+    scheduleID: string
+  }
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/{scheduleID}/run"
+}
+
+export type V2ScheduleRunErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleRunError = V2ScheduleRunErrors[keyof V2ScheduleRunErrors]
+
+export type V2ScheduleRunResponses = {
+  /**
+   * Schedule.Info
+   */
+  200: ScheduleInfo
+}
+
+export type V2ScheduleRunResponse = V2ScheduleRunResponses[keyof V2ScheduleRunResponses]
+
+export type V2ScheduleRemoveData = {
+  body?: never
+  path: {
+    scheduleID: string
+  }
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/{scheduleID}"
+}
+
+export type V2ScheduleRemoveErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleRemoveError = V2ScheduleRemoveErrors[keyof V2ScheduleRemoveErrors]
+
+export type V2ScheduleRemoveResponses = {
+  /**
+   * <No Content>
+   */
+  204: void
+}
+
+export type V2ScheduleRemoveResponse = V2ScheduleRemoveResponses[keyof V2ScheduleRemoveResponses]
 
 export type V2PermissionRequestListData = {
   body?: never

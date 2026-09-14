@@ -15,6 +15,7 @@ import { HomeProjects } from "@/pages/home/home-projects"
 import { HomeUtilityNav } from "@/pages/home/home-projects-view"
 import { BatutaSidebarList } from "@/pages/batuta/batuta-sidebar-list"
 import { AgentUISidebarList } from "@/pages/agentui/agentui-sidebar-list"
+import { RoutinesSidebarList } from "@/pages/routines/routines-sidebar-list"
 
 // Batuta is still an active work-in-progress feature — only show its entry
 // point on dev builds, not to production users, until it's ready to ship.
@@ -51,7 +52,12 @@ export const AppProjectSidebar: Component = () => {
     layout.projectSidebar.setTab(tab)
     if (tab === "batuta" && location.pathname !== "/batuta") navigate("/batuta")
     if (tab === "agentui" && location.pathname !== "/agentui") navigate("/agentui")
-    if (tab === "code" && (location.pathname === "/batuta" || location.pathname === "/agentui")) navigate("/")
+    if (tab === "schedule" && location.pathname !== "/rotinas") navigate("/rotinas")
+    if (
+      tab === "code" &&
+      (location.pathname === "/batuta" || location.pathname === "/agentui" || location.pathname === "/rotinas")
+    )
+      navigate("/")
   }
 
   const projects = {
@@ -95,7 +101,11 @@ export const AppProjectSidebar: Component = () => {
         <div class="flex min-h-0 flex-1 flex-col">
           <Show when={layout.projectSidebar.tab() === "code"} fallback={
             <ServerSDKProvider server={home.server.focused}>
-              <Show when={layout.projectSidebar.tab() === "batuta"} fallback={<AgentUISidebarList />}>
+              <Show when={layout.projectSidebar.tab() === "batuta"} fallback={
+                <Show when={layout.projectSidebar.tab() === "schedule"} fallback={<AgentUISidebarList />}>
+                  <RoutinesSidebarList />
+                </Show>
+              }>
                 <BatutaSidebarList />
               </Show>
             </ServerSDKProvider>
@@ -145,6 +155,13 @@ const ProjectSidebarTabs: Component<{
       >
         <IconV2 name="subagent" size="small" />
       </ProjectSidebarTabButton>
+      <ProjectSidebarTabButton
+        active={props.tab === "schedule"}
+        label="Rotinas"
+        onClick={() => props.onSelect("schedule")}
+      >
+        <Icon name="task" size="small" />
+      </ProjectSidebarTabButton>
     </div>
   )
 }
@@ -156,21 +173,26 @@ const ProjectSidebarTabButton: Component<{
   children: JSX.Element
 }> = (props) => {
   return (
-    <button
-      type="button"
-      class={`
-        flex h-6 flex-1 items-center justify-center gap-1.5 rounded-[6px] px-2 text-12-medium text-v2-text-text-muted
-        transition-colors duration-[120ms] ease-in-out
-        hover:text-v2-text-text-base
-      `}
-      classList={{
-        "bg-v2-background-bg-base text-v2-text-text-base shadow-[var(--v2-elevation-raised)]": props.active,
-      }}
-      aria-pressed={props.active}
-      onClick={props.onClick}
-    >
-      {props.children}
-      <span>{props.label}</span>
-    </button>
+    <TooltipV2 placement="bottom" value={props.label} inactive={props.active}>
+      <button
+        type="button"
+        class={`
+          flex h-6 flex-1 items-center justify-center gap-1.5 rounded-[6px] px-2 text-12-medium text-v2-text-text-muted
+          transition-colors duration-[120ms] ease-in-out
+          hover:text-v2-text-text-base
+        `}
+        classList={{
+          "bg-v2-background-bg-base text-v2-text-text-base shadow-[var(--v2-elevation-raised)]": props.active,
+        }}
+        aria-pressed={props.active}
+        onClick={props.onClick}
+      >
+        {props.children}
+        <Show when={props.active}>
+          <span class="overflow-hidden text-ellipsis whitespace-nowrap">{props.label}</span>
+        </Show>
+      </button>
+    </TooltipV2>
   )
 }
+

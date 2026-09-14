@@ -125,6 +125,20 @@ export default {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`schedule\` (
+          \`id\` text PRIMARY KEY,
+          \`trigger\` text NOT NULL,
+          \`action\` text NOT NULL,
+          \`workspace\` text,
+          \`enabled\` integer NOT NULL,
+          \`last_run_at\` integer,
+          \`last_status\` text,
+          \`last_error\` text,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`message\` (
           \`id\` text PRIMARY KEY,
           \`session_id\` text NOT NULL,

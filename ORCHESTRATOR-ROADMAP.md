@@ -21,6 +21,7 @@ GitHub (alltomatos/opencode, branch default `dev`) é a fonte persistente de ras
 | [**[E13] CI flaky**](https://github.com/alltomatos/opencode/issues/181) | CI — flaky tests e estabilidade | in_progress (#181, #185 abertas; #163, #189, #193, #209 resolvidas no PR #210) | [#181](https://github.com/alltomatos/opencode/issues/181) |
 | [**[E14] Sync upstream**](https://github.com/alltomatos/opencode/issues/200) | Sync com upstream anomalyco/opencode | in_progress (#199, #200 em revisão) | [#200](https://github.com/alltomatos/opencode/issues/200) |
 | [**[E15] Dashboard de KPIs & Token Analytics**](https://github.com/alltomatos/opencode/issues/212) | Dashboard de KPIs e consumo de tokens (/stats) | in_progress | [#212](https://github.com/alltomatos/opencode/issues/212) |
+| [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) | Rotinas (cron/interval) com action shell/mcp_tool/skill, local (Win/Mac/Linux) e servidor remoto | in_progress (#214/#215/#219/#220/#221-226 fechadas; #216/#217 bloqueadas em portar MCP e sessão pro V2) | [#213](https://github.com/alltomatos/opencode/issues/213) |
 
 ## Epic: Evolução de UI/UX do OpenCode by Alltomatos
 
@@ -227,3 +228,34 @@ Ver [issue #25](https://github.com/alltomatos/opencode/issues/25) pra lista comp
 - **E12 AgentUI**: Fases 0–5 (#145–#150) abertas; PRs em revisão: [#159](https://github.com/alltomatos/opencode/pull/159) (gerar agente por descrição), [#160](https://github.com/alltomatos/opencode/pull/160) (canal Telegram por agente), [#161](https://github.com/alltomatos/opencode/pull/161) (canal WhatsApp via waconector).
 - **E13 CI flaky**: #181, #185 abertas; #163, #186, #189, #190–#195, #205, #207–#210 fechadas/resolvidas. PR #210 estabilizou o CI do Windows (e2e e unit) e fechou #209.
 - **E14 Sync upstream**: [#199](https://github.com/alltomatos/opencode/pull/199) (8 bug fixes portados) e [#200](https://github.com/alltomatos/opencode/issues/200) abertas.
+
+## Epic: Rotinas Agendadas Cross-Platform
+
+**Status:** Desenhada e fatiada em 2026-09-14, execução em fila sequencial iniciando.
+**Origem:** análise do trabalho de servidor SSH remoto + cron (E09, #78-#84) — achado de que `ScheduleRunner.tick()` existe mas nunca é chamado, e que a ação de uma rotina hoje só suporta `shell`. Sessão de design de arquitetura ampliou o escopo pra cobrir também desktop local (Windows/Mac/Linux), não só o servidor.
+
+### Decisões de arquitetura (fixadas na sessão de design)
+- `Action` plugável: `shell` (existente), `mcp_tool` (chamada direta, sem sessão/LLM — barato e determinístico), `skill` (via sessão nova, reaproveitando `Batuta.Service`/worktree — skill precisa de um agente interpretando o prompt).
+- Desktop local usa o agendador **nativo do SO** desde a v1 (schtasks/launchd/systemd), não só tick in-process — senão a rotina não dispara com o app fechado, o que quebraria a expectativa de "agendado".
+- Servidor remoto continua com tick in-process (`ScheduleRunner.tick()`), só precisa ser efetivamente ligado no bootstrap do `opencode serve`.
+- Duas fontes de dados hoje (config markdown `schedule/*.md` vs JSON registry do CLI) serão unificadas: JSON registry como fonte de verdade em runtime, markdown como seed/import que nunca sobrescreve edição feita pela UI.
+- (2026-09-14) Desktop local **não** traduz cron para a sintaxe nativa de cada SO (schtasks/launchd/systemd têm modelos de trigger incompatíveis entre si e com cron arbitrário). Em vez disso, `opencode service enable` instala o `opencode serve` como serviço persistente de login (sem elevação/admin) em cada SO — o motor de tick que já roda dentro do servidor (#219) decide toda a lógica de cron/interval; o SO só garante que o processo não morre.
+
+Fila sequencial, um PR por issue, ordem de dependência:
+
+| Issue | O quê |
+|---|---|
+| [#214](https://github.com/alltomatos/opencode/issues/214) | Schema/registry: `trigger` + `action` pluggáveis |
+| [#215](https://github.com/alltomatos/opencode/issues/215) | Corrigir semântica OR (não AND) entre dia-do-mês/dia-da-semana no cron |
+| [#216](https://github.com/alltomatos/opencode/issues/216) | Executor de action `mcp_tool` (sem sessão) |
+| [#217](https://github.com/alltomatos/opencode/issues/217) | Executor de action `skill` (via sessão nova) |
+| [#218](https://github.com/alltomatos/opencode/issues/218) | Timeout + self-healing nos executores `shell`/`mcp_tool` |
+| [#219](https://github.com/alltomatos/opencode/issues/219) | Ligar `ScheduleRunner.tick()` no bootstrap do servidor remoto |
+| [#220](https://github.com/alltomatos/opencode/issues/220) | Comando CLI `opencode schedule run <id>` (stateless) |
+| [#221](https://github.com/alltomatos/opencode/issues/221) | Desktop Windows: `opencode service enable/disable` via Task Scheduler (serviço persistente de login) |
+| [#222](https://github.com/alltomatos/opencode/issues/222) | Desktop macOS: `opencode service enable/disable` via LaunchAgent persistente |
+| [#223](https://github.com/alltomatos/opencode/issues/223) | Desktop Linux: `opencode service enable/disable` via `systemd --user` persistente |
+| [#224](https://github.com/alltomatos/opencode/issues/224) | UI: tela "Rotinas" (form trigger/action + histórico) |
+| [#225](https://github.com/alltomatos/opencode/issues/225) | Import declarativo de `schedule/*.md` sem sobrescrever edições da UI |
+
+Issue mestre: [#213](https://github.com/alltomatos/opencode/issues/213).

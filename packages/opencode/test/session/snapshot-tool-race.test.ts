@@ -52,6 +52,7 @@ const mcp = Layer.succeed(
     serverCatalog: () => Effect.succeed({ tools: [], prompts: [], resources: [] }),
     getPrompt: () => Effect.succeed(undefined),
     readResource: () => Effect.succeed(undefined),
+    callTool: () => Effect.succeed(undefined),
     startAuth: () => Effect.die("unexpected MCP auth"),
     authenticate: () => Effect.die("unexpected MCP auth"),
     finishAuth: () => Effect.die("unexpected MCP auth"),

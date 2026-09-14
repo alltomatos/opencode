@@ -7,7 +7,6 @@ import { Commands } from "./commands/commands"
 import { Runtime } from "./framework/runtime"
 import { Daemon } from "./services/daemon"
 import { EnvironmentRegistry } from "./services/environment-registry"
-import { ScheduleRegistry } from "./services/schedule-registry"
 
 const Handlers = Runtime.handlers(Commands, {
   $: () => import("./commands/handlers/default"),
@@ -25,6 +24,7 @@ const Handlers = Runtime.handlers(Commands, {
     add: () => import("./commands/handlers/schedule/add"),
     list: () => import("./commands/handlers/schedule/list"),
     rm: () => import("./commands/handlers/schedule/rm"),
+    run: () => import("./commands/handlers/schedule/run"),
   },
   service: {
     start: () => import("./commands/handlers/service/start"),
@@ -32,12 +32,13 @@ const Handlers = Runtime.handlers(Commands, {
     status: () => import("./commands/handlers/service/status"),
     stop: () => import("./commands/handlers/service/stop"),
     password: () => import("./commands/handlers/service/password"),
+    enable: () => import("./commands/handlers/service/enable"),
+    disable: () => import("./commands/handlers/service/disable"),
   },
   serve: () => import("./commands/handlers/serve"),
 })
 
 Runtime.run(Commands, Handlers, { version: "local" }).pipe(
-  Effect.provide(ScheduleRegistry.layer),
   Effect.provide(EnvironmentRegistry.layer),
   Effect.provide(Daemon.layer),
   Effect.provide(NodeServices.layer),
