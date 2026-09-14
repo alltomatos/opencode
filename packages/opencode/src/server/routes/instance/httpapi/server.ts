@@ -60,6 +60,7 @@ import { AppNodeBuilderV1 } from "@/effect/app-node-builder-v1"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { httpClient } from "@opencode-ai/core/effect/app-node-platform"
 import { Credential } from "@opencode-ai/core/credential"
+import { ScheduleRunner } from "@opencode-ai/core/schedule/runner"
 import { EventV2 } from "@opencode-ai/core/event"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { Npm } from "@opencode-ai/core/npm"
@@ -290,6 +291,7 @@ const app = LayerNode.group([
   ProjectCopy.node,
   PtyTicket.node,
   Credential.node,
+  ScheduleRunner.tickNode,
 ])
 
 export function createRoutes(

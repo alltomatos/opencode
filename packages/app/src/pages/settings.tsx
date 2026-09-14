@@ -16,6 +16,7 @@ import { SettingsMemoryV2 } from "@/components/settings-v2/memory"
 import { SettingsMcpV2 } from "@/components/settings-v2/mcp"
 import { SettingsIntegrationsV2 } from "@/components/settings-v2/integrations"
 import { SettingsExternalAgentsV2 } from "@/components/settings-v2/external-agents"
+import { SettingsScheduleV2 } from "@/components/settings-v2/schedule"
 import "@/components/settings-v2/settings-v2.css"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -153,6 +154,10 @@ export function SettingsPage() {
                         <Icon name="terminal" />
                         {language.t("settings.externalAgents.title")}
                       </TabsV2.Trigger>
+                      <TabsV2.Trigger value="schedule">
+                        <Icon name="bullet-list" />
+                        Rotinas
+                      </TabsV2.Trigger>
                     </div>
                   </div>
                 </div>
@@ -203,6 +208,9 @@ export function SettingsPage() {
           </TabsV2.Content>
           <TabsV2.Content value="externalAgents" class="settings-v2-panel">
             <SettingsExternalAgentsV2 />
+          </TabsV2.Content>
+          <TabsV2.Content value="schedule" class="settings-v2-panel">
+            <SettingsScheduleV2 />
           </TabsV2.Content>
         </TabsV2>
       </div>
