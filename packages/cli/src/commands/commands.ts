@@ -88,6 +88,10 @@ export const Commands = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCO
           description: "Get or set the server password",
           params: { value: Argument.string("value").pipe(Argument.optional) },
         }),
+        Spec.make("enable", {
+          description: "Install opencode as a persistent login service (survives app being closed)",
+        }),
+        Spec.make("disable", { description: "Remove the persistent login service" }),
       ],
     }),
     Spec.make("serve", {
