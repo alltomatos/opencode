@@ -70,6 +70,8 @@ import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } fro
 import { NewHome } from "@/pages/home"
 import { BatutaPage } from "@/pages/batuta"
 import { BatutaActivityFormPage } from "@/pages/batuta/activity-form"
+import { RoutinesPage } from "@/pages/routines"
+import { RoutineFormPage } from "@/pages/routines/routine-form"
 import { BatutaActivityLivePage } from "@/pages/batuta/activity-live"
 import { AgentUIPage } from "@/pages/agentui"
 import { AgentUIFormPage } from "@/pages/agentui-form"
@@ -671,6 +673,8 @@ function Routes(props: { serverScoped?: JSX.Element }) {
         <Route path="/batuta/new" component={BatutaActivityFormPage} />
         <Route path="/batuta/:id/edit" component={BatutaActivityFormPage} />
         <Route path="/batuta/:id/live" component={BatutaActivityLivePage} />
+        <Route path="/rotinas" component={RoutinesPage} />
+        <Route path="/rotinas/new" component={RoutineFormPage} />
         <Route path="/agentui" component={AgentUIPage} />
         <Route path="/agentui/new" component={AgentUIFormPage} />
         <Route path="/agentui/:id/edit" component={AgentUIFormPage} />

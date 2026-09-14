@@ -9,7 +9,7 @@ import { Skill } from "@/skill"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
-import { ApiVcsApplyError } from "../groups/instance"
+import { ApiVcsApplyError, ApiVcsCheckoutError } from "../groups/instance"
 import { markInstanceForDisposal } from "../lifecycle"
 
 export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance", (handlers) =>
@@ -42,6 +42,27 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
         concurrency: "unbounded",
       })
       return { branch, default_branch }
+    })
+
+    const getVcsBranches = Effect.fn("InstanceHttpApi.vcsBranches")(function* () {
+      return yield* vcs.branches()
+    })
+
+    const checkoutVcs = Effect.fn("InstanceHttpApi.vcsCheckout")(function* (ctx: {
+      payload: { branch: string }
+    }) {
+      return yield* vcs.checkout(ctx.payload.branch).pipe(
+        Effect.mapError(
+          (error) =>
+            new ApiVcsCheckoutError({
+              name: "VcsCheckoutError",
+              data: {
+                message: error.message,
+                reason: error.reason,
+              },
+            }),
+        ),
+      )
     })
 
     const getVcsStatus = Effect.fn("InstanceHttpApi.vcsStatus")(function* () {
@@ -97,6 +118,8 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       .handle("dispose", dispose)
       .handle("path", getPath)
       .handle("vcs", getVcs)
+      .handle("vcsBranches", getVcsBranches)
+      .handle("vcsCheckout", checkoutVcs)
       .handle("vcsStatus", getVcsStatus)
       .handle("vcsDiff", getVcsDiff)
       .handle("vcsDiffRaw", getVcsDiffRaw)

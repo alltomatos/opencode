@@ -76,6 +76,7 @@ export interface StatsSummary {
   totalSessions: number
   avgTokensPerSession: number
   avgCostPerSession: number
+  tokensPerSecond: number
   totalDurationMs: number
   longestDurationMs: number
   longestSessionTitle: string
@@ -298,6 +299,7 @@ export function computeStats(sessions: Session[], options: ComputeStatsOptions):
   const avgDurationMs = totalSessions > 0 ? Math.round(totalDurationMs / totalSessions) : 0
   const totalPromptTokens = inputTokens + cacheReadTokens
   const cacheRatio = totalPromptTokens > 0 ? Math.round((cacheReadTokens / totalPromptTokens) * 100) : 0
+  const tokensPerSecond = totalDurationMs > 0 ? outputTokens / (totalDurationMs / 1000) : 0
 
   const breakdownByModel = [...modelMap.values()].sort((a, b) => b.tokens - a.tokens)
   const breakdownByAgent = [...agentMap.values()].sort((a, b) => b.tokens - a.tokens)
@@ -317,6 +319,7 @@ export function computeStats(sessions: Session[], options: ComputeStatsOptions):
     totalSessions,
     avgTokensPerSession,
     avgCostPerSession,
+    tokensPerSecond,
     totalDurationMs,
     longestDurationMs,
     longestSessionTitle,

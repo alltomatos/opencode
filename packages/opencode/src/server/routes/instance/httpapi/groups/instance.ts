@@ -40,10 +40,23 @@ export class ApiVcsApplyError extends Schema.ErrorClass<ApiVcsApplyError>("VcsAp
   { httpApiStatus: 400 },
 ) {}
 
+export class ApiVcsCheckoutError extends Schema.ErrorClass<ApiVcsCheckoutError>("VcsCheckoutError")(
+  {
+    name: Schema.Literal("VcsCheckoutError"),
+    data: Schema.Struct({
+      message: Schema.String,
+      reason: Schema.Literals(["non-git", "failed"]),
+    }),
+  },
+  { httpApiStatus: 400 },
+) {}
+
 export const InstancePaths = {
   dispose: "/instance/dispose",
   path: "/path",
   vcs: "/vcs",
+  vcsBranches: "/vcs/branches",
+  vcsCheckout: "/vcs/checkout",
   vcsStatus: "/vcs/status",
   vcsDiff: "/vcs/diff",
   vcsDiffRaw: "/vcs/diff/raw",
@@ -89,6 +102,30 @@ export const InstanceApi = HttpApi.make("instance")
             summary: "Get VCS info",
             description:
               "Retrieve version control system (VCS) information for the current project, such as git branch.",
+          }),
+        ),
+        HttpApiEndpoint.get("vcsBranches", InstancePaths.vcsBranches, {
+          query: WorkspaceRoutingQuery,
+          success: described(Schema.Array(Schema.String), "VCS local branches"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "vcs.branches",
+            summary: "Get local VCS branches",
+            description: "Retrieve list of local git branches for the current project.",
+          }),
+        ),
+        HttpApiEndpoint.post("vcsCheckout", InstancePaths.vcsCheckout, {
+          query: WorkspaceRoutingQuery,
+          payload: Schema.Struct({
+            branch: Schema.String,
+          }),
+          success: described(Vcs.CheckoutResult, "VCS branch checked out"),
+          error: ApiVcsCheckoutError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "vcs.checkout",
+            summary: "Checkout VCS branch",
+            description: "Checkout a local git branch for the current project.",
           }),
         ),
         HttpApiEndpoint.get("vcsStatus", InstancePaths.vcsStatus, {

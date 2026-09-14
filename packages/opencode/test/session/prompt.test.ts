@@ -131,6 +131,7 @@ function makeMcp(instructions: MCP.ServerInstructions[] = []) {
       serverCatalog: () => Effect.succeed({ tools: [], prompts: [], resources: [] }),
       getPrompt: () => Effect.succeed(undefined),
       readResource: () => Effect.succeed(undefined),
+      callTool: () => Effect.succeed(undefined),
       startAuth: () => Effect.die("unexpected MCP auth in prompt-effect tests"),
       authenticate: () => Effect.die("unexpected MCP auth in prompt-effect tests"),
       finishAuth: () => Effect.die("unexpected MCP auth in prompt-effect tests"),

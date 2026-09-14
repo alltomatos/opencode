@@ -1,4 +1,4 @@
-import { dict as en } from "./en"
+﻿import { dict as en } from "./en"
 
 type Keys = keyof typeof en
 
@@ -647,6 +647,14 @@ export const dict = {
   "session.new.workspace.local": "Lokales Repository",
   "session.new.workspace.existing": "Arbeitsbereich…",
   "session.new.git.none": "Kein Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "Zuletzt geändert",
   "session.header.search.placeholder": "{{project}} durchsuchen",
   "session.header.searchFiles": "Dateien suchen",
@@ -1536,6 +1544,8 @@ export const dict = {
   "stats.kpi.totalSessions.sub": "Sessions in selected range", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens": "Avg / Session", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens.sub": "Average token consumption", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps": "Output Tokens/s (TPS)", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps.sub": "Avg speed (over session active time)", // TODO: translate (auto-filled from en)
   "stats.distribution.title": "Token Distribution", // TODO: translate (auto-filled from en)
   "stats.distribution.input": "Input", // TODO: translate (auto-filled from en)
   "stats.distribution.output": "Output", // TODO: translate (auto-filled from en)

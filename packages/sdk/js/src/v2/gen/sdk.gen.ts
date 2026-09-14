@@ -258,6 +258,7 @@ import type {
   QuestionReplyErrors,
   QuestionReplyResponses,
   QuestionV2Reply,
+  ScheduleCreateInput,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -424,6 +425,14 @@ import type {
   V2QuestionRequestListResponses,
   V2ReferenceListErrors,
   V2ReferenceListResponses,
+  V2ScheduleCreateErrors,
+  V2ScheduleCreateResponses,
+  V2ScheduleListErrors,
+  V2ScheduleListResponses,
+  V2ScheduleRemoveErrors,
+  V2ScheduleRemoveResponses,
+  V2ScheduleRunErrors,
+  V2ScheduleRunResponses,
   V2SessionActiveErrors,
   V2SessionActiveResponses,
   V2SessionCompactErrors,
@@ -482,6 +491,10 @@ import type {
   V2WorkspaceCreateResponses,
   VcsApplyErrors,
   VcsApplyResponses,
+  VcsBranchesErrors,
+  VcsBranchesResponses,
+  VcsCheckoutErrors,
+  VcsCheckoutResponses,
   VcsDiffErrors,
   VcsDiffRawErrors,
   VcsDiffRawResponses,
@@ -3117,6 +3130,73 @@ export class Vcs extends HeyApiClient {
       url: "/vcs",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Get local VCS branches
+   *
+   * Retrieve list of local git branches for the current project.
+   */
+  public branches<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<VcsBranchesResponses, VcsBranchesErrors, ThrowOnError>({
+      url: "/vcs/branches",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Checkout VCS branch
+   *
+   * Checkout a local git branch for the current project.
+   */
+  public checkout<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      branch?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "branch" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<VcsCheckoutResponses, VcsCheckoutErrors, ThrowOnError>({
+      url: "/vcs/checkout",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 
@@ -7919,6 +7999,134 @@ export class Credential extends HeyApiClient {
   }
 }
 
+export class Schedule extends HeyApiClient {
+  /**
+   * List scheduled routines
+   *
+   * List every scheduled routine registered on the remote host.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    return (options?.client ?? this.client).get<V2ScheduleListResponses, V2ScheduleListErrors, ThrowOnError>({
+      url: "/api/schedule",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create scheduled routine
+   *
+   * Register a new scheduled routine (trigger + action) on the remote host.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      scheduleCreateInput: ScheduleCreateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location" },
+            { key: "scheduleCreateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2ScheduleCreateResponses, V2ScheduleCreateErrors, ThrowOnError>({
+      url: "/api/schedule",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Run a scheduled routine now
+   *
+   * Execute a scheduled routine's action immediately, regardless of its trigger.
+   */
+  public run<ThrowOnError extends boolean = false>(
+    parameters: {
+      scheduleID: string
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "scheduleID" },
+            { in: "query", key: "location" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2ScheduleRunResponses, V2ScheduleRunErrors, ThrowOnError>({
+      url: "/api/schedule/{scheduleID}/run",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Remove scheduled routine
+   *
+   * Remove a scheduled routine from the remote host.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      scheduleID: string
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "scheduleID" },
+            { in: "query", key: "location" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<V2ScheduleRemoveResponses, V2ScheduleRemoveErrors, ThrowOnError>({
+      url: "/api/schedule/{scheduleID}",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Request extends HeyApiClient {
   /**
    * List pending permission requests
@@ -8639,6 +8847,11 @@ export class V2 extends HeyApiClient {
   private _credential?: Credential
   get credential(): Credential {
     return (this._credential ??= new Credential({ client: this.client }))
+  }
+
+  private _schedule?: Schedule
+  get schedule(): Schedule {
+    return (this._schedule ??= new Schedule({ client: this.client }))
   }
 
   private _permission?: Permission3

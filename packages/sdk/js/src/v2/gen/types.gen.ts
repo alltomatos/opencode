@@ -2548,6 +2548,14 @@ export type VcsInfo = {
   default_branch?: string
 }
 
+export type VcsCheckoutError = {
+  name: "VcsCheckoutError"
+  data: {
+    message: string
+    reason: "non-git" | "failed"
+  }
+}
+
 export type VcsFileStatus = {
   file: string
   additions: number
@@ -3024,6 +3032,10 @@ export type SessionMessagesResponse = {
 export type ProviderNotFoundError = {
   _tag: "ProviderNotFoundError"
   providerID: string
+  message: string
+}
+
+export type ScheduleValidationError = {
   message: string
 }
 
@@ -5261,6 +5273,67 @@ export type CredentialInfo = {
   integrationID: string
   label: string
   value: CredentialValue
+}
+
+export type ScheduleCronTrigger = {
+  kind: "cron"
+  expr: string
+}
+
+export type ScheduleIntervalTrigger = {
+  kind: "interval"
+  ms: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ScheduleManualTrigger = {
+  kind: "manual"
+}
+
+export type ScheduleTrigger = ScheduleCronTrigger | ScheduleIntervalTrigger | ScheduleManualTrigger
+
+export type ScheduleShellAction = {
+  kind: "shell"
+  command: string
+}
+
+export type ScheduleMcpToolAction = {
+  kind: "mcp_tool"
+  server: string
+  tool: string
+  args?: {
+    [key: string]: unknown
+  }
+}
+
+export type ScheduleSkillMcpTool = {
+  server: string
+  tool: string
+}
+
+export type ScheduleSkillAction = {
+  kind: "skill"
+  instructions: string
+  mcpTools?: Array<ScheduleSkillMcpTool>
+}
+
+export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction
+
+export type ScheduleInfo = {
+  id: string
+  trigger: ScheduleTrigger
+  action: ScheduleAction
+  workspace?: string
+  enabled?: boolean
+  lastRunAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  lastStatus?: "success" | "error"
+  lastError?: string
+}
+
+export type ScheduleCreateInput = {
+  trigger: ScheduleTrigger
+  action: ScheduleAction
+  workspace?: string
+  enabled?: boolean
 }
 
 export type PermissionV2Request = {
@@ -9379,6 +9452,66 @@ export type VcsGetResponses = {
 }
 
 export type VcsGetResponse = VcsGetResponses[keyof VcsGetResponses]
+
+export type VcsBranchesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/branches"
+}
+
+export type VcsBranchesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type VcsBranchesError = VcsBranchesErrors[keyof VcsBranchesErrors]
+
+export type VcsBranchesResponses = {
+  /**
+   * VCS local branches
+   */
+  200: Array<string>
+}
+
+export type VcsBranchesResponse = VcsBranchesResponses[keyof VcsBranchesResponses]
+
+export type VcsCheckoutData = {
+  body?: {
+    branch: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/checkout"
+}
+
+export type VcsCheckoutErrors = {
+  /**
+   * VcsCheckoutError | InvalidRequestError
+   */
+  400: VcsCheckoutError | InvalidRequestError
+}
+
+export type VcsCheckoutError2 = VcsCheckoutErrors[keyof VcsCheckoutErrors]
+
+export type VcsCheckoutResponses = {
+  /**
+   * VCS branch checked out
+   */
+  200: {
+    branch: string
+  }
+}
+
+export type VcsCheckoutResponse = VcsCheckoutResponses[keyof VcsCheckoutResponses]
 
 export type VcsStatusData = {
   body?: never
@@ -14257,6 +14390,146 @@ export type V2CredentialUpdateResponses = {
 }
 
 export type V2CredentialUpdateResponse = V2CredentialUpdateResponses[keyof V2CredentialUpdateResponses]
+
+export type V2ScheduleListData = {
+  body?: never
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule"
+}
+
+export type V2ScheduleListErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleListError = V2ScheduleListErrors[keyof V2ScheduleListErrors]
+
+export type V2ScheduleListResponses = {
+  /**
+   * Success
+   */
+  200: Array<ScheduleInfo>
+}
+
+export type V2ScheduleListResponse = V2ScheduleListResponses[keyof V2ScheduleListResponses]
+
+export type V2ScheduleCreateData = {
+  body: ScheduleCreateInput
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule"
+}
+
+export type V2ScheduleCreateErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleCreateError = V2ScheduleCreateErrors[keyof V2ScheduleCreateErrors]
+
+export type V2ScheduleCreateResponses = {
+  /**
+   * Schedule.Info
+   */
+  200: ScheduleInfo
+}
+
+export type V2ScheduleCreateResponse = V2ScheduleCreateResponses[keyof V2ScheduleCreateResponses]
+
+export type V2ScheduleRunData = {
+  body?: never
+  path: {
+    scheduleID: string
+  }
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/{scheduleID}/run"
+}
+
+export type V2ScheduleRunErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleRunError = V2ScheduleRunErrors[keyof V2ScheduleRunErrors]
+
+export type V2ScheduleRunResponses = {
+  /**
+   * Schedule.Info
+   */
+  200: ScheduleInfo
+}
+
+export type V2ScheduleRunResponse = V2ScheduleRunResponses[keyof V2ScheduleRunResponses]
+
+export type V2ScheduleRemoveData = {
+  body?: never
+  path: {
+    scheduleID: string
+  }
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/{scheduleID}"
+}
+
+export type V2ScheduleRemoveErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleRemoveError = V2ScheduleRemoveErrors[keyof V2ScheduleRemoveErrors]
+
+export type V2ScheduleRemoveResponses = {
+  /**
+   * <No Content>
+   */
+  204: void
+}
+
+export type V2ScheduleRemoveResponse = V2ScheduleRemoveResponses[keyof V2ScheduleRemoveResponses]
 
 export type V2PermissionRequestListData = {
   body?: never

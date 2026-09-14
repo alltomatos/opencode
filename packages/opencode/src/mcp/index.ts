@@ -9,6 +9,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"
 import {
+  CallToolResultSchema,
   ListRootsRequestSchema,
   type LoggingMessageNotification,
   LoggingMessageNotificationSchema,
@@ -214,6 +215,11 @@ export interface Interface {
     clientName: string,
     resourceUri: string,
   ) => Effect.Effect<Awaited<ReturnType<MCPClient["readResource"]>> | undefined>
+  readonly callTool: (
+    clientName: string,
+    toolName: string,
+    args?: Record<string, unknown>,
+  ) => Effect.Effect<Awaited<ReturnType<MCPClient["callTool"]>> | undefined>
   readonly startAuth: (
     mcpName: string,
   ) => Effect.Effect<{ authorizationUrl: string; oauthState: string }, NotFoundError>
@@ -876,6 +882,20 @@ const layer = Layer.effect(
       )
     })
 
+    /** Calls a tool directly on a connected MCP client, without an agent session in the loop. */
+    const callTool = Effect.fn("MCP.callTool")(function* (
+      clientName: string,
+      toolName: string,
+      args?: Record<string, unknown>,
+    ) {
+      return yield* withClient(
+        clientName,
+        (client, timeout) => client.callTool({ name: toolName, arguments: args }, CallToolResultSchema, { timeout }),
+        "callTool",
+        { toolName },
+      )
+    })
+
     // OmniRoute's MCP endpoint lives at the same gateway as its provider API,
     // keyed by the same credential (see dialog-connect-omniroute.tsx). There's
     // no persisted mcp config entry for it — synthesize one from the stored
@@ -1095,6 +1115,7 @@ const layer = Layer.effect(
       remove,
       getPrompt,
       readResource,
+      callTool,
       startAuth,
       authenticate,
       finishAuth,

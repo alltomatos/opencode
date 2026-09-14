@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "bun test --timeout 5000",
-    "typecheck": "echo 'skipped: src/opencode.ts has an unresolved Credential.Service context leak into web.handler(), see comment there — package is unused by app/desktop/cli' && exit 0"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@opencode-ai/client": "workspace:*",

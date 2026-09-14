@@ -1,4 +1,4 @@
-export const dict: Record<string, string> = {
+﻿export const dict: Record<string, string> = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "ফাইল",
   "desktop.menu.edit": "সম্পাদনা করুন",
@@ -766,6 +766,14 @@ export const dict: Record<string, string> = {
   "session.new.workspace.local": "স্থানীয় সংগ্রহস্থল",
   "session.new.workspace.existing": "ওয়ার্কস্পেস…",
   "session.new.git.none": "না Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "সর্বশেষ সংশোধন করা হয়েছে",
   "session.header.search.placeholder": "অনুসন্ধান করুন {{project}}",
   "session.header.searchFiles": "ফাইল অনুসন্ধান করুন",
@@ -1503,6 +1511,8 @@ export const dict: Record<string, string> = {
   "stats.kpi.totalSessions.sub": "Sessions in selected range", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens": "Avg / Session", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens.sub": "Average token consumption", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps": "Output Tokens/s (TPS)", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps.sub": "Avg speed (over session active time)", // TODO: translate (auto-filled from en)
   "stats.distribution.title": "Token Distribution", // TODO: translate (auto-filled from en)
   "stats.distribution.input": "Input", // TODO: translate (auto-filled from en)
   "stats.distribution.output": "Output", // TODO: translate (auto-filled from en)

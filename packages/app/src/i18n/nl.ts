@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "Bestand",
   "desktop.menu.edit": "Bewerken",
@@ -774,6 +774,14 @@ export const dict = {
   "session.new.workspace.local": "Lokale repository",
   "session.new.workspace.existing": "Werkruimte…",
   "session.new.git.none": "Geen Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "Laatst gewijzigd",
   "session.header.search.placeholder": "Zoek {{project}}",
   "session.header.searchFiles": "Zoek bestanden",
@@ -1522,6 +1530,8 @@ export const dict = {
   "stats.kpi.totalSessions.sub": "Sessions in selected range", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens": "Avg / Session", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens.sub": "Average token consumption", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps": "Output Tokens/s (TPS)", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps.sub": "Avg speed (over session active time)", // TODO: translate (auto-filled from en)
   "stats.distribution.title": "Token Distribution", // TODO: translate (auto-filled from en)
   "stats.distribution.input": "Input", // TODO: translate (auto-filled from en)
   "stats.distribution.output": "Output", // TODO: translate (auto-filled from en)

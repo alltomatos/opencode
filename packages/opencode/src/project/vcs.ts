@@ -273,6 +273,16 @@ export const ApplyResult = Schema.Struct({
 })
 export type ApplyResult = Schema.Schema.Type<typeof ApplyResult>
 
+export const CheckoutResult = Schema.Struct({
+  branch: Schema.String,
+})
+export type CheckoutResult = Schema.Schema.Type<typeof CheckoutResult>
+
+export class CheckoutError extends Schema.TaggedErrorClass<CheckoutError>()("VcsCheckoutError", {
+  message: Schema.String,
+  reason: Schema.Literals(["non-git", "failed"]),
+}) {}
+
 export class PatchApplyError extends Schema.TaggedErrorClass<PatchApplyError>()("VcsPatchApplyError", {
   message: Schema.String,
   reason: Schema.Literals(["non-git", "not-clean"]),
@@ -281,6 +291,8 @@ export class PatchApplyError extends Schema.TaggedErrorClass<PatchApplyError>()(
 export interface Interface {
   readonly init: () => Effect.Effect<void>
   readonly branch: () => Effect.Effect<string | undefined>
+  readonly branches: () => Effect.Effect<string[]>
+  readonly checkout: (branch: string) => Effect.Effect<CheckoutResult, CheckoutError>
   readonly defaultBranch: () => Effect.Effect<string | undefined>
   readonly status: () => Effect.Effect<FileStatus[]>
   readonly diff: (mode: Mode, options?: DiffOptions) => Effect.Effect<FileDiff[]>
@@ -341,6 +353,34 @@ const layer: Layer.Layer<Service, never, Git.Service | EventV2Bridge.Service> = 
       }),
       branch: Effect.fn("Vcs.branch")(function* () {
         return yield* InstanceState.use(state, (x) => x.current)
+      }),
+      branches: Effect.fn("Vcs.branches")(function* () {
+        const ctx = yield* InstanceState.context
+        if (ctx.project.vcs !== "git") return []
+        return yield* git.branches(ctx.directory)
+      }),
+      checkout: Effect.fn("Vcs.checkout")(function* (branch: string) {
+        const ctx = yield* InstanceState.context
+        if (ctx.project.vcs !== "git") {
+          return yield* new CheckoutError({
+            message: "Cannot checkout branch because the project is not git-based",
+            reason: "non-git",
+          })
+        }
+        const result = yield* git.checkout(ctx.directory, branch)
+        if (result.exitCode !== 0) {
+          const message = result.stderr.toString("utf8").trim() || "git checkout failed"
+          return yield* new CheckoutError({
+            message,
+            reason: "failed",
+          })
+        }
+        const current = (yield* git.branch(ctx.directory)) ?? branch
+        yield* InstanceState.use(state, (x) => {
+          x.current = current
+        })
+        yield* events.publish(Event.BranchUpdated, { branch: current })
+        return { branch: current }
       }),
       defaultBranch: Effect.fn("Vcs.defaultBranch")(function* () {
         return yield* InstanceState.use(state, (x) => x.root?.name)

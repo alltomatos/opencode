@@ -59,6 +59,7 @@ const noopMcp = Layer.succeed(
     serverCatalog: () => Effect.succeed({ tools: [], prompts: [], resources: [] }),
     getPrompt: () => Effect.succeed(undefined),
     readResource: () => Effect.succeed(undefined),
+    callTool: () => Effect.succeed(undefined),
     startAuth: () => Effect.die("unexpected MCP auth in agentui tests"),
     authenticate: () => Effect.die("unexpected MCP auth in agentui tests"),
     finishAuth: () => Effect.die("unexpected MCP auth in agentui tests"),

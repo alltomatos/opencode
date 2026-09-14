@@ -5,6 +5,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { useLanguage } from "@/context/language"
+import { BranchSelectorV2 } from "@/components/branch-selector-v2"
 
 export function PromptWorkspaceSelector(props: {
   value: string
@@ -100,29 +101,23 @@ export function PromptWorkspaceSelector(props: {
 
 export function PromptGitStatus(props: { branch?: string; noGit?: boolean }) {
   const language = useLanguage()
-  const label = () => {
-    if (props.noGit) return language.t("session.new.git.none")
-    return props.branch
+
+  if (props.noGit) {
+    return (
+      <>
+        <span class="hidden select-none opacity-50 sm:inline mx-1">/</span>
+        <div class="flex h-7 min-w-0 max-w-[220px] items-center gap-1.5 px-2 text-[13px] font-[440] leading-5 tracking-[-0.04px]">
+          <Icon name="branch" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+          <span class="truncate">{language.t("session.new.git.none")}</span>
+        </div>
+      </>
+    )
   }
 
   return (
-    <Show when={label()}>
-      {(value) => (
-        <>
-          <span class="hidden select-none opacity-50 sm:inline mx-1">/</span>
-          <TooltipV2
-            placement="top"
-            value={value()}
-            class="min-w-0 max-w-[220px]"
-            contentClass="max-w-[calc(100vw-32px)] break-all"
-          >
-            <div class="flex h-7 min-w-0 max-w-[220px] items-center gap-1.5 px-2 text-[13px] font-[440] leading-5 tracking-[-0.04px]">
-              <Icon name="branch" size="small" class="shrink-0 text-v2-icon-icon-muted" />
-              <span class="min-w-0 truncate">{value()}</span>
-            </div>
-          </TooltipV2>
-        </>
-      )}
-    </Show>
+    <>
+      <span class="hidden select-none opacity-50 sm:inline mx-1">/</span>
+      <BranchSelectorV2 branch={props.branch} placement="bottom" class="h-7 px-2 text-[13px]" />
+    </>
   )
 }
