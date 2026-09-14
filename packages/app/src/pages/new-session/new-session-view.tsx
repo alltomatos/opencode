@@ -31,6 +31,7 @@ export function NewSessionView(props: {
   project: PromptProjectController
   workspace: NewSessionWorkspaceController
 }) {
+  const language = useLanguage()
   return (
     <div class="@container relative flex flex-col min-h-0 h-full flex-1">
       <div
@@ -46,22 +47,37 @@ export function NewSessionView(props: {
                 <PromptProjectAddButton controller={props.project} />
               </Show>
               <Show when={props.project.selected()}>
-                <div class="flex min-h-7 min-w-0 flex-col items-center justify-center gap-0 text-v2-text-text-faint sm:flex-row">
-                  <PromptProjectSelector controller={props.project} placement="bottom" />
-                  <Show
-                    when={props.workspace.bar.visible()}
-                    fallback={
-                      <PromptGitStatus branch={props.workspace.bar.branch()} noGit={!props.workspace.project.git()} />
-                    }
-                  >
-                    <PromptWorkspaceSelector
-                      value={props.workspace.selection.value()}
-                      projectRoot={props.workspace.project.root()}
-                      workspaces={props.workspace.project.workspaces()}
-                      branch={props.workspace.bar.branch()}
-                      onChange={props.workspace.selection.set}
-                      onDone={props.input.restoreFocus}
-                    />
+                <div class="flex min-h-7 min-w-0 flex-col items-center justify-center gap-2 text-v2-text-text-faint">
+                  <div class="flex min-h-7 min-w-0 flex-col items-center justify-center gap-0 sm:flex-row">
+                    <PromptProjectSelector controller={props.project} placement="bottom" />
+                    <Show
+                      when={props.workspace.bar.visible()}
+                      fallback={
+                        <PromptGitStatus branch={props.workspace.bar.branch()} noGit={!props.workspace.project.git()} />
+                      }
+                    >
+                      <PromptWorkspaceSelector
+                        value={props.workspace.selection.value()}
+                        projectRoot={props.workspace.project.root()}
+                        workspaces={props.workspace.project.workspaces()}
+                        branch={props.workspace.bar.branch()}
+                        onChange={props.workspace.selection.set}
+                        onDone={props.input.restoreFocus}
+                      />
+                    </Show>
+                  </div>
+                  <Show when={props.workspace.project.git()}>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-v2-text-text-muted hover:text-v2-text-text-base transition-colors select-none">
+                      <input
+                        type="checkbox"
+                        checked={props.workspace.selection.value() === "create"}
+                        onChange={(e) =>
+                          props.workspace.selection.set(e.currentTarget.checked ? "create" : "main")
+                        }
+                        class="rounded border-v2-border-base bg-v2-background-bg-base text-v2-text-text-base focus:ring-0"
+                      />
+                      <span>{language.t("session.new.worktree.isolatedToggle")}</span>
+                    </label>
                   </Show>
                 </div>
               </Show>

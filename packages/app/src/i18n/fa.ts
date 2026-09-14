@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "فایل",
   "desktop.menu.edit": "ویرایش کنید",
@@ -765,6 +765,14 @@ export const dict = {
   "session.new.workspace.local": "مخزن محلی",
   "session.new.workspace.existing": "فضای کاری…",
   "session.new.git.none": "Git وجود ندارد",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "آخرین تغییر",
   "session.header.search.placeholder": "جستجوی {{project}}",
   "session.header.searchFiles": "جستجو در فایل ها",

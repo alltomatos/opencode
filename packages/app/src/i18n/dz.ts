@@ -1,4 +1,4 @@
-export const dict: Record<string, string> = {
+﻿export const dict: Record<string, string> = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "ཡིག༌སྣོད",
   "desktop.menu.edit": "ཞུན༌དག",
@@ -779,6 +779,14 @@ export const dict: Record<string, string> = {
   "session.new.workspace.local": "ས་གནས་ཀྱི་མཛོད་ཁང་།",
   "session.new.workspace.existing": "ལཱ་གི་ས་སྒོ...",
   "session.new.git.none": "མེད། Git།",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "མཐའ་མའི་བཟོ་བཅོས་འབད་ཡོདཔ།",
   "session.header.search.placeholder": "འཚོལ་ཞིབ་ {{project}}།",
   "session.header.searchFiles": "ཡིག་སྣོད་ཚུ་འཚོལ་ཞིབ་འབད།",

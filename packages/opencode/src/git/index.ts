@@ -75,6 +75,8 @@ export interface Options {
 export interface Interface {
   readonly run: (args: string[], opts: Options) => Effect.Effect<Result>
   readonly branch: (cwd: string) => Effect.Effect<string | undefined>
+  readonly branches: (cwd: string) => Effect.Effect<string[]>
+  readonly checkout: (cwd: string, branch: string) => Effect.Effect<Result>
   readonly prefix: (cwd: string) => Effect.Effect<string>
   readonly defaultBranch: (cwd: string) => Effect.Effect<Base | undefined>
   readonly hasHead: (cwd: string) => Effect.Effect<boolean>
@@ -166,6 +168,14 @@ const layer = Layer.effect(
       if (result.exitCode !== 0) return
       const text = out(result)
       return text || undefined
+    })
+
+    const branches = Effect.fn("Git.branches")(function* (cwd: string) {
+      return yield* refs(cwd)
+    })
+
+    const checkout = Effect.fn("Git.checkout")(function* (cwd: string, branch: string) {
+      return yield* run(["checkout", branch], { cwd })
     })
 
     const prefix = Effect.fn("Git.prefix")(function* (cwd: string) {
@@ -326,6 +336,8 @@ const layer = Layer.effect(
     return Service.of({
       run,
       branch,
+      branches,
+      checkout,
       prefix,
       defaultBranch,
       hasHead,

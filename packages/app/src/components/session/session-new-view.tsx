@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/language"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Mark } from "@opencode-ai/ui/logo"
 import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
+import { BranchSelectorV2 } from "@/components/branch-selector-v2"
 
 const MAIN_WORKTREE = "main"
 const CREATE_WORKTREE = "create"
@@ -13,6 +14,7 @@ const ROOT_CLASS = "size-full flex flex-col"
 
 interface NewSessionViewProps {
   worktree: string
+  onWorktreeChange?: (worktree: string) => void
 }
 
 export function NewSessionView(props: NewSessionViewProps) {
@@ -63,12 +65,36 @@ export function NewSessionView(props: NewSessionViewProps) {
                 <span class="text-text-strong">{getFilename(projectRoot())}</span>
               </div>
             </div>
-            <div class="flex items-start justify-center gap-1.5 min-h-5">
-              <Icon name="branch" size="small" class="mt-0.5 shrink-0" />
-              <div class="text-12-medium text-text-weak select-text leading-5 min-w-0 max-w-160 break-words text-center">
-                {label(current())}
-              </div>
+            <div class="flex items-center justify-center gap-1.5 min-h-5">
+              <Show
+                when={sync().project?.vcs === "git"}
+                fallback={
+                  <>
+                    <Icon name="branch" size="small" class="mt-0.5 shrink-0" />
+                    <div class="text-12-medium text-text-weak select-text leading-5 min-w-0 max-w-160 break-words text-center">
+                      {label(current())}
+                    </div>
+                  </>
+                }
+              >
+                <BranchSelectorV2 placement="bottom" class="text-xs" />
+              </Show>
             </div>
+            <Show when={sync().project?.vcs === "git"}>
+              <div class="flex items-center justify-center gap-2 min-h-5">
+                <label class="flex items-center gap-1.5 cursor-pointer text-12-medium text-text-weak hover:text-text-base transition-colors select-none">
+                  <input
+                    type="checkbox"
+                    checked={props.worktree === CREATE_WORKTREE}
+                    onChange={(e) =>
+                      props.onWorktreeChange?.(e.currentTarget.checked ? CREATE_WORKTREE : MAIN_WORKTREE)
+                    }
+                    class="rounded border-border-base bg-background-base text-primary focus:ring-0"
+                  />
+                  <span>{language.t("session.new.worktree.isolatedToggle")}</span>
+                </label>
+              </div>
+            </Show>
             <Show when={sync().project}>
               {(project) => (
                 <div class="flex items-start justify-center gap-3 min-h-5">

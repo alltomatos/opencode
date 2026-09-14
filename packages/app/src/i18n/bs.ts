@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "Datoteka",
   "desktop.menu.edit": "Uredi",
@@ -814,6 +814,14 @@ export const dict = {
   "session.new.workspace.local": "Lokalni repozitorij",
   "session.new.workspace.existing": "Radni prostor…",
   "session.new.git.none": "Nema Gita",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "Posljednja izmjena",
 
   "session.header.search.placeholder": "Pretraži {{project}}",

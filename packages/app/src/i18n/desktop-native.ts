@@ -1,4 +1,4 @@
-export const DESKTOP_NATIVE_LOCALES = [
+﻿export const DESKTOP_NATIVE_LOCALES = [
   "en",
   "zh",
   "zht",

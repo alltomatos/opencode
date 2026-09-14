@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "ፋይል",
   "desktop.menu.edit": "አርትዕ",
@@ -753,6 +753,14 @@ export const dict = {
   "session.new.workspace.local": "አካባቢያዊ ማከማቻ",
   "session.new.workspace.existing": "Workspace…",
   "session.new.git.none": "ያለ Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "መጨረሻ የተሻሻለው",
   "session.header.search.placeholder": "ፍለጋ {{project}}",
   "session.header.searchFiles": "ፋይሎችን ይፈልጉ",

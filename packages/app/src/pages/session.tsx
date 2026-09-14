@@ -1249,7 +1249,10 @@ export default function Page() {
             </Show>
           </Match>
           <Match when={true}>
-            <NewSessionView worktree={newSessionWorktree()} />
+            <NewSessionView
+              worktree={newSessionWorktree()}
+              onWorktreeChange={(wt) => setStore("newSessionWorktree", wt)}
+            />
           </Match>
         </Switch>
       </div>

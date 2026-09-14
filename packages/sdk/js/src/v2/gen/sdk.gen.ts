@@ -491,6 +491,10 @@ import type {
   V2WorkspaceCreateResponses,
   VcsApplyErrors,
   VcsApplyResponses,
+  VcsBranchesErrors,
+  VcsBranchesResponses,
+  VcsCheckoutErrors,
+  VcsCheckoutResponses,
   VcsDiffErrors,
   VcsDiffRawErrors,
   VcsDiffRawResponses,
@@ -3126,6 +3130,73 @@ export class Vcs extends HeyApiClient {
       url: "/vcs",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Get local VCS branches
+   *
+   * Retrieve list of local git branches for the current project.
+   */
+  public branches<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<VcsBranchesResponses, VcsBranchesErrors, ThrowOnError>({
+      url: "/vcs/branches",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Checkout VCS branch
+   *
+   * Checkout a local git branch for the current project.
+   */
+  public checkout<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      branch?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "branch" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<VcsCheckoutResponses, VcsCheckoutErrors, ThrowOnError>({
+      url: "/vcs/checkout",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

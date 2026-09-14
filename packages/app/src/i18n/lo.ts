@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "ໄຟລ໌",
   "desktop.menu.edit": "ແກ້ໄຂ",
@@ -761,6 +761,14 @@ export const dict = {
   "session.new.workspace.local": "ພື້ນທີ່ເກັບຂໍ້ມູນທ້ອງຖິ່ນ",
   "session.new.workspace.existing": "ພື້ນທີ່ເຮັດວຽກ...",
   "session.new.git.none": "ບໍ່ມີ Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "ດັດແກ້ຫຼ້າສຸດ",
   "session.header.search.placeholder": "ຄົ້ນຫາ {{project}}",
   "session.header.searchFiles": "ຊອກຫາໄຟລ໌",

@@ -100,6 +100,27 @@ describe("Vcs", () => {
     { git: true },
   )
 
+  it.instance(
+    "branches() and checkout() manage project branches",
+    () =>
+      Effect.gen(function* () {
+        const test = yield* TestInstance
+        const branch = `test-${Math.random().toString(36).slice(2)}`
+        yield* git(test.directory, ["branch", branch])
+
+        const vcs = yield* init()
+        const list = yield* vcs.branches()
+        expect(list).toContain(branch)
+
+        const checkoutRes = yield* vcs.checkout(branch)
+        expect(checkoutRes.branch).toBe(branch)
+
+        const current = yield* vcs.branch()
+        expect(current).toBe(branch)
+      }),
+    { git: true },
+  )
+
   it.instance("branch() returns undefined for non-git directories", () =>
     Effect.gen(function* () {
       const vcs = yield* init()

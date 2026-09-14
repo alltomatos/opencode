@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "command.category.suggested": "Ehdotetut",
   "command.category.view": "Näytä",
   "command.category.project": "Projekti",
@@ -664,6 +664,14 @@ export const dict = {
   "session.new.workspace.local": "Paikallinen säilö",
   "session.new.workspace.existing": "Työtila…",
   "session.new.git.none": "Ei Gitiä",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "Viimeksi muokattu",
   "session.header.search.placeholder": "Hae projektista {{project}}",
   "session.header.searchFiles": "Etsi tiedostoja",

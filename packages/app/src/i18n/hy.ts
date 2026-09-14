@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "Ֆայլ",
   "desktop.menu.edit": "Խմբագրել",
@@ -771,6 +771,14 @@ export const dict = {
   "session.new.workspace.local": "Տեղական պահոց",
   "session.new.workspace.existing": "Աշխատանքային տարածք…",
   "session.new.git.none": "Առանց Git-ի",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "Վերջին փոփոխությունը",
   "session.header.search.placeholder": "Որոնում {{project}}",
   "session.header.searchFiles": "Որոնել ֆայլեր",

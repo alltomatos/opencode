@@ -10,6 +10,7 @@ import { createEffect, createMemo, on, Show } from "solid-js"
 import { ModelProviderSelectorV2, ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
 import { PromptInputV2ModeControl } from "@/components/prompt-input-mode"
+import { BranchSelectorV2 } from "@/components/branch-selector-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
@@ -66,12 +67,15 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
         modeControl={
-          <PromptInputV2ModeControl
-            agent={props.controller.agent}
-            permission={permission}
-            sessionID={props.controller.sessionID}
-            directory={sdk().directory}
-          />
+          <div class="flex items-center gap-1">
+            <PromptInputV2ModeControl
+              agent={props.controller.agent}
+              permission={permission}
+              sessionID={props.controller.sessionID}
+              directory={sdk().directory}
+            />
+            <BranchSelectorV2 directory={sdk().directory} />
+          </div>
         }
         modelControl={
           <PromptInputV2ModelControl

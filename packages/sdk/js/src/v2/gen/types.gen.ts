@@ -2548,6 +2548,14 @@ export type VcsInfo = {
   default_branch?: string
 }
 
+export type VcsCheckoutError = {
+  name: "VcsCheckoutError"
+  data: {
+    message: string
+    reason: "non-git" | "failed"
+  }
+}
+
 export type VcsFileStatus = {
   file: string
   additions: number
@@ -9444,6 +9452,66 @@ export type VcsGetResponses = {
 }
 
 export type VcsGetResponse = VcsGetResponses[keyof VcsGetResponses]
+
+export type VcsBranchesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/branches"
+}
+
+export type VcsBranchesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type VcsBranchesError = VcsBranchesErrors[keyof VcsBranchesErrors]
+
+export type VcsBranchesResponses = {
+  /**
+   * VCS local branches
+   */
+  200: Array<string>
+}
+
+export type VcsBranchesResponse = VcsBranchesResponses[keyof VcsBranchesResponses]
+
+export type VcsCheckoutData = {
+  body?: {
+    branch: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/checkout"
+}
+
+export type VcsCheckoutErrors = {
+  /**
+   * VcsCheckoutError | InvalidRequestError
+   */
+  400: VcsCheckoutError | InvalidRequestError
+}
+
+export type VcsCheckoutError2 = VcsCheckoutErrors[keyof VcsCheckoutErrors]
+
+export type VcsCheckoutResponses = {
+  /**
+   * VCS branch checked out
+   */
+  200: {
+    branch: string
+  }
+}
+
+export type VcsCheckoutResponse = VcsCheckoutResponses[keyof VcsCheckoutResponses]
 
 export type VcsStatusData = {
   body?: never

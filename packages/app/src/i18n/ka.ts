@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "desktop.menu.app": "OpenCode",
   "desktop.menu.file": "ფაილი",
   "desktop.menu.edit": "რედაქტირება",
@@ -766,6 +766,14 @@ export const dict = {
   "session.new.workspace.local": "ადგილობრივი საცავი",
   "session.new.workspace.existing": "სამუშაო სივრცე…",
   "session.new.git.none": "Git-ის გარეშე",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "ბოლო ცვლილება",
   "session.header.search.placeholder": "ძებნა {{project}}",
   "session.header.searchFiles": "ფაილების ძიება",

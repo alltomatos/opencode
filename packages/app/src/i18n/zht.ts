@@ -1,4 +1,4 @@
-import { dict as en } from "./en"
+﻿import { dict as en } from "./en"
 
 type Keys = keyof typeof en
 
@@ -796,6 +796,14 @@ export const dict = {
   "session.new.workspace.local": "本機儲存庫",
   "session.new.workspace.existing": "工作區…",
   "session.new.git.none": "無 Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "最後修改",
 
   "session.header.search.placeholder": "搜尋 {{project}}",

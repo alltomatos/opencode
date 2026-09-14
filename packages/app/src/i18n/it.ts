@@ -1,4 +1,4 @@
-export const dict = {
+﻿export const dict = {
   "command.category.suggested": "Suggeriti",
   "command.category.view": "Visualizzazione",
   "command.category.project": "Progetto",
@@ -685,6 +685,14 @@ export const dict = {
   "session.new.workspace.local": "Repository locale",
   "session.new.workspace.existing": "Area di lavoro...",
   "session.new.git.none": "Senza Git",
+  "session.git.switchBranch": "Switch branch",
+  "session.git.branches": "Git branches",
+  "session.git.checkoutFailed": "Failed to switch branch",
+  "session.git.switchConfirmTitle": "Switch branch?",
+  "session.git.switchConfirmDesc": "You have uncommitted changes. Switching to '{{branch}}' might fail or carry these changes over.",
+  "session.git.switchConfirmButton": "Switch anyway",
+  "session.git.activeSessionWarn": "Active session running on this branch",
+  "session.new.worktree.isolatedToggle": "Create in isolated worktree",
   "session.new.lastModified": "Ultima modifica",
   "session.header.search.placeholder": "Cerca {{project}}",
   "session.header.searchFiles": "Cerca file",
