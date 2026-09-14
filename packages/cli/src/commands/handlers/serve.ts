@@ -42,7 +42,9 @@ function bind(hostname: string, port: number, password: string) {
     HttpRouter.serve(createRoutes(password), { disableListenLog: true, disableLogger: true }).pipe(
       Layer.provideMerge(NodeHttpServer.layer(() => createServer(), { port, host: hostname })),
       Layer.provide(
-        AppNodeBuilder.build(LayerNode.group([Credential.node, PermissionSaved.node, ScheduleRunner.tickNode])),
+        AppNodeBuilder.build(
+          LayerNode.group([Credential.node, PermissionSaved.node, ScheduleRunner.mcpCallerNode, ScheduleRunner.tickNode]),
+        ),
       ),
     ),
   ).pipe(Effect.map((context) => Context.get(context, HttpServer.HttpServer).address))

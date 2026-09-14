@@ -46,15 +46,24 @@ export const McpToolAction = Schema.Struct({
   args: optional(Schema.Record(Schema.String, Schema.Unknown)),
 }).annotate({ identifier: "Schedule.McpToolAction" })
 
+export interface SkillMcpTool extends Schema.Schema.Type<typeof SkillMcpTool> {}
+export const SkillMcpTool = Schema.Struct({
+  server: Schema.String,
+  tool: Schema.String,
+}).annotate({ identifier: "Schedule.SkillMcpTool" })
+
 /**
  * Unlike `name`-based skills, a Routine's "skill" is its own inline instruction --
  * not a reference into the global/project skill catalog. It runs as a fresh
  * agent session prompted with `instructions`, scoped only to this Routine.
+ * `mcpTools` optionally grants that session access to specific connected MCP
+ * tools -- the "where from" a routine's instructions are allowed to draw on.
  */
 export interface SkillAction extends Schema.Schema.Type<typeof SkillAction> {}
 export const SkillAction = Schema.Struct({
   kind: Schema.Literal("skill"),
   instructions: Schema.String,
+  mcpTools: optional(Schema.Array(SkillMcpTool)),
 }).annotate({ identifier: "Schedule.SkillAction" })
 
 export const Action = Schema.Union([ShellAction, McpToolAction, SkillAction])

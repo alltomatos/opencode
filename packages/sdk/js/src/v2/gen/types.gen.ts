@@ -5297,9 +5297,15 @@ export type ScheduleMcpToolAction = {
   }
 }
 
+export type ScheduleSkillMcpTool = {
+  server: string
+  tool: string
+}
+
 export type ScheduleSkillAction = {
   kind: "skill"
   instructions: string
+  mcpTools?: Array<ScheduleSkillMcpTool>
 }
 
 export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction
