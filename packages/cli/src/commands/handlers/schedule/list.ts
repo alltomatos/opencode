@@ -25,7 +25,7 @@ export default Runtime.handler(
           ? item.action.command
           : item.action.kind === "mcp_tool"
             ? `${item.action.server}/${item.action.tool}`
-            : `skill:${item.action.name}`
+            : `skill:${item.action.instructions}`
       process.stdout.write(`${item.id.padEnd(16)} ${trigger.padEnd(14)} ${action}${ws}${status}${lastRun}` + EOL)
     }
   }),

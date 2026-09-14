@@ -5299,8 +5299,7 @@ export type ScheduleMcpToolAction = {
 
 export type ScheduleSkillAction = {
   kind: "skill"
-  name: string
-  prompt?: string
+  instructions: string
 }
 
 export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction

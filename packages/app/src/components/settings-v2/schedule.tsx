@@ -21,10 +21,16 @@ function triggerSummary(trigger: { kind: string; expr?: string; ms?: number | st
   return "manual"
 }
 
-function actionSummary(action: { kind: string; command?: string; server?: string; tool?: string; name?: string }): string {
+function actionSummary(action: {
+  kind: string
+  command?: string
+  server?: string
+  tool?: string
+  instructions?: string
+}): string {
   if (action.kind === "shell") return action.command ?? ""
   if (action.kind === "mcp_tool") return `${action.server}/${action.tool}`
-  return `skill: ${action.name}`
+  return `skill: ${action.instructions ?? ""}`
 }
 
 export const SettingsScheduleV2: Component = () => {
