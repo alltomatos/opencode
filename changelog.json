@@ -1,6 +1,44 @@
 {
   "releases": [
     {
+      "tag": "v1.21.17",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI: crie agentes conversacionais próprios",
+              "description": "Nova aba dedicada pra criar agentes com personalidade, modelo, canal (Telegram), fontes de conhecimento (RAG) e guardrails contra prompt injection. Gere o rascunho do agente a partir de uma descrição em linguagem natural, teste em um chat sandbox antes de publicar, e ative/desative sem perder a configuração."
+            },
+            {
+              "title": "Combos de modelo com failover",
+              "description": "Agrupe vários modelos num combo nomeado com failover e limite de taxa — selecionável em qualquer lugar que hoje aceita um modelo (chat, AgentUI, Batuta)."
+            },
+            {
+              "title": "Painel de KPIs e Estatísticas de Uso",
+              "description": "Novo painel na sidebar com tempo de trabalho por sessão, uso de tokens e outras métricas de uso do app."
+            },
+            {
+              "title": "Memória: consulta de entradas por projeto e global via API",
+              "description": "A API HTTP de memória agora expõe leitura separada das entradas de memória de projeto e globais, além de permitir adicionar notas e promover memórias diretamente."
+            },
+            {
+              "title": "Logo da OpenCode by Alltomatos",
+              "description": "A logo da marca substitui o wordmark genérico \"opencode\" na tela de nova sessão e na animação de carregamento do app."
+            },
+            {
+              "title": "Servidor remoto: fila de tarefas persistente (VPS)",
+              "description": "Implementação do backlog remoto do servidor pra manter tarefas pendentes entre reinícios ao operar via VPS."
+            },
+            {
+              "title": "Correções de estabilidade e acessibilidade",
+              "description": "Diversas correções: contraste no modo escuro, aria-labels faltando em botões só-ícone, sincronização da sidebar entre clientes conectados ao mesmo servidor, preservação de IDs de modelo Bedrock/DeepSeek, e maior robustez dos testes automatizados no CI do Windows."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.16",
       "highlights": [
         {
