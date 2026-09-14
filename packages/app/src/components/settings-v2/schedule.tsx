@@ -14,11 +14,23 @@ import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
 
 type TriggerKind = "cron" | "interval" | "manual"
+type ActionKind = "shell" | "mcp_tool" | "skill"
 
 function triggerSummary(trigger: { kind: string; expr?: string; ms?: number | string }): string {
   if (trigger.kind === "cron") return `cron: ${trigger.expr}`
   if (trigger.kind === "interval") return `every ${Math.round(Number(trigger.ms ?? 0) / 60_000)}m`
   return "manual"
+}
+
+function parseArgs(raw: string): Record<string, unknown> | undefined {
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined
+  try {
+    const parsed = JSON.parse(trimmed)
+    return typeof parsed === "object" && parsed !== null ? parsed : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function actionSummary(action: {
@@ -44,23 +56,60 @@ export const SettingsScheduleV2: Component = () => {
   const [triggerKind, setTriggerKind] = createSignal<TriggerKind>("cron")
   const [cronExpr, setCronExpr] = createSignal("*/5 * * * *")
   const [intervalMinutes, setIntervalMinutes] = createSignal("5")
+  const [actionKind, setActionKind] = createSignal<ActionKind>("shell")
   const [command, setCommand] = createSignal("")
+  const [mcpServer, setMcpServer] = createSignal<string | undefined>(undefined)
+  const [mcpTool, setMcpTool] = createSignal<string | undefined>(undefined)
+  const [mcpArgs, setMcpArgs] = createSignal("")
+  const [instructions, setInstructions] = createSignal("")
+
+  const [mcpServers] = createResource(async () => {
+    const result = await serverSDK().client.mcp.status()
+    return Object.entries(result.data ?? {})
+      .filter(([, value]) => value.status === "connected")
+      .map(([name]) => name)
+  })
+
+  const [mcpCatalog] = createResource(mcpServer, async (name) => {
+    const result = await serverSDK().client.mcp.catalog({ name })
+    return result.data?.tools ?? []
+  })
+
+  const actionValid = () => {
+    if (actionKind() === "shell") return command().trim().length > 0
+    if (actionKind() === "mcp_tool") return !!mcpServer() && !!mcpTool()
+    return instructions().trim().length > 0
+  }
 
   const createMutation = useMutation(() => ({
     mutationFn: async () => {
-      const kind = triggerKind()
+      const triggerValue = triggerKind()
       const trigger =
-        kind === "cron"
+        triggerValue === "cron"
           ? ({ kind: "cron", expr: cronExpr() } as const)
-          : kind === "interval"
+          : triggerValue === "interval"
             ? ({ kind: "interval", ms: Math.max(1, Number(intervalMinutes()) || 0) * 60_000 } as const)
             : ({ kind: "manual" } as const)
-      await serverSDK().client.v2.schedule.create({
-        scheduleCreateInput: { trigger, action: { kind: "shell", command: command() } },
-      })
+
+      const kind = actionKind()
+      const action =
+        kind === "shell"
+          ? ({ kind: "shell", command: command() } as const)
+          : kind === "mcp_tool"
+            ? ({
+                kind: "mcp_tool",
+                server: mcpServer()!,
+                tool: mcpTool()!,
+                args: parseArgs(mcpArgs()),
+              } as const)
+            : ({ kind: "skill", instructions: instructions() } as const)
+
+      await serverSDK().client.v2.schedule.create({ scheduleCreateInput: { trigger, action } })
     },
     onSuccess: () => {
       setCommand("")
+      setMcpArgs("")
+      setInstructions("")
       void refetch()
     },
     onError: (err) => {
@@ -123,24 +172,77 @@ export const SettingsScheduleV2: Component = () => {
             </Show>
           </div>
           <div class="flex items-center gap-2">
-            <TextInputV2
-              class="!flex-1"
-              value={command()}
-              onInput={(event) => setCommand(event.currentTarget.value)}
-              placeholder="Shell command to run"
+            <SelectV2
+              class="!w-[140px] shrink-0"
+              options={["shell", "mcp_tool", "skill"] as const}
+              current={actionKind()}
+              label={(kind) => kind}
+              onSelect={(kind) => kind && setActionKind(kind)}
             />
-            <ButtonV2
-              variant="neutral"
-              icon="plus"
-              disabled={!command().trim() || createMutation.isPending}
-              onClick={() => createMutation.mutate()}
-            >
-              Add
-            </ButtonV2>
+            <Show when={actionKind() === "shell"}>
+              <TextInputV2
+                class="!flex-1"
+                value={command()}
+                onInput={(event) => setCommand(event.currentTarget.value)}
+                placeholder="Shell command to run"
+              />
+            </Show>
           </div>
-          <span class="text-12-regular text-text-weak">
-            mcp_tool and skill actions are coming soon — only shell commands run today.
-          </span>
+
+          <Show when={actionKind() === "mcp_tool"}>
+            <div class="flex items-center gap-2">
+              <SelectV2
+                class="!w-[160px] shrink-0"
+                options={mcpServers() ?? []}
+                current={mcpServer()}
+                label={(name) => name}
+                placeholder={mcpServers.loading ? "Loading…" : "Server"}
+                onSelect={(name) => {
+                  setMcpServer(name ?? undefined)
+                  setMcpTool(undefined)
+                }}
+              />
+              <SelectV2
+                class="!w-[160px] shrink-0"
+                options={(mcpCatalog() ?? []).map((tool) => tool.name)}
+                current={mcpTool()}
+                label={(name) => name}
+                placeholder={mcpCatalog.loading ? "Loading…" : "Tool"}
+                onSelect={(name) => setMcpTool(name ?? undefined)}
+              />
+              <TextInputV2
+                class="!flex-1"
+                value={mcpArgs()}
+                onInput={(event) => setMcpArgs(event.currentTarget.value)}
+                placeholder='Args JSON (optional), e.g. {"path":"README.md"}'
+              />
+            </div>
+            <span class="text-12-regular text-text-weak">
+              Only servers connected right now show up. Runs for real when this routine executes inside the
+              desktop app; a standalone remote daemon without MCP configured will report it as unsupported.
+            </span>
+          </Show>
+
+          <Show when={actionKind() === "skill"}>
+            <TextInputV2
+              value={instructions()}
+              onInput={(event) => setInstructions(event.currentTarget.value)}
+              placeholder="What should this routine's own session do?"
+            />
+            <span class="text-12-regular text-text-weak">
+              skill actions aren't executed yet — the routine saves, but running it reports "not supported".
+            </span>
+          </Show>
+
+          <ButtonV2
+            variant="neutral"
+            icon="plus"
+            class="!self-start"
+            disabled={!actionValid() || createMutation.isPending}
+            onClick={() => createMutation.mutate()}
+          >
+            Add
+          </ButtonV2>
         </div>
 
         <Show
