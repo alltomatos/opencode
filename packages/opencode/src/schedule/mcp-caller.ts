@@ -22,7 +22,9 @@ export const layer = Layer.effect(
     return ScheduleRunner.McpCaller.of({
       callTool: (server, tool, args) =>
         Effect.gen(function* () {
-          const statuses = yield* mcp.status().pipe(Effect.orElseSucceed(() => ({})))
+          const statuses: Record<string, { status: string }> = yield* mcp
+            .status()
+            .pipe(Effect.orElseSucceed(() => ({} as Record<string, { status: string }>)))
           if (statuses[server]?.status !== "connected") {
             return { success: false, error: `MCP server "${server}" is not connected` }
           }
