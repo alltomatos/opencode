@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, mock } from "bun:test"
+import nodeFs from "node:fs"
 import { mkdir } from "node:fs/promises"
 import path from "node:path"
 import { Effect, Layer, Stream } from "effect"
@@ -53,17 +54,17 @@ function localAdapter(directory: string): WorkspaceAdapter {
       return {
         ...info,
         name: "local-test",
-        directory,
+        directory: info.directory ?? directory,
       }
     },
-    async create() {
-      await mkdir(directory, { recursive: true })
+    async create(info) {
+      await mkdir(info.directory ?? directory, { recursive: true })
     },
     async remove() {},
-    target() {
+    target(info) {
       return {
         type: "local" as const,
-        directory,
+        directory: info.directory ?? directory,
       }
     },
   }
@@ -501,6 +502,111 @@ describe("workspace HttpApi", () => {
         void remote.stop(true)
         yield* requestDefault(WorkspacePaths.remove.replace(":id", workspace.id), dir, { method: "DELETE" })
       }
+    }),
+  )
+
+  it.live("POST /api/workspaces rejects non-existent existing path with typed error", () =>
+    Effect.gen(function* () {
+      Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = true
+      const dir = yield* tmpdirScoped({ git: true })
+      const project = yield* Project.use.fromDirectory(dir)
+      registerAdapter(project.project.id, "local-test", localAdapter(path.join(dir, ".workspace")))
+
+      const res = yield* request("/api/workspaces", dir, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "local-test",
+          branch: null,
+          source: { type: "existing", path: path.join(dir, "non-existent-dir") },
+        }),
+      })
+      expect(res.status).toBe(400)
+      const data = yield* res.json
+      expect(data).toMatchObject({
+        name: "WorkspaceCreateError",
+        data: expect.objectContaining({
+          message: expect.stringContaining("Directory does not exist"),
+        }),
+      })
+    }),
+  )
+
+  it.live("POST /api/workspaces creates workspace with valid existing source", () =>
+    Effect.gen(function* () {
+      Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = true
+      const dir = yield* tmpdirScoped({ git: true })
+      const existingDir = path.join(dir, "my-app")
+      yield* Effect.promise(() => mkdir(existingDir, { recursive: true }))
+      const project = yield* Project.use.fromDirectory(dir)
+      registerAdapter(project.project.id, "local-test", localAdapter(existingDir))
+
+      const res = yield* request("/api/workspaces", dir, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "local-test",
+          branch: null,
+          source: { type: "existing", path: existingDir },
+        }),
+      })
+      expect(res.status).toBe(200)
+      const workspace = (yield* res.json) as Workspace.Info
+      expect(workspace.type).toBe("local-test")
+    }),
+  )
+
+  it.live("POST /api/workspaces rejects invalid clone URL with typed error", () =>
+    Effect.gen(function* () {
+      Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = true
+      const dir = yield* tmpdirScoped({ git: true })
+      const project = yield* Project.use.fromDirectory(dir)
+      registerAdapter(project.project.id, "local-test", localAdapter(path.join(dir, ".workspace")))
+
+      const res = yield* request("/api/workspaces", dir, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "local-test",
+          branch: null,
+          source: { type: "clone", url: "https://invalid-host-that-does-not-exist.example/repo.git" },
+        }),
+      })
+      const text = yield* res.text
+      if (res.status !== 400) console.log("CLONE TEST RESPONSE:", res.status, text)
+      expect(res.status).toBe(400)
+      const data = yield* res.json
+      expect(data).toMatchObject({
+        name: "WorkspaceCreateError",
+        data: expect.objectContaining({
+          message: expect.stringMatching(/Git.*failed|repository not found/i),
+        }),
+      })
+    }),
+  )
+
+  it.live("POST /api/workspaces successfully clones repository and creates workspace", () =>
+    Effect.gen(function* () {
+      Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = true
+      const originDir = yield* tmpdirScoped({ git: true })
+      const projectDir = yield* tmpdirScoped({ git: true })
+      const cloneDest = path.join(projectDir, "cloned-repo")
+      const project = yield* Project.use.fromDirectory(projectDir)
+      registerAdapter(project.project.id, "local-test", localAdapter(cloneDest))
+
+      const res = yield* request("/api/workspaces", projectDir, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "local-test",
+          branch: null,
+          source: { type: "clone", url: originDir, destination: cloneDest },
+        }),
+      })
+      expect(res.status).toBe(200)
+      const workspace = (yield* res.json) as Workspace.Info
+      expect(workspace.type).toBe("local-test")
+      expect(nodeFs.existsSync(path.join(cloneDest, ".git"))).toBe(true)
     }),
   )
 })

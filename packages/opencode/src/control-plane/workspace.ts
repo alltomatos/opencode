@@ -59,12 +59,26 @@ function fromRow(row: typeof WorkspaceTable.$inferSelect): Info {
   }
 }
 
+export const WorkspaceSource = Schema.Union([
+  Schema.Struct({
+    type: Schema.Literal("clone"),
+    url: Schema.String,
+    destination: Schema.optional(Schema.String),
+  }),
+  Schema.Struct({
+    type: Schema.Literal("existing"),
+    path: Schema.String,
+  }),
+]).annotate({ identifier: "Workspace.Source" })
+export type WorkspaceSource = typeof WorkspaceSource.Type
+
 export const CreateInput = Schema.Struct({
   id: Schema.optional(WorkspaceV2.ID),
   type: Info.fields.type,
   branch: Info.fields.branch,
   projectID: ProjectV2.ID,
   extra: Schema.optional(Info.fields.extra),
+  source: Schema.optional(WorkspaceSource),
 })
 export type CreateInput = Schema.Schema.Type<typeof CreateInput>
 
@@ -496,7 +510,7 @@ const layer = Layer.effect(
         ...input,
         id,
         name: Slug.create(),
-        directory: null,
+        directory: (input as any).directory ?? (input.extra as any)?.directory ?? null,
         extra: input.extra ?? null,
       })
 

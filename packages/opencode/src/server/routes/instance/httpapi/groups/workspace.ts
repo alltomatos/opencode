@@ -82,6 +82,18 @@ export const WorkspaceApi = HttpApi.make("workspace")
             description: "Create a workspace for the current project.",
           }),
         ),
+        HttpApiEndpoint.post("createWorkspace", "/api/workspaces", {
+          query: WorkspaceRoutingQuery,
+          payload: CreatePayload,
+          success: described(Workspace.Info, "Workspace created"),
+          error: [ApiWorkspaceCreateError, HttpApiError.BadRequest],
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "v2.workspace.create",
+            summary: "Create workspace",
+            description: "Create or clone a workspace for the current project.",
+          }),
+        ),
         HttpApiEndpoint.post("syncList", WorkspacePaths.syncList, {
           query: WorkspaceRoutingQuery,
           success: described(HttpApiSchema.NoContent, "Workspace list synced"),

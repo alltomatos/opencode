@@ -537,6 +537,10 @@ const scenarios: Scenario[] = [
     .at((ctx) => ({ path: "/experimental/workspace", headers: ctx.headers(), body: {} }))
     .status(400),
   http.protected
+    .post("/api/workspaces", "v2.workspace.create")
+    .at((ctx) => ({ path: "/api/workspaces", headers: ctx.headers(), body: {} }))
+    .status(400),
+  http.protected
     .post("/experimental/workspace/sync-list", "experimental.workspace.syncList")
     .status(204, undefined, "status"),
   http.protected
@@ -701,6 +705,14 @@ const scenarios: Scenario[] = [
     object(body)
     check(body.healthy === true, "v2 server should report healthy")
   }),
+  http.protected
+    .post("/api/system/update", "v2.system.update")
+    .at((ctx) => ({
+      path: "/api/system/update",
+      headers: ctx.headers(),
+      body: { confirm: false },
+    }))
+    .status(400),
   http.protected.get("/api/location", "v2.location.get").json(200, object),
   http.protected.get("/api/agent", "v2.agent.list").json(200, locationData(array)),
   http.protected.get("/api/model", "v2.model.list").json(200, locationData(array)),
@@ -751,6 +763,23 @@ const scenarios: Scenario[] = [
       headers: ctx.headers(),
     }))
     .status(204, undefined, "status"),
+  http.protected
+    .post("/api/credential", "v2.credential.create")
+    .at((ctx) => ({
+      path: "/api/credential",
+      headers: ctx.headers(),
+      body: {
+        integrationID: "custom",
+        label: "test",
+        value: {
+          type: "key",
+          key: "test-secret-key",
+        },
+      },
+    }))
+    .json(200, (result: any) => {
+      check(typeof result.id === "string", "created credential ID should be string")
+    }),
   http.protected
     .delete("/api/credential/{credentialID}", "v2.credential.remove")
     .at((ctx) => ({

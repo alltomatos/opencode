@@ -40,4 +40,8 @@ export type SshServersPlatform = {
   addServer(config: Omit<SshServerConfig, "id">): Promise<SshServerConfig>
   removeServer(id: string): Promise<void>
   startServer(id: string): Promise<void>
+  syncCredentials?(
+    id: string,
+    credentials: Array<{ integrationID: string; label?: string; value: unknown }>,
+  ): Promise<{ synced: number }>
 }

@@ -27,6 +27,50 @@ export const Commands = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCO
       commands: [Spec.make("agents", { description: "List all agents" })],
     }),
     Spec.make("migrate", { description: "Migrate v1 data to v2" }),
+    Spec.make("environment", {
+      description: "Manage saved remote environments",
+      commands: [
+        Spec.make("add", {
+          description: "Add a remote environment",
+          params: {
+            name: Argument.string("name").pipe(Argument.withDescription("Environment name")),
+            url: Argument.string("url").pipe(Argument.withDescription("Environment base URL")),
+            token: Flag.string("token").pipe(Flag.withAlias("t"), Flag.withDescription("Authentication token"), Flag.optional),
+          },
+        }),
+        Spec.make("list", { description: "List saved environments" }),
+        Spec.make("rm", {
+          description: "Remove a saved environment",
+          params: {
+            idOrName: Argument.string("idOrName").pipe(Argument.withDescription("Environment ID or name")),
+          },
+        }),
+      ],
+    }),
+    Spec.make("schedule", {
+      description: "Manage scheduled automation tasks",
+      commands: [
+        Spec.make("add", {
+          description: "Add a scheduled task",
+          params: {
+            cron: Argument.string("cron").pipe(Argument.withDescription("Cron expression (e.g. '*/5 * * * *')")),
+            command: Argument.string("command").pipe(Argument.withDescription("Command to execute")),
+            workspace: Flag.string("workspace").pipe(
+              Flag.withAlias("w"),
+              Flag.withDescription("Target workspace directory"),
+              Flag.optional,
+            ),
+          },
+        }),
+        Spec.make("list", { description: "List scheduled tasks" }),
+        Spec.make("rm", {
+          description: "Remove a scheduled task",
+          params: {
+            id: Argument.string("id").pipe(Argument.withDescription("Schedule ID")),
+          },
+        }),
+      ],
+    }),
     Spec.make("service", {
       description: "Manage the background server",
       commands: [

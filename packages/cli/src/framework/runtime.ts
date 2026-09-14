@@ -2,6 +2,10 @@ import * as Effect from "effect/Effect"
 import * as Command from "effect/unstable/cli/Command"
 import { Spec } from "./spec"
 import { Daemon } from "../services/daemon"
+import { EnvironmentRegistry } from "../services/environment-registry"
+import { ScheduleRegistry } from "../services/schedule-registry"
+
+export type Services = Daemon.Service | EnvironmentRegistry.Service | ScheduleRegistry.Service
 
 export type Input<Value> =
   Value extends Spec.Node<infer _Name, infer Command, infer _Commands>
@@ -10,11 +14,11 @@ export type Input<Value> =
       ? Input
       : never
 
-type RuntimeHandler = (input: unknown) => Effect.Effect<void, unknown, Daemon.Service>
+type RuntimeHandler = (input: unknown) => Effect.Effect<void, unknown, Services>
 type Loader<Node extends Spec.Any> = () => Promise<{
-  default: (input: Input<Node>) => Effect.Effect<void, any, Daemon.Service>
+  default: (input: Input<Node>) => Effect.Effect<void, any, Services>
 }>
-type ProvidedCommand = Command.Command<string, unknown, unknown, unknown, Daemon.Service>
+type ProvidedCommand = Command.Command<string, unknown, unknown, unknown, Services>
 
 export type Handlers<Node extends Spec.Any> = keyof Node["commands"] extends never
   ? Loader<Node>
@@ -56,7 +60,7 @@ export function handlers<const Root extends Spec.Any>(root: Root, handlers: Hand
 }
 
 export function run(commands: Spec.Any, handlers: ReadonlyArray<LazyHandler>, options: { readonly version: string }) {
-  return Command.run(provide(commands, handlers), options) as Effect.Effect<void, unknown, Command.Environment>
+  return Command.run(provide(commands, handlers), options) as Effect.Effect<void, unknown, Command.Environment | Services>
 }
 
 function provide(node: Spec.Any, handlers: ReadonlyArray<LazyHandler>): ProvidedCommand {

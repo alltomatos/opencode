@@ -119,3 +119,43 @@ test("initialize starts every persisted server", async () => {
 
   expect(started.sort()).toEqual(["one.test", "two.test"])
 })
+
+test("syncCredentials sends credentials to remote endpoint", async () => {
+  const { controller } = makeTestController(async (config) => ({
+    listener: { stop: () => {}, onExit: () => {} },
+    url: "http://127.0.0.1:4096",
+    username: config.serverUsername,
+    password: config.serverPassword,
+  }))
+
+  const config = await controller.addServer(baseConfig())
+  await waitForRuntime(controller, config.id, "ready")
+
+  const originalFetch = globalThis.fetch
+  let calledUrl = ""
+  let calledHeaders: any = {}
+  let calledBody = ""
+
+  globalThis.fetch = (async (url: string, init?: any) => {
+    calledUrl = url
+    calledHeaders = init?.headers
+    calledBody = init?.body
+    return new Response(JSON.stringify({ id: "cred_123" }), { status: 200 })
+  }) as any
+
+  try {
+    const res = await controller.syncCredentials(config.id, [
+      { integrationID: "openai", label: "Default", value: { type: "key", key: "sk-test" } },
+    ])
+    expect(res.synced).toBe(1)
+    expect(calledUrl).toBe("http://127.0.0.1:4096/api/credential")
+    expect(calledHeaders["Authorization"]).toBe(
+      "Basic " + Buffer.from(`${config.serverUsername}:${config.serverPassword}`).toString("base64"),
+    )
+    const parsed = JSON.parse(calledBody)
+    expect(parsed.integrationID).toBe("openai")
+    expect(parsed.value.key).toBe("sk-test")
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})

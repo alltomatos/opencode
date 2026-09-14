@@ -2,7 +2,7 @@ export * as Credential from "./credential"
 
 import { Schema } from "effect"
 import { optional } from "./schema"
-import { IntegrationMethodID } from "./integration-id"
+import { IntegrationID, IntegrationMethodID } from "./integration-id"
 import { ascending } from "./identifier"
 import { NonNegativeInt, statics } from "./schema"
 
@@ -33,3 +33,18 @@ export const Value = Schema.Union([OAuth, Key])
   .pipe(Schema.toTaggedUnion("type"))
   .annotate({ identifier: "Credential.Value" })
 export type Value = Schema.Schema.Type<typeof Value>
+
+export interface Info extends Schema.Schema.Type<typeof Info> {}
+export const Info = Schema.Struct({
+  id: ID,
+  integrationID: IntegrationID,
+  label: Schema.String,
+  value: Value,
+}).annotate({ identifier: "Credential.Info" })
+
+export interface CreateInput extends Schema.Schema.Type<typeof CreateInput> {}
+export const CreateInput = Schema.Struct({
+  integrationID: IntegrationID,
+  label: optional(Schema.String),
+  value: Value,
+}).annotate({ identifier: "Credential.CreateInput" })
