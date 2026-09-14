@@ -4,6 +4,21 @@ import { client } from "./client.gen.js"
 import { buildClientParams, type Client, type Options as Options2, type TDataShape } from "./client/index.js"
 import type {
   AgentPartInput,
+  AgentuiAddErrors,
+  AgentuiAddResponses,
+  AgentUiAgent,
+  AgentuiGenerateErrors,
+  AgentuiGenerateResponses,
+  AgentuiGetErrors,
+  AgentuiGetResponses,
+  AgentuiListErrors,
+  AgentuiListResponses,
+  AgentuiRemoveErrors,
+  AgentuiRemoveResponses,
+  AgentuiResetSandboxErrors,
+  AgentuiResetSandboxResponses,
+  AgentuiTestErrors,
+  AgentuiTestResponses,
   AppAgentsErrors,
   AppAgentsResponses,
   AppLogErrors,
@@ -38,6 +53,15 @@ import type {
   BatutaStartResponses,
   BatutaSyncErrors,
   BatutaSyncResponses,
+  Combo as Combo2,
+  ComboAddErrors,
+  ComboAddResponses,
+  ComboListErrors,
+  ComboListResponses,
+  ComboRemoveErrors,
+  ComboRemoveResponses,
+  ComboResolveErrors,
+  ComboResolveResponses,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -49,6 +73,7 @@ import type {
   ConfigProvidersResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
+  CredentialCreateInput,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -152,13 +177,21 @@ import type {
   McpRemoveResponses,
   McpStatusErrors,
   McpStatusResponses,
+  MemoryAddEntryErrors,
+  MemoryAddEntryResponses,
   MemoryConfig,
   MemoryForgetProjectErrors,
   MemoryForgetProjectResponses,
   MemoryGetConfigErrors,
   MemoryGetConfigResponses,
+  MemoryGetGlobalEntriesErrors,
+  MemoryGetGlobalEntriesResponses,
+  MemoryGetProjectEntriesErrors,
+  MemoryGetProjectEntriesResponses,
   MemoryProjectMemoryStatusErrors,
   MemoryProjectMemoryStatusResponses,
+  MemoryPromoteErrors,
+  MemoryPromoteResponses,
   MemorySetConfigErrors,
   MemorySetConfigResponses,
   ModelRef,
@@ -323,6 +356,8 @@ import type {
   V2AgentListResponses,
   V2CommandListErrors,
   V2CommandListResponses,
+  V2CredentialCreateErrors,
+  V2CredentialCreateResponses,
   V2CredentialRemoveErrors,
   V2CredentialRemoveResponses,
   V2CredentialUpdateErrors,
@@ -441,6 +476,10 @@ import type {
   V2SessionWaitResponses,
   V2SkillListErrors,
   V2SkillListResponses,
+  V2SystemUpdateErrors,
+  V2SystemUpdateResponses,
+  V2WorkspaceCreateErrors,
+  V2WorkspaceCreateResponses,
   VcsApplyErrors,
   VcsApplyResponses,
   VcsDiffErrors,
@@ -451,6 +490,7 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  WorkspaceSource,
   WorktreeCreateErrors,
   WorktreeCreateInput,
   WorktreeCreateResponses,
@@ -1179,6 +1219,7 @@ export class Workspace extends HeyApiClient {
       type?: string
       branch?: string | null
       extra?: unknown | null
+      source?: WorkspaceSource
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1193,6 +1234,7 @@ export class Workspace extends HeyApiClient {
             { in: "body", key: "type" },
             { in: "body", key: "branch" },
             { in: "body", key: "extra" },
+            { in: "body", key: "source" },
           ],
         },
       ],
@@ -1975,6 +2017,384 @@ export class Batuta extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+}
+
+export class Combo extends HeyApiClient {
+  /**
+   * List combos
+   *
+   * List all configured model combos.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ComboListResponses, ComboListErrors, ThrowOnError>({
+      url: "/combo",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update a combo
+   *
+   * Create or replace a model combo (models, failover, rate limit).
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      combo?: Combo2
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "combo", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ComboAddResponses, ComboAddErrors, ThrowOnError>({
+      url: "/combo",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a combo
+   *
+   * Delete a model combo.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ComboRemoveResponses, ComboRemoveErrors, ThrowOnError>({
+      url: "/combo/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Resolve a combo to a concrete model
+   *
+   * Applies the combo's failover/rate-limit rules and returns which provider/model to use right now — mainly useful for debugging a combo's behavior from the UI.
+   */
+  public resolve<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ComboResolveResponses, ComboResolveErrors, ThrowOnError>({
+      url: "/combo/{id}/resolve",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Agentui extends HeyApiClient {
+  /**
+   * List AgentUI agents
+   *
+   * List all configured custom conversational agents.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiListResponses, AgentuiListErrors, ThrowOnError>({
+      url: "/agentui",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update an AgentUI agent
+   *
+   * Create or replace a custom conversational agent.
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      agentUiAgent?: AgentUiAgent
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "agentUiAgent", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiAddResponses, AgentuiAddErrors, ThrowOnError>({
+      url: "/agentui",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove an AgentUI agent
+   *
+   * Delete a custom conversational agent.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<AgentuiRemoveResponses, AgentuiRemoveErrors, ThrowOnError>({
+      url: "/agentui/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get an AgentUI agent
+   *
+   * Read a single custom agent by id.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AgentuiGetResponses, AgentuiGetErrors, ThrowOnError>({
+      url: "/agentui/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Generate an AgentUI draft from a natural-language description
+   *
+   * One-shot generation: drafts name, personality/system-prompt, command trigger and guardrail level from a free-text description, for the user to review before saving.
+   */
+  public generate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      description?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "description" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiGenerateResponses, AgentuiGenerateErrors, ThrowOnError>({
+      url: "/agentui/generate",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Send a sandbox test message to an AgentUI agent
+   *
+   * Runs a message through the agent's real pipeline (guardrails, personality, RAG, model) against a dedicated sandbox session, without touching any real channel.
+   */
+  public test<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+      projectDirectory?: string
+      message?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "projectDirectory" },
+            { in: "body", key: "message" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiTestResponses, AgentuiTestErrors, ThrowOnError>({
+      url: "/agentui/{id}/test",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Reset an AgentUI agent's sandbox conversation
+   *
+   * Starts a fresh sandbox session for this agent on the next test message.
+   */
+  public resetSandbox<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AgentuiResetSandboxResponses, AgentuiResetSandboxErrors, ThrowOnError>(
+      {
+        url: "/agentui/{id}/sandbox/reset",
+        ...options,
+        ...params,
+      },
+    )
   }
 }
 
@@ -5501,6 +5921,149 @@ export class Memory extends HeyApiClient {
       ...params,
     })
   }
+
+  /**
+   * Get project memory content
+   *
+   * Returns markdown content of recorded memories for the given project directory.
+   */
+  public getProjectEntries<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<
+      MemoryGetProjectEntriesResponses,
+      MemoryGetProjectEntriesErrors,
+      ThrowOnError
+    >({
+      url: "/memory/project/entries",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get global memory content
+   *
+   * Returns markdown content of recorded global memories across all projects.
+   */
+  public getGlobalEntries<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MemoryGetGlobalEntriesResponses,
+      MemoryGetGlobalEntriesErrors,
+      ThrowOnError
+    >({
+      url: "/memory/global",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add a memory note
+   *
+   * Directly records a note in project memory or global memory without requiring LLM execution.
+   */
+  public addEntry<ThrowOnError extends boolean = false>(
+    parameters?: {
+      query_directory?: string
+      workspace?: string
+      body_directory?: string
+      note?: string
+      global?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            {
+              in: "query",
+              key: "query_directory",
+              map: "directory",
+            },
+            { in: "query", key: "workspace" },
+            {
+              in: "body",
+              key: "body_directory",
+              map: "directory",
+            },
+            { in: "body", key: "note" },
+            { in: "body", key: "global" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryAddEntryResponses, MemoryAddEntryErrors, ThrowOnError>({
+      url: "/memory/entry",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Promote memory to global
+   *
+   * Promotes a summary/decision to global memory and regenerates the global memory skill file.
+   */
+  public promote<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      summary?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "summary" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryPromoteResponses, MemoryPromoteErrors, ThrowOnError>({
+      url: "/memory/promote",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
 }
 
 export class Control extends HeyApiClient {
@@ -5950,6 +6513,53 @@ export class Tui extends HeyApiClient {
   }
 }
 
+export class Workspace2 extends HeyApiClient {
+  /**
+   * Create workspace
+   *
+   * Create or clone a workspace for the current project.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      type?: string
+      branch?: string
+      extra?: unknown
+      source?: WorkspaceSource
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "type" },
+            { in: "body", key: "branch" },
+            { in: "body", key: "extra" },
+            { in: "body", key: "source" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2WorkspaceCreateResponses, V2WorkspaceCreateErrors, ThrowOnError>({
+      url: "/api/workspaces",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Health extends HeyApiClient {
   /**
    * Check server health
@@ -5960,6 +6570,32 @@ export class Health extends HeyApiClient {
     return (options?.client ?? this.client).get<V2HealthGetResponses, V2HealthGetErrors, ThrowOnError>({
       url: "/api/health",
       ...options,
+    })
+  }
+}
+
+export class System extends HeyApiClient {
+  /**
+   * Update remote server daemon
+   *
+   * Trigger update of opencode CLI and restart background daemon.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      confirm?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "confirm" }] }])
+    return (options?.client ?? this.client).post<V2SystemUpdateResponses, V2SystemUpdateErrors, ThrowOnError>({
+      url: "/api/system/update",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -7170,6 +7806,44 @@ export class Integration extends HeyApiClient {
 
 export class Credential extends HeyApiClient {
   /**
+   * Create credential
+   *
+   * Create a stored integration credential on the remote host.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      credentialCreateInput: CredentialCreateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location" },
+            { key: "credentialCreateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2CredentialCreateResponses, V2CredentialCreateErrors, ThrowOnError>({
+      url: "/api/credential",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Remove credential
    *
    * Remove a stored integration credential.
@@ -7917,9 +8591,19 @@ export class ProjectCopy2 extends HeyApiClient {
 }
 
 export class V2 extends HeyApiClient {
+  private _workspace?: Workspace2
+  get workspace(): Workspace2 {
+    return (this._workspace ??= new Workspace2({ client: this.client }))
+  }
+
   private _health?: Health
   get health(): Health {
     return (this._health ??= new Health({ client: this.client }))
+  }
+
+  private _system?: System
+  get system(): System {
+    return (this._system ??= new System({ client: this.client }))
   }
 
   private _location?: Location
@@ -8039,6 +8723,16 @@ export class OpencodeClient extends HeyApiClient {
   private _batuta?: Batuta
   get batuta(): Batuta {
     return (this._batuta ??= new Batuta({ client: this.client }))
+  }
+
+  private _combo?: Combo
+  get combo(): Combo {
+    return (this._combo ??= new Combo({ client: this.client }))
+  }
+
+  private _agentui?: Agentui
+  get agentui(): Agentui {
+    return (this._agentui ??= new Agentui({ client: this.client }))
   }
 
   private _config?: Config2

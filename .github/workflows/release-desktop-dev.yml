@@ -14,6 +14,14 @@ on:
       - dev
   workflow_dispatch: {}
 
+# A superseded dev build is never worth finishing — the newer push replaces
+# it anyway — and this matrix includes macOS/Windows runners, which bill at
+# 10x/2x Linux minutes respectively. Without this, every push to dev while
+# iterating quickly burns a full 3-OS build that gets thrown away.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

@@ -4,7 +4,7 @@
 **Branch de referência:** a criar a partir de `dev` (ex.: `mobile`)
 **Autor:** Ronaldo + Claude (sessão de pesquisa)
 **Última atualização:** 2026-08-23
-**Documentos relacionados:** [`docs/prd/breniac-voice-assistant.md`](./breniac-voice-assistant.md) (branch `breniac`), [`docs/vps-hosting.md`](../vps-hosting.md)
+**Documentos relacionados:** [`docs/prd/breniac-voice-assistant.md`](./breniac-voice-assistant.md) (branch `breniac`), [`docs/vps-hosting.md`](../vps-hosting.md), [`docs/prd/mobile-api-reference.md`](./mobile-api-reference.md) (contrato técnico de API — toda rota que o app vai consumir, autenticação, e o desenho do pareamento por QR code)
 
 ---
 

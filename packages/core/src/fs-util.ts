@@ -273,11 +273,28 @@ export namespace FSUtil {
 
   export function windowsPath(p: string): string {
     if (process.platform !== "win32") return p
-    return p
+    const withDrive = p
       .replace(/^\/([a-zA-Z]):(?:[\\/]|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
       .replace(/^\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
       .replace(/^\/cygdrive\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
       .replace(/^\/mnt\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
+    if (withDrive !== p) return withDrive
+    // A POSIX-rooted path with no drive encoded at all (no /c/, /mnt/c/,
+    // /cygdrive/c/ prefix) is otherwise ambiguous about which drive it
+    // means — but path.resolve() on Windows silently roots a bare "/..."
+    // path at the CURRENT PROCESS's drive (cwd), not the system drive. That
+    // makes normalization non-deterministic across processes/CI runners
+    // with different cwd drives (confirmed: the exact same input produced
+    // a valid path on a C:-cwd machine and a nonexistent one on a D:-cwd
+    // machine/runner, silently, since the ENOENT just falls back to the
+    // unresolved — wrongly-drived — path). Root it at the system drive
+    // instead, which is what every one of the explicit prefixes above
+    // already implicitly assumes for its own drive letter.
+    if (/^[\\/]/.test(p) && !/^[\\/]{2}/.test(p)) {
+      const systemDrive = (process.env.SystemDrive ?? "C:").toUpperCase()
+      return `${systemDrive}${p}`
+    }
+    return p
   }
 
   export function overlaps(a: string, b: string) {

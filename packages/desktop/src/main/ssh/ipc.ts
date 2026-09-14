@@ -52,4 +52,12 @@ export function registerSshIpcHandlers(controller: SshServersController) {
   ipcMain.handle("ssh-servers-start", (_event: IpcMainInvokeEvent, id: string) =>
     controller.startServer(requireString("server id", id)),
   )
+  ipcMain.handle(
+    "ssh-servers-sync-credentials",
+    (
+      _event: IpcMainInvokeEvent,
+      id: string,
+      credentials: Array<{ integrationID: string; label?: string; value: unknown }>,
+    ) => controller.syncCredentials(requireString("server id", id), credentials ?? []),
+  )
 }

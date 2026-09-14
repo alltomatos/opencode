@@ -1,5 +1,27 @@
 # Orchestrator Roadmap
 
+GitHub (alltomatos/opencode, branch default `dev`) é a fonte persistente de rastreamento; este arquivo é a visão estratégica. Branch `prod` só recebe promoções de release do app desktop.
+
+## Epics ativos e backlog
+
+| ID | Epic | Estado | Issue mestre |
+| --- | --- | --- | --- |
+| [**[E01] UI/UX Alltomatos**](https://github.com/alltomatos/opencode/issues/1) | Evolução de UI/UX | done (12/12; #13/#18/#178 movidas p/ E02/E07) | — |
+| [**[E02] SRP ~250 linhas**](https://github.com/alltomatos/opencode/issues/13) | Tamanho de arquivo / limite SRP | in_progress (#13, #18 abertas — oportunístico) | [#13](https://github.com/alltomatos/opencode/issues/13) |
+| [**[E03] Melhorias de MCP**](https://github.com/alltomatos/opencode/issues/21) | Melhorias de MCP | done (#21–#24 fechadas) | [#21](https://github.com/alltomatos/opencode/issues/21) |
+| [**[E04] Batuta**](https://github.com/alltomatos/opencode/issues/26) | Orquestração de subagentes | in_progress — V1+V2 fases 1-2 concluídas; fases 3 (painel/DAG) em backlog | [#110](https://github.com/alltomatos/opencode/issues/110) |
+| [**[E05] Descontinuar layout legado**](https://github.com/alltomatos/opencode/issues/25) | Descontinuar o layout legado | todo | [#25](https://github.com/alltomatos/opencode/issues/25) |
+| [**[E06] Build multi-plataforma**](https://github.com/alltomatos/opencode/issues/39) | Build multi-plataforma na promoção `dev` → `prod` | done (release-desktop.yml) | — |
+| [**[E07] Design system**](https://github.com/alltomatos/opencode/issues/178) | Design system / passes de consistência | in_progress (#178 aberta; #164–#177 fechadas) | [#178](https://github.com/alltomatos/opencode/issues/178) |
+| [**[E08] Mobile/VPS API**](https://github.com/alltomatos/opencode/issues/59) | Mobile/VPS API (mobile-vps-api) | todo (#59–#65 abertas) | [#59](https://github.com/alltomatos/opencode/issues/59) |
+| [**[E09] Server remoto**](https://github.com/alltomatos/opencode/issues/78) | Server remoto (credenciais, workspaces, automações) | todo (#78–#84 abertas) | [#81](https://github.com/alltomatos/opencode/issues/81) |
+| [**[E10] Telegram bot**](https://github.com/alltomatos/opencode/issues/127) | Telegram bot (Etapa 1 de Mobile/Remoto) | in_progress (#131, #133 abertas; demais fechadas) | [#127](https://github.com/alltomatos/opencode/issues/127) |
+| [**[E11] Memória Breniac**](https://github.com/alltomatos/opencode/issues/137) | Memória generalizada do Breniac | done (#137–#142 fechadas) | [#137](https://github.com/alltomatos/opencode/issues/137) |
+| [**[E12] AgentUI**](https://github.com/alltomatos/opencode/issues/144) | AgentUI — Agentes personalizados | in_progress (Fases 0–5 abertas; PRs #159/#160/#161 em revisão) | [#144](https://github.com/alltomatos/opencode/issues/144) |
+| [**[E13] CI flaky**](https://github.com/alltomatos/opencode/issues/181) | CI — flaky tests e estabilidade | in_progress (#181, #185 abertas; #163, #189, #193, #209 resolvidas no PR #210) | [#181](https://github.com/alltomatos/opencode/issues/181) |
+| [**[E14] Sync upstream**](https://github.com/alltomatos/opencode/issues/200) | Sync com upstream anomalyco/opencode | in_progress (#199, #200 em revisão) | [#200](https://github.com/alltomatos/opencode/issues/200) |
+| [**[E15] Dashboard de KPIs & Token Analytics**](https://github.com/alltomatos/opencode/issues/212) | Dashboard de KPIs e consumo de tokens (/stats) | in_progress | [#212](https://github.com/alltomatos/opencode/issues/212) |
+
 ## Epic: Evolução de UI/UX do OpenCode by Alltomatos
 
 **Status:** Em andamento
@@ -94,6 +116,8 @@ Piores ofensores do monorepo (`packages/app/src`, excluindo i18n/testes/gerado) 
 | [#19](https://github.com/alltomatos/opencode/issues/19) | `pages/session/session-side-panel.tsx` | 867 |
 | [#20](https://github.com/alltomatos/opencode/issues/20) | `pages/session/file-tabs.tsx` | 800 |
 
+**Estado atual:** #14–#17, #19, #20 fechadas. Restam abertas [#13](https://github.com/alltomatos/opencode/issues/13) e [#18](https://github.com/alltomatos/opencode/issues/18) — trabalhar oportunisticamente, interligada com E05 (descontinuar layout legado reduz `layout.tsx`).
+
 ## Epic: Melhorias de MCP
 
 **Status:** Em andamento — persistência corrigida, resto planejado
@@ -111,6 +135,8 @@ Demais lacunas mapeadas em issues (nenhum TODO/gambiarra no código — é falta
 | [#24](https://github.com/alltomatos/opencode/issues/24) | Catálogo de servidores conhecidos (Cloudflare, Gmail, Mercado Pago, Context7, GitHub Copilot) com conectar em 1 clique | #22 |
 
 Decisão de produto sobre servidores pessoais/privados do usuário (`~/.claude.json` tem 12 configurados, incluindo endpoints internos e chaves): **não vão ser embutidos no fork**. Só os 5 públicos/conhecidos do #24 viram catálogo pré-configurado (sem segredo nenhum, só a URL pública); os privados continuam só via formulário manual.
+
+**Estado atual:** #21–#24 fechadas — epic concluída.
 
 ## Epic: Batuta (orquestração de subagentes)
 
@@ -175,6 +201,8 @@ Backlog de fase 3 (decisão de produto pendente antes de iniciar):
 - [#56](https://github.com/alltomatos/opencode/issues/56) — painel de terminal ao vivo (xterm.js) pro worker externo.
 - [#57](https://github.com/alltomatos/opencode/issues/57) — handoff/DAG entre múltiplos workers externos.
 
+**Estado atual (2026-09-12):** fases V1 e V2 fases 1–2 concluídas. Abertas na fila: #106–#111 (HTTP+WS, painel ao vivo, controle manual, PTY persistente, DAG, inbox/reply) + #56/#57 do backlog. #73–#77 (detecção/registro de agentes externos, settings, combobox, skill batuta-cli) fechadas.
+
 ## Epic: Descontinuar o layout legado
 
 **Status:** Decisão tomada em 2026-08-19 (issue #25), execução não iniciada.
@@ -189,3 +217,13 @@ Ver [issue #25](https://github.com/alltomatos/opencode/issues/25) pra lista comp
 **Status:** Concluído em 2026-08-19.
 
 `electron-builder.config.ts` já builda `.dmg`/`.zip` (mac) e `AppImage`/`.deb`/`.rpm` (linux), além do `.exe` (win) — só faltava disparar automaticamente. Implementado como `.github/workflows/release-desktop.yml`: dispara em todo push na branch `prod`, builda as três plataformas em paralelo (`windows-latest`/`macos-latest`/`ubuntu-latest`) e publica tudo no mesmo release do GitHub, usando a versão de `packages/desktop/package.json` commitada no momento do push. Builds mac/linux saem sem assinatura/notarização (sem credenciais Apple/Azure configuradas neste fork) — funcionam, mas o Gatekeeper avisa na primeira abertura no mac.
+
+## Epics posteriores (não detalhadas acima)
+
+- **E07 Design system**: passe de modais/dialogs compartilhados em andamento ([#178](https://github.com/alltomatos/opencode/issues/178), `ui-ux`, `ready-for-agent`); #164–#177 (passes de design por tela) fechadas.
+- **E08 Mobile/VPS API**: fases 0–6 abertas (#59–#65); PRDs em `docs/prd/mobile-app.md` e `docs/prd/mobile-api-reference.md`; opencode_mobile em repo próprio.
+- **E09 Server remoto**: #78–#84 (EnvironmentRegistry, credenciais, clone de repo, workspaces concorrentes, PTY remoto #82 `ready-for-agent`, automações, update remoto); #81 `needs-decision`.
+- **E10 Telegram bot**: #131 (webhook) e #133 (testes) abertas; fases 0–2 e 4a–4c concluídas.
+- **E12 AgentUI**: Fases 0–5 (#145–#150) abertas; PRs em revisão: [#159](https://github.com/alltomatos/opencode/pull/159) (gerar agente por descrição), [#160](https://github.com/alltomatos/opencode/pull/160) (canal Telegram por agente), [#161](https://github.com/alltomatos/opencode/pull/161) (canal WhatsApp via waconector).
+- **E13 CI flaky**: #181, #185 abertas; #163, #186, #189, #190–#195, #205, #207–#210 fechadas/resolvidas. PR #210 estabilizou o CI do Windows (e2e e unit) e fechou #209.
+- **E14 Sync upstream**: [#199](https://github.com/alltomatos/opencode/pull/199) (8 bug fixes portados) e [#200](https://github.com/alltomatos/opencode/issues/200) abertas.

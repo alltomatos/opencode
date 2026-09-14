@@ -90,6 +90,17 @@ const layer = Layer.effect(
           progress: false,
           savePrefix: "",
           ignoreScripts: true,
+          // audit/fund each make their own network call after reify()
+          // completes, on top of whatever the install itself needed — for a
+          // programmatic/background installer (not an interactive `npm`
+          // session) that's pure latency with no UI to show the result in,
+          // and it can hang far longer than any reasonable timeout if that
+          // request stalls (reproduced: reify() of a single local `file:`
+          // dependency hung indefinitely with these left at their default
+          // regardless of an 8s+ deadline, and returned in <100ms with them
+          // disabled).
+          audit: false,
+          fund: false,
         })
         return yield* Effect.tryPromise({
           try: () =>

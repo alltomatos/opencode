@@ -168,3 +168,14 @@ const table = sqliteTable("session", {
 - Keep delivery vocabulary explicit. Prompts steer by default and promote at the next safe provider-turn boundary while the current drain requires continuation. An explicit `queue` input remains pending until the Session would otherwise become idle; promote one queued input at that boundary, then reevaluate continuation before promoting another. Promoting any new user input resets the selected agent's provider-turn allowance; a batch of steers resets it once.
 - Keep EventV2 replay owner claims separate from clustered Session execution ownership.
 - Keep the System Context algebra, registry, and built-ins in `src/system-context`; keep Context Source producers with their observed domains, and keep Session History selection plus Context Epoch persistence Session-owned.
+
+## Agent skills
+
+This repo uses the alltomatos/skills framework. Governance docs:
+
+- Issue tracker and conventions: `docs/agents/issue-tracker.md`
+- Triage labels: `docs/agents/triage-labels.md`
+- Domain map: `docs/agents/domain.md` (canon: `CONTEXT.md`)
+- Architecture decisions: `docs/adr/`
+
+Installed project skills: `.opencode/skills/` (effect, rtl-aware-development, opencode-fork-expert), `.claude/skills/` (opencode-fork-expert, opencode-mobile-expert), `~/.claude/skills/` and `~/.opencode/skills/` (developer, setup-skills, roadmap, to-issues, tdd, diagnose, qa-analyst, etc.).

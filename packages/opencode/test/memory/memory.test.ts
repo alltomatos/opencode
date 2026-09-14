@@ -1,13 +1,26 @@
-import { expect } from "bun:test"
+import { afterAll, expect } from "bun:test"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Global } from "@opencode-ai/core/global"
 import { Effect } from "effect"
-import { readFile } from "node:fs/promises"
+import { readFile, rm } from "node:fs/promises"
 import path from "node:path"
 import { Memory } from "../../src/memory/index"
 import { testEffect } from "../lib/effect"
 
 const it = testEffect(LayerNode.compile(Memory.node))
+
+// promoteGlobal() below writes a real file to Global.Path.config — unlike
+// the instance-scoped tmpdir config each `it.instance` test otherwise gets,
+// that path is a single directory shared by every test FILE in this bun
+// test process (see test/preload.ts's XDG_CONFIG_HOME override: one tmp dir
+// per process, not per test). Left uncleaned, this skill file persists for
+// the rest of the run and gets discovered by unrelated tests later in the
+// same process — e.g. test/skill/skill.test.ts's "returns empty array when
+// no skills exist" started failing because it found this leftover
+// "memory" skill. See 2026-09-08 CI investigation.
+afterAll(async () => {
+  await rm(path.join(Global.Path.config, "skill", "memory"), { recursive: true, force: true }).catch(() => undefined)
+})
 
 it.instance("set() persists config and get() reflects it immediately, without reload", () =>
   Effect.gen(function* () {
@@ -118,5 +131,26 @@ it.instance("forgetProject() removes only that project's memory, not global", ()
 
     const { context } = yield* memory.load({ directory: "/tmp/qualquer-projeto" })
     expect(context).toContain("Continua global depois de esquecer um projeto.")
+  }),
+)
+
+it.instance("loadProject() and loadGlobal() return separate contents", () =>
+  Effect.gen(function* () {
+    const memory = yield* Memory.Service
+    const directory = "/tmp/load-separate-test"
+
+    yield* memory.remember({ directory, note: "Nota especifica do projeto." })
+    yield* memory.promoteGlobal({ summary: "Nota especifica global." })
+
+    const { content: projectContent } = yield* memory.loadProject(directory)
+    const { content: globalContent } = yield* memory.loadGlobal()
+
+    expect(projectContent).toContain("Nota especifica do projeto.")
+    expect(projectContent).not.toContain("Nota especifica global.")
+
+    expect(globalContent).toContain("Nota especifica global.")
+    expect(globalContent).not.toContain("Nota especifica do projeto.")
+
+    yield* memory.forgetProject(directory)
   }),
 )

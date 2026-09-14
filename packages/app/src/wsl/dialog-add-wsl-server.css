@@ -89,6 +89,7 @@
 .settings-v2-wsl-not-installed-icon {
   flex: none;
   flex-shrink: 0;
+  color: var(--v2-icon-icon-muted);
 }
 
 .settings-v2-wsl-not-installed-title {

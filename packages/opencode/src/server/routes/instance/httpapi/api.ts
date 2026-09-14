@@ -7,7 +7,9 @@ import { Integration } from "@opencode-ai/core/integration"
 import { SkillV2 } from "@opencode-ai/core/skill"
 import { InstanceDisposed } from "@/server/event"
 import { Question } from "@/question"
+import { AgentUIApi } from "./groups/agentui"
 import { BatutaApi } from "./groups/batuta"
+import { ComboApi } from "./groups/combo"
 import { ConfigApi } from "./groups/config"
 import { ControlApi } from "./groups/control"
 import { ControlPlaneApi } from "./groups/control-plane"
@@ -64,6 +66,8 @@ export const RootHttpApi = HttpApi.make("opencode-root")
 
 export const InstanceHttpApi = HttpApi.make("opencode-instance")
   .addHttpApi(BatutaApi)
+  .addHttpApi(ComboApi)
+  .addHttpApi(AgentUIApi)
   .addHttpApi(ConfigApi)
   .addHttpApi(ExperimentalApi)
   .addHttpApi(ExternalAgentApi)

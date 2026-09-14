@@ -142,6 +142,35 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
       setState({ servers: state.servers.filter((item) => item.config.id !== id) })
     },
     startServer,
+    async syncCredentials(
+      id: string,
+      credentials: Array<{ integrationID: string; label?: string; value: unknown }>,
+    ): Promise<{ synced: number }> {
+      const tunnel = tunnels.get(id)
+      if (!tunnel) throw new Error(`Tunnel for server ${id} is not currently running`)
+      const authHeader = "Basic " + Buffer.from(`${tunnel.username}:${tunnel.password}`).toString("base64")
+      let count = 0
+      for (const cred of credentials) {
+        try {
+          const res = await fetch(`${tunnel.url}/api/credential`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+            body: JSON.stringify(cred),
+          })
+          if (res.ok) {
+            count++
+          } else {
+            logger?.error("Failed to sync credential", { integrationID: cred.integrationID, status: res.status })
+          }
+        } catch (err) {
+          logger?.error("Error syncing credential", { integrationID: cred.integrationID, error: String(err) })
+        }
+      }
+      return { synced: count }
+    },
     stopAll() {
       for (const item of state.servers) invalidateStartAttempt(item.config.id)
       for (const tunnel of tunnels.values()) {

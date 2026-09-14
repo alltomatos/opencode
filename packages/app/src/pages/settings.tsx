@@ -9,8 +9,10 @@ import { SettingsGeneralV2 } from "@/components/settings-v2/general"
 import { SettingsKeybinds } from "@/components/settings-keybinds"
 import { SettingsProvidersV2 } from "@/components/settings-v2/providers"
 import { SettingsModelsV2 } from "@/components/settings-v2/models"
+import { SettingsCombosV2 } from "@/components/settings-v2/combos"
 import { SettingsServersV2 } from "@/components/settings-v2/servers"
 import { SettingsSkillsV2 } from "@/components/settings-v2/skills"
+import { SettingsMemoryV2 } from "@/components/settings-v2/memory"
 import { SettingsMcpV2 } from "@/components/settings-v2/mcp"
 import { SettingsIntegrationsV2 } from "@/components/settings-v2/integrations"
 import { SettingsExternalAgentsV2 } from "@/components/settings-v2/external-agents"
@@ -121,6 +123,10 @@ export function SettingsPage() {
                         <Icon name="models" />
                         {language.t("settings.models.title")}
                       </TabsV2.Trigger>
+                      <TabsV2.Trigger value="combos">
+                        <Icon name="branch" />
+                        {language.t("settings.combos.title")}
+                      </TabsV2.Trigger>
                     </div>
                   </div>
 
@@ -130,6 +136,10 @@ export function SettingsPage() {
                       <TabsV2.Trigger value="skills">
                         <Icon name="brain" />
                         {language.t("settings.skills.title")}
+                      </TabsV2.Trigger>
+                      <TabsV2.Trigger value="memory">
+                        <Icon name="archive" />
+                        {language.t("settings.memory.title")}
                       </TabsV2.Trigger>
                       <TabsV2.Trigger value="mcp">
                         <Icon name="link" />
@@ -176,8 +186,14 @@ export function SettingsPage() {
           <TabsV2.Content value="models" class="settings-v2-panel">
             <SettingsModelsV2 />
           </TabsV2.Content>
+          <TabsV2.Content value="combos" class="settings-v2-panel">
+            <SettingsCombosV2 />
+          </TabsV2.Content>
           <TabsV2.Content value="skills" class="settings-v2-panel">
             <SettingsSkillsV2 directory={directory} />
+          </TabsV2.Content>
+          <TabsV2.Content value="memory" class="settings-v2-panel">
+            <SettingsMemoryV2 />
           </TabsV2.Content>
           <TabsV2.Content value="mcp" class="settings-v2-panel">
             <SettingsMcpV2 />

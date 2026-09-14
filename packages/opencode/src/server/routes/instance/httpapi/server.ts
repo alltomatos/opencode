@@ -21,6 +21,8 @@ import { MCP } from "@/mcp"
 import { Telegram } from "@/telegram"
 import { Memory } from "@/memory"
 import { Batuta } from "@/batuta"
+import { Combo } from "@/combo"
+import { AgentUI } from "@/agentui"
 import { McpAuth } from "@/mcp/auth"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
@@ -57,6 +59,7 @@ import { Database } from "@opencode-ai/core/database/database"
 import { AppNodeBuilderV1 } from "@/effect/app-node-builder-v1"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { httpClient } from "@opencode-ai/core/effect/app-node-platform"
+import { Credential } from "@opencode-ai/core/credential"
 import { EventV2 } from "@opencode-ai/core/event"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { Npm } from "@opencode-ai/core/npm"
@@ -86,6 +89,8 @@ import { EventApi } from "./groups/event"
 import { PtyConnectApi } from "./groups/pty"
 import { eventHandlers } from "./handlers/event"
 import { batutaHandlers } from "./handlers/batuta"
+import { comboHandlers } from "./handlers/combo"
+import { agentuiHandlers } from "./handlers/agentui"
 import { configHandlers } from "./handlers/config"
 import { controlHandlers } from "./handlers/control"
 import { controlPlaneHandlers } from "./handlers/control-plane"
@@ -167,6 +172,8 @@ const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
     instanceHandlers,
     mcpHandlers,
     batutaHandlers,
+    comboHandlers,
+    agentuiHandlers,
     projectHandlers,
     projectCopyHandlers,
     ptyHandlers,
@@ -263,6 +270,8 @@ const app = LayerNode.group([
   Telegram.node,
   Memory.node,
   Batuta.node,
+  Combo.node,
+  AgentUI.node,
   Command.node,
   Truncate.node,
   ToolRegistry.node,
@@ -280,6 +289,7 @@ const app = LayerNode.group([
   ProjectV2.node,
   ProjectCopy.node,
   PtyTicket.node,
+  Credential.node,
 ])
 
 export function createRoutes(

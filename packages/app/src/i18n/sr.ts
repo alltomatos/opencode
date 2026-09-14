@@ -1191,6 +1191,7 @@ export const dict = {
   "sidebar.batuta": "Batuta",
   "sidebar.tab.code": "Code",
   "sidebar.tab.batuta": "Batuta",
+  "sidebar.tab.agentui": "Agents",
   "batuta.title": "What is a Batuta?",
   "batuta.intro": "A batuta is the famous, slender wand a conductor uses to lead an orchestra. Here you can set up an orchestrated activity: pick one model to act as the orchestrator, and other models to act as workers it can delegate tasks to.",
   "batuta.list.title": "Activities",
@@ -1295,6 +1296,9 @@ export const dict = {
   "settings.mcp.add.title": "Add MCP connector",
   "settings.mcp.openConfig.button": "Config raw",
   "settings.mcp.add.known.label": "Known connectors",
+  "settings.mcp.add.known.oauthBadge": "OAuth",
+  "settings.mcp.add.known.oauthHint": "This connector requires OAuth. Fill in the Client ID / Client secret below, or leave them empty to authorize on first connection.",
+  "settings.mcp.add.known.localHint": "This connector runs locally. Build it first (npm install and npm run build), then set the command working directory and the MAIL_MCP_ACCOUNTS_PATH environment variable below to your accounts.json file.",
   "settings.mcp.add.field.name.label": "Name",
   "settings.mcp.add.field.name.placeholder": "my-server",
   "settings.mcp.add.field.type.label": "Connection type",
@@ -1360,4 +1364,182 @@ export const dict = {
   "provider.omniroute.mcp.failed": "Couldn't connect to the MCP server. Go to {{url}} and enable it, then test again.",
   "provider.omniroute.mcp.retry": "Test again",
   "provider.omniroute.mcp.skip": "Skip MCP",
+  "provider.omniroute.mcp.autoconfig": "Connecting will automatically configure the Omniroute MCP server for you.", // TODO: translate (auto-filled from en)
+  "dialog.server.menu.qr": "Show QR code", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.title": "QR code — {{name}}", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.description": "Scan this from a paired mobile client to auto-configure this server — the code carries the same credential this app already uses, so treat it like a password.", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.copy": "Copy pairing data", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.copied": "Pairing data copied", // TODO: translate (auto-filled from en)
+  "sshTunnel.server.add": "Add SSH tunnel", // TODO: translate (auto-filled from en)
+  "sshTunnel.server.label": "SSH", // TODO: translate (auto-filled from en)
+  "sshTunnel.server.menu.label": "SSH tunnel", // TODO: translate (auto-filled from en)
+  "sshTunnel.server.retryStart": "Retry connect", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.title": "Add SSH tunnel", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.host": "VPS host", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.hostPlaceholder": "e.g. 147.93.176.59 or myserver.com", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.sshPort": "SSH port", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.sshUsername": "SSH username", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.key": "SSH key", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.keyDefault": "Default (SSH agent)", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.label": "Name (optional)", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.labelPlaceholder": "e.g. omniroute", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.remotePort": "opencode port on the VPS", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.button": "Add tunnel", // TODO: translate (auto-filled from en)
+  "sshTunnel.add.error.hostRequired": "Enter the VPS host", // TODO: translate (auto-filled from en)
+  "tailscale.server.add": "Add Tailscale tunnel", // TODO: translate (auto-filled from en)
+  "tailscale.add.title": "Add Tailscale tunnel", // TODO: translate (auto-filled from en)
+  "tailscale.add.host": "Tailscale IP or hostname", // TODO: translate (auto-filled from en)
+  "tailscale.add.hostPlaceholder": "e.g. 100.86.156.0 or machine.tailnet.ts.net", // TODO: translate (auto-filled from en)
+  "tailscale.add.error.notRunning": "Tailscale not detected on this machine. Install and connect Tailscale before adding this server type.", // TODO: translate (auto-filled from en)
+  "tailscale.add.error.unreachable": "Couldn't connect to that address. Make sure the VPS is also on your tailnet and opencode is running there.", // TODO: translate (auto-filled from en)
+  "home.server.type.http": "http", // TODO: translate (auto-filled from en)
+  "home.server.type.https": "https", // TODO: translate (auto-filled from en)
+  "home.server.type.local": "local", // TODO: translate (auto-filled from en)
+  "home.server.type.wsl": "wsl", // TODO: translate (auto-filled from en)
+  "home.server.type.ssh": "ssh", // TODO: translate (auto-filled from en)
+  "home.server.type.tailscale": "tailscale", // TODO: translate (auto-filled from en)
+  "settings.general.row.bugReports.title": "Automatic bug reports", // TODO: translate (auto-filled from en)
+  "settings.general.row.bugReports.description": "Sends crash reports (error message and stack trace only — never your files, conversations, or env vars) to help fix bugs faster. Reports are deduped against existing GitHub issues before a new one is opened. On by default.", // TODO: translate (auto-filled from en)
+  "settings.memory.title": "Memory", // TODO: translate (auto-filled from en)
+  "project.forgetMemory.title": "Forget this project's memory too?", // TODO: translate (auto-filled from en)
+  "project.forgetMemory.description": "This project has recorded memory. Closing it only removes it from the list (you can reopen it later) — forgetting memory is separate and can't be undone.", // TODO: translate (auto-filled from en)
+  "project.forgetMemory.keep": "Keep memory", // TODO: translate (auto-filled from en)
+  "project.forgetMemory.forget": "Forget memory", // TODO: translate (auto-filled from en)
+  "settings.memory.field.enabled.title": "Enable memory", // TODO: translate (auto-filled from en)
+  "settings.memory.field.enabled.description": "Lets the agent search and save cross-session notes on its own, per project and globally. Enabled by default.", // TODO: translate (auto-filled from en)
+  "settings.memory.field.memoryModel.title": "Memory model", // TODO: translate (auto-filled from en)
+  "settings.memory.field.memoryModel.description": "Model used to summarize and answer memory lookups. Leave empty to use the automatic default.", // TODO: translate (auto-filled from en)
+  "settings.memory.quickFill.button": "See suggestions", // TODO: translate (auto-filled from en)
+  "settings.memory.toast.saved": "Memory settings saved", // TODO: translate (auto-filled from en)
+  "settings.memory.recommended.title": "Recommended memory models", // TODO: translate (auto-filled from en)
+  "settings.memory.recommended.notConnected": "Connect Omniroute to see recommended models.", // TODO: translate (auto-filled from en)
+  "settings.memory.recommended.noneFound": "No recommended models found in this provider's catalog.", // TODO: translate (auto-filled from en)
+  "settings.memory.recommended.apply": "Apply", // TODO: translate (auto-filled from en)
+  "settings.memory.recommended.tier.ok": "paid, no known limit", // TODO: translate (auto-filled from en)
+  "settings.memory.recommended.tier.limited": "free, usage-limited", // TODO: translate (auto-filled from en)
+  "settings.integrations.title": "Integrations", // TODO: translate (auto-filled from en)
+  "settings.integrations.section.channels": "Channels", // TODO: translate (auto-filled from en)
+  "settings.integrations.telegram.title": "Telegram", // TODO: translate (auto-filled from en)
+  "settings.integrations.telegram.description": "Connect a Telegram bot to chat with opencode from Telegram. Create a bot with @BotFather, copy the token it gives you, and paste it here.", // TODO: translate (auto-filled from en)
+  "settings.integrations.telegram.field.token.placeholder": "Bot token", // TODO: translate (auto-filled from en)
+  "settings.integrations.telegram.error.required": "Enter a bot token", // TODO: translate (auto-filled from en)
+  "settings.integrations.telegram.toast.connected.title": "Telegram bot connected", // TODO: translate (auto-filled from en)
+  "dialog.server.qr.loopbackWarning": "This server only listens on this computer (127.0.0.1) and Tailscale isn't running here, so a phone can't reach it with this code. Start Tailscale on this machine, or pair with a server that has a real network address instead.", // TODO: translate (auto-filled from en)
+  "batuta.model.model.filterPlaceholder": "Filter models…", // TODO: translate (auto-filled from en)
+  "batuta.model.model.truncated": "Showing the first {{count}} matches — keep typing to narrow it down", // TODO: translate (auto-filled from en)
+  "settings.combos.title": "Combos", // TODO: translate (auto-filled from en)
+  "settings.combos.add.button": "Add combo", // TODO: translate (auto-filled from en)
+  "settings.combos.empty": "No combos yet.", // TODO: translate (auto-filled from en)
+  "settings.combos.modelCount": "{{count}} models", // TODO: translate (auto-filled from en)
+  "settings.combos.error.incomplete": "Give the combo a name and pick a model for every row.", // TODO: translate (auto-filled from en)
+  "settings.combos.toast.saved": "Combo saved", // TODO: translate (auto-filled from en)
+  "settings.combos.dialog.addTitle": "Add combo", // TODO: translate (auto-filled from en)
+  "settings.combos.dialog.editTitle": "Edit combo", // TODO: translate (auto-filled from en)
+  "settings.combos.field.name": "Name", // TODO: translate (auto-filled from en)
+  "settings.combos.field.models": "Models", // TODO: translate (auto-filled from en)
+  "settings.combos.addModel": "Add model", // TODO: translate (auto-filled from en)
+  "settings.combos.field.failover": "Failover", // TODO: translate (auto-filled from en)
+  "settings.combos.field.failoverStrategy": "Failover strategy", // TODO: translate (auto-filled from en)
+  "settings.combos.failover.priority": "Priority order", // TODO: translate (auto-filled from en)
+  "settings.combos.failover.roundRobin": "Round-robin", // TODO: translate (auto-filled from en)
+  "settings.combos.field.requestsPerMinute": "Requests / minute (optional)", // TODO: translate (auto-filled from en)
+  "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)", // TODO: translate (auto-filled from en)
+  "settings.agentui.title": "My Agents", // TODO: translate (auto-filled from en)
+  "settings.agentui.add.button": "Create agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.empty": "No agents yet.", // TODO: translate (auto-filled from en)
+  "settings.agentui.error.incomplete": "Give the agent a name and pick a model.", // TODO: translate (auto-filled from en)
+  "settings.agentui.toast.saved": "Agent saved", // TODO: translate (auto-filled from en)
+  "settings.agentui.dialog.addTitle": "Create agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.dialog.editTitle": "Edit agent", // TODO: translate (auto-filled from en)
+  "settings.agentui.ai.title": "Направи помоћу AI",
+  "settings.agentui.ai.hint": "Опишите агента који желите својим речима — име, личност и подешавања биће припремљени испод за преглед.",
+  "settings.agentui.ai.placeholder": "нпр. Љубазна рецепционерка стоматолошке ординације која одговара на питања о терминима...",
+  "settings.agentui.ai.generate": "Генериши",
+  "settings.agentui.ai.generating": "Генерисање…",
+  "settings.agentui.ai.toast.generated": "Нацрт је генерисан — прегледајте пре чувања",
+  "settings.agentui.field.name": "Name", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.personality": "Personality", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.model": "Model", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.telegram": "Reply on Telegram", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.commandTriggers": "Command triggers (space-separated, e.g. ! #)", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.guardrails": "Guardrails", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.guardrailsLevel": "Guardrails level", // TODO: translate (auto-filled from en)
+  "settings.agentui.guardrails.basic": "Basic", // TODO: translate (auto-filled from en)
+  "settings.agentui.guardrails.strict": "Strict", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.ragSources": "Knowledge sources", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.label": "Label", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.value": "Text or URL", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.add": "Add source", // TODO: translate (auto-filled from en)
+  "settings.agentui.rag.note": "File upload and real retrieval land in a later phase — these are stored as-is for now.", // TODO: translate (auto-filled from en)
+  "settings.agentui.field.enabled": "Enabled",
+  "settings.agentui.enable": "Enable agent",
+  "settings.agentui.disable": "Disable agent",
+  "settings.agentui.sandbox.open": "Test",
+  "settings.agentui.sandbox.title": "Test {{name}}",
+  "settings.agentui.sandbox.empty": "Send a message to try this agent — same personality, model and guardrails it uses for real, in a private test conversation.",
+  "settings.agentui.sandbox.placeholder": "Type a message...",
+  "settings.agentui.sandbox.send": "Send",
+  "settings.agentui.sandbox.reset": "New conversation",
+  "settings.agentui.sandbox.noDirectory": "Open a project first to test this agent.",
+  "settings.agentui.form.title.create": "New agent",
+  "settings.agentui.form.title.edit": "Edit agent",
+  "settings.agentui.form.testHint": "Save the agent first to test it.",
+  "sidebar.stats": "KPIs & Stats", // TODO: translate (auto-filled from en)
+  "command.stats.open": "Open KPIs & Token Analytics", // TODO: translate (auto-filled from en)
+  "stats.title": "KPIs & Token Analytics", // TODO: translate (auto-filled from en)
+  "stats.description": "Overall summary of token generation, input/output ratio, reasoning tokens, cache efficiency, and costs.", // TODO: translate (auto-filled from en)
+  "stats.refresh": "Refresh", // TODO: translate (auto-filled from en)
+  "stats.filter.range": "Period", // TODO: translate (auto-filled from en)
+  "stats.filter.today": "Today", // TODO: translate (auto-filled from en)
+  "stats.filter.7d": "7 Days", // TODO: translate (auto-filled from en)
+  "stats.filter.30d": "30 Days", // TODO: translate (auto-filled from en)
+  "stats.filter.all": "All Time", // TODO: translate (auto-filled from en)
+  "stats.filter.project": "Project", // TODO: translate (auto-filled from en)
+  "stats.filter.project.all": "All projects", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalTokens": "Total Tokens", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalTokens.sub": "Input + Output + Reasoning + Cache", // TODO: translate (auto-filled from en)
+  "stats.kpi.outputTokens": "Output Tokens", // TODO: translate (auto-filled from en)
+  "stats.kpi.outputTokens.sub": "Generated completion tokens", // TODO: translate (auto-filled from en)
+  "stats.kpi.inputTokens": "Input Tokens", // TODO: translate (auto-filled from en)
+  "stats.kpi.inputTokens.sub": "Prompt & context tokens", // TODO: translate (auto-filled from en)
+  "stats.kpi.reasoningTokens": "Reasoning Tokens", // TODO: translate (auto-filled from en)
+  "stats.kpi.reasoningTokens.sub": "Model thinking process", // TODO: translate (auto-filled from en)
+  "stats.kpi.cacheTokens": "Cache Read / Write", // TODO: translate (auto-filled from en)
+  "stats.kpi.cacheTokens.sub": "Cache hit efficiency", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalCost": "Estimated Cost", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalCost.sub": "Total API spend", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalSessions": "Total Sessions", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalSessions.sub": "Sessions in selected range", // TODO: translate (auto-filled from en)
+  "stats.kpi.avgTokens": "Avg / Session", // TODO: translate (auto-filled from en)
+  "stats.kpi.avgTokens.sub": "Average token consumption", // TODO: translate (auto-filled from en)
+  "stats.distribution.title": "Token Distribution", // TODO: translate (auto-filled from en)
+  "stats.distribution.input": "Input", // TODO: translate (auto-filled from en)
+  "stats.distribution.output": "Output", // TODO: translate (auto-filled from en)
+  "stats.distribution.reasoning": "Reasoning", // TODO: translate (auto-filled from en)
+  "stats.distribution.cache": "Cache Read", // TODO: translate (auto-filled from en)
+  "stats.breakdown.models": "Usage by Model", // TODO: translate (auto-filled from en)
+  "stats.breakdown.agents": "Usage by Agent", // TODO: translate (auto-filled from en)
+  "stats.breakdown.projects": "Usage by Project", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.name": "Name", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.tokens": "Tokens", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.output": "Output", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.reasoning": "Reasoning", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.cost": "Cost", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.sessions": "Sessions", // TODO: translate (auto-filled from en)
+  "stats.breakdown.col.share": "Share", // TODO: translate (auto-filled from en)
+  "stats.activity.title": "Daily Token Consumption", // TODO: translate (auto-filled from en)
+  "stats.sessions.title": "Recent Sessions", // TODO: translate (auto-filled from en)
+  "stats.sessions.empty": "No sessions found for this period", // TODO: translate (auto-filled from en)
+  "stats.sessions.col.title": "Session", // TODO: translate (auto-filled from en)
+  "stats.sessions.col.model": "Model", // TODO: translate (auto-filled from en)
+  "stats.sessions.col.tokens": "Tokens", // TODO: translate (auto-filled from en)
+  "stats.sessions.col.cost": "Cost", // TODO: translate (auto-filled from en)
+  "stats.sessions.col.time": "Date", // TODO: translate (auto-filled from en)
+  "stats.sessions.open": "Open", // TODO: translate (auto-filled from en)
+  "context.stats.workTime": "Work Time", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalDuration": "Total Work Time", // TODO: translate (auto-filled from en)
+  "stats.kpi.totalDuration.sub": "Total time agent worked", // TODO: translate (auto-filled from en)
+  "stats.kpi.longestDuration": "Longest Request", // TODO: translate (auto-filled from en)
+  "stats.kpi.longestDuration.sub": "Max time on a single task", // TODO: translate (auto-filled from en)
+  "stats.sessions.col.duration": "Work Time", // TODO: translate (auto-filled from en)
 }

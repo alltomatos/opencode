@@ -24,7 +24,12 @@ const archMap = {
 
 const platform = platformMap[os.platform()] ?? os.platform()
 const arch = archMap[os.arch()] ?? os.arch()
-const base = `opencode-${platform}-${arch}`
+// Per-platform binary packages carry the same npm scope as this wrapper
+// package (e.g. `@alltomatos/opencode` -> `@alltomatos/opencode-linux-x64`).
+// Unscoped installs (upstream's own `opencode-ai`) have no scope, so this is
+// a no-op there.
+const [, scope] = /^(@[^/]+\/)/.exec(packageJson.name) ?? []
+const base = `${scope ?? ""}opencode-${platform}-${arch}`
 const sourceBinary = platform === "windows" ? "opencode.exe" : "opencode"
 const targetBinary = path.join(__dirname, "bin", "opencode.exe")
 

@@ -1,3 +1,4 @@
+import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { createHomeController } from "./home/home-controller"
 import { createHomeProjectsController } from "./home/home-projects-controller"
@@ -16,6 +17,7 @@ export function NewHome() {
   const sessions = createHomeSessionsController(home)
   const search = createHomeSessionSearchController(home, sessions)
   const scroll = createHomeScrollController(sessions.data.groups)
+  const navigate = useNavigate()
   return (
     <div
       class={`
@@ -42,6 +44,7 @@ export function NewHome() {
             class="flex lg:hidden"
             onOpenSettings={projects.utility.settings}
             onOpenHelp={projects.utility.help}
+            onOpenStats={() => navigate("/stats")}
             language={projects.copy.language}
           />
         </div>

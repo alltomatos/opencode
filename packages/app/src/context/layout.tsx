@@ -88,7 +88,7 @@ export type HomeProjectSelection = { server: ServerConnection.Key; directory?: s
 
 export type ReviewDiffStyle = "unified" | "split"
 
-export type ProjectSidebarTab = "code" | "batuta"
+export type ProjectSidebarTab = "code" | "batuta" | "agentui"
 export type ReviewChangeMode = "git" | "branch" | "turn"
 export type ReviewPanelSource = "context-button" | "other"
 

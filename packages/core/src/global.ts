@@ -58,7 +58,22 @@ export interface Interface {
 
 export function make(input: Partial<Interface> = {}): Interface {
   return {
-    home: Path.home,
+    // A live getter, not a value captured once: `Global.Service` is built a
+    // single time and shared for the life of the process (see
+    // `makeGlobalNode` below), but tests toggle `OPENCODE_TEST_HOME`
+    // per-test/per-file to isolate `~/.claude`, `~/.agents`, etc. scanning
+    // (see packages/opencode/src/skill/index.ts's `discoverSkills`, and
+    // test/skill/skill.test.ts's `withHome` helper). Baking `Path.home` into
+    // a plain string here would freeze it to whatever it resolved to at the
+    // very first `Global.Service` construction in the whole test run,
+    // silently making every later `withHome()` override a no-op and letting
+    // skill discovery read the real machine home directory instead — which
+    // is how a leftover/real skill file cross-contaminates otherwise
+    // properly-isolated tests. See 2026-09-08 CI investigation into
+    // `unit (linux)`'s `skill > ...` failures.
+    get home() {
+      return Path.home
+    },
     data: Path.data,
     cache: Path.cache,
     config: Flag.OPENCODE_CONFIG_DIR ?? Path.config,

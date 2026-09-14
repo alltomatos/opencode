@@ -7,6 +7,11 @@ on:
 
 jobs:
   generate:
+    # Uses upstream's GitHub App (OPENCODE_APP_ID/OPENCODE_APP_SECRET) to
+    # commit generated code back — not configured on this fork, and the
+    # generation this produces (upstream client/docs sync) isn't something
+    # this fork needs auto-committed. Runs only on the upstream repo.
+    if: github.repository == 'anomalyco/opencode'
     runs-on: ubuntu-latest
     permissions:
       contents: write

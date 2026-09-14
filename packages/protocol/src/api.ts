@@ -13,6 +13,7 @@ import { EventGroup, makeEventGroup } from "./groups/event"
 import type { Definition } from "@opencode-ai/schema/event"
 import { AgentGroup } from "./groups/agent"
 import { HealthGroup } from "./groups/health"
+import { SystemGroup } from "./groups/system"
 import { PtyGroup } from "./groups/pty"
 import { makeQuestionGroup } from "./groups/question"
 import { ReferenceGroup } from "./groups/reference"
@@ -36,6 +37,7 @@ const makeApiFromGroup = <
 ) =>
   HttpApi.make("server")
     .add(HealthGroup)
+    .add(SystemGroup)
     .add(LocationGroup.middleware(locationMiddleware))
     .add(AgentGroup.middleware(locationMiddleware))
     .add(makeSessionGroup(sessionLocationMiddleware))

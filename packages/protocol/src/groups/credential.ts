@@ -5,6 +5,21 @@ import { LocationQuery, locationQueryOpenApi } from "./location"
 
 export const CredentialGroup = HttpApiGroup.make("server.credential")
   .add(
+    HttpApiEndpoint.post("credential.create", "/api/credential", {
+      query: LocationQuery,
+      payload: Credential.CreateInput,
+      success: Credential.Info,
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "v2.credential.create",
+          summary: "Create credential",
+          description: "Create a stored integration credential on the remote host.",
+        }),
+      ),
+  )
+  .add(
     HttpApiEndpoint.patch("credential.update", "/api/credential/:credentialID", {
       params: { credentialID: Credential.ID },
       query: LocationQuery,

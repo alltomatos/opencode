@@ -1754,8 +1754,11 @@ export type ProviderConfig = {
      * Timeout in milliseconds to wait for response headers. Provider integrations may set defaults. Set to false to disable timeout.
      */
     headerTimeout?: number | false
-    chunkTimeout?: number
-    [key: string]: unknown | string | boolean | number | false | number | false | number | undefined
+    /**
+     * Timeout in milliseconds between streamed SSE chunks for this provider. If no chunk arrives within this window, the request is aborted. Set to false to disable timeout.
+     */
+    chunkTimeout?: number | false
+    [key: string]: unknown | string | boolean | number | false | number | false | number | false | undefined
   }
   models?: {
     [key: string]: {
@@ -1926,6 +1929,116 @@ export type BatutaConfig = {
   [key: string]: BatutaActivity
 }
 
+export type ComboModel = {
+  /**
+   * Model for this combo entry, in 'providerID/modelID' form
+   */
+  model: string
+  priority: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ComboFailover = {
+  /**
+   * When true, a request that fails on one model retries the next one in the combo instead of failing.
+   */
+  enabled: boolean
+  /**
+   * 'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' starts from whichever model comes after the last one used.
+   */
+  strategy: "priority" | "round-robin"
+}
+
+export type ComboRateLimit = {
+  /**
+   * Max requests per minute across the whole combo, regardless of which model handles each one
+   */
+  requestsPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  /**
+   * Max total tokens (input+output) per minute across the whole combo
+   */
+  tokensPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type Combo = {
+  /**
+   * Stable identifier for this combo
+   */
+  id: string
+  /**
+   * Display name for this combo
+   */
+  name: string
+  /**
+   * Models this combo can resolve to, in failover order
+   */
+  models: Array<ComboModel>
+  failover: ComboFailover
+  rateLimit?: ComboRateLimit
+}
+
+export type ComboConfig = {
+  [key: string]: Combo
+}
+
+export type AgentUiChannelBinding = {
+  type: "telegram"
+}
+
+export type AgentUiRagSource = {
+  id: string
+  kind: "file" | "text" | "url"
+  /**
+   * Display name for this source in the AgentUI form
+   */
+  label: string
+  /**
+   * For 'file': a path under the RAG storage dir. For 'text': the pasted text itself. For 'url': the URL to fetch.
+   */
+  value: string
+}
+
+export type AgentUiGuardrails = {
+  enabled: boolean
+  level: "basic" | "strict"
+}
+
+export type AgentUiAgent = {
+  /**
+   * Stable identifier for this AgentUI
+   */
+  id: string
+  /**
+   * Display name
+   */
+  name: string
+  /**
+   * Custom system prompt describing this agent's role/tone
+   */
+  personality: string
+  /**
+   * 'providerID/modelID' for a direct model, or 'combo:<id>' to resolve through a saved combo
+   */
+  model: string
+  /**
+   * Channels this agent is reachable on
+   */
+  channels: Array<AgentUiChannelBinding>
+  /**
+   * Prefixes (e.g. '#', '!') that address this agent on a shared channel — the opencode '/' command prefix stays reserved for the built-in command flow
+   */
+  commandTriggers: Array<string>
+  /**
+   * Knowledge sources this agent can retrieve from
+   */
+  ragSources: Array<AgentUiRagSource>
+  guardrails: AgentUiGuardrails
+  enabled?: boolean
+}
+
+export type AgentUiConfig = {
+  [key: string]: AgentUiAgent
+}
+
 export type MemoryConfig = {
   enabled?: boolean
   memoryModel?: string
@@ -2030,6 +2143,8 @@ export type Config = {
         }
   }
   batuta?: BatutaConfig
+  combo?: ComboConfig
+  agentui?: AgentUiConfig
   memory?: MemoryConfig
   /**
    * Enable or configure formatters. Omit or set to false to disable, true to enable built-ins, or an object to enable built-ins with overrides.
@@ -2111,6 +2226,26 @@ export type BatutaWorkerNotFoundError = {
   id: string
   label: string
   message: string
+}
+
+export type ComboNotFoundError = {
+  _tag: "ComboNotFoundError"
+  id: string
+}
+
+export type ComboExhaustedError = {
+  _tag: "ComboExhaustedError"
+  id: string
+}
+
+export type AgentUiNotFoundError = {
+  _tag: "AgentUINotFoundError"
+  id: string
+}
+
+export type AgentUiGenerateFailedError = {
+  _tag: "AgentUIGenerateFailedError"
+  reason: string
 }
 
 export type Model = {
@@ -3959,6 +4094,17 @@ export type PtyTicketConnectToken = {
   expires_in: number
 }
 
+export type WorkspaceSource =
+  | {
+      type: "clone"
+      url: string
+      destination?: string
+    }
+  | {
+      type: "existing"
+      path: string
+    }
+
 export type WorkspaceEventConnectionStatus = {
   workspaceID: string
   status: "connected" | "connecting" | "disconnected" | "error"
@@ -5084,6 +5230,38 @@ export type IntegrationAttemptStatus =
         expires: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       }
     }
+
+export type CredentialOAuth = {
+  type: "oauth"
+  methodID: string
+  refresh: string
+  access: string
+  expires: number
+  metadata?: {
+    [key: string]: unknown
+  }
+}
+
+export type CredentialKey = {
+  type: "key"
+  key: string
+  metadata?: {
+    [key: string]: unknown
+  }
+}
+
+export type CredentialCreateInput = {
+  integrationID: string
+  label?: string
+  value: CredentialValue
+}
+
+export type CredentialInfo = {
+  id: string
+  integrationID: string
+  label: string
+  value: CredentialValue
+}
 
 export type PermissionV2Request = {
   id: string
@@ -7157,25 +7335,6 @@ export type EventGlobalDisposed = {
   }
 }
 
-export type CredentialOAuth = {
-  type: "oauth"
-  methodID: string
-  refresh: string
-  access: string
-  expires: number
-  metadata?: {
-    [key: string]: unknown
-  }
-}
-
-export type CredentialKey = {
-  type: "key"
-  key: string
-  metadata?: {
-    [key: string]: unknown
-  }
-}
-
 export type SkillV2DirectorySource = {
   type: "directory"
   path: string
@@ -7948,6 +8107,364 @@ export type BatutaStartPipelineChatResponses = {
 }
 
 export type BatutaStartPipelineChatResponse = BatutaStartPipelineChatResponses[keyof BatutaStartPipelineChatResponses]
+
+export type ComboListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo"
+}
+
+export type ComboListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboListError = ComboListErrors[keyof ComboListErrors]
+
+export type ComboListResponses = {
+  /**
+   * List configured combos
+   */
+  200: Array<Combo>
+}
+
+export type ComboListResponse = ComboListResponses[keyof ComboListResponses]
+
+export type ComboAddData = {
+  body?: Combo
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo"
+}
+
+export type ComboAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboAddError = ComboAddErrors[keyof ComboAddErrors]
+
+export type ComboAddResponses = {
+  /**
+   * Combo added successfully
+   */
+  200: Combo
+}
+
+export type ComboAddResponse = ComboAddResponses[keyof ComboAddResponses]
+
+export type ComboRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/{id}"
+}
+
+export type ComboRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ComboRemoveError = ComboRemoveErrors[keyof ComboRemoveErrors]
+
+export type ComboRemoveResponses = {
+  /**
+   * Combo removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type ComboRemoveResponse = ComboRemoveResponses[keyof ComboRemoveResponses]
+
+export type ComboResolveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/{id}/resolve"
+}
+
+export type ComboResolveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * ComboNotFoundError | ComboExhaustedError
+   */
+  500: ComboNotFoundError | ComboExhaustedError
+}
+
+export type ComboResolveError = ComboResolveErrors[keyof ComboResolveErrors]
+
+export type ComboResolveResponses = {
+  /**
+   * The model this combo currently resolves to
+   */
+  200: {
+    providerID: string
+    modelID: string
+  }
+}
+
+export type ComboResolveResponse = ComboResolveResponses[keyof ComboResolveResponses]
+
+export type AgentuiListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui"
+}
+
+export type AgentuiListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiListError = AgentuiListErrors[keyof AgentuiListErrors]
+
+export type AgentuiListResponses = {
+  /**
+   * List configured AgentUI agents
+   */
+  200: Array<AgentUiAgent>
+}
+
+export type AgentuiListResponse = AgentuiListResponses[keyof AgentuiListResponses]
+
+export type AgentuiAddData = {
+  body?: AgentUiAgent
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui"
+}
+
+export type AgentuiAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiAddError = AgentuiAddErrors[keyof AgentuiAddErrors]
+
+export type AgentuiAddResponses = {
+  /**
+   * Agent added successfully
+   */
+  200: AgentUiAgent
+}
+
+export type AgentuiAddResponse = AgentuiAddResponses[keyof AgentuiAddResponses]
+
+export type AgentuiRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}"
+}
+
+export type AgentuiRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiRemoveError = AgentuiRemoveErrors[keyof AgentuiRemoveErrors]
+
+export type AgentuiRemoveResponses = {
+  /**
+   * Agent removed successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AgentuiRemoveResponse = AgentuiRemoveResponses[keyof AgentuiRemoveResponses]
+
+export type AgentuiGetData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}"
+}
+
+export type AgentuiGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError
+   */
+  500: AgentUiNotFoundError
+}
+
+export type AgentuiGetError = AgentuiGetErrors[keyof AgentuiGetErrors]
+
+export type AgentuiGetResponses = {
+  /**
+   * The requested agent
+   */
+  200: AgentUiAgent
+}
+
+export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
+
+export type AgentuiGenerateData = {
+  body?: {
+    description: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/generate"
+}
+
+export type AgentuiGenerateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUIGenerateFailedError
+   */
+  500: AgentUiGenerateFailedError
+}
+
+export type AgentuiGenerateError = AgentuiGenerateErrors[keyof AgentuiGenerateErrors]
+
+export type AgentuiGenerateResponses = {
+  /**
+   * Generated agent draft
+   */
+  200: {
+    name: string
+    personality: string
+    commandTriggers: Array<string>
+    guardrails: AgentUiGuardrails
+  }
+}
+
+export type AgentuiGenerateResponse = AgentuiGenerateResponses[keyof AgentuiGenerateResponses]
+
+export type AgentuiTestData = {
+  body?: {
+    projectDirectory: string
+    message: string
+  }
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/test"
+}
+
+export type AgentuiTestErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * AgentUINotFoundError
+   */
+  500: AgentUiNotFoundError
+}
+
+export type AgentuiTestError = AgentuiTestErrors[keyof AgentuiTestErrors]
+
+export type AgentuiTestResponses = {
+  /**
+   * Sandbox reply from the agent
+   */
+  200: {
+    reply: string
+    blocked: boolean
+  }
+}
+
+export type AgentuiTestResponse = AgentuiTestResponses[keyof AgentuiTestResponses]
+
+export type AgentuiResetSandboxData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agentui/{id}/sandbox/reset"
+}
+
+export type AgentuiResetSandboxErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AgentuiResetSandboxError = AgentuiResetSandboxErrors[keyof AgentuiResetSandboxErrors]
+
+export type AgentuiResetSandboxResponses = {
+  /**
+   * Sandbox conversation reset
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AgentuiResetSandboxResponse = AgentuiResetSandboxResponses[keyof AgentuiResetSandboxResponses]
 
 export type ConfigGetData = {
   body?: never
@@ -11611,6 +12128,131 @@ export type MemoryProjectMemoryStatusResponses = {
 export type MemoryProjectMemoryStatusResponse =
   MemoryProjectMemoryStatusResponses[keyof MemoryProjectMemoryStatusResponses]
 
+export type MemoryGetProjectEntriesData = {
+  body?: never
+  path?: never
+  query: {
+    directory: string
+  }
+  url: "/memory/project/entries"
+}
+
+export type MemoryGetProjectEntriesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetProjectEntriesError = MemoryGetProjectEntriesErrors[keyof MemoryGetProjectEntriesErrors]
+
+export type MemoryGetProjectEntriesResponses = {
+  /**
+   * Project memory entries
+   */
+  200: {
+    content: string
+  }
+}
+
+export type MemoryGetProjectEntriesResponse = MemoryGetProjectEntriesResponses[keyof MemoryGetProjectEntriesResponses]
+
+export type MemoryGetGlobalEntriesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/global"
+}
+
+export type MemoryGetGlobalEntriesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryGetGlobalEntriesError = MemoryGetGlobalEntriesErrors[keyof MemoryGetGlobalEntriesErrors]
+
+export type MemoryGetGlobalEntriesResponses = {
+  /**
+   * Global memory entries
+   */
+  200: {
+    content: string
+  }
+}
+
+export type MemoryGetGlobalEntriesResponse = MemoryGetGlobalEntriesResponses[keyof MemoryGetGlobalEntriesResponses]
+
+export type MemoryAddEntryData = {
+  body?: {
+    directory?: string
+    note: string
+    global?: boolean
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/entry"
+}
+
+export type MemoryAddEntryErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryAddEntryError = MemoryAddEntryErrors[keyof MemoryAddEntryErrors]
+
+export type MemoryAddEntryResponses = {
+  /**
+   * Path of written memory file
+   */
+  200: {
+    path: string
+  }
+}
+
+export type MemoryAddEntryResponse = MemoryAddEntryResponses[keyof MemoryAddEntryResponses]
+
+export type MemoryPromoteData = {
+  body?: {
+    summary: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/promote"
+}
+
+export type MemoryPromoteErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryPromoteError = MemoryPromoteErrors[keyof MemoryPromoteErrors]
+
+export type MemoryPromoteResponses = {
+  /**
+   * Path of written global memory file
+   */
+  200: {
+    path: string
+  }
+}
+
+export type MemoryPromoteResponse = MemoryPromoteResponses[keyof MemoryPromoteResponses]
+
 export type TuiAppendPromptData = {
   body?: {
     text: string
@@ -12065,6 +12707,7 @@ export type ExperimentalWorkspaceCreateData = {
     type: string
     branch?: string | null
     extra?: unknown | null
+    source?: WorkspaceSource
   }
   path?: never
   query?: {
@@ -12093,6 +12736,44 @@ export type ExperimentalWorkspaceCreateResponses = {
 
 export type ExperimentalWorkspaceCreateResponse =
   ExperimentalWorkspaceCreateResponses[keyof ExperimentalWorkspaceCreateResponses]
+
+export type V2WorkspaceCreateData = {
+  body: {
+    id?: string
+    type: string
+    branch?: string
+    extra?: unknown
+    source?: WorkspaceSource
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/api/workspaces"
+}
+
+export type V2WorkspaceCreateErrors = {
+  /**
+   * WorkspaceCreateError | BadRequest | InvalidRequestError
+   */
+  400: WorkspaceCreateError | EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * Unauthorized
+   */
+  401: unknown
+}
+
+export type V2WorkspaceCreateError = V2WorkspaceCreateErrors[keyof V2WorkspaceCreateErrors]
+
+export type V2WorkspaceCreateResponses = {
+  /**
+   * Workspace created
+   */
+  200: Workspace
+}
+
+export type V2WorkspaceCreateResponse = V2WorkspaceCreateResponses[keyof V2WorkspaceCreateResponses]
 
 export type ExperimentalWorkspaceSyncListData = {
   body?: never
@@ -12253,6 +12934,41 @@ export type V2HealthGetResponses = {
 }
 
 export type V2HealthGetResponse = V2HealthGetResponses[keyof V2HealthGetResponses]
+
+export type V2SystemUpdateData = {
+  body: {
+    confirm: boolean
+  }
+  path?: never
+  query?: never
+  url: "/api/system/update"
+}
+
+export type V2SystemUpdateErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2SystemUpdateError = V2SystemUpdateErrors[keyof V2SystemUpdateErrors]
+
+export type V2SystemUpdateResponses = {
+  /**
+   * Success
+   */
+  200: {
+    status: string
+    message: string
+    currentVersion?: string
+  }
+}
+
+export type V2SystemUpdateResponse = V2SystemUpdateResponses[keyof V2SystemUpdateResponses]
 
 export type V2LocationGetData = {
   body?: never
@@ -13433,6 +14149,40 @@ export type V2IntegrationAttemptCompleteResponses = {
 
 export type V2IntegrationAttemptCompleteResponse =
   V2IntegrationAttemptCompleteResponses[keyof V2IntegrationAttemptCompleteResponses]
+
+export type V2CredentialCreateData = {
+  body: CredentialCreateInput
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/credential"
+}
+
+export type V2CredentialCreateErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2CredentialCreateError = V2CredentialCreateErrors[keyof V2CredentialCreateErrors]
+
+export type V2CredentialCreateResponses = {
+  /**
+   * Credential.Info
+   */
+  200: CredentialInfo
+}
+
+export type V2CredentialCreateResponse = V2CredentialCreateResponses[keyof V2CredentialCreateResponses]
 
 export type V2CredentialRemoveData = {
   body?: never

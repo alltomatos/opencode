@@ -157,6 +157,7 @@ describe("PublicApi OpenAPI v2 errors", () => {
       ["get", "/api/integration/attempt/{attemptID}"],
       ["post", "/api/integration/attempt/{attemptID}/complete"],
       ["delete", "/api/integration/attempt/{attemptID}"],
+      ["post", "/api/credential"],
       ["delete", "/api/credential/{credentialID}"],
       ["patch", "/api/credential/{credentialID}"],
     ] as const) {

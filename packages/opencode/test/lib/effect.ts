@@ -28,7 +28,7 @@ function instanceArgs<E, R>(
 ): { instanceOptions: InstanceOptions<E, R> | undefined; testOptions: number | TestOptions | undefined } {
   if (typeof options === "number") return { instanceOptions: undefined, testOptions: options }
   if (isInstanceOptions(options)) return { instanceOptions: options, testOptions }
-  return { instanceOptions: undefined, testOptions: options }
+  return { instanceOptions: undefined, testOptions }
 }
 
 const body = <A, E, R>(value: Body<A, E, R>) => Effect.suspend(() => (typeof value === "function" ? value() : value))

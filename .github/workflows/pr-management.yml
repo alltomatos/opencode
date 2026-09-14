@@ -6,6 +6,11 @@ on:
 
 jobs:
   check-duplicates:
+    # Uses upstream's OPENCODE_API_KEY to run an LLM duplicate-PR check —
+    # not configured on this fork, and hangs until timeout instead of
+    # failing fast without it. Same class of issue already fixed for
+    # publish.yml/generate.yml — guard to the upstream repo.
+    if: github.repository == 'anomalyco/opencode'
     runs-on: ubuntu-latest
     permissions:
       contents: read

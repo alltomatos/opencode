@@ -9,6 +9,7 @@ import { httpClient } from "../effect/app-node-platform"
 import { FSUtil } from "../fs-util"
 import { Global } from "../global"
 import { which } from "../util/which"
+import { Flock } from "../util/flock"
 
 export namespace RipgrepBinary {
   const VERSION = "15.1.0"
@@ -101,23 +102,42 @@ export namespace RipgrepBinary {
             const config = PLATFORM[platformKey]
             if (!config) throw new Error(`unsupported platform for ripgrep: ${platformKey}`)
 
-            const filename = `ripgrep-${VERSION}-${config.platform}.${config.extension}`
-            const url = `https://github.com/BurntSushi/ripgrep/releases/download/${VERSION}/${filename}`
-            const archive = path.join(Global.Path.bin, filename)
+            // Flock is cross-process: concurrent opencode processes (e.g.
+            // `core` and `opencode`'s test suites racing under turbo, or two
+            // sessions started at once) target the same install path. Without
+            // this, two processes can simultaneously spawn a `powershell.exe
+            // -Command Expand-Archive` into overlapping temp dirs and race to
+            // write `target` — on Windows this reliably manifests as one of
+            // the extraction subprocesses hanging on a sharing-violation
+            // rather than failing fast. See 2026-09-08 CI investigation
+            // (unit (windows) Ripgrep tests hanging at exactly the test
+            // timeout with "ChildProcess.exitCode" never resolving).
+            return yield* Effect.scoped(
+              Effect.gen(function* () {
+                yield* Flock.effect(`ripgrep-install-${VERSION}`)
+                // Re-check under the lock: another process may have finished
+                // installing it while we were waiting.
+                if (yield* fs.isFile(target).pipe(Effect.orDie)) return target
 
-            yield* Effect.logInfo("downloading ripgrep", { url })
-            yield* fs.ensureDir(Global.Path.bin).pipe(Effect.orDie)
-            const bytes = yield* HttpClientRequest.get(url).pipe(
-              http.execute,
-              Effect.flatMap((response) => response.arrayBuffer),
-              Effect.mapError((cause) => (cause instanceof Error ? cause : new Error(String(cause)))),
+                const filename = `ripgrep-${VERSION}-${config.platform}.${config.extension}`
+                const url = `https://github.com/BurntSushi/ripgrep/releases/download/${VERSION}/${filename}`
+                const archive = path.join(Global.Path.bin, filename)
+
+                yield* Effect.logInfo("downloading ripgrep", { url })
+                yield* fs.ensureDir(Global.Path.bin).pipe(Effect.orDie)
+                const bytes = yield* HttpClientRequest.get(url).pipe(
+                  http.execute,
+                  Effect.flatMap((response) => response.arrayBuffer),
+                  Effect.mapError((cause) => (cause instanceof Error ? cause : new Error(String(cause)))),
+                )
+                if (bytes.byteLength === 0) throw new Error(`failed to download ripgrep from ${url}`)
+
+                yield* fs.writeWithDirs(archive, new Uint8Array(bytes))
+                yield* extract(archive, config, target)
+                yield* fs.remove(archive, { force: true }).pipe(Effect.ignore)
+                return target
+              }),
             )
-            if (bytes.byteLength === 0) throw new Error(`failed to download ripgrep from ${url}`)
-
-            yield* fs.writeWithDirs(archive, new Uint8Array(bytes))
-            yield* extract(archive, config, target)
-            yield* fs.remove(archive, { force: true }).pipe(Effect.ignore)
-            return target
           }),
         ),
       })
