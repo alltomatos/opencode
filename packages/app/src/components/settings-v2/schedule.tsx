@@ -62,9 +62,17 @@ export const SettingsScheduleV2: Component = () => {
 
   // Quando
   const [whenKind, setWhenKind] = createSignal<WhenKind>("daily")
-  const [dailyTime, setDailyTime] = createSignal("09:00")
+  const [dailyTimes, setDailyTimes] = createSignal<string[]>(["09:00"])
+  const [nextDailyTime, setNextDailyTime] = createSignal("13:00")
   const [intervalValue, setIntervalValue] = createSignal("30")
   const [intervalUnit, setIntervalUnit] = createSignal<IntervalUnit>("minutes")
+
+  const addDailyTime = () => {
+    const time = nextDailyTime()
+    if (!time || dailyTimes().includes(time)) return
+    setDailyTimes((prev) => [...prev, time].sort())
+  }
+  const removeDailyTime = (time: string) => setDailyTimes((prev) => prev.filter((t) => t !== time))
 
   // Como
   const [advanced, setAdvanced] = createSignal(false)
@@ -95,7 +103,10 @@ export const SettingsScheduleV2: Component = () => {
     })
   }
 
-  const canSave = () => (advanced() ? command().trim().length > 0 : instructions().trim().length > 0)
+  const canSave = () => {
+    if (whenKind() === "daily" && dailyTimes().length === 0) return false
+    return advanced() ? command().trim().length > 0 : instructions().trim().length > 0
+  }
 
   const reset = () => {
     setInstructions("")
@@ -106,24 +117,31 @@ export const SettingsScheduleV2: Component = () => {
   const createMutation = useMutation(() => ({
     mutationFn: async () => {
       const kind = whenKind()
-      const trigger =
-        kind === "daily"
-          ? (() => {
-              const [h, m] = dailyTime().split(":").map((v) => Number(v) || 0)
-              return { kind: "cron", expr: `${m} ${h} * * *` } as const
-            })()
-          : kind === "interval"
-            ? ({
-                kind: "interval",
-                ms: Math.max(1, Number(intervalValue()) || 0) * (intervalUnit() === "hours" ? 3_600_000 : 60_000),
-              } as const)
-            : ({ kind: "manual" } as const)
-
       const action = advanced()
         ? ({ kind: "shell", command: command() } as const)
         : ({ kind: "skill", instructions: instructions(), mcpTools: mcpTools().length ? mcpTools() : undefined } as const)
 
-      await serverSDK().client.v2.schedule.create({ scheduleCreateInput: { trigger, action } })
+      const triggers =
+        kind === "daily"
+          ? dailyTimes().map((time) => {
+              const [h, m] = time.split(":").map((v) => Number(v) || 0)
+              return { kind: "cron", expr: `${m} ${h} * * *` } as const
+            })
+          : kind === "interval"
+            ? [
+                {
+                  kind: "interval",
+                  ms: Math.max(1, Number(intervalValue()) || 0) * (intervalUnit() === "hours" ? 3_600_000 : 60_000),
+                } as const,
+              ]
+            : [{ kind: "manual" } as const]
+
+      // A recurring routine can fire more than once a day (e.g. 8h and 13h) --
+      // each time becomes its own Schedule row sharing the same action, since
+      // the backend's cron trigger is a single expression, not a list of times.
+      await Promise.all(
+        triggers.map((trigger) => serverSDK().client.v2.schedule.create({ scheduleCreateInput: { trigger, action } })),
+      )
     },
     onSuccess: () => {
       reset()
@@ -185,12 +203,39 @@ export const SettingsScheduleV2: Component = () => {
                 </For>
               </div>
               <Show when={whenKind() === "daily"}>
-                <TextInputV2
-                  class="!w-[110px]"
-                  type="time"
-                  value={dailyTime()}
-                  onInput={(event) => setDailyTime(event.currentTarget.value)}
-                />
+                <div class="flex flex-col gap-2">
+                  <Show when={dailyTimes().length > 0}>
+                    <div class="flex flex-wrap gap-1.5">
+                      <For each={dailyTimes()}>
+                        {(time) => (
+                          <Tag>
+                            {time}
+                            <IconButtonV2
+                              variant="ghost-muted"
+                              aria-label="Remover horário"
+                              onClick={() => removeDailyTime(time)}
+                              icon={<IconV2 name="close" size="small" />}
+                            />
+                          </Tag>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+                  <div class="flex items-center gap-2">
+                    <TextInputV2
+                      class="!w-[110px]"
+                      type="time"
+                      value={nextDailyTime()}
+                      onInput={(event) => setNextDailyTime(event.currentTarget.value)}
+                    />
+                    <ButtonV2 type="button" variant="neutral" icon="plus" onClick={addDailyTime}>
+                      Adicionar horário
+                    </ButtonV2>
+                  </div>
+                  <span class="text-12-regular text-text-weak">
+                    Adicione quantos horários quiser — ex: 08:00 e 13:00 pra rodar duas vezes ao dia.
+                  </span>
+                </div>
               </Show>
               <Show when={whenKind() === "interval"}>
                 <TextInputV2
