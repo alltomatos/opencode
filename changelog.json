@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.18",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção: build v1.21.17 estava incompleta",
+              "description": "A v1.21.17 foi publicada com uma mescla incompleta (faltava a maior parte da interface nova). Esta versão corrige isso — mesmas novidades listadas abaixo, agora completas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.17",
       "highlights": [
         {
