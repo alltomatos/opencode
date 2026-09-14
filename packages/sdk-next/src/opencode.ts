@@ -29,6 +29,13 @@ export const create = Effect.fn("OpenCode.create")(function* () {
     ),
     (web) => Effect.promise(web.dispose),
   )
+  // TODO: web.handler() currently requires a second `Context<Credential.Service>`
+  // argument that this package never satisfies (typecheck disabled in
+  // package.json until this is resolved) — Credential.node is already part of
+  // applicationServices in packages/server/src/routes.ts and closes there for
+  // the plain webHandler() export, but something in this embedded-with-shared-
+  // PermissionSaved path re-surfaces it as an outward requirement. Needs
+  // someone with more context on the Layer graph to trace why.
   const fetch = Object.assign((input: RequestInfo | URL, init?: RequestInit) => web.handler(new Request(input, init)), {
     preconnect: () => undefined,
   }) satisfies typeof globalThis.fetch
