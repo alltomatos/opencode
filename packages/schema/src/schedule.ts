@@ -36,6 +36,7 @@ export interface ShellAction extends Schema.Schema.Type<typeof ShellAction> {}
 export const ShellAction = Schema.Struct({
   kind: Schema.Literal("shell"),
   command: Schema.String,
+  timeoutMs: optional(Schema.Number),
 }).annotate({ identifier: "Schedule.ShellAction" })
 
 export interface McpToolAction extends Schema.Schema.Type<typeof McpToolAction> {}
@@ -44,6 +45,7 @@ export const McpToolAction = Schema.Struct({
   server: Schema.String,
   tool: Schema.String,
   args: optional(Schema.Record(Schema.String, Schema.Unknown)),
+  timeoutMs: optional(Schema.Number),
 }).annotate({ identifier: "Schedule.McpToolAction" })
 
 export interface SkillMcpTool extends Schema.Schema.Type<typeof SkillMcpTool> {}

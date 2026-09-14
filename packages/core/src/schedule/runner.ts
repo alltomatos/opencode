@@ -46,7 +46,13 @@ const mcpCallerUnsupportedLayer = Layer.succeed(
 
 export const mcpCallerNode = makeGlobalNode({ service: McpCaller, layer: mcpCallerUnsupportedLayer, deps: [] })
 
-function executeCommand(command: string, cwd?: string): Promise<{ exitCode: number; error?: string }> {
+const DEFAULT_TIMEOUT_MS = 300_000
+
+function executeCommand(
+  command: string,
+  cwd?: string,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<{ exitCode: number; error?: string }> {
   return new Promise((resolve) => {
     try {
       const proc = spawn(command, {
@@ -56,18 +62,46 @@ function executeCommand(command: string, cwd?: string): Promise<{ exitCode: numb
       })
 
       let stderr = ""
+      let settled = false
+      let timer: NodeJS.Timeout | undefined
+
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          if (settled) return
+          settled = true
+          try {
+            if (process.platform === "win32") {
+              proc.kill()
+            } else {
+              proc.kill("SIGKILL")
+            }
+          } catch {
+            // ignore kill errors
+          }
+          resolve({ exitCode: 1, error: `timeout after ${timeoutMs}ms` })
+        }, timeoutMs)
+        timer.unref?.()
+      }
+
       proc.stderr?.on("data", (chunk) => {
         stderr += chunk.toString()
       })
 
       proc.on("close", (code) => {
+        if (settled) return
+        settled = true
+        if (timer) clearTimeout(timer)
+        const exitCode = code === 0 ? 0 : (code ?? 1)
         resolve({
-          exitCode: code ?? 0,
-          error: code !== 0 ? stderr.trim() || `Process exited with code ${code}` : undefined,
+          exitCode,
+          error: exitCode !== 0 ? stderr.trim() || `Process exited with code ${code}` : undefined,
         })
       })
 
       proc.on("error", (err) => {
+        if (settled) return
+        settled = true
+        if (timer) clearTimeout(timer)
         resolve({ exitCode: 1, error: err.message })
       })
     } catch (err: any) {
@@ -83,11 +117,22 @@ function executeCommand(command: string, cwd?: string): Promise<{ exitCode: numb
  * the swappable McpCaller dependency above.
  */
 function runAction(action: Schedule.Action, workspace: string | undefined) {
-  if (action.kind === "shell") return Effect.promise(() => executeCommand(action.command, workspace))
+  const timeoutMs =
+    "timeoutMs" in action && typeof action.timeoutMs === "number" && action.timeoutMs > 0
+      ? action.timeoutMs
+      : DEFAULT_TIMEOUT_MS
+
+  if (action.kind === "shell") return Effect.promise(() => executeCommand(action.command, workspace, timeoutMs))
   if (action.kind === "mcp_tool") {
     return Effect.gen(function* () {
       const caller = yield* McpCaller
-      const result = yield* caller.callTool(action.server, action.tool, action.args)
+      const result = yield* caller.callTool(action.server, action.tool, action.args).pipe(
+        Effect.timeout(`${timeoutMs} millis`),
+        Effect.catchTags({
+          TimeoutException: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+          TimeoutError: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+        }),
+      )
       return { exitCode: result.success ? 0 : 1, error: result.error }
     })
   }

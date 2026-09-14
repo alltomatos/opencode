@@ -22,8 +22,18 @@ export const layer = Layer.effect(
     return ScheduleRunner.McpCaller.of({
       callTool: (server, tool, args) =>
         Effect.gen(function* () {
+          const statuses = yield* mcp.status().pipe(Effect.orElseSucceed(() => ({})))
+          if (statuses[server]?.status !== "connected") {
+            return { success: false, error: `MCP server "${server}" is not connected` }
+          }
+          const catalog = yield* mcp
+            .serverCatalog(server)
+            .pipe(Effect.orElseSucceed(() => ({ tools: [], prompts: [], resources: [] })))
+          if (!catalog.tools.some((t) => t.name === tool)) {
+            return { success: false, error: `MCP tool "${tool}" not found on server "${server}"` }
+          }
           const raw = yield* mcp.callTool(server, tool, args)
-          if (!raw) return { success: false, error: `MCP server "${server}" is not connected` }
+          if (!raw) return { success: false, error: `Failed to execute MCP tool "${tool}" on server "${server}"` }
           if (raw.isError) {
             return { success: false, error: extractErrorText((raw.content ?? []) as { type: string; text?: string }[]) }
           }

@@ -193,7 +193,7 @@ export const layer = Layer.effect(
           if (!command) {
             return yield* Effect.fail(new InvalidCommandError({ message: "Command cannot be empty" }))
           }
-          action = { kind: "shell", command }
+          action = { kind: "shell", command, timeoutMs: action.timeoutMs }
         }
 
         const info = new Info({
