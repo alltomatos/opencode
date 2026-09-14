@@ -269,13 +269,7 @@ export function MessageTimeline(props: {
     const previous = item ? (virtualizer.itemSizeCache.get(item.key) ?? item.size) : undefined
     const root = listRoot()
     if (root && previous !== undefined && Math.abs(size - previous) > root.clientHeight) {
-      const view = root.getBoundingClientRect()
-      resizePinnedIndexes = [...root.querySelectorAll<HTMLElement>("[data-index]")]
-        .filter((element) => {
-          const rect = element.getBoundingClientRect()
-          return rect.bottom > view.top && rect.top < view.bottom
-        })
-        .map((element) => Number(element.dataset.index))
+      resizePinnedIndexes = virtualizer.getVirtualItems().map((element) => element.index)
       if (resizePinFrame !== undefined) cancelAnimationFrame(resizePinFrame)
       resizePinFrame = requestAnimationFrame(() => {
         resizePinFrame = requestAnimationFrame(() => {
