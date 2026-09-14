@@ -1,7 +1,7 @@
 export * as ScheduleRunner from "./runner"
 
 import { spawn } from "node:child_process"
-import { Duration, Effect, Layer, Schema, Schedule as EffectSchedule } from "effect"
+import { Context, Duration, Effect, Layer, Schema, Schedule as EffectSchedule } from "effect"
 import { Schedule } from "../schedule"
 import { Database } from "../database/database"
 import { makeGlobalNode } from "../effect/app-node"
@@ -9,6 +9,42 @@ import { makeGlobalNode } from "../effect/app-node"
 export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Schedule.NotFoundError", {
   id: Schedule.ID,
 }) {}
+
+export interface McpCallResult {
+  readonly success: boolean
+  readonly error?: string
+}
+
+export interface McpCallerInterface {
+  readonly callTool: (
+    server: string,
+    tool: string,
+    args: Record<string, unknown> | undefined,
+  ) => Effect.Effect<McpCallResult>
+}
+
+/**
+ * mcp_tool actions call an MCP client living in the legacy opencode process
+ * (packages/opencode's MCP.Service), which packages/core can't depend on
+ * directly. This is a swappable dependency: packages/opencode replaces this
+ * node with a real implementation wired to its MCP.Service; anything running
+ * without that process (the standalone V2 daemon) keeps this "unsupported"
+ * default instead of silently no-op'ing.
+ */
+export class McpCaller extends Context.Service<McpCaller, McpCallerInterface>()("@opencode/v2/Schedule/McpCaller") {}
+
+const mcpCallerUnsupportedLayer = Layer.succeed(
+  McpCaller,
+  McpCaller.of({
+    callTool: () =>
+      Effect.succeed({
+        success: false,
+        error: "mcp_tool actions require the desktop app's MCP connections, not available in this server process.",
+      }),
+  }),
+)
+
+export const mcpCallerNode = makeGlobalNode({ service: McpCaller, layer: mcpCallerUnsupportedLayer, deps: [] })
 
 function executeCommand(command: string, cwd?: string): Promise<{ exitCode: number; error?: string }> {
   return new Promise((resolve) => {
@@ -41,12 +77,20 @@ function executeCommand(command: string, cwd?: string): Promise<{ exitCode: numb
 }
 
 /**
- * mcp_tool/skill actions need MCP.Service and Session/Batuta, which don't have
- * a V2/core runtime yet (see #213 discussion) -- they're recorded and skipped
- * with a clear error rather than silently no-op'd, until those land.
+ * skill actions need Session/Batuta, which don't have a V2/core runtime yet
+ * (see #213/#217 discussion) -- recorded and skipped with a clear error
+ * rather than silently no-op'd, until that lands. mcp_tool is handled via
+ * the swappable McpCaller dependency above.
  */
 function runAction(action: Schedule.Action, workspace: string | undefined) {
   if (action.kind === "shell") return Effect.promise(() => executeCommand(action.command, workspace))
+  if (action.kind === "mcp_tool") {
+    return Effect.gen(function* () {
+      const caller = yield* McpCaller
+      const result = yield* caller.callTool(action.server, action.tool, action.args)
+      return { exitCode: result.success ? 0 : 1, error: result.error }
+    })
+  }
   return Effect.succeed({
     exitCode: 1,
     error: `Action kind "${action.kind}" is not yet supported by the schedule runner.`,
@@ -107,5 +151,5 @@ const tickLayer = Layer.effectDiscard(
 export const tickNode = makeGlobalNode({
   name: "schedule-tick",
   layer: Layer.merge(Schedule.layer, tickLayer.pipe(Layer.provide(Schedule.layer))),
-  deps: [Database.node],
+  deps: [Database.node, mcpCallerNode],
 })
