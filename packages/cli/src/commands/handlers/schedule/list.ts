@@ -2,13 +2,15 @@ import { EOL } from "os"
 import * as Effect from "effect/Effect"
 import { Commands } from "../../commands"
 import { Runtime } from "../../../framework/runtime"
-import { ScheduleRegistry } from "../../../services/schedule-registry"
+import { Daemon } from "../../../services/daemon"
 
 export default Runtime.handler(
   Commands.commands.schedule.commands.list,
   Effect.fn("cli.schedule.list")(function* () {
-    const registry = yield* ScheduleRegistry.Service
-    const list = yield* registry.list()
+    const daemon = yield* Daemon.Service
+    const client = yield* daemon.client()
+    const response = yield* Effect.promise(() => client.v2.schedule.list())
+    const list = response.data ?? []
     if (list.length === 0) {
       process.stdout.write("No scheduled automation tasks." + EOL)
       return

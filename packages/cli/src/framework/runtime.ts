@@ -3,9 +3,8 @@ import * as Command from "effect/unstable/cli/Command"
 import { Spec } from "./spec"
 import { Daemon } from "../services/daemon"
 import { EnvironmentRegistry } from "../services/environment-registry"
-import { ScheduleRegistry } from "../services/schedule-registry"
 
-export type Services = Daemon.Service | EnvironmentRegistry.Service | ScheduleRegistry.Service
+export type Services = Daemon.Service | EnvironmentRegistry.Service
 
 export type Input<Value> =
   Value extends Spec.Node<infer _Name, infer Command, infer _Commands>

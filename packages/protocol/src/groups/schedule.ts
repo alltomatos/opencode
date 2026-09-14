@@ -1,0 +1,56 @@
+import { Schedule } from "@opencode-ai/schema/schedule"
+import { Schema } from "effect"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
+import { LocationQuery, locationQueryOpenApi } from "./location"
+
+export class ScheduleValidationError extends Schema.ErrorClass<ScheduleValidationError>("ScheduleValidationError")(
+  { message: Schema.String },
+  { httpApiStatus: 400 },
+) {}
+
+export const ScheduleGroup = HttpApiGroup.make("server.schedule")
+  .add(
+    HttpApiEndpoint.get("schedule.list", "/api/schedule", {
+      query: LocationQuery,
+      success: Schema.Array(Schedule.Info),
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "v2.schedule.list",
+          summary: "List scheduled routines",
+          description: "List every scheduled routine registered on the remote host.",
+        }),
+      ),
+  )
+  .add(
+    HttpApiEndpoint.post("schedule.create", "/api/schedule", {
+      query: LocationQuery,
+      payload: Schedule.CreateInput,
+      success: Schedule.Info,
+      error: ScheduleValidationError,
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "v2.schedule.create",
+          summary: "Create scheduled routine",
+          description: "Register a new scheduled routine (trigger + action) on the remote host.",
+        }),
+      ),
+  )
+  .add(
+    HttpApiEndpoint.delete("schedule.remove", "/api/schedule/:scheduleID", {
+      params: { scheduleID: Schedule.ID },
+      query: LocationQuery,
+      success: HttpApiSchema.NoContent,
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "v2.schedule.remove",
+          summary: "Remove scheduled routine",
+          description: "Remove a scheduled routine from the remote host.",
+        }),
+      ),
+  )

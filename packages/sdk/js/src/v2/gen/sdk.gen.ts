@@ -73,6 +73,7 @@ import type {
   ConfigProvidersResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
+  CredentialCreateInput,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -257,6 +258,7 @@ import type {
   QuestionReplyErrors,
   QuestionReplyResponses,
   QuestionV2Reply,
+  ScheduleCreateInput,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -355,6 +357,8 @@ import type {
   V2AgentListResponses,
   V2CommandListErrors,
   V2CommandListResponses,
+  V2CredentialCreateErrors,
+  V2CredentialCreateResponses,
   V2CredentialRemoveErrors,
   V2CredentialRemoveResponses,
   V2CredentialUpdateErrors,
@@ -421,6 +425,12 @@ import type {
   V2QuestionRequestListResponses,
   V2ReferenceListErrors,
   V2ReferenceListResponses,
+  V2ScheduleCreateErrors,
+  V2ScheduleCreateResponses,
+  V2ScheduleListErrors,
+  V2ScheduleListResponses,
+  V2ScheduleRemoveErrors,
+  V2ScheduleRemoveResponses,
   V2SessionActiveErrors,
   V2SessionActiveResponses,
   V2SessionCompactErrors,
@@ -473,6 +483,10 @@ import type {
   V2SessionWaitResponses,
   V2SkillListErrors,
   V2SkillListResponses,
+  V2SystemUpdateErrors,
+  V2SystemUpdateResponses,
+  V2WorkspaceCreateErrors,
+  V2WorkspaceCreateResponses,
   VcsApplyErrors,
   VcsApplyResponses,
   VcsDiffErrors,
@@ -483,6 +497,7 @@ import type {
   VcsGetResponses,
   VcsStatusErrors,
   VcsStatusResponses,
+  WorkspaceSource,
   WorktreeCreateErrors,
   WorktreeCreateInput,
   WorktreeCreateResponses,
@@ -1211,6 +1226,7 @@ export class Workspace extends HeyApiClient {
       type?: string
       branch?: string | null
       extra?: unknown | null
+      source?: WorkspaceSource
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1225,6 +1241,7 @@ export class Workspace extends HeyApiClient {
             { in: "body", key: "type" },
             { in: "body", key: "branch" },
             { in: "body", key: "extra" },
+            { in: "body", key: "source" },
           ],
         },
       ],
@@ -6503,6 +6520,53 @@ export class Tui extends HeyApiClient {
   }
 }
 
+export class Workspace2 extends HeyApiClient {
+  /**
+   * Create workspace
+   *
+   * Create or clone a workspace for the current project.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      type?: string
+      branch?: string
+      extra?: unknown
+      source?: WorkspaceSource
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "type" },
+            { in: "body", key: "branch" },
+            { in: "body", key: "extra" },
+            { in: "body", key: "source" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2WorkspaceCreateResponses, V2WorkspaceCreateErrors, ThrowOnError>({
+      url: "/api/workspaces",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Health extends HeyApiClient {
   /**
    * Check server health
@@ -6513,6 +6577,32 @@ export class Health extends HeyApiClient {
     return (options?.client ?? this.client).get<V2HealthGetResponses, V2HealthGetErrors, ThrowOnError>({
       url: "/api/health",
       ...options,
+    })
+  }
+}
+
+export class System extends HeyApiClient {
+  /**
+   * Update remote server daemon
+   *
+   * Trigger update of opencode CLI and restart background daemon.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      confirm?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "confirm" }] }])
+    return (options?.client ?? this.client).post<V2SystemUpdateResponses, V2SystemUpdateErrors, ThrowOnError>({
+      url: "/api/system/update",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -7723,6 +7813,44 @@ export class Integration extends HeyApiClient {
 
 export class Credential extends HeyApiClient {
   /**
+   * Create credential
+   *
+   * Create a stored integration credential on the remote host.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      credentialCreateInput: CredentialCreateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location" },
+            { key: "credentialCreateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2CredentialCreateResponses, V2CredentialCreateErrors, ThrowOnError>({
+      url: "/api/credential",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Remove credential
    *
    * Remove a stored integration credential.
@@ -7794,6 +7922,101 @@ export class Credential extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+}
+
+export class Schedule extends HeyApiClient {
+  /**
+   * List scheduled routines
+   *
+   * List every scheduled routine registered on the remote host.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "location" }] }])
+    return (options?.client ?? this.client).get<V2ScheduleListResponses, V2ScheduleListErrors, ThrowOnError>({
+      url: "/api/schedule",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create scheduled routine
+   *
+   * Register a new scheduled routine (trigger + action) on the remote host.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      scheduleCreateInput: ScheduleCreateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location" },
+            { key: "scheduleCreateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2ScheduleCreateResponses, V2ScheduleCreateErrors, ThrowOnError>({
+      url: "/api/schedule",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove scheduled routine
+   *
+   * Remove a scheduled routine from the remote host.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      scheduleID: string
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "scheduleID" },
+            { in: "query", key: "location" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<V2ScheduleRemoveResponses, V2ScheduleRemoveErrors, ThrowOnError>({
+      url: "/api/schedule/{scheduleID}",
+      ...options,
+      ...params,
     })
   }
 }
@@ -8470,9 +8693,19 @@ export class ProjectCopy2 extends HeyApiClient {
 }
 
 export class V2 extends HeyApiClient {
+  private _workspace?: Workspace2
+  get workspace(): Workspace2 {
+    return (this._workspace ??= new Workspace2({ client: this.client }))
+  }
+
   private _health?: Health
   get health(): Health {
     return (this._health ??= new Health({ client: this.client }))
+  }
+
+  private _system?: System
+  get system(): System {
+    return (this._system ??= new System({ client: this.client }))
   }
 
   private _location?: Location
@@ -8508,6 +8741,11 @@ export class V2 extends HeyApiClient {
   private _credential?: Credential
   get credential(): Credential {
     return (this._credential ??= new Credential({ client: this.client }))
+  }
+
+  private _schedule?: Schedule
+  get schedule(): Schedule {
+    return (this._schedule ??= new Schedule({ client: this.client }))
   }
 
   private _permission?: Permission3
