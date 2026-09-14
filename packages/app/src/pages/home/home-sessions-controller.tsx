@@ -3,7 +3,7 @@ import { preloadMarkdown } from "@opencode-ai/session-ui/markdown-cache"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useQuery } from "@tanstack/solid-query"
 import { DateTime } from "luxon"
-import { type Accessor, createEffect, createMemo, createRoot, type JSX, startTransition } from "solid-js"
+import { type Accessor, createEffect, createMemo, createRoot, type JSX, onCleanup, startTransition } from "solid-js"
 import { produce } from "solid-js/store"
 import { useCommand } from "@/context/command"
 import {
@@ -75,8 +75,8 @@ export function createHomeSessionsController(home: HomeController) {
       return index
     },
     retry: false,
-    staleTime: 30_000,
-    refetchOnMount: true,
+    staleTime: 60_000,
+    refetchOnMount: false,
     refetchOnReconnect: true,
   }))
   const indexedSessions = createMemo(() =>
@@ -102,9 +102,9 @@ export function createHomeSessionsController(home: HomeController) {
     const ctx = home.server.focusedContext()
     const conn = home.server.focused()
     if (!ctx || !conn) return
-    records()
-      .slice(0, 2)
-      .forEach((record) => {
+    const recs = records().slice(0, 2)
+    const timer = setTimeout(() => {
+      recs.forEach((record) => {
         const key = `${ServerConnection.key(conn)}\0${record.session.id}`
         if (prefetched.has(key)) return
         prefetched.add(key)
@@ -129,6 +129,8 @@ export function createHomeSessionsController(home: HomeController) {
           }
         })
       })
+    }, 400)
+    onCleanup(() => clearTimeout(timer))
   })
 
   command.register("home.palette", () => [
