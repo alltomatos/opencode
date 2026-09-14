@@ -126,11 +126,10 @@ function runAction(action: Schedule.Action, workspace: string | undefined) {
   if (action.kind === "mcp_tool") {
     return Effect.gen(function* () {
       const caller = yield* McpCaller
-      const result = yield* caller.callTool(action.server, action.tool, action.args).pipe(
-        Effect.timeout(`${timeoutMs} millis`),
-        Effect.catchTags({
-          TimeoutException: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
-          TimeoutError: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+      const result: McpCallResult = yield* caller.callTool(action.server, action.tool, action.args).pipe(
+        Effect.timeoutOrElse({
+          duration: Duration.millis(timeoutMs),
+          orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
         }),
       )
       return { exitCode: result.success ? 0 : 1, error: result.error }
