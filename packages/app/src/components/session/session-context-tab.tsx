@@ -21,6 +21,7 @@ import { useSessionLayout } from "@/pages/session/session-layout"
 import { getSessionContext } from "./session-context-metrics"
 import { estimateSessionContextBreakdown, type SessionContextBreakdownKey } from "./session-context-breakdown"
 import { createSessionContextFormatter } from "./session-context-format"
+import { formatDuration } from "@/pages/stats/stats-controller"
 
 const BREAKDOWN_COLOR: Record<SessionContextBreakdownKey, string> = {
   system: "var(--syntax-info)",
@@ -145,6 +146,12 @@ export function SessionContextTab() {
     return usd().format(info()?.cost ?? 0)
   })
 
+  const workDuration = createMemo(() => {
+    const created = info()?.time.created ?? 0
+    const last = ctx()?.message.time.created ?? created
+    return Math.max(0, last - created)
+  })
+
   const counts = createMemo(() => {
     const all = messages()
     const user = all.reduce((count, x) => count + (x.role === "user" ? 1 : 0), 0)
@@ -222,6 +229,7 @@ export function SessionContextTab() {
     { label: "context.stats.totalCost", value: cost },
     { label: "context.stats.sessionCreated", value: () => formatter().time(info()?.time.created) },
     { label: "context.stats.lastActivity", value: () => formatter().time(ctx()?.message.time.created) },
+    { label: "context.stats.workTime", value: () => formatDuration(workDuration()) },
   ] satisfies { label: string; value: () => JSX.Element }[]
 
   const exportSession = async () => {

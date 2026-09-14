@@ -74,6 +74,7 @@ import { BatutaActivityLivePage } from "@/pages/batuta/activity-live"
 import { AgentUIPage } from "@/pages/agentui"
 import { AgentUIFormPage } from "@/pages/agentui-form"
 import { SettingsPage } from "@/pages/settings"
+import { StatsPage } from "@/pages/stats"
 import { LegacyHome } from "@/pages/home/legacy-home"
 
 const NewSession = lazy(() => import("@/pages/new-session"))
@@ -343,9 +344,19 @@ function DesktopCommands() {
   const command = useCommand()
   const language = useLanguage()
   const platform = usePlatform()
+  const navigate = useNavigate()
 
   command.register("desktop", () => {
-    const commands: CommandOption[] = []
+    const commands: CommandOption[] = [
+      {
+        id: "stats.open",
+        title: language.t("command.stats.open"),
+        category: language.t("command.category.view"),
+        onSelect: () => {
+          navigate("/stats")
+        },
+      },
+    ]
     if (platform.platform === "desktop" && platform.exportDebugLogs) {
       commands.push({
         id: "logs.export",
@@ -663,6 +674,7 @@ function Routes(props: { serverScoped?: JSX.Element }) {
         <Route path="/agentui" component={AgentUIPage} />
         <Route path="/agentui/new" component={AgentUIFormPage} />
         <Route path="/agentui/:id/edit" component={AgentUIFormPage} />
+        <Route path="/stats" component={StatsPage} />
         <Route path="/settings/:tab?" component={SettingsPage} />
         <Route path="/:dir/session/:id" component={NewLayoutLegacySessionRedirect} />
         <Route path="/server/:serverKey/session/:id" component={TargetSessionRoute} />
