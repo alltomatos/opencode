@@ -237,6 +237,13 @@ export const StatsPage: Component = () => {
               subtext={`${formatDuration(stats().avgDurationMs)} / sessão`}
               accent="default"
             />
+            <KpiCard
+              label={language.t("stats.kpi.tps")}
+              value={compactFmt().format(stats().tokensPerSecond)}
+              fullValue={`${numFmt().format(stats().tokensPerSecond)} tokens/s`}
+              subtext={language.t("stats.kpi.tps.sub")}
+              accent="emerald"
+            />
           </div>
 
           {/* Token Distribution Bar */}

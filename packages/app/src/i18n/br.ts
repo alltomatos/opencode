@@ -1574,6 +1574,8 @@ export const dict = {
   "stats.kpi.totalSessions.sub": "Sessões no período selecionado",
   "stats.kpi.avgTokens": "Média / Sessão",
   "stats.kpi.avgTokens.sub": "Consumo médio de tokens",
+  "stats.kpi.tps": "Tokens de saída/s (TPS)",
+  "stats.kpi.tps.sub": "Velocidade média (tempo ativo)",
   "stats.distribution.title": "Distribuição de Tokens",
   "stats.distribution.input": "Entrada",
   "stats.distribution.output": "Saída",

@@ -1529,6 +1529,8 @@ export const dict = {
   "stats.kpi.totalSessions.sub": "Sessions in selected range", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens": "Avg / Session", // TODO: translate (auto-filled from en)
   "stats.kpi.avgTokens.sub": "Average token consumption", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps": "Output Tokens/s (TPS)", // TODO: translate (auto-filled from en)
+  "stats.kpi.tps.sub": "Avg speed (over session active time)", // TODO: translate (auto-filled from en)
   "stats.distribution.title": "Token Distribution", // TODO: translate (auto-filled from en)
   "stats.distribution.input": "Input", // TODO: translate (auto-filled from en)
   "stats.distribution.output": "Output", // TODO: translate (auto-filled from en)

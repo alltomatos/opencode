@@ -1543,6 +1543,8 @@ export const dict = {
   "stats.kpi.totalSessions.sub": "Sessions in selected range",
   "stats.kpi.avgTokens": "Avg / Session",
   "stats.kpi.avgTokens.sub": "Average token consumption",
+  "stats.kpi.tps": "Output Tokens/s (TPS)",
+  "stats.kpi.tps.sub": "Avg speed (over session active time)",
   "stats.distribution.title": "Token Distribution",
   "stats.distribution.input": "Input",
   "stats.distribution.output": "Output",
