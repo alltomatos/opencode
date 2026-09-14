@@ -1,6 +1,32 @@
 {
   "releases": [
     {
+      "tag": "v1.21.19",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Rotinas: tarefas que rodam sozinhas",
+              "description": "Nova seção própria no sidebar (não mais em Configurações) pra criar rotinas em linguagem natural: quando disparar (todo dia em um ou mais horários, a cada X minutos, ou manual), o que fazer (uma instrução livre, sem precisar saber cron), e quais ferramentas conectadas (MCP) ela pode usar. Acompanhe o status da última execução e rode qualquer rotina na hora direto pela tela."
+            },
+            {
+              "title": "Rotinas sobrevivem ao app fechado",
+              "description": "\"Configurações > Servidor\" ganhou o comando pra instalar o opencode como serviço persistente de login no Windows, macOS e Linux — assim as rotinas continuam disparando mesmo com o app desktop fechado."
+            },
+            {
+              "title": "Métrica de tokens por segundo no dashboard",
+              "description": "O dashboard de KPIs agora mostra a taxa de tokens de saída por segundo, além das métricas já existentes."
+            },
+            {
+              "title": "Ajustes de branching, worktree e consistência visual",
+              "description": "Pequenos ajustes de UI ligados às epics de Batuta, Mobile/VPS API e Telegram."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.11",
       "highlights": [
         {
