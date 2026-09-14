@@ -69,6 +69,12 @@ export const Commands = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCO
             id: Argument.string("id").pipe(Argument.withDescription("Schedule ID")),
           },
         }),
+        Spec.make("run", {
+          description: "Run a scheduled task now, regardless of its trigger",
+          params: {
+            id: Argument.string("id").pipe(Argument.withDescription("Schedule ID")),
+          },
+        }),
       ],
     }),
     Spec.make("service", {

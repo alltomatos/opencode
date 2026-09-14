@@ -431,6 +431,8 @@ import type {
   V2ScheduleListResponses,
   V2ScheduleRemoveErrors,
   V2ScheduleRemoveResponses,
+  V2ScheduleRunErrors,
+  V2ScheduleRunResponses,
   V2SessionActiveErrors,
   V2SessionActiveResponses,
   V2SessionCompactErrors,
@@ -7984,6 +7986,39 @@ export class Schedule extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Run a scheduled routine now
+   *
+   * Execute a scheduled routine's action immediately, regardless of its trigger.
+   */
+  public run<ThrowOnError extends boolean = false>(
+    parameters: {
+      scheduleID: string
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "scheduleID" },
+            { in: "query", key: "location" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2ScheduleRunResponses, V2ScheduleRunErrors, ThrowOnError>({
+      url: "/api/schedule/{scheduleID}/run",
+      ...options,
+      ...params,
     })
   }
 

@@ -1,4 +1,5 @@
 import { Schedule } from "@opencode-ai/core/schedule"
+import { ScheduleRunner } from "@opencode-ai/core/schedule/runner"
 import { Effect } from "effect"
 import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
 import { Api } from "../api"
@@ -24,6 +25,14 @@ export const ScheduleHandler = HttpApiBuilder.group(Api, "server.schedule", (han
             enabled: ctx.payload.enabled,
           })
           .pipe(Effect.catch((error) => new ScheduleValidationError({ message: error.message })))
+      }),
+    )
+    .handle(
+      "schedule.run",
+      Effect.fn(function* (ctx) {
+        return yield* ScheduleRunner.runOne(ctx.params.scheduleID).pipe(
+          Effect.catch((error) => new ScheduleValidationError({ message: `Schedule "${error.id}" not found` })),
+        )
       }),
     )
     .handle(

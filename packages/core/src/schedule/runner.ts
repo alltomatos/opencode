@@ -1,10 +1,14 @@
 export * as ScheduleRunner from "./runner"
 
 import { spawn } from "node:child_process"
-import { Duration, Effect, Layer, Schedule as EffectSchedule } from "effect"
+import { Duration, Effect, Layer, Schema, Schedule as EffectSchedule } from "effect"
 import { Schedule } from "../schedule"
 import { Database } from "../database/database"
 import { makeGlobalNode } from "../effect/app-node"
+
+export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Schedule.NotFoundError", {
+  id: Schedule.ID,
+}) {}
 
 function executeCommand(command: string, cwd?: string): Promise<{ exitCode: number; error?: string }> {
   return new Promise((resolve) => {
@@ -48,6 +52,21 @@ function runAction(action: Schedule.Action, workspace: string | undefined) {
     error: `Action kind "${action.kind}" is not yet supported by the schedule runner.`,
   })
 }
+
+/** Runs one schedule's action immediately, regardless of trigger/enabled state, and records the result. */
+export const runOne = Effect.fn("v2.Schedule.runOne")(function* (id: Schedule.ID) {
+  const schedules = yield* Schedule.Service
+  const schedule = yield* schedules.get(id)
+  if (!schedule) return yield* Effect.fail(new NotFoundError({ id }))
+
+  const result = yield* runAction(schedule.action, schedule.workspace)
+  const updated = yield* schedules.update(schedule.id, {
+    lastRunAt: Date.now(),
+    lastStatus: result.exitCode === 0 ? "success" : "error",
+    lastError: result.error,
+  })
+  return updated!
+})
 
 const tick = Effect.fn("v2.Schedule.tick")(function* () {
   const schedules = yield* Schedule.Service

@@ -24,6 +24,7 @@ const Handlers = Runtime.handlers(Commands, {
     add: () => import("./commands/handlers/schedule/add"),
     list: () => import("./commands/handlers/schedule/list"),
     rm: () => import("./commands/handlers/schedule/rm"),
+    run: () => import("./commands/handlers/schedule/run"),
   },
   service: {
     start: () => import("./commands/handlers/service/start"),

@@ -14386,6 +14386,42 @@ export type V2ScheduleCreateResponses = {
 
 export type V2ScheduleCreateResponse = V2ScheduleCreateResponses[keyof V2ScheduleCreateResponses]
 
+export type V2ScheduleRunData = {
+  body?: never
+  path: {
+    scheduleID: string
+  }
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/{scheduleID}/run"
+}
+
+export type V2ScheduleRunErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleRunError = V2ScheduleRunErrors[keyof V2ScheduleRunErrors]
+
+export type V2ScheduleRunResponses = {
+  /**
+   * Schedule.Info
+   */
+  200: ScheduleInfo
+}
+
+export type V2ScheduleRunResponse = V2ScheduleRunResponses[keyof V2ScheduleRunResponses]
+
 export type V2ScheduleRemoveData = {
   body?: never
   path: {
