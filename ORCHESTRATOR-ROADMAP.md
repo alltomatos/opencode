@@ -21,7 +21,7 @@ GitHub (alltomatos/opencode, branch default `dev`) é a fonte persistente de ras
 | [**[E13] CI flaky**](https://github.com/alltomatos/opencode/issues/181) | CI — flaky tests e estabilidade | in_progress (#181, #185 abertas; #163, #189, #193, #209 resolvidas no PR #210) | [#181](https://github.com/alltomatos/opencode/issues/181) |
 | [**[E14] Sync upstream**](https://github.com/alltomatos/opencode/issues/200) | Sync com upstream anomalyco/opencode | in_progress (#199, #200 em revisão) | [#200](https://github.com/alltomatos/opencode/issues/200) |
 | [**[E15] Dashboard de KPIs & Token Analytics**](https://github.com/alltomatos/opencode/issues/212) | Dashboard de KPIs e consumo de tokens (/stats) | in_progress | [#212](https://github.com/alltomatos/opencode/issues/212) |
-| [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) | Rotinas (cron/interval) com action shell/mcp_tool/skill, local (Win/Mac/Linux) e servidor remoto | in_progress (#214-#225 abertas, fila sequencial) | [#213](https://github.com/alltomatos/opencode/issues/213) |
+| [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) | Rotinas (cron/interval) com action shell/mcp_tool/skill, local (Win/Mac/Linux) e servidor remoto | in_progress (#214/#215/#219/#220/#221-226 fechadas; #216/#217 bloqueadas em portar MCP e sessão pro V2) | [#213](https://github.com/alltomatos/opencode/issues/213) |
 
 ## Epic: Evolução de UI/UX do OpenCode by Alltomatos
 
