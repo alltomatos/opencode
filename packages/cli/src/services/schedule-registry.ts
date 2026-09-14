@@ -6,8 +6,8 @@ import { Context, Effect, FileSystem, Layer, Schema } from "effect"
 import path from "path"
 
 export interface AddInput {
-  readonly cron: string
-  readonly command: string
+  readonly trigger: Schedule.Trigger
+  readonly action: Schedule.Action
   readonly workspace?: string
   readonly enabled?: boolean
 }
@@ -104,8 +104,24 @@ export function matchesCron(cron: string, date: Date = new Date()): boolean {
 }
 
 const SchedulesListSchema = Schema.Array(Schedule.Info)
-const decodeSchedules = Schema.decodeUnknownEffect(Schema.fromJsonString(SchedulesListSchema))
+const decodeSchedules = Schema.decodeUnknownEffect(SchedulesListSchema)
 const encodeSchedules = Schema.encodeEffect(Schema.fromJsonString(SchedulesListSchema))
+
+/**
+ * Legacy on-disk records used a flat `{ cron, command }` shape (pre-trigger/action).
+ * Convert those in place before schema decoding so old schedules.json files keep working.
+ */
+function migrateLegacyRecord(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw
+  const record = raw as Record<string, unknown>
+  if ("trigger" in record && "action" in record) return record
+  const { cron, command, ...rest } = record as { cron?: unknown; command?: unknown }
+  return {
+    ...rest,
+    trigger: typeof cron === "string" ? { kind: "cron", expr: cron } : { kind: "manual" },
+    action: typeof command === "string" ? { kind: "shell", command } : { kind: "shell", command: "" },
+  }
+}
 
 export const makeWithDirectory = (directory: string) =>
   Effect.gen(function* () {
@@ -117,7 +133,12 @@ export const makeWithDirectory = (directory: string) =>
         Effect.catch(() => Effect.succeed(undefined)),
       )
       if (!content || content.trim() === "") return []
-      return yield* decodeSchedules(content).pipe(
+      const parsed: unknown[] = yield* Effect.try({
+        try: () => JSON.parse(content),
+        catch: () => [] as unknown[],
+      }).pipe(Effect.catch(() => Effect.succeed([] as unknown[])))
+      const migrated = Array.isArray(parsed) ? parsed.map(migrateLegacyRecord) : []
+      return yield* decodeSchedules(migrated).pipe(
         Effect.catch(() => Effect.succeed([] as readonly Schedule.Info[])),
       )
     })
@@ -141,20 +162,29 @@ export const makeWithDirectory = (directory: string) =>
     })
 
     const add = Effect.fn("cli.schedule.add")(function* (input: AddInput) {
-      const cron = input.cron.trim()
-      if (!isValidCron(cron)) {
-        return yield* Effect.fail(new Error(`Invalid cron expression: "${input.cron}". Expected 5 fields (e.g. '*/5 * * * *')`))
+      let trigger = input.trigger
+      if (trigger.kind === "cron") {
+        const expr = trigger.expr.trim()
+        if (!isValidCron(expr)) {
+          return yield* Effect.fail(new Error(`Invalid cron expression: "${trigger.expr}". Expected 5 fields (e.g. '*/5 * * * *')`))
+        }
+        trigger = { kind: "cron", expr }
       }
-      const command = input.command.trim()
-      if (!command) {
-        return yield* Effect.fail(new Error("Command cannot be empty"))
+
+      let action = input.action
+      if (action.kind === "shell") {
+        const command = action.command.trim()
+        if (!command) {
+          return yield* Effect.fail(new Error("Command cannot be empty"))
+        }
+        action = { kind: "shell", command }
       }
 
       const all = yield* read()
       const newSchedule: Schedule.Info = {
         id: Schedule.ID.create(),
-        cron,
-        command,
+        trigger,
+        action,
         workspace: input.workspace,
         enabled: input.enabled ?? true,
       }

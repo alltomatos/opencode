@@ -59,14 +59,25 @@ export const layer = Layer.effect(
       for (const schedule of schedules) {
         if (schedule.enabled === false) continue
 
-        // Skip if already executed in this minute
-        if (schedule.lastRunAt && nowMs - schedule.lastRunAt < 59_000) {
+        if (schedule.trigger.kind === "manual") continue
+
+        if (schedule.trigger.kind === "interval") {
+          if (schedule.lastRunAt && nowMs - schedule.lastRunAt < schedule.trigger.ms) continue
+        } else {
+          // cron: skip if already executed in this minute, then check the expression
+          if (schedule.lastRunAt && nowMs - schedule.lastRunAt < 59_000) continue
+          if (!matchesCron(schedule.trigger.expr, now)) continue
+        }
+
+        const action = schedule.action
+        if (action.kind !== "shell") {
+          // mcp_tool/skill executors land in later slices of the Rotinas Agendadas epic (#213)
           continue
         }
 
-        if (matchesCron(schedule.cron, now)) {
-          yield* Effect.logInfo(`[Schedule] Executing task ${schedule.id}: "${schedule.command}"`)
-          const result = yield* Effect.promise(() => executeCommand(schedule.command, schedule.workspace))
+        {
+          yield* Effect.logInfo(`[Schedule] Executing task ${schedule.id}: "${action.command}"`)
+          const result = yield* Effect.promise(() => executeCommand(action.command, schedule.workspace))
 
           yield* registry.update(schedule.id, {
             lastRunAt: nowMs,

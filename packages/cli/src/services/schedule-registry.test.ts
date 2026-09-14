@@ -44,6 +44,32 @@ describe("ScheduleRegistry", () => {
     })
   })
 
+  describe("legacy migration", () => {
+    test("migrates old {cron, command} records on read", async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "schedule-registry-migration-"))
+      try {
+        fs.writeFileSync(
+          path.join(tempDir, "schedules.json"),
+          JSON.stringify([
+            { id: "sch_legacy1", cron: "0 * * * *", command: "old-command.sh", enabled: true },
+          ]),
+        )
+
+        const program = Effect.gen(function* () {
+          const registry = yield* makeWithDirectory(tempDir)
+          const list = yield* registry.list()
+          expect(list.length).toBe(1)
+          expect(list[0].trigger).toEqual({ kind: "cron", expr: "0 * * * *" })
+          expect(list[0].action).toEqual({ kind: "shell", command: "old-command.sh" })
+        })
+
+        await Effect.runPromise(program.pipe(Effect.provide(NodeServices.layer)))
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true })
+      }
+    })
+  })
+
   describe("CRUD operations", () => {
     test("adds, lists, gets, updates, and removes scheduled tasks", async () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "schedule-registry-test-"))
@@ -57,29 +83,33 @@ describe("ScheduleRegistry", () => {
           expect(initial).toEqual([])
 
           // Invalid cron fails
-          const invalidResult = yield* registry.add({ cron: "invalid", command: "echo hi" }).pipe(Effect.exit)
+          const invalidResult = yield* registry
+            .add({ trigger: { kind: "cron", expr: "invalid" }, action: { kind: "shell", command: "echo hi" } })
+            .pipe(Effect.exit)
           expect(invalidResult._tag).toBe("Failure")
 
           // Empty command fails
-          const emptyCmdResult = yield* registry.add({ cron: "* * * * *", command: "" }).pipe(Effect.exit)
+          const emptyCmdResult = yield* registry
+            .add({ trigger: { kind: "cron", expr: "* * * * *" }, action: { kind: "shell", command: "" } })
+            .pipe(Effect.exit)
           expect(emptyCmdResult._tag).toBe("Failure")
 
           // Add a valid schedule
           const sch1 = yield* registry.add({
-            cron: "*/5 * * * *",
-            command: "bun run check",
+            trigger: { kind: "cron", expr: "*/5 * * * *" },
+            action: { kind: "shell", command: "bun run check" },
             workspace: "/home/user/app",
           })
           expect(sch1.id).toMatch(/^sch_/)
-          expect(sch1.cron).toBe("*/5 * * * *")
-          expect(sch1.command).toBe("bun run check")
+          expect(sch1.trigger).toEqual({ kind: "cron", expr: "*/5 * * * *" })
+          expect(sch1.action).toEqual({ kind: "shell", command: "bun run check" })
           expect(sch1.workspace).toBe("/home/user/app")
           expect(sch1.enabled).toBe(true)
 
           // Add another schedule
           const sch2 = yield* registry.add({
-            cron: "0 0 * * *",
-            command: "backup.sh",
+            trigger: { kind: "cron", expr: "0 0 * * *" },
+            action: { kind: "shell", command: "backup.sh" },
           })
 
           // List both
@@ -88,7 +118,7 @@ describe("ScheduleRegistry", () => {
 
           // Get by ID
           const fetched = yield* registry.get(sch1.id)
-          expect(fetched?.command).toBe("bun run check")
+          expect(fetched?.action).toEqual({ kind: "shell", command: "bun run check" })
 
           // Update status
           const updated = yield* registry.update(sch1.id, {

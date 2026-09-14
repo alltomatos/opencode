@@ -23,11 +23,14 @@ export async function load(dir: string) {
 
     const name = configEntryNameFromPath(path.relative(dir, item), ["schedule/", "schedules/"])
 
+    const data = md.data as Record<string, unknown>
+    const command = typeof data.command === "string" ? data.command : md.content.trim()
     const config = {
       id: Schedule.ID.create(),
       name,
-      ...md.data,
-      command: (md.data as any).command || md.content.trim(),
+      ...data,
+      trigger: typeof data.cron === "string" ? { kind: "cron", expr: data.cron } : { kind: "manual" },
+      action: { kind: "shell", command },
     }
     const parsed = decodeInfo(config, { errors: "all", propertyOrder: "original" })
     if (Exit.isSuccess(parsed)) {

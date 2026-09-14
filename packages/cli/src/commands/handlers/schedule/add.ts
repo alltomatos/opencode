@@ -11,12 +11,14 @@ export default Runtime.handler(
     const registry = yield* ScheduleRegistry.Service
     const workspace = Option.getOrUndefined(args.workspace)
     const schedule = yield* registry.add({
-      cron: args.cron,
-      command: args.command,
+      trigger: { kind: "cron", expr: args.cron },
+      action: { kind: "shell", command: args.command },
       workspace,
     })
+    const trigger = schedule.trigger.kind === "cron" ? schedule.trigger.expr : schedule.trigger.kind
+    const action = schedule.action.kind === "shell" ? schedule.action.command : schedule.action.kind
     process.stdout.write(
-      `Added scheduled task "${schedule.id}": [${schedule.cron}] -> ${schedule.command}${workspace ? ` (workspace: ${workspace})` : ""}` +
+      `Added scheduled task "${schedule.id}": [${trigger}] -> ${action}${workspace ? ` (workspace: ${workspace})` : ""}` +
         EOL,
     )
   }),
