@@ -76,14 +76,21 @@ export function preferAppEnv(userDataPath: string) {
     OPENCODE_EXPERIMENTAL_FILEWATCHER: "true",
     OPENCODE_CLIENT: "desktop",
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
-    // Isola o registro de projetos (GET /project etc.) por canal —
-    // `Global.Path.data` no core é derivado de XDG_DATA_HOME, que por
-    // padrão não é tocado e cai num diretório fixo (~/.local/share/opencode
-    // ou %LOCALAPPDATA%\opencode) compartilhado por dev/beta/prod. Sem
-    // isso, abrir um projeto num canal faz ele aparecer no histórico de
-    // todos os outros, inclusive pra clientes remotos (mobile) pareados
-    // com um canal diferente.
-    XDG_DATA_HOME: process.env.XDG_DATA_HOME ?? userDataPath,
+    // Isola só o banco de projetos (GET /project etc.) por canal, via
+    // caminho absoluto — ver `Database.path()` em
+    // packages/core/src/database/database.ts, que usa OPENCODE_DB direto
+    // quando é absoluto. Sem isso, dev/beta/prod compartilhavam o mesmo
+    // opencode.db (Global.Path.data, de XDG_DATA_HOME, não isolado por
+    // padrão), fazendo projetos abertos num canal aparecerem no histórico
+    // dos outros, inclusive pra clientes remotos (mobile) pareados com um
+    // canal diferente.
+    //
+    // Importante: NÃO usar XDG_DATA_HOME pra isso — Global.Path.data
+    // também guarda auth.json (credenciais/tokens de provider) e outros
+    // dados que devem continuar compartilhados entre canais; redirecionar
+    // XDG_DATA_HOME inteiro deixa o canal "esquecido" de todos os
+    // providers conectados, sobrando só o catálogo padrão (opencode zen).
+    OPENCODE_DB: process.env.OPENCODE_DB ?? join(userDataPath, "opencode.db"),
   })
   return shellEnv
 }
