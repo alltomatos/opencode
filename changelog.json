@@ -1,6 +1,48 @@
 {
   "releases": [
     {
+      "tag": "v1.21.23",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: providers conectados sumindo (v1.21.22)",
+              "description": "A correção anterior isolava o diretório de dados inteiro por canal, o que também isolava sem querer o auth.json (credenciais dos providers), fazendo o app mostrar só o catálogo padrão do opencode zen. Agora só o banco de projetos é isolado por canal — providers, config e cache continuam compartilhados normalmente."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.22",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: projetos do dev aparecendo no prod",
+              "description": "O registro de projetos (banco de dados local) era compartilhado entre os canais dev/beta/prod, fazendo qualquer cliente pareado — incluindo o app mobile — mostrar projetos abertos em outro canal. Agora cada canal mantém seu próprio banco de projetos, isolado dos demais."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.21",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: conexão MCP do OmniRoute falhando",
+              "description": "O app tentava conectar no endpoint de SSE do OmniRoute usando o protocolo Streamable HTTP, o que sempre falhava antes de cair pro modo SSE. Agora usa direto o endpoint correto do Streamable HTTP, conectando de primeira."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.20",
       "highlights": [
         {
@@ -53,6 +95,136 @@
       ]
     },
     {
+      "tag": "v1.21.18",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção: build v1.21.17 estava incompleta",
+              "description": "A v1.21.17 foi publicada com uma mescla incompleta (faltava a maior parte da interface nova). Esta versão corrige isso — mesmas novidades listadas abaixo, agora completas."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.17",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI: crie agentes conversacionais próprios",
+              "description": "Nova aba dedicada pra criar agentes com personalidade, modelo, canal (Telegram), fontes de conhecimento (RAG) e guardrails contra prompt injection. Gere o rascunho do agente a partir de uma descrição em linguagem natural, teste em um chat sandbox antes de publicar, e ative/desative sem perder a configuração."
+            },
+            {
+              "title": "Combos de modelo com failover",
+              "description": "Agrupe vários modelos num combo nomeado com failover e limite de taxa — selecionável em qualquer lugar que hoje aceita um modelo (chat, AgentUI, Batuta)."
+            },
+            {
+              "title": "Painel de KPIs e Estatísticas de Uso",
+              "description": "Novo painel na sidebar com tempo de trabalho por sessão, uso de tokens e outras métricas de uso do app."
+            },
+            {
+              "title": "Memória: consulta de entradas por projeto e global via API",
+              "description": "A API HTTP de memória agora expõe leitura separada das entradas de memória de projeto e globais, além de permitir adicionar notas e promover memórias diretamente."
+            },
+            {
+              "title": "Logo da OpenCode by Alltomatos",
+              "description": "A logo da marca substitui o wordmark genérico \"opencode\" na tela de nova sessão e na animação de carregamento do app."
+            },
+            {
+              "title": "Servidor remoto: fila de tarefas persistente (VPS)",
+              "description": "Implementação do backlog remoto do servidor pra manter tarefas pendentes entre reinícios ao operar via VPS."
+            },
+            {
+              "title": "Correções de estabilidade e acessibilidade",
+              "description": "Diversas correções: contraste no modo escuro, aria-labels faltando em botões só-ícone, sincronização da sidebar entre clientes conectados ao mesmo servidor, preservação de IDs de modelo Bedrock/DeepSeek, e maior robustez dos testes automatizados no CI do Windows."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.16",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Telegram: pedidos rodam em segundo plano, nunca mais travam o bot",
+              "description": "Antes, um comando/skill demorado (ex: um orquestrador rodando por minutos) travava o bot inteiro até terminar. Agora todo pedido que aciona o modelo roda como uma tarefa em segundo plano — se chegar outra mensagem enquanto uma ainda está rodando, o bot pergunta se é pra rodar em paralelo (sessão separada) ou esperar na fila (mesma conversa). Novo comando /model-subagent pra escolher um modelo diferente só pras tarefas em segundo plano."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.15",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Novo: conectar servidor remoto via túnel SSH ou Tailscale",
+              "description": "Em Configurações > Servidores > Adicionar servidor agora tem \"Adicionar túnel SSH\" (o app abre e mantém o túnel sozinho, com chave lida automaticamente de ~/.ssh) e \"Adicionar túnel Tailscale\" (detecta se o Tailscale está ativo e usa o IP da rede). Cada servidor na lista agora mostra o tipo de conexão (http, local, wsl, ssh) ao lado do nome."
+            },
+            {
+              "title": "Corrigido: instalação via CLI numa VPS não vinha com as skills padrão",
+              "description": "As skills base que o app desktop instala automaticamente nunca eram baixadas quando o opencode rodava só via CLI (`opencode serve`/`opencode web`) numa VPS. Agora o comportamento é o mesmo dos dois jeitos."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.14",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Novo: bot do Telegram pra conversar com o opencode remotamente",
+              "description": "Conecte um bot do Telegram nas Configurações > Integrações e converse com o opencode de qualquer lugar. Suporta foto, áudio/voz, troca de repositório e modelo (/repo, /model), skills customizadas, feedback de progresso durante execuções longas, e aprovação de permissões e perguntas de skills (ex.: /grill-me) direto pelos botões do chat."
+            },
+            {
+              "title": "Corrigido: agentrouter às vezes escolhia Claude Opus ou GPT como modelo padrão",
+              "description": "Esses modelos vinham dando mais problema (loops, lentidão) do que ajuda quando escolhidos automaticamente. Agora o agentrouter nunca os seleciona como padrão sozinho — continuam disponíveis pra escolha manual."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.13",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: ferramentas customizadas travavam a resposta do agente",
+              "description": "Qualquer tool própria (ex.: das skills de engenharia) que importasse @opencode-ai/plugin quebrava silenciosamente ao ser chamada, matando a resposta do agente sem aviso nenhum. Causa: a instalação dessa dependência em segundo plano sempre falhava fora de builds locais. Corrigido."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.12",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: MCP do OmniRoute não reconectava sozinho ao reiniciar o app",
+              "description": "O MCP do OmniRoute ficava \"conectado\" só até você reiniciar o app — depois disso, sumia e precisava reconectar o provedor manualmente pra voltar. Agora ele reconecta automaticamente na inicialização, junto com os outros servidores MCP configurados."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.11",
       "highlights": [
         {
@@ -65,6 +237,22 @@
             {
               "title": "Novo provedor nativo: OmniRoute",
               "description": "Suporte nativo ao OmniRoute com descoberta dinâmica de modelos, direto no seletor de provedores."
+            },
+            {
+              "title": "OmniRoute: MCP configurado automaticamente ao conectar",
+              "description": "Corrigido o endereço usado para testar e conectar o servidor MCP do OmniRoute (estava montando a URL errada). Agora o card de conexão avisa que o MCP é configurado junto, automaticamente."
+            },
+            {
+              "title": "OmniRoute: editar conexão sem precisar desconectar",
+              "description": "Novo botão \"Editar\" no provedor OmniRoute conectado, para atualizar URL/chave direto — antes só dava pra desconectar e reconectar do zero."
+            },
+            {
+              "title": "Corrigido: combos do OmniRoute travavam o envio de mensagem",
+              "description": "Modelos descobertos dinamicamente pelo OmniRoute (como combos) apareciam no seletor mas davam erro de \"modelo não encontrado\" ao enviar uma mensagem. Corrigido."
+            },
+            {
+              "title": "Corrigido: pedido de permissão sumia sem aviso",
+              "description": "Quando o agente precisava acessar um diretório fora da sessão atual, o pedido de permissão podia ficar pendente sem nenhum aviso visível na tela, parecendo que o app tinha travado. Corrigido."
             },
             {
               "title": "Detecção automática de CLIs de agente externos",
@@ -81,6 +269,152 @@
             {
               "title": "Correções de estabilidade",
               "description": "Cache de provedores conectados agora invalida corretamente ao conectar/desconectar; corrigidos falsos positivos de \"provedor conectado\"; correções de sincronização de sessão remota, fallback ao abrir uma sessão deletada, e reconexão SSE mais resiliente."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.10",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: Omniroute não aparecia na tela de modelo",
+              "description": "Na tela de seleção de modelo, o cartão do Omniroute não estava aparecendo entre os provedores em destaque. Corrigido."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.9",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Tarefas em segundo plano",
+              "description": "Novo item no menu \"...\" da sessão: mostra as tarefas em segundo plano (subagentes) em execução e concluídas, com tempo decorrido e opção de cancelar."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.8",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Distinção entre 'pensando' e 'executando'",
+              "description": "Na linha do tempo da sessão, o indicador de status agora mostra 'Executando comandos...' enquanto uma ferramenta está rodando, em vez de ficar preso em 'Pensando...' o tempo todo."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.7",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Batuta oculto na produção",
+              "description": "O modo Batuta (orquestração multi-agente) ainda está em desenvolvimento ativo — a aba dele agora só aparece em builds de desenvolvimento, não mais na versão de produção."
+            },
+            {
+              "title": "Omniroute nos provedores em destaque",
+              "description": "Na tela de seleção de modelo, o cartão de GitHub Copilot foi substituído por Omniroute na lista de provedores em destaque."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.6",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: ícone de DevTools invisível",
+              "description": "O ícone do Modo debug (Configurações > Avançado) existia e funcionava, mas ficava sem desenho visível na barra de título nova — corrigido. Também movido para ficar ao lado do ícone de Configurações, mais fácil de achar."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.5",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: ícone de DevTools não aparecia ao ativar o Modo debug",
+              "description": "Na 1.21.4, ativar o Modo debug em Configurações não fazia o ícone de DevTools aparecer na barra de título — precisava recarregar/reabrir o app manualmente. Agora aparece na hora, sem precisar de nada extra."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.4",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Ícone de DevTools sempre acessível no Modo debug",
+              "description": "Com o Modo debug ativo (Configurações > Avançado), um ícone de DevTools passa a ficar fixo na barra de título, acessível em qualquer tela — não precisa mais abrir Configurações pra alcançá-lo, útil justamente quando o app está travado ou apresentando problemas."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.3",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Versão do app visível na barra lateral",
+              "description": "A versão instalada agora aparece embaixo de \"Ajuda\", facilitando saber qual build está rodando sem abrir Configurações."
+            },
+            {
+              "title": "Ferramentas de desenvolvedor em qualquer build",
+              "description": "Novo botão em Configurações > Avançado abre o DevTools do Chromium mesmo em builds de produção, para facilitar o diagnóstico de problemas."
+            },
+            {
+              "title": "Modo debug",
+              "description": "Nova opção em Configurações > Avançado habilita a porta de depuração remota mesmo em builds empacotados, útil para investigar problemas com ferramentas externas. Requer reiniciar o app."
+            },
+            {
+              "title": "Configurações reorganizadas",
+              "description": "\"Usar animações 3D\" foi movido para uma nova categoria Experimental; as novas opções de depuração foram agrupadas em Avançado."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.2",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido chat em branco após a primeira mensagem",
+              "description": "Sessões novas podiam ficar com a área de conversa completamente em branco assim que a primeira mensagem era enviada, mesmo com a resposta chegando normalmente no servidor. Corrigido um trecho da tela de sessão que não estava sendo renderizado."
+            },
+            {
+              "title": "Reconexão mais estável em conexões instáveis",
+              "description": "Quando a conexão com o servidor local oscilava, o app tentava reconectar imediatamente e sem limite, o que podia interromper repetidamente o carregamento do projeto e deixar a tela travada. Agora as tentativas usam um intervalo crescente até a conexão estabilizar."
             }
           ]
         }

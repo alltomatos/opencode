@@ -1187,6 +1187,9 @@ export const dict = {
   "settings.general.row.computerUse.descriptionOn":
     "Ativado — reinicie o app para o controle do computador entrar em vigor.",
   "settings.general.row.computerUse.restart": "Reiniciar agora",
+  "settings.general.row.bugReports.title": "Relatórios de erro automáticos",
+  "settings.general.row.bugReports.description":
+    "Envia relatórios de falha (só mensagem de erro e stack trace — nunca seus arquivos, conversas ou variáveis de ambiente) pra ajudar a corrigir bugs mais rápido. Relatórios são checados contra issues já existentes no GitHub antes de abrir uma nova. Ativado por padrão.",
   "settings.general.row.newInterface.title": "Novo layout",
   "settings.general.row.newInterface.badge": "Novo",
   "settings.general.row.newInterface.description":
@@ -1583,8 +1586,6 @@ export const dict = {
   "provider.omniroute.mcp.failed": "Não foi possível conectar ao servidor MCP. Acesse {{url}} e habilite-o, depois teste novamente.",
   "provider.omniroute.mcp.retry": "Testar novamente",
   "provider.omniroute.mcp.skip": "Pular MCP",
-  "settings.general.row.bugReports.title": "Automatic bug reports", // TODO: translate (auto-filled from en)
-  "settings.general.row.bugReports.description": "Sends crash reports (error message and stack trace only — never your files, conversations, or env vars) to help fix bugs faster. Reports are deduped against existing GitHub issues before a new one is opened. On by default.", // TODO: translate (auto-filled from en)
   "dialog.server.qr.loopbackWarning": "This server only listens on this computer (127.0.0.1) and Tailscale isn't running here, so a phone can't reach it with this code. Start Tailscale on this machine, or pair with a server that has a real network address instead.", // TODO: translate (auto-filled from en)
 
   "sidebar.stats": "KPIs e Estatísticas",
