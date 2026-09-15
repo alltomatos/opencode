@@ -213,14 +213,14 @@ export const StatsPage: Component = () => {
             <KpiCard
               label={language.t("stats.kpi.totalDuration")}
               value={formatDuration(stats().totalDurationMs)}
-              fullValue={formatMinutes(stats().totalDurationMs)}
-              subtext={formatMinutes(stats().totalDurationMs)}
+              fullValue={formatMinutes(stats().totalDurationMs, language.intl())}
+              subtext={formatMinutes(stats().totalDurationMs, language.intl())}
               accent="blue"
             />
             <KpiCard
               label={language.t("stats.kpi.longestDuration")}
               value={formatDuration(stats().longestDurationMs)}
-              fullValue={formatMinutes(stats().longestDurationMs)}
+              fullValue={formatMinutes(stats().longestDurationMs, language.intl())}
               subtext={stats().longestSessionTitle ? `${stats().longestSessionTitle}` : language.t("stats.kpi.longestDuration.sub")}
               accent="amber"
             />
@@ -453,7 +453,7 @@ export const StatsPage: Component = () => {
                         <td class="py-2.5 pr-2 text-right font-mono text-11-medium text-v2-text-text-base">
                           {compactFmt().format(s.tokensTotal)}
                         </td>
-                        <td class="py-2.5 pr-2 text-right font-mono text-11-medium text-blue-400" title={formatMinutes(s.durationMs)}>
+                        <td class="py-2.5 pr-2 text-right font-mono text-11-medium text-blue-400" title={formatMinutes(s.durationMs, language.intl())}>
                           {s.durationFormatted}
                         </td>
                         <td class="py-2.5 pr-2 text-right font-mono text-11-regular text-v2-text-text-muted">

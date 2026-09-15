@@ -115,10 +115,10 @@ export function formatDuration(ms: number): string {
   return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`
 }
 
-export function formatMinutes(ms: number): string {
+export function formatMinutes(ms: number, locale?: string): string {
   if (!Number.isFinite(ms) || ms <= 0) return "0 min"
   const mins = Math.round(ms / 60000)
-  return `${mins.toLocaleString()} min`
+  return `${mins.toLocaleString(locale)} min`
 }
 
 export function getCutoffTime(range: StatsDateRange, now = Date.now()): number {
