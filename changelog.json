@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.22",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: projetos do dev aparecendo no prod",
+              "description": "O registro de projetos (banco de dados local) era compartilhado entre os canais dev/beta/prod, fazendo qualquer cliente pareado — incluindo o app mobile — mostrar projetos abertos em outro canal. Agora cada canal mantém seu próprio banco de projetos, isolado dos demais."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.21",
       "highlights": [
         {

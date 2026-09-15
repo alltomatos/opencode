@@ -76,6 +76,14 @@ export function preferAppEnv(userDataPath: string) {
     OPENCODE_EXPERIMENTAL_FILEWATCHER: "true",
     OPENCODE_CLIENT: "desktop",
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
+    // Isola o registro de projetos (GET /project etc.) por canal —
+    // `Global.Path.data` no core é derivado de XDG_DATA_HOME, que por
+    // padrão não é tocado e cai num diretório fixo (~/.local/share/opencode
+    // ou %LOCALAPPDATA%\opencode) compartilhado por dev/beta/prod. Sem
+    // isso, abrir um projeto num canal faz ele aparecer no histórico de
+    // todos os outros, inclusive pra clientes remotos (mobile) pareados
+    // com um canal diferente.
+    XDG_DATA_HOME: process.env.XDG_DATA_HOME ?? userDataPath,
   })
   return shellEnv
 }
