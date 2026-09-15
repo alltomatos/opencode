@@ -1,5 +1,7 @@
 import type {
   HealthGetOutput,
+  ServerSystemUpdateInput,
+  ServerSystemUpdateOutput,
   LocationGetInput,
   LocationGetOutput,
   AgentsListInput,
@@ -59,10 +61,20 @@ import type {
   IntegrationsAttemptCompleteOutput,
   IntegrationsAttemptCancelInput,
   IntegrationsAttemptCancelOutput,
+  CredentialsCreateInput,
+  CredentialsCreateOutput,
   CredentialsUpdateInput,
   CredentialsUpdateOutput,
   CredentialsRemoveInput,
   CredentialsRemoveOutput,
+  ServerScheduleListInput,
+  ServerScheduleListOutput,
+  ServerScheduleCreateInput,
+  ServerScheduleCreateOutput,
+  ServerScheduleRunInput,
+  ServerScheduleRunOutput,
+  ServerScheduleRemoveInput,
+  ServerScheduleRemoveOutput,
   PermissionsListRequestsInput,
   PermissionsListRequestsOutput,
   PermissionsListSavedInput,
@@ -251,6 +263,20 @@ export function make(options: ClientOptions) {
       get: (requestOptions?: RequestOptions) =>
         request<HealthGetOutput>(
           { method: "GET", path: `/api/health`, successStatus: 200, declaredStatuses: [401, 400], empty: false },
+          requestOptions,
+        ),
+    },
+    "server.system": {
+      update: (input: ServerSystemUpdateInput, requestOptions?: RequestOptions) =>
+        request<ServerSystemUpdateOutput>(
+          {
+            method: "POST",
+            path: `/api/system/update`,
+            body: { confirm: input["confirm"] },
+            successStatus: 200,
+            declaredStatuses: [400, 401],
+            empty: false,
+          },
           requestOptions,
         ),
     },
@@ -637,6 +663,19 @@ export function make(options: ClientOptions) {
         ),
     },
     credentials: {
+      create: (input: CredentialsCreateInput, requestOptions?: RequestOptions) =>
+        request<CredentialsCreateOutput>(
+          {
+            method: "POST",
+            path: `/api/credential`,
+            query: { location: input["location"] },
+            body: { integrationID: input["integrationID"], label: input["label"], value: input["value"] },
+            successStatus: 200,
+            declaredStatuses: [401, 400],
+            empty: false,
+          },
+          requestOptions,
+        ),
       update: (input: CredentialsUpdateInput, requestOptions?: RequestOptions) =>
         request<CredentialsUpdateOutput>(
           {
@@ -655,6 +694,62 @@ export function make(options: ClientOptions) {
           {
             method: "DELETE",
             path: `/api/credential/${encodeURIComponent(input.credentialID)}`,
+            query: { location: input["location"] },
+            successStatus: 204,
+            declaredStatuses: [401, 400],
+            empty: true,
+          },
+          requestOptions,
+        ),
+    },
+    "server.schedule": {
+      list: (input?: ServerScheduleListInput, requestOptions?: RequestOptions) =>
+        request<ServerScheduleListOutput>(
+          {
+            method: "GET",
+            path: `/api/schedule`,
+            query: { location: input?.["location"] },
+            successStatus: 200,
+            declaredStatuses: [401, 400],
+            empty: false,
+          },
+          requestOptions,
+        ),
+      create: (input: ServerScheduleCreateInput, requestOptions?: RequestOptions) =>
+        request<ServerScheduleCreateOutput>(
+          {
+            method: "POST",
+            path: `/api/schedule`,
+            query: { location: input["location"] },
+            body: {
+              trigger: input["trigger"],
+              action: input["action"],
+              workspace: input["workspace"],
+              enabled: input["enabled"],
+            },
+            successStatus: 200,
+            declaredStatuses: [400, 401],
+            empty: false,
+          },
+          requestOptions,
+        ),
+      run: (input: ServerScheduleRunInput, requestOptions?: RequestOptions) =>
+        request<ServerScheduleRunOutput>(
+          {
+            method: "POST",
+            path: `/api/schedule/${encodeURIComponent(input.scheduleID)}/run`,
+            query: { location: input["location"] },
+            successStatus: 200,
+            declaredStatuses: [400, 401],
+            empty: false,
+          },
+          requestOptions,
+        ),
+      remove: (input: ServerScheduleRemoveInput, requestOptions?: RequestOptions) =>
+        request<ServerScheduleRemoveOutput>(
+          {
+            method: "DELETE",
+            path: `/api/schedule/${encodeURIComponent(input.scheduleID)}`,
             query: { location: input["location"] },
             successStatus: 204,
             declaredStatuses: [401, 400],

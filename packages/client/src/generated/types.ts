@@ -21,6 +21,10 @@ export type InvalidRequestError = {
 export const isInvalidRequestError = (value: unknown): value is InvalidRequestError =>
   typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "InvalidRequestError"
 
+export type SystemUpdateError = { readonly name: "SystemUpdateError"; readonly message: string }
+export const isSystemUpdateError = (value: unknown): value is SystemUpdateError =>
+  typeof value === "object" && value !== null && "name" in value && value["name"] === "SystemUpdateError"
+
 export type InvalidCursorError = { readonly _tag: "InvalidCursorError"; readonly message: string }
 export const isInvalidCursorError = (value: unknown): value is InvalidCursorError =>
   typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "InvalidCursorError"
@@ -74,6 +78,10 @@ export type ProviderNotFoundError = {
 export const isProviderNotFoundError = (value: unknown): value is ProviderNotFoundError =>
   typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "ProviderNotFoundError"
 
+export type ScheduleValidationError = { readonly name: "ScheduleValidationError"; readonly message: string }
+export const isScheduleValidationError = (value: unknown): value is ScheduleValidationError =>
+  typeof value === "object" && value !== null && "name" in value && value["name"] === "ScheduleValidationError"
+
 export type PermissionNotFoundError = {
   readonly _tag: "PermissionNotFoundError"
   readonly requestID: string
@@ -102,6 +110,14 @@ export const isProjectCopyError = (value: unknown): value is ProjectCopyError =>
   typeof value === "object" && value !== null && "name" in value && value["name"] === "ProjectCopyError"
 
 export type HealthGetOutput = { readonly healthy: true }
+
+export type ServerSystemUpdateInput = { readonly confirm: { readonly confirm: boolean }["confirm"] }
+
+export type ServerSystemUpdateOutput = {
+  readonly status: string
+  readonly message: string
+  readonly currentVersion?: string | undefined
+}
 
 export type LocationGetInput = {
   readonly location?: {
@@ -2269,6 +2285,70 @@ export type IntegrationsAttemptCancelInput = {
 
 export type IntegrationsAttemptCancelOutput = void
 
+export type CredentialsCreateInput = {
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+  readonly integrationID: {
+    readonly integrationID: string
+    readonly label?: string
+    readonly value:
+      | {
+          readonly type: "oauth"
+          readonly methodID: string
+          readonly refresh: string
+          readonly access: string
+          readonly expires: number
+          readonly metadata?: { readonly [x: string]: JsonValue }
+        }
+      | { readonly type: "key"; readonly key: string; readonly metadata?: { readonly [x: string]: JsonValue } }
+  }["integrationID"]
+  readonly label?: {
+    readonly integrationID: string
+    readonly label?: string
+    readonly value:
+      | {
+          readonly type: "oauth"
+          readonly methodID: string
+          readonly refresh: string
+          readonly access: string
+          readonly expires: number
+          readonly metadata?: { readonly [x: string]: JsonValue }
+        }
+      | { readonly type: "key"; readonly key: string; readonly metadata?: { readonly [x: string]: JsonValue } }
+  }["label"]
+  readonly value: {
+    readonly integrationID: string
+    readonly label?: string
+    readonly value:
+      | {
+          readonly type: "oauth"
+          readonly methodID: string
+          readonly refresh: string
+          readonly access: string
+          readonly expires: number
+          readonly metadata?: { readonly [x: string]: JsonValue }
+        }
+      | { readonly type: "key"; readonly key: string; readonly metadata?: { readonly [x: string]: JsonValue } }
+  }["value"]
+}
+
+export type CredentialsCreateOutput = {
+  readonly id: string
+  readonly integrationID: string
+  readonly label: string
+  readonly value:
+    | {
+        readonly type: "oauth"
+        readonly methodID: string
+        readonly refresh: string
+        readonly access: string
+        readonly expires: number
+        readonly metadata?: { readonly [x: string]: JsonValue }
+      }
+    | { readonly type: "key"; readonly key: string; readonly metadata?: { readonly [x: string]: JsonValue } }
+}
+
 export type CredentialsUpdateInput = {
   readonly credentialID: { readonly credentialID: string }["credentialID"]
   readonly location?: {
@@ -2287,6 +2367,231 @@ export type CredentialsRemoveInput = {
 }
 
 export type CredentialsRemoveOutput = void
+
+export type ServerScheduleListInput = {
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+}
+
+export type ServerScheduleListOutput = ReadonlyArray<{
+  readonly id: string
+  readonly trigger:
+    | { readonly kind: "cron"; readonly expr: string }
+    | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+    | { readonly kind: "manual" }
+  readonly action:
+    | {
+        readonly kind: "shell"
+        readonly command: string
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "mcp_tool"
+        readonly server: string
+        readonly tool: string
+        readonly args?: { readonly [x: string]: JsonValue }
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "skill"
+        readonly instructions: string
+        readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+      }
+  readonly workspace?: string
+  readonly enabled?: boolean
+  readonly lastRunAt?: number | "Infinity" | "-Infinity" | "NaN"
+  readonly lastStatus?: "success" | "error"
+  readonly lastError?: string
+}>
+
+export type ServerScheduleCreateInput = {
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+  readonly trigger: {
+    readonly trigger:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["trigger"]
+  readonly action: {
+    readonly trigger:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["action"]
+  readonly workspace?: {
+    readonly trigger:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["workspace"]
+  readonly enabled?: {
+    readonly trigger:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["enabled"]
+}
+
+export type ServerScheduleCreateOutput = {
+  readonly id: string
+  readonly trigger:
+    | { readonly kind: "cron"; readonly expr: string }
+    | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+    | { readonly kind: "manual" }
+  readonly action:
+    | {
+        readonly kind: "shell"
+        readonly command: string
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "mcp_tool"
+        readonly server: string
+        readonly tool: string
+        readonly args?: { readonly [x: string]: JsonValue }
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "skill"
+        readonly instructions: string
+        readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+      }
+  readonly workspace?: string
+  readonly enabled?: boolean
+  readonly lastRunAt?: number | "Infinity" | "-Infinity" | "NaN"
+  readonly lastStatus?: "success" | "error"
+  readonly lastError?: string
+}
+
+export type ServerScheduleRunInput = {
+  readonly scheduleID: { readonly scheduleID: string }["scheduleID"]
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+}
+
+export type ServerScheduleRunOutput = {
+  readonly id: string
+  readonly trigger:
+    | { readonly kind: "cron"; readonly expr: string }
+    | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+    | { readonly kind: "manual" }
+  readonly action:
+    | {
+        readonly kind: "shell"
+        readonly command: string
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "mcp_tool"
+        readonly server: string
+        readonly tool: string
+        readonly args?: { readonly [x: string]: JsonValue }
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "skill"
+        readonly instructions: string
+        readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+      }
+  readonly workspace?: string
+  readonly enabled?: boolean
+  readonly lastRunAt?: number | "Infinity" | "-Infinity" | "NaN"
+  readonly lastStatus?: "success" | "error"
+  readonly lastError?: string
+}
+
+export type ServerScheduleRemoveInput = {
+  readonly scheduleID: { readonly scheduleID: string }["scheduleID"]
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+}
+
+export type ServerScheduleRemoveOutput = void
 
 export type PermissionsListRequestsInput = {
   readonly location?: {
