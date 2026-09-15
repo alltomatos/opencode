@@ -38,8 +38,8 @@ describe("formatDuration", () => {
   })
 
   test("formatMinutes formats total minutes", () => {
-    expect(formatMinutes(3600000)).toBe("60 min")
-    expect(formatMinutes(3619620000)).toBe("60.327 min")
+    expect(formatMinutes(3600000, "pt-BR")).toBe("60 min")
+    expect(formatMinutes(3619620000, "pt-BR")).toBe("60.327 min")
   })
 })
 
