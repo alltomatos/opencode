@@ -1,4 +1,5 @@
-import { existsSync, mkdir, writeFile, copyFile, mkdirSync, readDir } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { mkdir, copyFile, readdir } from "node:fs/promises"
 import { join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { homedir } from "node:os"
@@ -15,7 +16,7 @@ export async function ensureDefaultSkills() {
   }
 
   try {
-    await mkdirSync(target, { recursive: true })
+    await mkdir(target, { recursive: true })
 
     const sourceExists = existsSync(DEFAULT_SKILLS_SOURCE)
     if (sourceExists) {
@@ -28,13 +29,13 @@ export async function ensureDefaultSkills() {
 }
 
 async function copySkillsRecursive(src: string, dest: string) {
-  const entries = await readDir(src, { withFileTypes: true, recursive: true })
+  const entries = await readdir(src, { withFileTypes: true, recursive: true })
 
   for (const entry of entries) {
     const entryPath = join(src, entry.name)
 
     if (entry.isDirectory()) {
-      await mkdirSync(join(dest, entry.name), { recursive: true })
+      await mkdir(join(dest, entry.name), { recursive: true })
       await copySkillsRecursive(entryPath, join(dest, entry.name))
     } else if (entry.isFile()) {
       await copyFile(entryPath, join(dest, entry.name))
