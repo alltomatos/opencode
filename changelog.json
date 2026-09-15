@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.24",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Novo: conectar email direto pelo app (mcpmail)",
+              "description": "Configurações → MCP → MailMCP agora abre uma tela dedicada para adicionar uma conta de email (host/porta/usuário/senha de app, com SMTP opcional) sem precisar instalar nada nem editar arquivos manualmente. Ao salvar, o app registra automaticamente o servidor mcpmail (vendorizado no próprio opencode) e as ferramentas de email ficam disponíveis nas Rotinas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.23",
       "highlights": [
         {
