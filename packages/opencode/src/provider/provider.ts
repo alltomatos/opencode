@@ -47,7 +47,7 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
         const id = setTimeout(() => {
           const err = new ProviderError.ResponseStreamError("SSE read timed out")
           ctl.abort(err)
-          void reader.cancel(err)
+          reader.cancel(err).catch(() => {})
           reject(err)
         }, ms)
 
@@ -417,6 +417,8 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         async getModel(sdk: any, modelID: string, options?: Record<string, any>, model?: Model) {
           if (model?.api.npm === "@ai-sdk/amazon-bedrock/mantle") return selectBedrockMantleLanguageModel(sdk, modelID)
 
+          if (modelID.startsWith("arn:")) return sdk.languageModel(modelID)
+
           // Skip region prefixing if model already has a cross-region inference profile prefix
           // Models from models.dev may already include prefixes like us., eu., global., etc.
           const crossRegionPrefixes = ["global.", "us.", "eu.", "jp.", "apac.", "au."]
@@ -441,7 +443,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                 "nova-premier",
                 "nova-2",
                 "claude",
-                "deepseek",
+                "deepseek.r1",
               ].some((m) => modelID.includes(m))
               const isGovCloud = region.startsWith("us-gov")
               if (modelRequiresPrefix && !isGovCloud) {
