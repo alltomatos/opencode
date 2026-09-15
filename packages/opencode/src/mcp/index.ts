@@ -44,7 +44,7 @@ const OMNIROUTE_MCP_NAME = "omnrt"
 
 // The MCP endpoint lives at the gateway's origin, not under the API base
 // path (e.g. baseURL "https://gateway.example.com/v1" but the MCP server at
-// "https://gateway.example.com/api/mcp/sse"). Pure — no state/Effect — so it
+// "https://gateway.example.com/api/mcp/stream"). Pure — no state/Effect — so it
 // can run both on-demand (omnirouteMcpConfig) and during instance boot
 // (MCP.state below, to reconnect an already-connected Omniroute MCP after
 // the app restarts, since it's never written to the persisted mcp config).
@@ -52,11 +52,17 @@ function buildOmnirouteRemoteConfig(info: AuthStore.Info): ConfigMCPV1.Info | un
   if (info.type !== "api") return undefined
   const baseURL = info.metadata?.baseURL
   if (!baseURL) return undefined
+  // OmniRoute exposes distinct URLs per transport (.../api/mcp/stream for
+  // Streamable HTTP, .../api/mcp/sse for SSE) -- connectRemote() tries
+  // StreamableHTTP first against whatever single `url` it's given, so it
+  // must be the stream endpoint, not the SSE-only one, or every connection
+  // wastes its first attempt failing against the wrong protocol before
+  // falling back to SSE.
   let mcpUrl: string
   try {
-    mcpUrl = new URL("/api/mcp/sse", baseURL).toString()
+    mcpUrl = new URL("/api/mcp/stream", baseURL).toString()
   } catch {
-    mcpUrl = baseURL.replace(/\/+$/, "") + "/api/mcp/sse"
+    mcpUrl = baseURL.replace(/\/+$/, "") + "/api/mcp/stream"
   }
   return { type: "remote", url: mcpUrl, headers: { Authorization: `Bearer ${info.key}` } }
 }
