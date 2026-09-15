@@ -1,9 +1,9 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "7d1f95cf-b536-437e-9f8a-8594750305e7",
+  "id": "3c0c7032-350f-46e8-8bd7-280916ba7b54",
   "prevIds": [
-    "f14a9b18-8207-487e-a3d3-227e629ba9ad"
+    "7d1f95cf-b536-437e-9f8a-8594750305e7"
   ],
   "ddl": [
     {
@@ -2257,6 +2257,28 @@
       "where": null,
       "origin": "manual",
       "name": "session_parent_idx",
+      "entityType": "indexes",
+      "table": "session"
+    },
+    {
+      "columns": [
+        {
+          "value": "directory",
+          "isExpression": false
+        },
+        {
+          "value": "time_created",
+          "isExpression": false
+        },
+        {
+          "value": "id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_directory_time_created_id_idx",
       "entityType": "indexes",
       "table": "session"
     },
