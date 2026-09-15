@@ -1,14 +1,15 @@
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Effect } from "effect"
-import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
+import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { Api } from "../api"
+import { SystemUpdateError } from "@opencode-ai/protocol/groups/system"
 
 export const SystemHandler = HttpApiBuilder.group(Api, "server.system", (handlers) =>
   handlers.handle(
     "system.update",
     Effect.fn(function* (ctx) {
       if (!ctx.payload.confirm) {
-        return yield* new HttpApiError.BadRequest()
+        return yield* new SystemUpdateError({ name: "SystemUpdateError", message: "Confirmation required" })
       }
 
       yield* Effect.logInfo(`[System] Remote update triggered by authenticated client`)

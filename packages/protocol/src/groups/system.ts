@@ -1,5 +1,13 @@
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
+
+export class SystemUpdateError extends Schema.ErrorClass<SystemUpdateError>("SystemUpdateError")(
+  {
+    name: Schema.Literal("SystemUpdateError"),
+    message: Schema.String,
+  },
+  { httpApiStatus: 400 },
+) {}
 
 export const SystemGroup = HttpApiGroup.make("server.system").add(
   HttpApiEndpoint.post("system.update", "/api/system/update", {
@@ -11,7 +19,7 @@ export const SystemGroup = HttpApiGroup.make("server.system").add(
       message: Schema.String,
       currentVersion: Schema.optional(Schema.String),
     }),
-    error: [HttpApiError.BadRequest],
+    error: SystemUpdateError,
   }).annotateMerge(
     OpenApi.annotations({
       identifier: "v2.system.update",

@@ -24,14 +24,14 @@ export const ScheduleHandler = HttpApiBuilder.group(Api, "server.schedule", (han
             workspace: ctx.payload.workspace,
             enabled: ctx.payload.enabled,
           })
-          .pipe(Effect.catch((error) => new ScheduleValidationError({ message: error.message })))
+          .pipe(Effect.catch((error) => new ScheduleValidationError({ name: "ScheduleValidationError", message: error.message })))
       }),
     )
     .handle(
       "schedule.run",
       Effect.fn(function* (ctx) {
         return yield* ScheduleRunner.runOne(ctx.params.scheduleID).pipe(
-          Effect.catch((error) => new ScheduleValidationError({ message: `Schedule "${error.id}" not found` })),
+          Effect.catch((error) => new ScheduleValidationError({ name: "ScheduleValidationError", message: `Schedule "${error.id}" not found` })),
         )
       }),
     )
