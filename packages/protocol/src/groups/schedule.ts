@@ -4,7 +4,7 @@ import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/un
 import { LocationQuery, locationQueryOpenApi } from "./location"
 
 export class ScheduleValidationError extends Schema.ErrorClass<ScheduleValidationError>("ScheduleValidationError")(
-  { message: Schema.String },
+  { name: Schema.Literal("ScheduleValidationError"), message: Schema.String },
   { httpApiStatus: 400 },
 ) {}
 
