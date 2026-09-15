@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.21",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: conexão MCP do OmniRoute falhando",
+              "description": "O app tentava conectar no endpoint de SSE do OmniRoute usando o protocolo Streamable HTTP, o que sempre falhava antes de cair pro modo SSE. Agora usa direto o endpoint correto do Streamable HTTP, conectando de primeira."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.20",
       "highlights": [
         {
