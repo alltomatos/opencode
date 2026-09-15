@@ -4,7 +4,7 @@ import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
 import { usePrompt } from "@/context/prompt"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { Dialog } from "@opencode-ai/ui/dialog"
+import { Dialog, DialogHeader, DialogTitle, DialogBody } from "@opencode-ai/ui/v2/dialog-v2"
 import { List } from "@opencode-ai/ui/list"
 import { showToast } from "@/utils/toast"
 import { extractPromptFromParts } from "@/utils/prompt"
@@ -82,23 +82,28 @@ export const DialogFork: Component = () => {
   }
 
   return (
-    <Dialog title={language.t("command.session.fork")}>
-      <List
-        class="flex-1 px-3 min-h-0 [&_[data-slot=list-scroll]]:flex-1 [&_[data-slot=list-scroll]]:min-h-0"
-        search={{ placeholder: language.t("common.search.placeholder"), autofocus: true }}
-        emptyMessage={language.t("dialog.fork.empty")}
-        key={(x) => x.id}
-        items={messages}
-        filterKeys={["text"]}
-        onSelect={handleSelect}
-      >
-        {(item) => (
-          <div class="w-full flex items-center gap-2">
-            <span class="truncate flex-1 min-w-0 text-left font-normal">{item.text}</span>
-            <span class="text-text-weak shrink-0 font-normal">{item.time}</span>
-          </div>
-        )}
-      </List>
+    <Dialog>
+      <DialogHeader>
+        <DialogTitle>{language.t("command.session.fork")}</DialogTitle>
+      </DialogHeader>
+      <DialogBody>
+        <List
+          class="flex-1 px-3 min-h-0 [&_[data-slot=list-scroll]]:flex-1 [&_[data-slot=list-scroll]]:min-h-0"
+          search={{ placeholder: language.t("common.search.placeholder"), autofocus: true }}
+          emptyMessage={language.t("dialog.fork.empty")}
+          key={(x) => x.id}
+          items={messages}
+          filterKeys={["text"]}
+          onSelect={handleSelect}
+        >
+          {(item) => (
+            <div class="w-full flex items-center gap-2">
+              <span class="truncate flex-1 min-w-0 text-left font-normal">{item.text}</span>
+              <span class="text-text-weak shrink-0 font-normal">{item.time}</span>
+            </div>
+          )}
+        </List>
+      </DialogBody>
     </Dialog>
   )
 }

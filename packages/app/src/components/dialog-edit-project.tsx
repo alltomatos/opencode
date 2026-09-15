@@ -1,5 +1,5 @@
 import { Button } from "@opencode-ai/ui/button"
-import { Dialog } from "@opencode-ai/ui/dialog"
+import { Dialog, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@opencode-ai/ui/v2/dialog-v2"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { Icon } from "@opencode-ai/ui/icon"
 import { For, Show } from "solid-js"
@@ -17,9 +17,13 @@ export function DialogEditProject(props: { project: LocalProject; server: Server
   const model = createEditProjectModel(props)
 
   return (
-    <Dialog title={language.t("dialog.project.edit.title")} class="w-full max-w-[480px] mx-auto">
-      <form onSubmit={model.submit} class="flex flex-col gap-6 p-6 pt-0">
-        <div class="flex flex-col gap-4">
+    <Dialog>
+      <DialogHeader>
+        <DialogTitle>{language.t("dialog.project.edit.title")}</DialogTitle>
+      </DialogHeader>
+      <DialogBody class="w-full max-w-[480px] mx-auto">
+        <form onSubmit={model.submit} class="flex flex-col gap-6 p-6 pt-0">
+          <div class="flex flex-col gap-4">
           <TextField
             autofocus
             type="text"
@@ -165,6 +169,7 @@ export function DialogEditProject(props: { project: LocalProject; server: Server
           </Button>
         </div>
       </form>
+      </DialogBody>
     </Dialog>
   )
 }

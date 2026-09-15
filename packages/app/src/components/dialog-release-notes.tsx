@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from "solid-js"
-import { Dialog } from "@opencode-ai/ui/dialog"
+import { Dialog, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@opencode-ai/ui/v2/dialog-v2"
 import { Button } from "@opencode-ai/ui/button"
 import { Icon } from "@opencode-ai/ui/icon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"

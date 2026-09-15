@@ -5,6 +5,13 @@
   inset: 0;
   z-index: 50;
   background-color: var(--v2-overlay-simple-overlay-scrim);
+  opacity: 1;
+  transition: opacity 150ms ease-in-out;
+}
+
+[data-component="dialog-overlay"][data-hidden] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 [data-component="dialog-v2"] {
@@ -15,6 +22,15 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
+
+  /* Enter/exit transitions */
+  [data-slot="dialog-content"][data-state="open"] {
+    animation: dialog-enter 150ms ease-out forwards;
+  }
+
+  [data-slot="dialog-content"][data-state="closed"] {
+    animation: dialog-exit 150ms ease-in forwards;
+  }
 
   [data-slot="dialog-container"] {
     display: flex;
@@ -174,4 +190,69 @@
     width: min(calc(100vw - 32px), 980px);
     height: min(calc(100vh - 92px), 600px);
   }
+}
+
+/* Focus rings for keyboard navigation */
+[data-slot="dialog-close-button"]:focus-visible,
+[data-slot="dialog-container"]:focus-visible,
+[data-slot="dialog-content"]:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+/* Dialog enter/exit animations */
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes dialog-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+}
+
+/* Overlay animation */
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Focus ring for close button */
+[data-slot="dialog-close-button"]:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+/* Ensure hover/pressed states use tokens */
+[data-slot="dialog-close-button"]:hover {
+  background: var(--v2-overlay-simple-overlay-hover);
+}
+
+[data-slot="dialog-close-button"]:active {
+  background: var(--v2-overlay-simple-overlay-pressed);
 }

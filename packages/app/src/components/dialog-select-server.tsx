@@ -1,5 +1,5 @@
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { Dialog } from "@opencode-ai/ui/dialog"
+import { Dialog, DialogHeader, DialogTitle, DialogBody } from "@opencode-ai/ui/v2/dialog-v2"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { List } from "@opencode-ai/ui/list"
@@ -201,12 +201,15 @@ export function DialogSelectServer() {
   const controller = useServerManagementController({ onSelect: dialog.close })
 
   return (
-    <Dialog title={controller.formTitle()}>
-      <div class="flex flex-1 min-h-0 flex-col px-5">
+    <Dialog>
+      <DialogHeader>
+        <DialogTitle>{controller.formTitle()}</DialogTitle>
+      </DialogHeader>
+      <DialogBody class="flex flex-1 min-h-0 flex-col px-5">
         <Show when={controller.isFormMode()} fallback={<ServerConnectionList controller={controller} />}>
           <ServerConnectionForm controller={controller} />
         </Show>
-      </div>
+      </DialogBody>
     </Dialog>
   )
 }
@@ -570,8 +573,11 @@ export function useServerManagementController(options: { onSelect?: () => void; 
   function handleRemove(key: ServerConnection.Key, conn?: ServerConnection.Any) {
     const name = conn ? serverName(conn) : key
     dialog.show(() => (
-      <Dialog title={language.t("server.remove.title")} fit>
-        <div class="flex flex-col gap-4 pl-6 pr-2.5 pb-3">
+      <Dialog fit>
+        <DialogHeader>
+          <DialogTitle>{language.t("server.remove.title")}</DialogTitle>
+        </DialogHeader>
+        <DialogBody class="flex flex-col gap-4 pl-6 pr-2.5 pb-3">
           <div class="flex flex-col gap-1">
             <span class="text-14-regular text-text-strong">{language.t("server.remove.confirm", { name })}</span>
           </div>
@@ -590,7 +596,7 @@ export function useServerManagementController(options: { onSelect?: () => void; 
               {language.t("server.remove.button")}
             </ButtonV2>
           </div>
-        </div>
+        </DialogBody>
       </Dialog>
     ))
   }

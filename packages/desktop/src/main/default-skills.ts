@@ -1,49 +1,43 @@
-import { existsSync } from "node:fs"
-import { mkdir, writeFile } from "node:fs/promises"
+import { existsSync, mkdir, writeFile, copyFile, mkdirSync, readDir } from "node:fs/promises"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 import { homedir } from "node:os"
-import { dirname, join } from "node:path"
-import { ZipReader, Uint8ArrayReader, Uint8ArrayWriter } from "@zip.js/zip.js"
-import { write as writeLog } from "./logging"
 
-// OpenCode's own skill discovery always scans ~/.opencode/skills/**/SKILL.md
-// (see packages/opencode/src/config/paths.ts's `directories()`, which walks
-// up from Global.Path.home for a ".opencode" dir, and skill/index.ts's
-// OPENCODE_SKILL_PATTERN) — so seeding that folder on first run is enough to
-// make these skills show up, no changes to the skill loader itself needed.
-// (Note: ~/.claude/skills is Claude Code's own folder — opencode also reads
-// it, but only as an optional *external* source, off by a settings toggle.)
-const SKILLS_REPO_ZIP = "https://github.com/alltomatos/skills/archive/refs/heads/main.zip"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const DEFAULT_SKILLS_SOURCE = join(__dirname, "skills", "default-skills")
 
 export async function ensureDefaultSkills() {
   const target = join(homedir(), ".opencode", "skills")
-  if (existsSync(target)) return
+
+  if (existsSync(target)) {
+    return
+  }
 
   try {
-    const response = await fetch(SKILLS_REPO_ZIP)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const buffer = new Uint8Array(await response.arrayBuffer())
+    await mkdirSync(target, { recursive: true })
 
-    const reader = new ZipReader(new Uint8ArrayReader(buffer))
-    const entries = await reader.getEntries()
-
-    let wrote = 0
-    for (const entry of entries) {
-      if (entry.directory || !entry.getData) continue
-      // Zip entries are rooted at "<repo>-<branch>/..." — only pull files
-      // under that root's "skills/" folder, matching the loader's glob.
-      const match = /^[^/]+\/skills\/(.+)$/.exec(entry.filename)
-      if (!match) continue
-      const relative = match[1]
-
-      const dest = join(target, relative)
-      await mkdir(dirname(dest), { recursive: true })
-      const data = await entry.getData(new Uint8ArrayWriter())
-      await writeFile(dest, data)
-      wrote++
+    const sourceExists = existsSync(DEFAULT_SKILLS_SOURCE)
+    if (sourceExists) {
+      await copySkillsRecursive(DEFAULT_SKILLS_SOURCE, target)
+      console.log("default-skills", `seeded skills from bundled default-skills`)
     }
-    await reader.close()
-    writeLog("default-skills", `seeded ${wrote} files from alltomatos/skills`)
   } catch (error) {
-    writeLog("default-skills", `failed to seed default skills: ${String(error)}`, undefined, "warn")
+    console.warn("default-skills", `failed to seed default skills: ${String(error)}`, error)
+  }
+}
+
+async function copySkillsRecursive(src: string, dest: string) {
+  const entries = await readDir(src, { withFileTypes: true, recursive: true })
+
+  for (const entry of entries) {
+    const entryPath = join(src, entry.name)
+
+    if (entry.isDirectory()) {
+      await mkdirSync(join(dest, entry.name), { recursive: true })
+      await copySkillsRecursive(entryPath, join(dest, entry.name))
+    } else if (entry.isFile()) {
+      await copyFile(entryPath, join(dest, entry.name))
+    }
   }
 }
