@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.23",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Corrigido: providers conectados sumindo (v1.21.22)",
+              "description": "A correção anterior isolava o diretório de dados inteiro por canal, o que também isolava sem querer o auth.json (credenciais dos providers), fazendo o app mostrar só o catálogo padrão do opencode zen. Agora só o banco de projetos é isolado por canal — providers, config e cache continuam compartilhados normalmente."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.22",
       "highlights": [
         {
