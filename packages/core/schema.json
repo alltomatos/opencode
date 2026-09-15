@@ -2294,7 +2294,7 @@
       "origin": "manual",
       "name": "todo_session_idx",
       "entityType": "indexes",
-      "table": "session"
+      "table": "todo"
     }
   ],
   "renames": []
