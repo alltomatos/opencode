@@ -157,6 +157,12 @@ import type {
   LocationRef,
   LspStatusErrors,
   LspStatusResponses,
+  MailAccountsAddErrors,
+  MailAccountsAddResponses,
+  MailAccountsListErrors,
+  MailAccountsListResponses,
+  MailAccountsRemoveErrors,
+  MailAccountsRemoveResponses,
   McpAddErrors,
   McpAddResponses,
   McpAuthAuthenticateErrors,
@@ -3448,6 +3454,129 @@ export class Formatter extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+}
+
+export class MailAccounts extends HeyApiClient {
+  /**
+   * List mail accounts
+   *
+   * List configured mcpmail accounts (App Password never included in the response).
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MailAccountsListResponses, MailAccountsListErrors, ThrowOnError>({
+      url: "/mail/accounts",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add or update a mail account
+   *
+   * Create or update a mcpmail account (IMAP/SMTP + App Password) and (re)register the mcpmail MCP server.
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      label?: string
+      provider?: string
+      host?: string
+      port?: number
+      secure?: boolean
+      user?: string
+      appPassword?: string
+      smtp?: {
+        host: string
+        port: number
+        secure: boolean
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "label" },
+            { in: "body", key: "provider" },
+            { in: "body", key: "host" },
+            { in: "body", key: "port" },
+            { in: "body", key: "secure" },
+            { in: "body", key: "user" },
+            { in: "body", key: "appPassword" },
+            { in: "body", key: "smtp" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MailAccountsAddResponses, MailAccountsAddErrors, ThrowOnError>({
+      url: "/mail/accounts",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a mail account
+   *
+   * Remove a configured mcpmail account.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<MailAccountsRemoveResponses, MailAccountsRemoveErrors, ThrowOnError>(
+      {
+        url: "/mail/accounts/{id}",
+        ...options,
+        ...params,
+      },
+    )
   }
 }
 
@@ -9220,6 +9349,11 @@ export class OpencodeClient extends HeyApiClient {
   private _formatter?: Formatter
   get formatter(): Formatter {
     return (this._formatter ??= new Formatter({ client: this.client }))
+  }
+
+  private _mailAccounts?: MailAccounts
+  get mailAccounts(): MailAccounts {
+    return (this._mailAccounts ??= new MailAccounts({ client: this.client }))
   }
 
   private _mcp?: Mcp

@@ -2651,6 +2651,21 @@ export type FormatterStatus = {
   enabled: boolean
 }
 
+export type MailAccountSummary = {
+  id: string
+  label: string
+  provider: string
+  host: string
+  port: number
+  secure: boolean
+  user: string
+  smtp?: {
+    host: string
+    port: number
+    secure: boolean
+  }
+}
+
 export type McpStatusConnected = {
   status: "connected"
 }
@@ -5340,6 +5355,7 @@ export type ScheduleTrigger = ScheduleCronTrigger | ScheduleIntervalTrigger | Sc
 export type ScheduleShellAction = {
   kind: "shell"
   command: string
+  timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type ScheduleMcpToolAction = {
@@ -5349,6 +5365,7 @@ export type ScheduleMcpToolAction = {
   args?: {
     [key: string]: unknown
   }
+  timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type ScheduleSkillMcpTool = {
@@ -9859,6 +9876,106 @@ export type FormatterStatusResponses = {
 }
 
 export type FormatterStatusResponse = FormatterStatusResponses[keyof FormatterStatusResponses]
+
+export type MailAccountsListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mail/accounts"
+}
+
+export type MailAccountsListErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type MailAccountsListError = MailAccountsListErrors[keyof MailAccountsListErrors]
+
+export type MailAccountsListResponses = {
+  /**
+   * Configured mail accounts (without secrets)
+   */
+  200: Array<MailAccountSummary>
+}
+
+export type MailAccountsListResponse = MailAccountsListResponses[keyof MailAccountsListResponses]
+
+export type MailAccountsAddData = {
+  body?: {
+    id: string
+    label: string
+    provider: string
+    host: string
+    port: number
+    secure: boolean
+    user: string
+    appPassword: string
+    smtp?: {
+      host: string
+      port: number
+      secure: boolean
+    }
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mail/accounts"
+}
+
+export type MailAccountsAddErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type MailAccountsAddError = MailAccountsAddErrors[keyof MailAccountsAddErrors]
+
+export type MailAccountsAddResponses = {
+  /**
+   * Mail account saved successfully
+   */
+  200: Array<MailAccountSummary>
+}
+
+export type MailAccountsAddResponse = MailAccountsAddResponses[keyof MailAccountsAddResponses]
+
+export type MailAccountsRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mail/accounts/{id}"
+}
+
+export type MailAccountsRemoveErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type MailAccountsRemoveError = MailAccountsRemoveErrors[keyof MailAccountsRemoveErrors]
+
+export type MailAccountsRemoveResponses = {
+  /**
+   * Mail account removed successfully
+   */
+  200: Array<MailAccountSummary>
+}
+
+export type MailAccountsRemoveResponse = MailAccountsRemoveResponses[keyof MailAccountsRemoveResponses]
 
 export type McpStatusData = {
   body?: never

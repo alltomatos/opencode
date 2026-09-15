@@ -10,6 +10,7 @@ import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
+import { DialogMailAccountV2 } from "./dialog-mail-account-v2"
 import "./settings-v2.css"
 
 type ConnectionType = "local" | "remote"
@@ -316,15 +317,14 @@ export const DialogMcpAddV2: Component<{
                       size="normal"
                       class="!w-full !justify-start gap-1.5 overflow-hidden"
                       onClick={() => {
-                        setForm("name", server.name)
-                        if (server.kind === "local") {
-                          setForm("type", "local")
-                          setForm("command", server.command.join(" "))
-                          setForm("environment", toRows(server.environment))
-                        } else {
-                          setForm("type", "remote")
-                          setForm("url", server.url)
+                        if (server.id === "mcpmail") {
+                          dialog.close()
+                          dialog.push(() => <DialogMailAccountV2 onAdded={props.onAdded} />)
+                          return
                         }
+                        setForm("name", server.name)
+                        setForm("type", "remote")
+                        setForm("url", server.url)
                         setForm("err", {})
                       }}
                     >

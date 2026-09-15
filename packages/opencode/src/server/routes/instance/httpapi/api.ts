@@ -18,6 +18,7 @@ import { ExperimentalApi } from "./groups/experimental"
 import { ExternalAgentApi } from "./groups/external-agent"
 import { FileApi } from "./groups/file"
 import { InstanceApi } from "./groups/instance"
+import { MailAccountsApi } from "./groups/mail-accounts"
 import { McpApi } from "./groups/mcp"
 import { MemoryApi } from "./groups/memory"
 import { PermissionApi } from "./groups/permission"
@@ -75,6 +76,7 @@ export const InstanceHttpApi = HttpApi.make("opencode-instance")
   .addHttpApi(ExternalAgentApi)
   .addHttpApi(FileApi)
   .addHttpApi(InstanceApi)
+  .addHttpApi(MailAccountsApi)
   .addHttpApi(McpApi)
   .addHttpApi(ProjectApi)
   .addHttpApi(ProjectCopyApi)

@@ -7,6 +7,7 @@ import * as Observability from "@opencode-ai/core/observability"
 import { Account } from "@/account/account"
 import { Agent } from "@/agent/agent"
 import { Auth } from "@/auth"
+import { MailAccounts } from "@/mail-accounts"
 import { BackgroundJob } from "@/background/job"
 import { Command } from "@/command"
 import { Config } from "@/config/config"
@@ -103,6 +104,7 @@ import { externalAgentHandlers } from "./handlers/external-agent"
 import { fileHandlers } from "./handlers/file"
 import { globalHandlers } from "./handlers/global"
 import { instanceHandlers } from "./handlers/instance"
+import { mailAccountsHandlers } from "./handlers/mail-accounts"
 import { mcpHandlers } from "./handlers/mcp"
 import { permissionHandlers } from "./handlers/permission"
 import { projectHandlers } from "./handlers/project"
@@ -176,6 +178,7 @@ const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
     externalAgentHandlers,
     fileHandlers,
     instanceHandlers,
+    mailAccountsHandlers,
     mcpHandlers,
     batutaHandlers,
     comboHandlers,
@@ -275,6 +278,7 @@ const app = LayerNode.group([
   LSP.node,
   MCP.node,
   McpAuth.node,
+  MailAccounts.node,
   Telegram.node,
   Memory.node,
   Batuta.node,
