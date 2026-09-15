@@ -1,9 +1,9 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "7d1f95cf-b536-437e-9f8a-8594750305e7",
+  "id": "c184339e-6ab6-4608-a9d2-eb36759ce9cb",
   "prevIds": [
-    "f14a9b18-8207-487e-a3d3-227e629ba9ad"
+    "7d1f95cf-b536-437e-9f8a-8594750305e7"
   ],
   "ddl": [
     {
@@ -2263,6 +2263,28 @@
     {
       "columns": [
         {
+          "value": "directory",
+          "isExpression": false
+        },
+        {
+          "value": "time_created",
+          "isExpression": false
+        },
+        {
+          "value": "id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_directory_time_created_id_idx",
+      "entityType": "indexes",
+      "table": "session"
+    },
+    {
+      "columns": [
+        {
           "value": "session_id",
           "isExpression": false
         }
@@ -2272,7 +2294,7 @@
       "origin": "manual",
       "name": "todo_session_idx",
       "entityType": "indexes",
-      "table": "todo"
+      "table": "session"
     }
   ],
   "renames": []
