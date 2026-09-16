@@ -252,7 +252,17 @@ function ProviderPickerV2(props: {
     active: undefined as string | undefined,
     connecting: undefined as string | undefined,
   })
-  const featured = [OMNIROUTE_PROVIDER_ID, "opencode", "opencode-go", "anthropic", "openai", "google", "openrouter", "vercel"]
+  const featured = [
+    OMNIROUTE_PROVIDER_ID,
+    "opencode",
+    "opencode-go",
+    "anthropic",
+    "openai",
+    "google",
+    "google-antigravity",
+    "google-antigravity-cli",
+    "openrouter",
+  ]
   const custom = () => ({ id: CUSTOM_ID, name: language.t("dialog.provider.custom.label") })
   const omniroutePlaceholder = () => ({ id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" })
   const all = createMemo(() => {
