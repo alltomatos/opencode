@@ -72,6 +72,7 @@ const layer = Layer.effect(
       if (provider.disabled) return false
       if (typeof provider.request.body.apiKey === "string") return true
       if (integration?.connections.length) return true
+      if (integration?.methods && integration.methods.length > 0) return true
       return provider.integrationID === undefined && !integration
     }
 
