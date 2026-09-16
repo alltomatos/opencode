@@ -53,6 +53,10 @@ async function request<T>(
 export function createIntegrationFetchApi(http: ServerConnection.HttpBase) {
   return {
     integration: {
+      list: (params: { location?: Location } = {}) =>
+        request<IntegrationInfo[]>(http, "GET", "/api/integration", {
+          location: params.location,
+        }),
       get: (params: { integrationID: string; location?: Location }) =>
         request<IntegrationInfo>(http, "GET", `/api/integration/${encodeURIComponent(params.integrationID)}`, {
           location: params.location,

@@ -8,6 +8,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
 import { createIntegrationFetchApi } from "@/utils/integration-fetch"
+import type { IntegrationInfo } from "@opencode-ai/client/promise"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
 import { createMemo, createResource, createSignal, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
@@ -84,7 +85,7 @@ export const ProviderViewToggle: Component<{ view: Accessor<ProviderView>; onCha
   )
 }
 
-type ProviderSource = "env" | "api" | "config" | "custom"
+type ProviderSource = "env" | "api" | "config" | "custom" | "oauth"
 type ProviderItem = ReturnType<ReturnType<typeof useProviders>["connected"]>[number]
 
 const PROVIDER_NOTES = [
@@ -195,6 +196,7 @@ export const SettingsProvidersV2: Component<{
   const [view, setView] = createSignal<ProviderView>(loadProviderView())
   const [query, setQuery] = createSignal("")
   const [disconnecting, setDisconnecting] = createSignal<Set<string>>(new Set())
+  const integrationApi = createMemo(() => createIntegrationFetchApi(serverSdk().server.http))
 
   const changeView = (next: ProviderView) => {
     setView(next)
@@ -210,10 +212,38 @@ export const SettingsProvidersV2: Component<{
     void dialog.show(() => <DialogConnectProvider directory={props.directory} controller={providerConnect} />)
   }
 
+  const [integrationsList, { refetch: refetchIntegrations }] = createResource(
+    () => ({ directory: props.directory?.() }),
+    (input) =>
+      integrationApi()
+        .integration.list({
+          location: input.directory ? { directory: input.directory } : undefined,
+        })
+        .then((res) => res.data)
+        .catch(() => [] as IntegrationInfo[]),
+  )
+
   const connected = createMemo(() => {
-    return providers
+    const list = providers
       .connected()
       .filter((p) => p.id !== "opencode" || Object.values(p.models).find((m) => m.cost?.input))
+      .slice()
+
+    const extraIntegrations = integrationsList() ?? []
+    for (const integration of extraIntegrations) {
+      if (integration.connections.length > 0 && !list.some((p) => p.id === integration.id)) {
+        list.push({
+          id: integration.id,
+          name: integration.name,
+          models: {},
+          source: "oauth",
+          env: [],
+          options: {},
+        } as unknown as ProviderItem)
+      }
+    }
+
+    return list
   })
 
   const popular = createMemo(() => {
@@ -243,8 +273,8 @@ export const SettingsProvidersV2: Component<{
 
   const source = (item: ProviderItem): ProviderSource | undefined => {
     if (!("source" in item)) return
-    const value = item.source
-    if (value === "env" || value === "api" || value === "config" || value === "custom") return value
+    const value = item.source as ProviderSource | undefined
+    if (value === "env" || value === "api" || value === "config" || value === "custom" || value === "oauth") return value
     return
   }
 
@@ -252,6 +282,7 @@ export const SettingsProvidersV2: Component<{
     const current = source(item)
     if (current === "env") return language.t("settings.providers.tag.environment")
     if (current === "api") return language.t("provider.connect.method.apiKey")
+    if (current === "oauth") return "OAuth"
     if (current === "config") {
       if (isConfigCustom(item.id)) return language.t("settings.providers.tag.custom")
       return language.t("settings.providers.tag.config")
@@ -303,6 +334,18 @@ export const SettingsProvidersV2: Component<{
   }
 
   const disconnect = async (providerID: string, name: string) => {
+    // If the provider has integration credentials, remove them
+    const integration = integrationsList()?.find((item) => item.id === providerID)
+    if (integration && integration.connections.length > 0) {
+      for (const connection of integration.connections) {
+        if (connection.type === "credential") {
+          await integrationApi()
+            .credential.remove({ credentialID: connection.id })
+            .catch(() => undefined)
+        }
+      }
+      refetchIntegrations()
+    }
     if (isConfigCustom(providerID)) {
       await serverSdk()
         .client.auth.remove({ providerID })
@@ -407,11 +450,13 @@ export const SettingsProvidersV2: Component<{
                       </Show>
                     </div>
                     <Show when={protocol() !== "v1"}>
-                      <ProviderAccountList
-                        integrationID={item.id}
-                        directory={props.directory}
-                        onChanged={() => void serverSync().refreshProviders()}
-                      />
+                        <ProviderAccountList
+                          integrationID={item.id}
+                          directory={props.directory}
+                          onChanged={() => {
+                            refetchIntegrations()
+                          }}
+                        />
                     </Show>
                   </div>
                 )}
