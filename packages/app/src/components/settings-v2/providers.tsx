@@ -218,14 +218,17 @@ export const SettingsProvidersV2: Component<{
 
   const popular = createMemo(() => {
     const connectedIDs = new Set(connected().map((p) => p.id))
-    const items = providers
-      .popular()
-      .filter((p) => !connectedIDs.has(p.id))
-      .slice()
-    if (!connectedIDs.has(OMNIROUTE_PROVIDER_ID) && !items.some((p) => p.id === OMNIROUTE_PROVIDER_ID)) {
-      items.push({ id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" } as ProviderItem)
-    }
-    items.sort((a, b) => popularProviders.indexOf(a.id) - popularProviders.indexOf(b.id))
+    const allProviders = providers.all()
+    const items = popularProviders
+      .filter((id) => !connectedIDs.has(id))
+      .map((id) => {
+        if (id === OMNIROUTE_PROVIDER_ID) return { id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" } as ProviderItem
+        if (id === "google-antigravity") return (allProviders.get(id) ?? { id: "google-antigravity", name: "Google Antigravity" }) as ProviderItem
+        if (id === "google-antigravity-cli") return (allProviders.get(id) ?? { id: "google-antigravity-cli", name: "Google Antigravity CLI" }) as ProviderItem
+        return allProviders.get(id)
+      })
+      .filter((p): p is ProviderItem => p !== undefined)
+
     return items
   })
 
