@@ -35,6 +35,7 @@ import { useServerSync } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
+import { createIntegrationFetchApi } from "@/utils/integration-fetch"
 import { CustomProviderForm } from "./dialog-custom-provider"
 import { DialogConnectOmniroute, OMNIROUTE_PROVIDER_ID } from "./dialog-connect-omniroute"
 import { decode64 } from "@/utils/base64"
@@ -423,6 +424,7 @@ function ProviderConnection(props: {
     const value = directory()
     return value ? { directory: value } : undefined
   }
+  const integrationApi = createMemo(() => createIntegrationFetchApi(serverSDK().server.http))
 
   const alive = { value: true }
   const timer = { current: undefined as ReturnType<typeof setTimeout> | undefined }
@@ -446,8 +448,8 @@ function ProviderConnection(props: {
   const [integration] = createResource(
     () => ({ provider: props.provider, directory: directory() }),
     (input) =>
-      serverSDK()
-        .api.integration.get({
+      integrationApi()
+        .integration.get({
           integrationID: input.provider,
           location: input.directory ? { directory: input.directory } : undefined,
         })
@@ -580,10 +582,10 @@ function ProviderConnection(props: {
         return
       }
       dispatch({ type: "auth.pending" })
-      await serverSDK()
-        .api.integration.oauth.connect({
+      await integrationApi()
+        .integration.oauth.connect({
           integrationID: props.provider,
-          methodID: method.id,
+          methodID: method.id!,
           inputs: inputs ?? {},
           location: location(),
         })
@@ -853,7 +855,7 @@ function ProviderConnection(props: {
       setFormStore("error", undefined)
       setFormStore("submitting", true)
       try {
-        await serverSDK().api.integration.connect.key({
+        await integrationApi().integration.connect.key({
           integrationID: props.provider,
           location: location(),
           key: apiKey,
@@ -997,9 +999,8 @@ function ProviderConnection(props: {
       }
 
       setFormStore("error", undefined)
-      const result = await serverSDK()
-        .api.integration.oauth.complete({
-          integrationID: props.provider,
+      const result = await integrationApi()
+        .integration.oauth.complete({
           attemptID: store.authorization!.attemptID,
           location: location(),
           code,
@@ -1096,9 +1097,8 @@ function ProviderConnection(props: {
       const poll = async () => {
         const authorization = store.authorization
         if (!authorization || !alive.value) return
-        const result = await serverSDK()
-          .api.integration.oauth.status({
-            integrationID: props.provider,
+        const result = await integrationApi()
+          .integration.oauth.status({
             attemptID: authorization.attemptID,
             location: location(),
           })

@@ -7,6 +7,7 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
+import { createIntegrationFetchApi } from "@/utils/integration-fetch"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
 import { createMemo, createResource, createSignal, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
@@ -115,13 +116,14 @@ const ProviderAccountList: Component<{
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
+  const integrationApi = createMemo(() => createIntegrationFetchApi(serverSdk().server.http))
   const [removing, setRemoving] = createSignal<Set<string>>(new Set())
 
   const [integration, { refetch }] = createResource(
     () => ({ integrationID: props.integrationID, directory: props.directory() }),
     (input) =>
-      serverSdk()
-        .api.integration.get({
+      integrationApi()
+        .integration.get({
           integrationID: input.integrationID,
           location: input.directory ? { directory: input.directory } : undefined,
         })
@@ -134,7 +136,7 @@ const ProviderAccountList: Component<{
   const remove = async (credentialID: string) => {
     setRemoving((prev) => new Set(prev).add(credentialID))
     try {
-      await serverSdk().api.credential.remove({
+      await integrationApi().credential.remove({
         credentialID,
         location: props.directory() ? { directory: props.directory() } : undefined,
       })
