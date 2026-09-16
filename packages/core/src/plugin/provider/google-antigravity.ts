@@ -58,7 +58,7 @@ function profiles(): Profile[] {
       clientProfile: "ide",
       clientID:
         process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
-      clientSecret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
+      clientSecret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
     },
     {
       integrationID: Integration.ID.make("google-antigravity-cli"),
@@ -68,7 +68,7 @@ function profiles(): Profile[] {
       clientProfile: "cli",
       clientID:
         process.env.AGY_OAUTH_CLIENT_ID ?? "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
-      clientSecret: process.env.AGY_OAUTH_CLIENT_SECRET ?? "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",
+      clientSecret: process.env.AGY_OAUTH_CLIENT_SECRET ?? "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",
     },
   ]
 }
