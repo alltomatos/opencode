@@ -11,7 +11,6 @@ export const popularProviders = [
   "opencode-go",
   "anthropic",
   "openai",
-  "google",
   "google-antigravity",
   "google-antigravity-cli",
   "openrouter",
