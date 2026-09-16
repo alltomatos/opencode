@@ -245,6 +245,7 @@ const layer = Layer.effect(
                 overflowFailure = event
                 return
               }
+              yield* models.reportFailure(session, event)
             }
             yield* publish(event)
             if (event.type !== "tool-call" || event.providerExecuted) return
@@ -295,6 +296,9 @@ const layer = Layer.effect(
             return yield* Effect.die(continueAfterOverflowCompaction(currentStep))
           if (overflowFailure) yield* publish(overflowFailure)
           const llmFailure = failure instanceof LLMError ? failure : undefined
+          if (llmFailure) {
+            yield* models.reportFailure(session, llmFailure)
+          }
           if (llmFailure && !publisher.hasProviderError()) {
             yield* withPublication(publisher.failUnsettledTools("Provider did not return a tool result", true))
             yield* withPublication(publisher.failAssistant(llmFailure.reason.message))

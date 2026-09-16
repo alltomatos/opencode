@@ -1,10 +1,12 @@
 import { describe, expect } from "bun:test"
 import { LLM } from "@opencode-ai/llm"
 import { LLMClient } from "@opencode-ai/llm/route"
-import { DateTime, Effect } from "effect"
+import { DateTime, Effect, Layer } from "effect"
 import { Headers } from "effect/unstable/http"
+import { Catalog } from "@opencode-ai/core/catalog"
 import { Credential } from "@opencode-ai/core/credential"
 import { Integration } from "@opencode-ai/core/integration"
+import { IntegrationConnection } from "@opencode-ai/core/integration/connection"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ProjectV2 } from "@opencode-ai/core/project"
@@ -342,6 +344,77 @@ describe("SessionRunnerModel", () => {
         ),
       ).toBe(false)
       expect(SessionRunnerModel.supported(model({ type: "native", settings: {} }))).toBe(false)
+    }),
+  )
+
+  it.effect("reportFailure benches connection on 429 and subsequent resolve picks alternate connection", () =>
+    Effect.gen(function* () {
+      const integrationID = Integration.ID.make("test-rotation-integration")
+      const providerID = ProviderV2.ID.make("test-rotation-provider")
+      const catModel = ModelV2.Info.make({
+        ...model({ type: "aisdk", package: "@ai-sdk/openai", url: "https://openai.example/v1" }),
+        id: ModelV2.ID.make("rot-model"),
+        providerID,
+      })
+      const connections: IntegrationConnection.Info[] = [
+        { type: "credential", id: Credential.ID.make("acc-1"), label: "Account 1" },
+        { type: "credential", id: Credential.ID.make("acc-2"), label: "Account 2" },
+      ]
+
+      const catalog = {
+        model: {
+          default: () => Effect.succeed(undefined),
+          available: () => Effect.succeed([catModel]),
+        },
+        provider: {
+          get: () => Effect.succeed({ id: providerID, name: "Provider", integrationID }),
+        },
+      }
+
+      let lastResolvedKey: string | undefined
+      const integrations = {
+        connection: {
+          list: () => Effect.succeed(connections),
+          resolve: (conn: IntegrationConnection.Info) =>
+            Effect.sync(() => {
+              lastResolvedKey = conn.type === "credential" ? conn.id : conn.name
+              return { type: "key" as const, key: `token-${lastResolvedKey}` }
+            }),
+        },
+      }
+
+      const layer = SessionRunnerModel.locationLayer.pipe(
+        Layer.provide(Layer.succeed(Catalog.Service, catalog as any)),
+        Layer.provide(Layer.succeed(Integration.Service, integrations as any)),
+      )
+
+      const models = yield* Effect.provide(SessionRunnerModel.Service, layer)
+
+      const session = SessionV2.Info.make({
+        id: SessionV2.ID.make("ses_rotation_test"),
+        projectID: ProjectV2.ID.global,
+        title: "test",
+        model: { id: catModel.id, providerID, variant: undefined },
+        cost: 0,
+        tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+        time: { created: DateTime.makeUnsafe(0), updated: DateTime.makeUnsafe(0) },
+        location: { directory: AbsolutePath.make("/project") },
+      })
+
+      // 1. First resolve picks first account
+      yield* models.resolve(session)
+      expect(lastResolvedKey).toBe("acc-1")
+
+      // 2. Report 429 rate limit failure
+      yield* models.reportFailure(session, {
+        _tag: "RateLimit",
+        message: "Rate limit reached",
+        retryAfterMs: 60_000,
+      })
+
+      // 3. Next resolve automatically advances to second account
+      yield* models.resolve(session)
+      expect(lastResolvedKey).toBe("acc-2")
     }),
   )
 })

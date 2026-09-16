@@ -84,4 +84,52 @@ describe("IntegrationRotation", () => {
     const pickedB = IntegrationRotation.pick(b, connections)
     expect(pickedB).toEqual(connections[1])
   })
+
+  test("markStickyUnavailable benches the current sticky connection and advances pick", () => {
+    const id = Integration.ID.make("rotation-test-mark-sticky")
+    const connections = [credential("sticky-avail-a"), credential("sticky-avail-b")]
+    const first = IntegrationRotation.pick(id, connections)!
+    expect(first).toEqual(connections[0])
+
+    const benched = IntegrationRotation.markStickyUnavailable(id, 60_000)
+    expect(benched).toBe(true)
+
+    const second = IntegrationRotation.pick(id, connections)!
+    expect(second).toEqual(connections[1])
+  })
+
+  test("handleFailure benches on 429 / RateLimit / QuotaExceeded and ignores unrelated errors", () => {
+    const id = Integration.ID.make("rotation-test-handle-failure")
+    const connections = [credential("failure-a"), credential("failure-b"), credential("failure-c")]
+    const first = IntegrationRotation.pick(id, connections)!
+    expect(first).toEqual(connections[0])
+
+    // Non-benchable error (e.g. 400 Bad Request / syntax error)
+    const ignored = IntegrationRotation.handleFailure(id, {
+      _tag: "InvalidRequest",
+      message: "Bad request",
+      http: { response: { status: 400 } },
+    })
+    expect(ignored).toBe(false)
+    expect(IntegrationRotation.pick(id, connections)).toEqual(connections[0])
+
+    // RateLimit error benches active connection and advances
+    const rateLimited = IntegrationRotation.handleFailure(id, {
+      _tag: "RateLimit",
+      message: "Too many requests",
+      retryAfterMs: 30_000,
+    })
+    expect(rateLimited).toBe(true)
+    const second = IntegrationRotation.pick(id, connections)!
+    expect(second).toEqual(connections[1])
+
+    // QuotaExceeded error benches second connection and advances to third
+    const quotaExceeded = IntegrationRotation.handleFailure(id, {
+      _tag: "QuotaExceeded",
+      message: "Quota exceeded",
+    })
+    expect(quotaExceeded).toBe(true)
+    const third = IntegrationRotation.pick(id, connections)!
+    expect(third).toEqual(connections[2])
+  })
 })

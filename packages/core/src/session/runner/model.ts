@@ -74,12 +74,16 @@ export type Error =
 
 export interface Interface {
   readonly resolve: (session: SessionSchema.Info) => Effect.Effect<Model, Error>
+  readonly reportFailure: (session: SessionSchema.Info, error: unknown) => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/SessionRunnerModel") {}
 
 /** Test or embedding seam for supplying a model resolver directly. */
-export const layerWith = (resolve: Interface["resolve"]) => Layer.succeed(Service, Service.of({ resolve }))
+export const layerWith = (
+  resolve: Interface["resolve"],
+  reportFailure: Interface["reportFailure"] = () => Effect.void,
+) => Layer.succeed(Service, Service.of({ resolve, reportFailure }))
 
 const apiKey = (model: ModelV2.Info, credential?: Credential.Value) => {
   if (credential?.type === "key") return Auth.value(credential.key)
@@ -211,6 +215,20 @@ export const locationLayer = Layer.effect(
           selected,
           connection ? yield* integrations.connection.resolve(connection) : undefined,
         )
+      }),
+      reportFailure: Effect.fn("SessionRunnerModel.reportFailure")(function* (session, error) {
+        const defaultModel = session.model ? undefined : yield* catalog.model.default()
+        const selected = session.model
+          ? (yield* catalog.model.available()).find(
+              (model) => model.providerID === session.model?.providerID && model.id === session.model.id,
+            )
+          : defaultModel && supported(defaultModel)
+            ? defaultModel
+            : (yield* catalog.model.available()).find(supported)
+        if (!selected) return
+        const provider = yield* catalog.provider.get(selected.providerID)
+        const integrationID = provider?.integrationID ?? Integration.ID.make(selected.providerID)
+        IntegrationRotation.handleFailure(integrationID, error)
       }),
     })
   }),
