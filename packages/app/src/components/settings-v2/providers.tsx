@@ -8,7 +8,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { createMemo, createSignal, type Accessor, type Component, For, Show } from "solid-js"
+import { createMemo, createResource, createSignal, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -99,6 +99,85 @@ const PROVIDER_NOTES = [
 ] as const
 
 const PROVIDER_ICON_SIZE = 16
+
+// Providers backed by the Integration/Credential service (see
+// packages/core/src/integration.ts) can hold more than one connected
+// account per provider — the legacy provider catalog rendered below only
+// knows connected/disconnected as a single boolean. We probe
+// Integration.get(item.id) for every connected provider rather than
+// threading an extra flag through the catalog: providers with no matching
+// integration (all the plain API-key ones) or with a single connection
+// resolve to an empty/1-item list and the component renders nothing.
+const ProviderAccountList: Component<{
+  integrationID: string
+  directory: Accessor<string | undefined>
+  onChanged?: () => void
+}> = (props) => {
+  const language = useLanguage()
+  const serverSdk = useServerSDK()
+  const [removing, setRemoving] = createSignal<Set<string>>(new Set())
+
+  const [integration, { refetch }] = createResource(
+    () => ({ integrationID: props.integrationID, directory: props.directory() }),
+    (input) =>
+      serverSdk()
+        .api.integration.get({
+          integrationID: input.integrationID,
+          location: input.directory ? { directory: input.directory } : undefined,
+        })
+        .then((result) => result.data)
+        .catch(() => undefined),
+  )
+
+  const accounts = createMemo(() => (integration.latest?.connections ?? []).filter((c) => c.type === "credential"))
+
+  const remove = async (credentialID: string) => {
+    setRemoving((prev) => new Set(prev).add(credentialID))
+    try {
+      await serverSdk().api.credential.remove({
+        credentialID,
+        location: props.directory() ? { directory: props.directory() } : undefined,
+      })
+      await refetch()
+      props.onChanged?.()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    } finally {
+      setRemoving((prev) => {
+        const next = new Set(prev)
+        next.delete(credentialID)
+        return next
+      })
+    }
+  }
+
+  return (
+    <Show when={accounts().length > 1}>
+      <div class="settings-v2-provider-accounts">
+        <For each={accounts()}>
+          {(account) => (
+            <div class="settings-v2-provider-account-row">
+              <span class="settings-v2-provider-account-label truncate">{account.label}</span>
+              <ButtonV2
+                size="normal"
+                variant="ghost-muted"
+                class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                disabled={removing().has(account.id)}
+                onClick={() => void remove(account.id)}
+              >
+                <Show when={removing().has(account.id)}>
+                  <Spinner class="size-4" />
+                </Show>
+                {language.t("common.disconnect")}
+              </ButtonV2>
+            </div>
+          )}
+        </For>
+      </div>
+    </Show>
+  )
+}
 
 export const SettingsProvidersV2: Component<{
   directory: Accessor<string | undefined>
@@ -274,46 +353,60 @@ export const SettingsProvidersV2: Component<{
             >
               <For each={connected()}>
                 {(item) => (
-                  <div class="settings-v2-provider-row group">
-                    <div class="settings-v2-provider-lead">
-                      <ProviderIcon
-                        id={item.id}
-                        width={PROVIDER_ICON_SIZE}
-                        height={PROVIDER_ICON_SIZE}
-                        class="settings-v2-provider-icon shrink-0"
-                      />
-                      <div class="settings-v2-provider-main">
-                        <span class="settings-v2-provider-name truncate">{item.name}</span>
-                        <Tag>{type(item)}</Tag>
+                  <div class="settings-v2-provider-row-group">
+                    <div class="settings-v2-provider-row group">
+                      <div class="settings-v2-provider-lead">
+                        <ProviderIcon
+                          id={item.id}
+                          width={PROVIDER_ICON_SIZE}
+                          height={PROVIDER_ICON_SIZE}
+                          class="settings-v2-provider-icon shrink-0"
+                        />
+                        <div class="settings-v2-provider-main">
+                          <span class="settings-v2-provider-name truncate">{item.name}</span>
+                          <Tag>{type(item)}</Tag>
+                        </div>
                       </div>
-                    </div>
-                    <Show
-                      when={canDisconnect(item)}
-                      fallback={
-                        <span class="settings-v2-provider-env-hint">
-                          {language.t("settings.providers.connected.environmentDescription")}
-                        </span>
-                      }
-                    >
-                      <div class="flex items-center gap-2">
-                        <Show when={canEdit(item)}>
-                          <ButtonV2 size="normal" variant="ghost-muted" onClick={() => connect(item.id)}>
-                            {language.t("common.edit")}
-                          </ButtonV2>
-                        </Show>
-                        <ButtonV2
-                          size="normal"
-                          variant="ghost-muted"
-                          class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
-                          disabled={disconnecting().has(item.id)}
-                          onClick={() => void handleDisconnect(item.id, item.name)}
-                        >
-                          <Show when={disconnecting().has(item.id)}>
-                            <Spinner class="size-4" />
+                      <Show
+                        when={canDisconnect(item)}
+                        fallback={
+                          <span class="settings-v2-provider-env-hint">
+                            {language.t("settings.providers.connected.environmentDescription")}
+                          </span>
+                        }
+                      >
+                        <div class="flex items-center gap-2">
+                          <Show when={canEdit(item)}>
+                            <ButtonV2 size="normal" variant="ghost-muted" onClick={() => connect(item.id)}>
+                              {language.t("common.edit")}
+                            </ButtonV2>
                           </Show>
-                          {language.t("common.disconnect")}
-                        </ButtonV2>
-                      </div>
+                          <Show when={protocol() !== "v1"}>
+                            <ButtonV2 size="normal" variant="ghost-muted" onClick={() => connect(item.id)}>
+                              {language.t("common.connect")}
+                            </ButtonV2>
+                          </Show>
+                          <ButtonV2
+                            size="normal"
+                            variant="ghost-muted"
+                            class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                            disabled={disconnecting().has(item.id)}
+                            onClick={() => void handleDisconnect(item.id, item.name)}
+                          >
+                            <Show when={disconnecting().has(item.id)}>
+                              <Spinner class="size-4" />
+                            </Show>
+                            {language.t("common.disconnect")}
+                          </ButtonV2>
+                        </div>
+                      </Show>
+                    </div>
+                    <Show when={protocol() !== "v1"}>
+                      <ProviderAccountList
+                        integrationID={item.id}
+                        directory={props.directory}
+                        onChanged={() => void serverSync().refreshProviders()}
+                      />
                     </Show>
                   </div>
                 )}

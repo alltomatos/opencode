@@ -12,9 +12,11 @@ import { GatewayPlugin } from "./provider/gateway"
 import { GithubCopilotPlugin } from "./provider/github-copilot"
 import { GitLabPlugin } from "./provider/gitlab"
 import { GooglePlugin } from "./provider/google"
+import { GoogleAntigravityPlugin } from "./provider/google-antigravity"
 import { GoogleVertexAnthropicPlugin, GoogleVertexPlugin } from "./provider/google-vertex"
 import { GroqPlugin } from "./provider/groq"
 import { KiloPlugin } from "./provider/kilo"
+import { KiroPlugin } from "./provider/kiro"
 import { LLMGatewayPlugin } from "./provider/llmgateway"
 import { MistralPlugin } from "./provider/mistral"
 import { NvidiaPlugin } from "./provider/nvidia"
@@ -48,11 +50,13 @@ export const ProviderPlugins: PluginInternal.Plugin<PluginInternal.Requirements 
   GatewayPlugin,
   GithubCopilotPlugin,
   GitLabPlugin,
+  GoogleAntigravityPlugin,
   GooglePlugin,
   GoogleVertexAnthropicPlugin,
   GoogleVertexPlugin,
   GroqPlugin,
   KiloPlugin,
+  KiroPlugin,
   LLMGatewayPlugin,
   MistralPlugin,
   NvidiaPlugin,

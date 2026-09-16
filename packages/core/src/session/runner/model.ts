@@ -11,6 +11,7 @@ import { produce } from "immer"
 import { Catalog } from "../../catalog"
 import { Credential } from "../../credential"
 import { Integration } from "../../integration"
+import { IntegrationRotation } from "../../integration/rotation"
 import { ModelV2 } from "../../model"
 import { ProviderV2 } from "../../provider"
 import { SessionSchema } from "../schema"
@@ -202,9 +203,9 @@ export const locationLayer = Layer.effect(
           })
         if (!selected) return yield* new ModelNotSelectedError({ sessionID: session.id })
         const provider = yield* catalog.provider.get(selected.providerID)
-        const connection = yield* integrations.connection.active(
-          provider?.integrationID ?? Integration.ID.make(selected.providerID),
-        )
+        const integrationID = provider?.integrationID ?? Integration.ID.make(selected.providerID)
+        const connections = yield* integrations.connection.list(integrationID)
+        const connection = IntegrationRotation.pick(integrationID, connections)
         return yield* resolve(
           session,
           selected,

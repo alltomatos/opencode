@@ -323,12 +323,17 @@ describe("Integration", () => {
             value: Credential.Key.make({ type: "key", key: "b" }),
           })
 
-          // Stored credentials and detected env vars appear as connections.
+          // Stored credentials and detected env vars appear as connections, most recent first.
           expect((yield* integrations.get(integrationID))?.connections).toEqual([
             {
               type: "credential",
               id: personal.id,
               label: "Personal",
+            },
+            {
+              type: "credential",
+              id: work.id,
+              label: "Work",
             },
             { type: "env", name: "INTEGRATION_TEST_ACME_KEY" },
           ])
@@ -337,6 +342,19 @@ describe("Integration", () => {
             id: personal.id,
             label: "Personal",
           })
+          expect(yield* integrations.connection.list(integrationID)).toEqual([
+            {
+              type: "credential",
+              id: personal.id,
+              label: "Personal",
+            },
+            {
+              type: "credential",
+              id: work.id,
+              label: "Work",
+            },
+            { type: "env", name: "INTEGRATION_TEST_ACME_KEY" },
+          ])
           expect(work.id).not.toBe(personal.id)
         }),
       (previous) =>

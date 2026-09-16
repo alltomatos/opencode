@@ -146,6 +146,8 @@ export interface Interface extends State.Transformable<Draft> {
   readonly connection: {
     /** Returns the active connection for one integration. */
     readonly active: (id: ID) => Effect.Effect<IntegrationConnection.Info | undefined>
+    /** Returns every connection for one integration, most recently created first. */
+    readonly list: (id: ID) => Effect.Effect<IntegrationConnection.Info[]>
     /** Resolves a connection into usable credential material. */
     readonly resolve: (
       connection: IntegrationConnection.Info,
@@ -381,6 +383,10 @@ export const locationLayer = Layer.effect(
         active: Effect.fn("Integration.connection.active")(function* (id) {
           const entry = state.get().integrations.get(id)
           return resolveConnections(entry, yield* credentials.list(id))[0]
+        }),
+        list: Effect.fn("Integration.connection.list")(function* (id) {
+          const entry = state.get().integrations.get(id)
+          return resolveConnections(entry, yield* credentials.list(id))
         }),
         resolve: Effect.fn("Integration.connection.resolve")(function* (connection) {
           if (connection.type === "env") {

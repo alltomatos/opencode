@@ -21,16 +21,45 @@ describe("Credential", () => {
       expect(yield* credentials.list(integrationID)).toEqual([created])
       yield* credentials.update(created.id, { label: "Personal" })
       expect((yield* credentials.list(integrationID))[0]?.label).toBe("Personal")
+      const renamed = { ...created, label: "Personal" }
 
-      const replacement = yield* credentials.create({
+      const second = yield* credentials.create({
         integrationID,
-        label: "Replacement",
-        value: Credential.Key.make({ type: "key", key: "replacement" }),
+        label: "Second account",
+        value: Credential.Key.make({ type: "key", key: "second" }),
       })
-      expect(yield* credentials.list(integrationID)).toEqual([replacement])
+      expect(yield* credentials.list(integrationID)).toEqual([renamed, second])
 
-      yield* credentials.remove(replacement.id)
+      yield* credentials.remove(second.id)
+      expect(yield* credentials.list(integrationID)).toEqual([renamed])
+
+      yield* credentials.remove(created.id)
       expect(yield* credentials.list(integrationID)).toEqual([])
+    }),
+  )
+
+  it.effect("keeps multiple credentials per integration side by side", () =>
+    Effect.gen(function* () {
+      const credentials = yield* Credential.Service
+      const integrationID = Integration.ID.make("kiro")
+      const first = yield* credentials.create({
+        integrationID,
+        label: "team@example.com",
+        value: Credential.Key.make({ type: "key", key: "one" }),
+      })
+      const other = yield* credentials.create({
+        integrationID,
+        label: "personal@example.com",
+        value: Credential.Key.make({ type: "key", key: "two" }),
+      })
+
+      const stored = yield* credentials.list(integrationID)
+      expect(stored).toHaveLength(2)
+      expect(stored.map((credential) => credential.id)).toEqual([first.id, other.id])
+
+      // Removing one connection never touches the other.
+      yield* credentials.remove(first.id)
+      expect(yield* credentials.list(integrationID)).toEqual([other])
     }),
   )
 })
