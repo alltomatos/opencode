@@ -4,6 +4,7 @@ import { mockOpenCodeServer } from "../utils/mock-server"
 
 const draftID = "draft_legacy_new_session"
 const directory = "C:/OpenCode/LegacyNewSession"
+const base64Directory = base64Encode(directory)
 const server = `http://${process.env.PLAYWRIGHT_SERVER_HOST ?? "127.0.0.1"}:${process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"}`
 
 test("redirects a draft to the legacy new-session route", async ({ page }) => {

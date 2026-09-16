@@ -207,12 +207,25 @@ function DraftRoute() {
   const [search] = useSearchParams<{ draftId?: string }>()
   const settings = useSettings()
   const tabs = useTabs()
+
+  const directory = () => {
+    const entry = tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)
+    if (!entry?.directory) throw new Error("no directory")
+    return entry.directory
+  }
+
   return (
     <Show when={tabs.ready()}>
       <Show
         when={tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)}
         keyed
-        fallback={<Navigate href="/" />}
+        fallback={
+          settings.general.newLayoutDesigns() ? (
+            <Navigate href="/new-session" />
+          ) : (
+            <Navigate href={`/${base64Encode(directory())}/session`} />
+          )
+        }
       >
         {(draft) => (
           <Show
@@ -660,6 +673,7 @@ function Routes(props: { serverScoped?: JSX.Element }) {
             <>
               <Route path="/" component={LegacyHome} />
               <Route path="/server/:serverKey/session/:id" component={LegacyTargetSessionRoute} />
+              <Route path="/new-session" component={LegacyNewSessionRoute} />
             </>
           }
         </Show>
@@ -707,6 +721,27 @@ function NewLayoutLegacySessionRedirect() {
           params.id,
         )}
       />
+    </Show>
+  )
+}
+
+function LegacyNewSessionRoute() {
+  const [search] = useSearchParams<{ draftId?: string }>()
+  const tabs = useTabs()
+  const directory = () => {
+    const entry = tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)
+    if (!entry?.directory) throw new Error("no directory")
+    return entry.directory
+  }
+  return (
+    <Show when={tabs.ready()}>
+      <Show
+        when={tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)}
+        keyed
+        fallback={<Navigate href={`/${base64Encode(directory())}/session`} />}
+      >
+        {(draft) => <Navigate href={`/${base64Encode(draft.directory)}/session`} />}
+      </Show>
     </Show>
   )
 }

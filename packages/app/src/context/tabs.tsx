@@ -44,6 +44,8 @@ export const draftHref = (draftID: string) => `/new-session?draftId=${encodeURIC
 export const tabHref = (tab: Tab) =>
   tab.type === "draft" ? draftHref(tab.draftID) : sessionHref(tab.server, tab.sessionId)
 
+export const tabDirectory = (tab: Tab) => (tab.type === "draft" ? tab.directory : "")
+
 export const tabKey = (tab: Tab) => (tab.type === "draft" ? `draft:${tab.draftID}` : `${tab.server}\n${tabHref(tab)}`)
 
 export function sessionHasOpenTab(tabs: Tab[], server: ServerConnection.Key, session: Session) {

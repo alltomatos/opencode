@@ -60,6 +60,8 @@ export const AppProjectSidebar: Component = () => {
       navigate("/")
   }
 
+  const routinesLabel = () => (language.locale() === "br" ? "Rotinas" : "Routines")
+
   const projects = {
     ...projectsController,
     project: { ...projectsController.project, select: selectProject },
@@ -69,16 +71,102 @@ export const AppProjectSidebar: Component = () => {
     <Show
       when={layout.projectSidebar.opened()}
       fallback={
-        <div class="flex w-9 shrink-0 flex-col items-center border-r border-v2-border-border-base pt-2">
-          <TooltipV2 placement="right" value={language.t("home.projects")}>
-            <IconButtonV2
-              variant="ghost-muted"
-              size="small"
-              icon={<Icon name={layout.projectSidebar.opened() ? "sidebar-active" : "sidebar"} />}
-              aria-label={language.t("home.projects")}
-              onClick={() => layout.projectSidebar.open()}
-            />
-          </TooltipV2>
+        <div class="flex h-full w-12 shrink-0 flex-col items-center justify-between border-r border-v2-border-border-base py-2">
+          <div class="flex w-full flex-col items-center gap-1.5 px-1">
+            <TooltipV2 placement="right" value={language.t("home.projects")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                icon={<Icon name="sidebar" />}
+                aria-label={language.t("home.projects")}
+                onClick={() => layout.projectSidebar.open()}
+              />
+            </TooltipV2>
+            <div class="my-0.5 h-px w-6 bg-v2-border-border-base" />
+            <ProjectRailTabButton
+              active={layout.projectSidebar.tab() === "code"}
+              label={language.t("sidebar.tab.code")}
+              onClick={() => {
+                if (layout.projectSidebar.tab() === "code") {
+                  layout.projectSidebar.open()
+                } else {
+                  selectTab("code")
+                }
+              }}
+            >
+              <Icon name="code" size="small" />
+            </ProjectRailTabButton>
+            <Show when={BATUTA_VISIBLE}>
+              <ProjectRailTabButton
+                active={layout.projectSidebar.tab() === "batuta"}
+                label={language.t("sidebar.tab.batuta")}
+                onClick={() => {
+                  if (layout.projectSidebar.tab() === "batuta") {
+                    layout.projectSidebar.open()
+                  } else {
+                    selectTab("batuta")
+                  }
+                }}
+              >
+                <IconV2 name="batuta" size="small" />
+              </ProjectRailTabButton>
+            </Show>
+            <ProjectRailTabButton
+              active={layout.projectSidebar.tab() === "agentui"}
+              label={language.t("sidebar.tab.agentui")}
+              onClick={() => {
+                if (layout.projectSidebar.tab() === "agentui") {
+                  layout.projectSidebar.open()
+                } else {
+                  selectTab("agentui")
+                }
+              }}
+            >
+              <IconV2 name="subagent" size="small" />
+            </ProjectRailTabButton>
+            <ProjectRailTabButton
+              active={layout.projectSidebar.tab() === "schedule"}
+              label={routinesLabel()}
+              onClick={() => {
+                if (layout.projectSidebar.tab() === "schedule") {
+                  layout.projectSidebar.open()
+                } else {
+                  selectTab("schedule")
+                }
+              }}
+            >
+              <Icon name="task" size="small" />
+            </ProjectRailTabButton>
+          </div>
+          <div class="flex w-full flex-col items-center gap-1.5 px-1">
+            <TooltipV2 placement="right" value={language.t("sidebar.stats")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                icon={<IconV2 name="chart" size="small" />}
+                aria-label={language.t("sidebar.stats")}
+                onClick={() => navigate("/stats")}
+              />
+            </TooltipV2>
+            <TooltipV2 placement="right" value={language.t("sidebar.settings")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                icon={<IconV2 name="settings-gear" size="small" />}
+                aria-label={language.t("sidebar.settings")}
+                onClick={projectsController.utility.settings}
+              />
+            </TooltipV2>
+            <TooltipV2 placement="right" value={language.t("sidebar.help")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                icon={<IconV2 name="help" size="small" />}
+                aria-label={language.t("sidebar.help")}
+                onClick={projectsController.utility.help}
+              />
+            </TooltipV2>
+          </div>
         </div>
       }
     >
@@ -86,8 +174,13 @@ export const AppProjectSidebar: Component = () => {
         class="relative flex min-h-0 shrink-0 flex-col border-r border-v2-border-border-base px-2 pb-2"
         style={{ width: `${layout.projectSidebar.width()}px` }}
       >
-        <div class="flex h-9 shrink-0 items-center justify-between gap-1 pr-1">
-          <ProjectSidebarTabs tab={layout.projectSidebar.tab()} onSelect={selectTab} language={language} />
+        <div class="flex h-12 shrink-0 items-center justify-between gap-1.5">
+          <ProjectSidebarTabs
+            tab={layout.projectSidebar.tab()}
+            onSelect={selectTab}
+            language={language}
+            routinesLabel={routinesLabel()}
+          />
           <TooltipV2 placement="bottom" value={language.t("home.projects")}>
             <IconButtonV2
               variant="ghost-muted"
@@ -129,9 +222,10 @@ const ProjectSidebarTabs: Component<{
   tab: ProjectSidebarTab
   onSelect: (tab: ProjectSidebarTab) => void
   language: ReturnType<typeof useLanguage>
+  routinesLabel: string
 }> = (props) => {
   return (
-    <div class="flex h-7 min-w-0 flex-1 items-center gap-0.5 rounded-[8px] bg-v2-background-bg-layer-01 p-0.5">
+    <div class="flex h-10 min-w-0 flex-1 items-center justify-center gap-0.5 rounded-[8px] bg-v2-background-bg-layer-01 p-0.5">
       <ProjectSidebarTabButton
         active={props.tab === "code"}
         label={props.language.t("sidebar.tab.code")}
@@ -157,7 +251,7 @@ const ProjectSidebarTabs: Component<{
       </ProjectSidebarTabButton>
       <ProjectSidebarTabButton
         active={props.tab === "schedule"}
-        label="Rotinas"
+        label={props.routinesLabel}
         onClick={() => props.onSelect("schedule")}
       >
         <Icon name="task" size="small" />
@@ -173,24 +267,60 @@ const ProjectSidebarTabButton: Component<{
   children: JSX.Element
 }> = (props) => {
   return (
-    <TooltipV2 placement="bottom" value={props.label} inactive={props.active}>
+    <TooltipV2 placement="bottom" value={props.label} class="flex h-full min-w-0 flex-1">
       <button
         type="button"
         class={`
-          flex h-6 flex-1 items-center justify-center gap-1.5 rounded-[6px] px-2 text-12-medium text-v2-text-text-muted
+          flex h-full w-full min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[6px] px-1 text-v2-text-text-muted
           transition-colors duration-[120ms] ease-in-out
           hover:text-v2-text-text-base
         `}
         classList={{
           "bg-v2-background-bg-base text-v2-text-text-base shadow-[var(--v2-elevation-raised)]": props.active,
         }}
+        aria-label={props.label}
         aria-pressed={props.active}
         onClick={props.onClick}
       >
-        {props.children}
-        <Show when={props.active}>
-          <span class="overflow-hidden text-ellipsis whitespace-nowrap">{props.label}</span>
-        </Show>
+        <div class="flex size-4 shrink-0 items-center justify-center">
+          {props.children}
+        </div>
+        <span class="block w-full overflow-hidden text-ellipsis whitespace-nowrap text-center text-[10px] font-medium leading-none">
+          {props.label}
+        </span>
+      </button>
+    </TooltipV2>
+  )
+}
+
+const ProjectRailTabButton: Component<{
+  active: boolean
+  label: string
+  onClick: () => void
+  children: JSX.Element
+}> = (props) => {
+  return (
+    <TooltipV2 placement="right" value={props.label} class="flex w-full">
+      <button
+        type="button"
+        class={`
+          flex w-full flex-col items-center justify-center gap-1 rounded-[6px] px-0.5 py-1.5 text-v2-text-text-muted
+          transition-colors duration-[120ms] ease-in-out
+          hover:text-v2-text-text-base
+        `}
+        classList={{
+          "bg-v2-background-bg-base text-v2-text-text-base shadow-[var(--v2-elevation-raised)]": props.active,
+        }}
+        aria-label={props.label}
+        aria-pressed={props.active}
+        onClick={props.onClick}
+      >
+        <div class="flex size-4 shrink-0 items-center justify-center">
+          {props.children}
+        </div>
+        <span class="block w-full overflow-hidden text-ellipsis whitespace-nowrap text-center text-[9px] font-medium leading-none">
+          {props.label}
+        </span>
       </button>
     </TooltipV2>
   )
