@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.25",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Melhoria: barra lateral com layout vertical e distribuição de espaço",
+              "description": "As abas do menu lateral (Code, Batuta, Agentes, Rotinas) agora exibem o ícone centralizado acima do nome e aproveitam 100% da largura disponível. A barra quando recolhida também traz acesso direto por ícone vertical com tooltip."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.24",
       "highlights": [
         {
