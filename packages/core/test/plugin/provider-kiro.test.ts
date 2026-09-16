@@ -1,12 +1,14 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+import { Catalog } from "@opencode-ai/core/catalog"
 import { Credential } from "@opencode-ai/core/credential"
 import { EventV2 } from "@opencode-ai/core/event"
 import { Integration } from "@opencode-ai/core/integration"
 import { PluginV2 } from "@opencode-ai/core/plugin"
 import { PluginHost } from "@opencode-ai/core/plugin/host"
 import { KiroPlugin } from "@opencode-ai/core/plugin/provider/kiro"
+import { ProviderV2 } from "@opencode-ai/core/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
@@ -57,6 +59,16 @@ describe("KiroPlugin", () => {
       ])
       const idc = integration?.methods.find((m) => m.type === "oauth" && m.id === idcMethodID)
       expect(idc).toMatchObject({ prompts: [{ type: "text", key: "startUrl" }] })
+    }),
+  )
+
+  it.effect("registers a connectable catalog card", () =>
+    Effect.gen(function* () {
+      yield* addPlugin()
+      const catalog = yield* Catalog.Service
+      const provider = yield* catalog.provider.get(ProviderV2.ID.make("kiro"))
+      expect(provider?.name).toBe("Kiro")
+      expect(provider?.integrationID).toBe(integrationID)
     }),
   )
 

@@ -1,12 +1,14 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
+import { Catalog } from "@opencode-ai/core/catalog"
 import { Credential } from "@opencode-ai/core/credential"
 import { EventV2 } from "@opencode-ai/core/event"
 import { Integration } from "@opencode-ai/core/integration"
 import { PluginV2 } from "@opencode-ai/core/plugin"
 import { PluginHost } from "@opencode-ai/core/plugin/host"
 import { GoogleAntigravityPlugin } from "@opencode-ai/core/plugin/provider/google-antigravity"
+import { ProviderV2 } from "@opencode-ai/core/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
@@ -80,6 +82,17 @@ describe("GoogleAntigravityPlugin", () => {
       const integrations = yield* Integration.Service
       expect((yield* integrations.get(ideID))?.methods).toEqual([{ id: methodID, type: "oauth", label: "Google account" }])
       expect((yield* integrations.get(cliID))?.methods).toEqual([{ id: methodID, type: "oauth", label: "Google account" }])
+    }),
+  )
+
+  it.effect("registers a connectable catalog card for both providers", () =>
+    Effect.gen(function* () {
+      yield* addPlugin()
+      const catalog = yield* Catalog.Service
+      expect((yield* catalog.provider.get(ProviderV2.ID.make("google-antigravity")))?.name).toBe("Google Antigravity")
+      expect((yield* catalog.provider.get(ProviderV2.ID.make("google-antigravity-cli")))?.name).toBe(
+        "Google Antigravity CLI",
+      )
     }),
   )
 

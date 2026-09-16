@@ -7,6 +7,7 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstab
 import { Credential } from "../../credential"
 import { Integration } from "../../integration"
 import { OauthCallbackPage } from "../../oauth/page"
+import { ProviderV2 } from "../../provider"
 
 // Google's official Antigravity IDE and its bundled `agy` CLI ship as two
 // separate OAuth clients (confirmed by extracting both from the installed
@@ -316,6 +317,19 @@ export const GoogleAntigravityPlugin = define<HttpClient.HttpClient | Scope.Scop
           integration.name = profile.providerName
         })
         draft.method.update(oauth(http, profile))
+      }
+    })
+    // Registers a connectable card in the provider catalog for each
+    // profile, even though there's no chat/completions adapter wired yet
+    // (see the NOTE above `oauth()`) — without a catalog.provider entry the
+    // "Connect a provider" picker has nothing to show, so OAuth would be
+    // unreachable from the UI despite being fully implemented.
+    yield* ctx.catalog.transform((catalog) => {
+      for (const profile of profiles()) {
+        catalog.provider.update(ProviderV2.ID.make(profile.integrationID), (provider) => {
+          provider.name = profile.providerName
+          provider.integrationID = profile.integrationID
+        })
       }
     })
   }),

@@ -5,6 +5,7 @@ import { define } from "@opencode-ai/plugin/v2/effect/plugin"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { Credential } from "../../credential"
 import { Integration } from "../../integration"
+import { ProviderV2 } from "../../provider"
 
 // Endpoints, header/target names, and the fixed profile ARNs below were
 // extracted directly from the locally installed Kiro IDE
@@ -436,6 +437,17 @@ export const KiroPlugin = define<HttpClient.HttpClient | Scope.Scope>({
       draft.method.update(deviceMethod(http, idcMethodID, "idc"))
       draft.method.update(social(http))
       draft.method.update(importToken(http))
+    })
+    // Registers a connectable card in the provider catalog — without a
+    // catalog.provider entry the "Connect a provider" picker has nothing to
+    // show, so OAuth would be unreachable from the UI. No chat/completions
+    // adapter is wired for the CodeWhisperer protocol yet (see kilo.ts /
+    // google-antigravity.ts for the same scope boundary).
+    yield* ctx.catalog.transform((catalog) => {
+      catalog.provider.update(ProviderV2.ID.make(integrationID), (provider) => {
+        provider.name = "Kiro"
+        provider.integrationID = integrationID
+      })
     })
   }),
 })
