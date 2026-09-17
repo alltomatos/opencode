@@ -140,15 +140,26 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string, clien
     if (loaded.cloudaicompanionProject) {
       return { projectID: loaded.cloudaicompanionProject, tier: loaded.currentTier?.id }
     }
+    // onboardUser's request body uses snake_case tier_id, unlike every other
+    // camelCase field in these APIs — confirmed against OmniRoute's working
+    // client. Sending `tierId` here silently fails onboarding (Google's
+    // request validation just ignores/rejects the unrecognized field).
     const onboarded = yield* post(
       http,
       onboardUserUrl,
       accessToken,
-      { tierId: loaded.currentTier?.id ?? "free-tier", metadata },
+      { tier_id: loaded.currentTier?.id ?? "free-tier", metadata },
       OnboardUserResponse,
       headers,
     )
-    return { projectID: onboarded.response?.cloudaicompanionProject, tier: loaded.currentTier?.id }
+    if (onboarded.response?.cloudaicompanionProject) {
+      return { projectID: onboarded.response.cloudaicompanionProject, tier: loaded.currentTier?.id }
+    }
+    // onboardUser's own response doesn't reliably carry the project once
+    // onboarding completes — OmniRoute re-fetches loadCodeAssist afterward
+    // to pick it up instead of trusting onboardUser's response shape.
+    const reloaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse, headers)
+    return { projectID: reloaded.cloudaicompanionProject, tier: reloaded.currentTier?.id ?? loaded.currentTier?.id }
   }).pipe(Effect.catch(() => Effect.succeed({ projectID: undefined, tier: undefined })))
 }
 
