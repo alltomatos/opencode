@@ -2081,12 +2081,21 @@ const layer = Layer.effect(
       if (credential?.type === "oauth") {
         info.key = credential.access
         const meta = (credential as any).metadata
+        const clientProfile: "ide" | "cli" = meta?.clientProfile || (providerID.endsWith("-cli") ? "cli" : "ide")
         info.options = {
           ...info.options,
           apiKey: credential.access,
           accessToken: credential.access,
           projectID: meta?.projectID || "aicode-consumers",
-          clientProfile: meta?.clientProfile || (providerID.endsWith("-cli") ? "cli" : "ide"),
+          clientProfile,
+        }
+        // fromCatalog() only carries over the catalog's static api.url/apiKey —
+        // it can't know about the Code Assist wire protocol, so the fetch
+        // interceptor that speaks it (see antigravity-adapter.ts) has to be
+        // injected here, on every sync, since a fresh access token means a
+        // fresh options object each time.
+        if (providerID.startsWith("google-antigravity")) {
+          info.options.fetch = createAntigravityFetch(clientProfile, () => info.options)
         }
       }
       const existing = s.providers[providerID]
