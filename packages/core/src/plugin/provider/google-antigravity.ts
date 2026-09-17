@@ -87,16 +87,36 @@ const OnboardUserResponse = Schema.Struct({
   response: Schema.optional(Schema.Struct({ cloudaicompanionProject: Schema.optional(Schema.String) })),
 })
 
-function post<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, token: string, body: unknown, schema: S) {
+function post<S extends Schema.Top>(
+  http: HttpClient.HttpClient,
+  url: string,
+  token: string,
+  body: unknown,
+  schema: S,
+  headers?: Record<string, string>,
+) {
   return HttpClient.filterStatusOk(http)
     .execute(
       HttpClientRequest.post(url).pipe(
         HttpClientRequest.acceptJson,
         HttpClientRequest.bearerToken(token),
         HttpClientRequest.bodyJsonUnsafe(body),
+        HttpClientRequest.setHeaders(headers ?? {}),
       ),
     )
     .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)))
+}
+
+// Google's onboarding endpoints (unlike generateContent) appear to gate on
+// client identity headers, not just the request body: OmniRoute's
+// reverse-engineered client sends this exact "IDE-Node" fingerprint —
+// distinct from both the CLI User-Agent and the native IDE Electron
+// User-Agent — specifically for loadCodeAssist/onboardUser on the "ide"
+// profile. Confirmed live: onboardUser 403s without it even with correct
+// body metadata.
+const ideNodeOnboardingHeaders = {
+  "User-Agent": "antigravity/2.1.1 darwin/arm64 google-api-nodejs-client/10.3.0",
+  "X-Goog-Api-Client": "gl-node/22.21.1",
 }
 
 function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, token: string, schema: S) {
@@ -110,25 +130,13 @@ function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, tok
 // alone isn't enough. Best-effort: a failure here still leaves the account
 // usable, since onboarding can complete lazily on the first real request.
 function discoverProject(http: HttpClient.HttpClient, accessToken: string, clientProfile: ClientProfile) {
-  // The IDE surface's onboardUser rejects `pluginType: "GEMINI"` with a bare
-  // 403 PermissionDenied — confirmed live (the account onboards fine through
-  // the real Antigravity IDE app, just not through this metadata shape).
-  // OmniRoute's reverse-engineered client uses `ideType: "ANTIGRAVITY"`
-  // instead; kept scoped to the "ide" profile since "cli" is confirmed
-  // working today with the GEMINI tag and there's no reason to risk
-  // regressing it on an untested guess.
-  // The IDE surface's onboardUser rejects auto-provisioning with a bare 403
-  // PermissionDenied for both `{pluginType: "GEMINI"}` and
-  // `{ideType: "ANTIGRAVITY"}` (OmniRoute's reverse-engineered metadata
-  // shape) — confirmed live on an account that DOES onboard successfully
-  // through the real Antigravity IDE app. That app likely links a Google
-  // Cloud project through an interactive step (choose/create project in
-  // browser) this API call alone doesn't replicate; not something a
-  // metadata tweak can fix. Kept as ideType since it's no worse than the
-  // old value and matches the real client's own shape.
+  // pluginType: "GEMINI" is the CLI's onboarding metadata; ideType:
+  // "ANTIGRAVITY" (OmniRoute's reverse-engineered shape) is what the real
+  // IDE app sends. Scoped to "ide" only — "cli" is confirmed working today.
   const metadata = clientProfile === "ide" ? { ideType: "ANTIGRAVITY" } : { pluginType: "GEMINI" }
+  const headers = clientProfile === "ide" ? ideNodeOnboardingHeaders : undefined
   return Effect.gen(function* () {
-    const loaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse)
+    const loaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse, headers)
     if (loaded.cloudaicompanionProject) {
       return { projectID: loaded.cloudaicompanionProject, tier: loaded.currentTier?.id }
     }
@@ -138,6 +146,7 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string, clien
       accessToken,
       { tierId: loaded.currentTier?.id ?? "free-tier", metadata },
       OnboardUserResponse,
+      headers,
     )
     return { projectID: onboarded.response?.cloudaicompanionProject, tier: loaded.currentTier?.id }
   }).pipe(Effect.catch(() => Effect.succeed({ projectID: undefined, tier: undefined })))
