@@ -117,6 +117,15 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string, clien
   // instead; kept scoped to the "ide" profile since "cli" is confirmed
   // working today with the GEMINI tag and there's no reason to risk
   // regressing it on an untested guess.
+  // The IDE surface's onboardUser rejects auto-provisioning with a bare 403
+  // PermissionDenied for both `{pluginType: "GEMINI"}` and
+  // `{ideType: "ANTIGRAVITY"}` (OmniRoute's reverse-engineered metadata
+  // shape) — confirmed live on an account that DOES onboard successfully
+  // through the real Antigravity IDE app. That app likely links a Google
+  // Cloud project through an interactive step (choose/create project in
+  // browser) this API call alone doesn't replicate; not something a
+  // metadata tweak can fix. Kept as ideType since it's no worse than the
+  // old value and matches the real client's own shape.
   const metadata = clientProfile === "ide" ? { ideType: "ANTIGRAVITY" } : { pluginType: "GEMINI" }
   return Effect.gen(function* () {
     const loaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse)
