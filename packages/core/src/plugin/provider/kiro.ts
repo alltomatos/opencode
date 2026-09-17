@@ -442,12 +442,55 @@ export const KiroPlugin = define<HttpClient.HttpClient | Scope.Scope>({
     // catalog.provider entry the "Connect a provider" picker has nothing to
     // show, so OAuth would be unreachable from the UI. No chat/completions
     // adapter is wired for the CodeWhisperer protocol yet (see kilo.ts /
-    // google-antigravity.ts for the same scope boundary).
+    // google-antigravity.ts for the same scope boundary — and, like
+    // Antigravity, this catalog registration alone does NOT reach real chat
+    // calls; that needs its own v1 bridge injection in
+    // packages/opencode/src/provider/provider.ts once the wire adapter exists).
     yield* ctx.catalog.transform((catalog) => {
-      catalog.provider.update(ProviderV2.ID.make(integrationID), (provider) => {
+      const providerID = ProviderV2.ID.make(integrationID)
+      catalog.provider.update(providerID, (provider) => {
         provider.name = "Kiro"
         provider.integrationID = integrationID
+        provider.api = { type: "aisdk", package: "@ai-sdk/anthropic" }
       })
+
+      // Model IDs and context/output limits below come from Kiro's live
+      // upstream catalog (cross-checked against OmniRoute's kiro provider
+      // registry, D:\dev\OmniRoute\open-sse\config\providers\registry\kiro —
+      // sending an unknown id makes CodeWhisperer return
+      // `400 "Invalid model. Please select a different model"`, so these are
+      // NOT guessed). claude-sonnet-5 is real but plan-gated per account.
+      const models: { id: string; name: string; context?: number; output?: number }[] = [
+        { id: "claude-sonnet-5", name: "Claude Sonnet 5", context: 1_000_000, output: 128_000 },
+        { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", context: 200_000, output: 64_000 },
+        { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", context: 200_000, output: 64_000 },
+        { id: "deepseek-3.2", name: "DeepSeek V3.2" },
+        { id: "minimax-m2.5", name: "MiniMax M2.5" },
+        { id: "minimax-m2.1", name: "MiniMax M2.1" },
+        { id: "glm-5", name: "GLM-5" },
+        { id: "qwen3-coder-next", name: "Qwen3 Coder Next" },
+        { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", context: 272_000, output: 128_000 },
+        { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", context: 272_000, output: 128_000 },
+        { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", context: 272_000, output: 128_000 },
+      ]
+
+      for (const m of models) {
+        catalog.model.update(providerID, m.id, (draft) => {
+          draft.name = m.name
+          draft.capabilities = {
+            tools: true,
+            input: ["text"],
+            output: ["text"],
+          }
+          draft.status = "active"
+          draft.enabled = true
+          draft.limit = {
+            context: m.context ?? 200_000,
+            input: m.context ?? 200_000,
+            output: m.output ?? 64_000,
+          }
+        })
+      }
     })
   }),
 })
