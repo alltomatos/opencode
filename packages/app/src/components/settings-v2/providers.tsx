@@ -279,6 +279,9 @@ export const SettingsProvidersV2: Component<{
   }
 
   const type = (item: ProviderItem) => {
+    if (item.id === "google-antigravity" || item.id === "google-antigravity-cli" || item.id === "kiro" || item.id === "kilo") {
+      return "OAuth"
+    }
     const current = source(item)
     if (current === "env") return language.t("settings.providers.tag.environment")
     if (current === "api") return language.t("provider.connect.method.apiKey")
@@ -429,7 +432,7 @@ export const SettingsProvidersV2: Component<{
                               {language.t("common.edit")}
                             </ButtonV2>
                           </Show>
-                          <Show when={protocol() !== "v1"}>
+                          <Show when={true}>
                             <ButtonV2 size="normal" variant="ghost-muted" icon="plus" onClick={() => connect(item.id)}>
                               {language.t("common.add")}
                             </ButtonV2>
@@ -449,7 +452,7 @@ export const SettingsProvidersV2: Component<{
                         </div>
                       </Show>
                     </div>
-                    <Show when={protocol() !== "v1"}>
+                    <Show when={true}>
                         <ProviderAccountList
                           integrationID={item.id}
                           directory={props.directory}
