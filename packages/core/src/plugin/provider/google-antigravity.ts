@@ -326,10 +326,42 @@ export const GoogleAntigravityPlugin = define<HttpClient.HttpClient | Scope.Scop
     // unreachable from the UI despite being fully implemented.
     yield* ctx.catalog.transform((catalog) => {
       for (const profile of profiles()) {
-        catalog.provider.update(ProviderV2.ID.make(profile.integrationID), (provider) => {
+        const providerID = ProviderV2.ID.make(profile.integrationID)
+        catalog.provider.update(providerID, (provider) => {
           provider.name = profile.providerName
           provider.integrationID = profile.integrationID
+          provider.api = { type: "aisdk", package: "@ai-sdk/google" }
         })
+
+        const models = [
+          { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)", reasoning: true },
+          { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)", reasoning: true },
+          { id: "gemini-3.7-flash-low", name: "Gemini 3.7 Flash (Low)", reasoning: true },
+          { id: "gemini-pro-agent", name: "Gemini 3.1 Pro (High)", reasoning: true },
+          { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)", reasoning: true },
+          { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite", reasoning: false },
+          { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6 (Thinking)", reasoning: true },
+          { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 (Thinking)", reasoning: true },
+          { id: "gpt-oss-120b-medium", name: "GPT-OSS 120B (Medium)", reasoning: true },
+        ]
+
+        for (const m of models) {
+          catalog.model.update(providerID, m.id, (draft) => {
+            draft.name = m.name
+            draft.capabilities = {
+              tools: true,
+              input: ["text", "image", "pdf"],
+              output: ["text"],
+            }
+            draft.status = "active"
+            draft.enabled = true
+            draft.limit = {
+              context: 1048576,
+              input: 1048576,
+              output: 65536,
+            }
+          })
+        }
       }
     })
   }),
