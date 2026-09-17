@@ -95,7 +95,7 @@ function post<S extends Schema.Top>(
   schema: S,
   headers?: Record<string, string>,
 ) {
-  return HttpClient.filterStatusOk(http)
+  return http
     .execute(
       HttpClientRequest.post(url).pipe(
         HttpClientRequest.acceptJson,
@@ -104,7 +104,23 @@ function post<S extends Schema.Top>(
         HttpClientRequest.setHeaders(headers ?? {}),
       ),
     )
-    .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)))
+    .pipe(
+      Effect.tap((response) =>
+        response.status >= 400
+          ? response.text.pipe(
+              Effect.tap((text) =>
+                Effect.sync(() =>
+                  console.error(
+                    `[antigravity-debug] POST ${url} sentBody=${JSON.stringify(body)} sentHeaders=${JSON.stringify(headers ?? {})} -> ${response.status}: ${text}`,
+                  ),
+                ),
+              ),
+            )
+          : Effect.void,
+      ),
+      Effect.flatMap(HttpClientResponse.filterStatusOk),
+      Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)),
+    )
 }
 
 // Google's onboarding endpoints (unlike generateContent) appear to gate on
@@ -144,11 +160,17 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string, clien
     // camelCase field in these APIs — confirmed against OmniRoute's working
     // client. Sending `tierId` here silently fails onboarding (Google's
     // request validation just ignores/rejects the unrecognized field).
+    // Google returns the specific error FREE_TIER_USER_NOT_ELIGIBLE for
+    // paid-plan accounts onboarded with tier_id "free-tier" — confirmed
+    // live on a Google AI Pro account. loadCodeAssist's own response is `{}`
+    // for accounts with no existing project (no currentTier to read), so a
+    // fallback tier is unavoidable; OmniRoute's client defaults to
+    // "legacy-tier" rather than "free-tier" and works across paid plans.
     const onboarded = yield* post(
       http,
       onboardUserUrl,
       accessToken,
-      { tier_id: loaded.currentTier?.id ?? "free-tier", metadata },
+      { tier_id: loaded.currentTier?.id ?? "legacy-tier", metadata },
       OnboardUserResponse,
       headers,
     )
