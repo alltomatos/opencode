@@ -54,7 +54,7 @@ function profiles(): Profile[] {
       integrationID: Integration.ID.make("google-antigravity"),
       methodID: Integration.MethodID.make("oauth"),
       label: "Google account",
-      providerName: "Google Antigravity",
+      providerName: "AGY",
       clientProfile: "ide",
       clientID:
         process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
@@ -64,7 +64,7 @@ function profiles(): Profile[] {
       integrationID: Integration.ID.make("google-antigravity-cli"),
       methodID: Integration.MethodID.make("oauth"),
       label: "Google account",
-      providerName: "Google Antigravity CLI",
+      providerName: "AGY CLI",
       clientProfile: "cli",
       clientID:
         process.env.AGY_OAUTH_CLIENT_ID ?? "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",

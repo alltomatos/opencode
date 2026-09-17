@@ -309,7 +309,7 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
             error: {
               code: 429,
               status: "RESOURCE_EXHAUSTED",
-              message: "Todas as contas Google Antigravity atingiram o limite de cota; aguarde o reset.",
+              message: "Todas as contas AGY atingiram o limite de cota; aguarde o reset.",
             },
           }),
           { status: 429, headers: { "Content-Type": "application/json" } },
