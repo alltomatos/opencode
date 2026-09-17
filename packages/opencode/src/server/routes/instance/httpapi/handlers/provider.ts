@@ -99,9 +99,12 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
         const catalog = yield* Catalog.Service
         const all = yield* catalog.provider.all()
         const models = yield* catalog.model.all()
-        return all.map((item) => Provider.fromCatalog(item, models.filter((model) => model.providerID === item.id)))
+        return {
+          providers: all.map((item) => Provider.fromCatalog(item, models.filter((model) => model.providerID === item.id))),
+          available: (yield* catalog.provider.available()).map((item) => item.id),
+        }
       }),
-    ).pipe(Effect.catch(() => Effect.succeed([] as Provider.Info[])))
+    ).pipe(Effect.catch(() => Effect.succeed({ providers: [] as Provider.Info[], available: [] as ProviderV2.ID[] })))
 
     const list = Effect.fn("ProviderHttpApi.list")(function* () {
       const config = yield* cfg.get()
@@ -114,7 +117,9 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       }
       const connected = yield* provider.list()
       const credentials = yield* authStore.all().pipe(Effect.orDie)
-      const catalogList = yield* catalogProviders
+      const catalogData = yield* catalogProviders
+      const catalogList = catalogData.providers
+      const availableCatalogIds = new Set(catalogData.available)
       const providers = Object.assign(
         mapValues(filtered, (item) => Provider.fromModelsDevProvider(item)),
         connected,
@@ -123,16 +128,7 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       return {
         all: Object.values(providers).map(Provider.toPublicInfo),
         default: Provider.defaultModelIDs(providers),
-        // catalogList membership is NOT proof of a real connection: both
-        // ModelsDevPlugin (every known models.dev provider) and OmniRoute's
-        // own plugin (packages/core/src/plugin/provider/omniroute.ts —
-        // registers "omnrt" into the catalog before it even checks for a
-        // stored credential) populate the same v2 Catalog unconditionally.
-        // OmniRoute's credential lives in the exact same auth.json file
-        // `authStore` reads (see readAuthCredential there), so
-        // credentials[id] already reflects it live — catalogList adds
-        // nothing but false positives here.
-        connected: Object.keys(providers).filter((id) => id in connected || credentials[id]),
+        connected: Object.keys(providers).filter((id) => id in connected || credentials[id] || availableCatalogIds.has(ProviderV2.ID.make(id))),
       }
     })
 
