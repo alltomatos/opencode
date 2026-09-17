@@ -1,6 +1,10 @@
 # Mapa do fork alltomatos/opencode
 
-**Última verificação:** 2026-09-15 (versões: fork `1.18.21`, upstream `1.18.30` — ver achados da sincronização em `upstream-sync.md`). Este arquivo é um cache leve — os fatos abaixo (versões, quem está à frente de quem) mudam com o tempo. Se a pergunta depender de um número exato e atual (versão publicada agora, quantos commits de diferença), confirme ao vivo (ver seção final) antes de responder como definitivo.
+**Última verificação:** 2026-09-17 (versões: fork `packages/opencode` `1.18.21`, upstream `1.18.31`; app desktop deste fork em `1.21.25`, versão própria não comparável ao upstream — ver achados da sincronização em `upstream-sync.md`). Este arquivo é um cache leve — os fatos abaixo (versões, quem está à frente de quem) mudam com o tempo. Se a pergunta depender de um número exato e atual (versão publicada agora, quantos commits de diferença), confirme ao vivo (ver seção final) antes de responder como definitivo.
+
+**Nota sobre tags do upstream:** ao contrário do que uma nota antiga aqui dizia, o upstream **voltou a taggear releases** — `upstream` tem tags até `v1.21.x`/`v2.0.0` em 2026-09-17. Não assuma mais que tags são inúteis pra achar versão equivalente sem checar de novo.
+
+**Fila de PRs de sync obsoleta em 2026-09-17:** #234, #237, #240, #241 e #247 (todas abertas contra `dev`, criadas em 2026-09-15 por sessões de sync anteriores) tiveram seu conteúdo inteiro já absorvido por `origin/dev` por outro caminho — nenhuma delas deve ser mergeada como estão (branches muito desatualizadas, ~100 arquivos de ruído de divergência). Decisão de fechar fica com o usuário. Ver detalhes em `upstream-sync.md`.
 
 ## Remotes
 
