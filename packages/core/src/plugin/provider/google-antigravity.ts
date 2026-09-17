@@ -330,7 +330,12 @@ export const GoogleAntigravityPlugin = define<HttpClient.HttpClient | Scope.Scop
         catalog.provider.update(providerID, (provider) => {
           provider.name = profile.providerName
           provider.integrationID = profile.integrationID
-          provider.api = { type: "aisdk", package: "@ai-sdk/google" }
+          provider.api = {
+            type: "aisdk",
+            package: "@ai-sdk/google",
+            url: "https://daily-cloudcode-pa.googleapis.com/v1internal",
+            settings: { apiKey: "antigravity-oauth" },
+          }
         })
 
         const models = [
