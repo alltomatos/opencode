@@ -253,7 +253,6 @@ export const SettingsProvidersV2: Component<{
       .filter((id) => !connectedIDs.has(id))
       .map((id) => {
         if (id === OMNIROUTE_PROVIDER_ID) return { id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" } as ProviderItem
-        if (id === "google-antigravity") return (allProviders.get(id) ?? { id: "google-antigravity", name: "AGY" }) as ProviderItem
         if (id === "google-antigravity-cli") return (allProviders.get(id) ?? { id: "google-antigravity-cli", name: "AGY CLI" }) as ProviderItem
         return allProviders.get(id)
       })
@@ -279,7 +278,7 @@ export const SettingsProvidersV2: Component<{
   }
 
   const type = (item: ProviderItem) => {
-    if (item.id === "google-antigravity" || item.id === "google-antigravity-cli" || item.id === "kiro" || item.id === "kilo") {
+    if (item.id === "google-antigravity-cli" || item.id === "kiro" || item.id === "kilo") {
       return "OAuth"
     }
     const current = source(item)

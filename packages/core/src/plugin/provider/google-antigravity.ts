@@ -51,16 +51,6 @@ type Profile = {
 function profiles(): Profile[] {
   return [
     {
-      integrationID: Integration.ID.make("google-antigravity"),
-      methodID: Integration.MethodID.make("oauth"),
-      label: "Google account",
-      providerName: "AGY",
-      clientProfile: "ide",
-      clientID:
-        process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
-      clientSecret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
-    },
-    {
       integrationID: Integration.ID.make("google-antigravity-cli"),
       methodID: Integration.MethodID.make("oauth"),
       label: "Google account",
@@ -87,52 +77,16 @@ const OnboardUserResponse = Schema.Struct({
   response: Schema.optional(Schema.Struct({ cloudaicompanionProject: Schema.optional(Schema.String) })),
 })
 
-function post<S extends Schema.Top>(
-  http: HttpClient.HttpClient,
-  url: string,
-  token: string,
-  body: unknown,
-  schema: S,
-  headers?: Record<string, string>,
-) {
-  return http
+function post<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, token: string, body: unknown, schema: S) {
+  return HttpClient.filterStatusOk(http)
     .execute(
       HttpClientRequest.post(url).pipe(
         HttpClientRequest.acceptJson,
         HttpClientRequest.bearerToken(token),
         HttpClientRequest.bodyJsonUnsafe(body),
-        HttpClientRequest.setHeaders(headers ?? {}),
       ),
     )
-    .pipe(
-      Effect.tap((response) =>
-        response.status >= 400
-          ? response.text.pipe(
-              Effect.tap((text) =>
-                Effect.sync(() =>
-                  console.error(
-                    `[antigravity-debug] POST ${url} sentBody=${JSON.stringify(body)} sentHeaders=${JSON.stringify(headers ?? {})} -> ${response.status}: ${text}`,
-                  ),
-                ),
-              ),
-            )
-          : Effect.void,
-      ),
-      Effect.flatMap(HttpClientResponse.filterStatusOk),
-      Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)),
-    )
-}
-
-// Google's onboarding endpoints (unlike generateContent) appear to gate on
-// client identity headers, not just the request body: OmniRoute's
-// reverse-engineered client sends this exact "IDE-Node" fingerprint —
-// distinct from both the CLI User-Agent and the native IDE Electron
-// User-Agent — specifically for loadCodeAssist/onboardUser on the "ide"
-// profile. Confirmed live: onboardUser 403s without it even with correct
-// body metadata.
-const ideNodeOnboardingHeaders = {
-  "User-Agent": "antigravity/2.1.1 darwin/arm64 google-api-nodejs-client/10.3.0",
-  "X-Goog-Api-Client": "gl-node/22.21.1",
+    .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)))
 }
 
 function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, token: string, schema: S) {
@@ -145,43 +99,37 @@ function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, tok
 // backing this account. Required on every Code Assist call — the token
 // alone isn't enough. Best-effort: a failure here still leaves the account
 // usable, since onboarding can complete lazily on the first real request.
-function discoverProject(http: HttpClient.HttpClient, accessToken: string, clientProfile: ClientProfile) {
-  // pluginType: "GEMINI" is the CLI's onboarding metadata; ideType:
-  // "ANTIGRAVITY" (OmniRoute's reverse-engineered shape) is what the real
-  // IDE app sends. Scoped to "ide" only — "cli" is confirmed working today.
-  const metadata = clientProfile === "ide" ? { ideType: "ANTIGRAVITY" } : { pluginType: "GEMINI" }
-  const headers = clientProfile === "ide" ? ideNodeOnboardingHeaders : undefined
+//
+// NOTE: only the CLI profile is registered (see profiles() below) — the
+// Antigravity IDE profile was removed. Its onboardUser call kept returning
+// Google's real, documented "BYOP" (bring-your-own-project) response for
+// consumer accounts: `done: true` but an empty `cloudaicompanionProject`,
+// because Google requires those accounts to link a real Google Cloud
+// project with a paid Gemini Code Assist license attached — confirmed by
+// reading OmniRoute's own source (antigravityProjectGate.ts, #11284), which
+// hits the identical wall and just marks those connections "degraded"
+// rather than actually resolving it. Not fixable from this side; CLI has no
+// such requirement and covers the same models.
+function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
   return Effect.gen(function* () {
-    const loaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse, headers)
+    const loaded = yield* post(
+      http,
+      loadCodeAssistUrl,
+      accessToken,
+      { metadata: { pluginType: "GEMINI" } },
+      LoadCodeAssistResponse,
+    )
     if (loaded.cloudaicompanionProject) {
       return { projectID: loaded.cloudaicompanionProject, tier: loaded.currentTier?.id }
     }
-    // onboardUser's request body uses snake_case tier_id, unlike every other
-    // camelCase field in these APIs — confirmed against OmniRoute's working
-    // client. Sending `tierId` here silently fails onboarding (Google's
-    // request validation just ignores/rejects the unrecognized field).
-    // Google returns the specific error FREE_TIER_USER_NOT_ELIGIBLE for
-    // paid-plan accounts onboarded with tier_id "free-tier" — confirmed
-    // live on a Google AI Pro account. loadCodeAssist's own response is `{}`
-    // for accounts with no existing project (no currentTier to read), so a
-    // fallback tier is unavoidable; OmniRoute's client defaults to
-    // "legacy-tier" rather than "free-tier" and works across paid plans.
     const onboarded = yield* post(
       http,
       onboardUserUrl,
       accessToken,
-      { tier_id: loaded.currentTier?.id ?? "legacy-tier", metadata },
+      { tier_id: loaded.currentTier?.id ?? "legacy-tier", metadata: { pluginType: "GEMINI" } },
       OnboardUserResponse,
-      headers,
     )
-    if (onboarded.response?.cloudaicompanionProject) {
-      return { projectID: onboarded.response.cloudaicompanionProject, tier: loaded.currentTier?.id }
-    }
-    // onboardUser's own response doesn't reliably carry the project once
-    // onboarding completes — OmniRoute re-fetches loadCodeAssist afterward
-    // to pick it up instead of trusting onboardUser's response shape.
-    const reloaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse, headers)
-    return { projectID: reloaded.cloudaicompanionProject, tier: reloaded.currentTier?.id ?? loaded.currentTier?.id }
+    return { projectID: onboarded.response?.cloudaicompanionProject, tier: loaded.currentTier?.id }
   }).pipe(Effect.catch(() => Effect.succeed({ projectID: undefined, tier: undefined })))
 }
 
@@ -214,7 +162,7 @@ function exchange(
         get(http, userInfoUrl, token.access_token, UserInfo).pipe(
           Effect.catch(() => Effect.succeed({ email: undefined as string | undefined })),
         ),
-        discoverProject(http, token.access_token, profile.clientProfile),
+        discoverProject(http, token.access_token),
       ],
       { concurrency: 2 },
     )

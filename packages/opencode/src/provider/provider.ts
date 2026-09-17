@@ -220,16 +220,6 @@ function agentRouterModel(id: string, name: string, baseURL: string): Model {
 
 function custom(dep: CustomDep): Record<string, CustomLoader> {
   return {
-    "google-antigravity": Effect.fnUntraced(function* (input: Info) {
-      return {
-        autoload: true,
-        options: {
-          apiKey: input.options?.apiKey ?? input.key ?? "antigravity-oauth",
-          baseURL: "https://daily-cloudcode-pa.googleapis.com/v1internal",
-          fetch: createAntigravityFetch("ide", () => input.options ?? {}),
-        },
-      }
-    }),
     "google-antigravity-cli": Effect.fnUntraced(function* (input: Info) {
       return {
         autoload: true,
@@ -2096,21 +2086,21 @@ const layer = Layer.effect(
       if (credential?.type === "oauth") {
         info.key = credential.access
         const meta = (credential as any).metadata
-        const clientProfile: "ide" | "cli" = meta?.clientProfile || (providerID.endsWith("-cli") ? "cli" : "ide")
         info.options = {
           ...info.options,
           apiKey: credential.access,
           accessToken: credential.access,
           projectID: meta?.projectID || "aicode-consumers",
-          clientProfile,
+          clientProfile: "cli",
         }
         // fromCatalog() only carries over the catalog's static api.url/apiKey —
         // it can't know about the Code Assist wire protocol, so the fetch
         // interceptor that speaks it (see antigravity-adapter.ts) has to be
         // injected here, on every sync, since a fresh access token means a
-        // fresh options object each time.
-        if (providerID.startsWith("google-antigravity")) {
-          info.options.fetch = createAntigravityFetch(clientProfile, () => info.options)
+        // fresh options object each time. Only the CLI profile is registered
+        // (see google-antigravity.ts for why the IDE profile was removed).
+        if (providerID === "google-antigravity-cli") {
+          info.options.fetch = createAntigravityFetch("cli", () => info.options)
         }
         // Same bridge for Kiro: the v2 catalog registration (kiro.ts) only
         // carries OAuth + model names, it knows nothing about the AWS
