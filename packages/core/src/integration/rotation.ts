@@ -33,7 +33,8 @@ export function clearUnavailable(connection: IntegrationConnection.Info): void {
   cooldowns.delete(connectionKey(connection))
 }
 
-function isAvailable(connection: IntegrationConnection.Info): boolean {
+/** Whether a connection is currently outside its cooldown window, if any. */
+export function isAvailable(connection: IntegrationConnection.Info): boolean {
   const until = cooldowns.get(connectionKey(connection))
   return until === undefined || until <= Date.now()
 }

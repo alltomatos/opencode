@@ -28,6 +28,17 @@ const CLIENT_CONFIGS = {
   },
 }
 
+// Google reports remaining quota as a 0-1 fraction per bucket; we bench an
+// account 5 points before it actually hits 100% so an in-flight request
+// doesn't race the last sliver of quota and come back as a real 429.
+const QUOTA_BENCH_THRESHOLD = 0.05
+// retrieveUserQuota is called on (roughly) every chat message via
+// getLiveToken, so it needs a short TTL cache to avoid doubling Google API
+// traffic per message; quota doesn't change fast enough for 60-120s of
+// staleness to matter here.
+const QUOTA_CHECK_TTL_MS = 90_000
+const quotaLastCheckedAt = new Map<string, number>()
+
 let DatabaseConstructor: any
 
 async function getDb(dbFile: string) {
@@ -54,7 +65,91 @@ async function getDb(dbFile: string) {
   return new DatabaseConstructor(dbFile)
 }
 
-async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Promise<{ token: string; projectID: string }> {
+function toConnection(connectionId: string) {
+  return { type: "credential" as const, id: connectionId as any, label: connectionId }
+}
+
+/** Parses a Google resetTime (epoch seconds/millis or ISO string) into epoch ms. */
+function parseResetTimeMs(resetValue: unknown): number | null {
+  try {
+    if (typeof resetValue === "number") return resetValue < 1e12 ? resetValue * 1000 : resetValue
+    if (typeof resetValue === "string") {
+      if (/^\d+$/.test(resetValue)) {
+        const ts = Number(resetValue)
+        return ts < 1e12 ? ts * 1000 : ts
+      }
+      const parsed = Date.parse(resetValue)
+      return Number.isNaN(parsed) ? null : parsed
+    }
+  } catch {}
+  return null
+}
+
+/**
+ * Proactively checks a connection's Google-reported quota and benches it
+ * (via IntegrationRotation) if any bucket is at or below the threshold, so
+ * `pick()` routes around it before it hits a real 429. Fails open: any
+ * network/parse error, or Google simply not reporting `remainingFraction`
+ * for a bucket, is treated as "unknown" and never benches the account.
+ */
+async function checkQuotaAndBenchIfLow(
+  profile: "ide" | "cli",
+  connectionId: string,
+  token: string,
+  projectID: string,
+): Promise<void> {
+  if (!token) return
+  const lastChecked = quotaLastCheckedAt.get(connectionId)
+  if (lastChecked !== undefined && Date.now() - lastChecked < QUOTA_CHECK_TTL_MS) return
+  quotaLastCheckedAt.set(connectionId, Date.now())
+
+  try {
+    const client = CLIENT_CONFIGS[profile]
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": client.userAgent,
+      Authorization: `Bearer ${token}`,
+    }
+
+    let data: any
+    for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+      try {
+        const res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ project: projectID }),
+          signal: AbortSignal.timeout(8000),
+        })
+        if (!res.ok) continue
+        data = await res.json()
+        break
+      } catch {
+        continue
+      }
+    }
+    if (!data || !Array.isArray(data.buckets)) return
+
+    for (const bucket of data.buckets) {
+      const rawFraction = bucket?.remainingFraction
+      // Field absent (fractionReported=false in OmniRoute's terms) means
+      // Google didn't report this bucket's usage, not that it's at 0%.
+      if (typeof rawFraction !== "number") continue
+      if (rawFraction > QUOTA_BENCH_THRESHOLD) continue
+
+      const resetAtMs = parseResetTimeMs(bucket?.resetTime)
+      const durationMs = resetAtMs && resetAtMs > Date.now() ? resetAtMs - Date.now() : 15 * 60_000
+      IntegrationRotation.markUnavailable(toConnection(connectionId), durationMs)
+      return
+    }
+  } catch {
+    // Fail open — a broken quota probe must never bench an otherwise-healthy account.
+  }
+}
+
+async function getLiveToken(
+  integrationID: string,
+  profile: "ide" | "cli",
+): Promise<{ token: string; projectID: string; connectionId?: string; exhausted?: boolean }> {
   try {
     const dbFile = CoreDatabase.path()
     const db = await getDb(dbFile)
@@ -69,6 +164,10 @@ async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Prom
       id: r.id as any,
       label: r.id,
     }))
+
+    if (connections.every((c) => !IntegrationRotation.isAvailable(c))) {
+      return { token: "", projectID: "aicode-consumers", exhausted: true }
+    }
 
     const picked = IntegrationRotation.pick(Integration.ID.make(integrationID), connections)
     const selectedId = picked?.type === "credential" ? picked.id : undefined
@@ -106,7 +205,9 @@ async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Prom
       }
     }
 
-    return { token: access, projectID }
+    await checkQuotaAndBenchIfLow(profile, selectedRow.id, access, projectID)
+
+    return { token: access, projectID, connectionId: selectedRow.id }
   } catch {
     return { token: "", projectID: "aicode-consumers" }
   }
@@ -162,6 +263,31 @@ function transformSseStream(readable: ReadableStream<Uint8Array>): ReadableStrea
   })
 }
 
+/**
+ * Reacts to a real failure response from Google (429, or a Code Assist
+ * error body with `status: "RESOURCE_EXHAUSTED"`) by benching the
+ * connection that made the request, reusing rotation.ts's own
+ * classification instead of re-deriving cooldown durations here. This
+ * covers the gap where quota gets consumed between our proactive check in
+ * `checkQuotaAndBenchIfLow` and the actual request landing.
+ */
+function benchConnectionOnFailure(connectionId: string, status: number, bodyText: string): void {
+  let googleStatus: string | undefined
+  try {
+    googleStatus = JSON.parse(bodyText)?.error?.status
+  } catch {}
+
+  // A bare HTTP status maps to isBenchableFailure's 429/rate-limit branch
+  // (5 min default). Tagging RESOURCE_EXHAUSTED explicitly routes it to
+  // the QuotaExceeded branch instead (15 min default) rather than letting
+  // an incidental 429 status code shadow it.
+  const errorLike: any =
+    googleStatus === "RESOURCE_EXHAUSTED" ? { _tag: "QuotaExceeded" } : { status, message: bodyText }
+
+  const check = IntegrationRotation.isBenchableFailure(errorLike)
+  if (check.bench) IntegrationRotation.markUnavailable(toConnection(connectionId), check.durationMs)
+}
+
 export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () => Record<string, any>) {
   const integrationID = profile === "cli" ? "google-antigravity-cli" : "google-antigravity"
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -173,11 +299,25 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
     const opts = getOptions?.() ?? {}
     let token = opts["accessToken"] ?? opts["apiKey"]
     let projectID = opts["projectID"]
+    let usedConnectionId: string | undefined
 
     if (!token || token === "antigravity-oauth" || !projectID) {
       const live = await getLiveToken(integrationID, profile)
+      if (live.exhausted) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: 429,
+              status: "RESOURCE_EXHAUSTED",
+              message: "Todas as contas Google Antigravity atingiram o limite de cota; aguarde o reset.",
+            },
+          }),
+          { status: 429, headers: { "Content-Type": "application/json" } },
+        )
+      }
       if (live.token) token = live.token
       if (!projectID) projectID = live.projectID
+      usedConnectionId = live.connectionId
     }
 
     const modelMatch = urlStr.match(/\/models\/([^:]+):/)
@@ -230,6 +370,13 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
     }
 
     if (!upstream || !upstream.ok) {
+      if (usedConnectionId && upstream) {
+        const bodyText = await upstream
+          .clone()
+          .text()
+          .catch(() => "")
+        benchConnectionOnFailure(usedConnectionId, upstream.status, bodyText)
+      }
       return upstream ?? new Response("Antigravity API Unavailable", { status: 502 })
     }
 
