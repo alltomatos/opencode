@@ -285,7 +285,18 @@ function deviceMethod(http: HttpClient.HttpClient, methodID: Integration.MethodI
           },
         }
       }),
-    label: (credential) => (typeof credential.metadata?.email === "string" ? credential.metadata.email : undefined),
+    // AWS's device-code flow exposes no identity endpoint (no email, no
+    // username) — every connected account otherwise displays as the same
+    // generic label with no way to tell them apart. Each authorize() call
+    // registers its own OIDC client, so that clientId is already a stable,
+    // unique-per-connection value; a short slice of it is at least a
+    // distinguishing label until a real identity lookup exists.
+    label: (credential) =>
+      typeof credential.metadata?.email === "string"
+        ? credential.metadata.email
+        : typeof credential.metadata?.clientId === "string"
+          ? `${authMethod === "builder-id" ? "Builder ID" : "IdC"} (${credential.metadata.clientId.slice(-8)})`
+          : undefined,
   } satisfies IntegrationOAuthMethodRegistration
 }
 
@@ -380,7 +391,8 @@ function social(http: HttpClient.HttpClient) {
             expires: Date.now() + (token.expiresIn ?? 3600) * 1000,
           })),
         ),
-    label: (credential) => (typeof credential.metadata?.email === "string" ? credential.metadata.email : undefined),
+    label: (credential) =>
+      typeof credential.metadata?.email === "string" ? credential.metadata.email : `Social (${credential.access.slice(-8)})`,
   } satisfies IntegrationOAuthMethodRegistration
 }
 
@@ -431,7 +443,7 @@ function importToken(http: HttpClient.HttpClient) {
           expires: Date.now() + token.expiresIn * 1000,
         }
       }),
-    label: () => "Imported token",
+    label: (credential) => `Imported token (${credential.access.slice(-8)})`,
   } satisfies IntegrationOAuthMethodRegistration
 }
 
