@@ -468,7 +468,18 @@ export const KiroPlugin = define<HttpClient.HttpClient | Scope.Scope>({
         // it to/from Kiro's real AWS CodeWhisperer envelope. openai-compatible's
         // flat message list + tool_calls/tool_result shape maps far more directly
         // onto Kiro's own request/response shape than Anthropic's content blocks do.
-        provider.api = { type: "aisdk", package: "@ai-sdk/openai-compatible" }
+        // A real (if unused) URL matters here: the v1 custom() loader that
+        // would normally supply a placeholder baseURL never runs for
+        // catalog-only providers like this one (nothing in the static
+        // models.dev/config database), so this is the only baseURL the SDK
+        // sees before createKiroFetch intercepts the request — leaving it
+        // unset makes @ai-sdk/openai-compatible build a bare "/chat/completions"
+        // path with no origin, which crashes on fetch with "Invalid URL".
+        provider.api = {
+          type: "aisdk",
+          package: "@ai-sdk/openai-compatible",
+          url: "https://codewhisperer.us-east-1.amazonaws.com/v1-fake",
+        }
       })
 
       // Model IDs and context/output limits below come from Kiro's live
