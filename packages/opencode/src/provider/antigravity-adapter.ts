@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite"
+import { DatabaseSync } from "node:sqlite"
 import { Database as CoreDatabase } from "@opencode-ai/core/database/database"
 
 const MODEL_ALIASES: Record<string, string> = {
@@ -24,9 +24,9 @@ const CLIENT_CONFIGS = {
 async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Promise<{ token: string; projectID: string }> {
   try {
     const dbFile = CoreDatabase.path()
-    const db = new Database(dbFile)
+    const db = new DatabaseSync(dbFile)
     const rows = db
-      .query("SELECT id, value FROM credential WHERE integration_id = ? ORDER BY time_updated DESC LIMIT 1")
+      .prepare("SELECT id, value FROM credential WHERE integration_id = ? ORDER BY time_updated DESC LIMIT 1")
       .all(integrationID) as { id: string; value: string }[]
     if (!rows.length) return { token: "", projectID: "aicode-consumers" }
 
@@ -54,7 +54,7 @@ async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Prom
         access = refreshed.access_token
         parsed.access = access
         parsed.expires = Date.now() + refreshed.expires_in * 1000
-        db.query("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
+        db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
           JSON.stringify(parsed),
           Date.now(),
           rows[0].id,
