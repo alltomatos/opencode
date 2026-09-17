@@ -114,16 +114,26 @@ function pollDeviceToken(
     if (response.status >= 200 && response.status < 300) {
       return yield* HttpClientResponse.schemaBodyJson(TokenResponse)(response)
     }
-    const body = yield* HttpClientResponse.schemaBodyJson(Schema.Struct({ __type: Schema.optional(Schema.String) }))(
-      response,
-    ).pipe(Effect.catch(() => Effect.succeed({ __type: undefined })))
-    if (body.__type === "AuthorizationPendingException") {
+    const rawBody = yield* response.text.pipe(Effect.catch(() => Effect.succeed("")))
+    // AWS SSO OIDC's CreateToken speaks the OAuth2 device-flow error shape
+    // (`{"error": "authorization_pending"}`, snake_case) here, not the
+    // JSON-RPC `__type` shape other AWS services use — checking `__type`
+    // meant every "still waiting" poll (including the very first one) was
+    // wrongly treated as a hard failure instead of "poll again".
+    const body = ((): { error?: string } => {
+      try {
+        return JSON.parse(rawBody)
+      } catch {
+        return {}
+      }
+    })()
+    if (body.error === "authorization_pending") {
       return yield* pollDeviceToken(http, clientId, clientSecret, deviceCode, interval, deadline)
     }
-    if (body.__type === "SlowDownException") {
+    if (body.error === "slow_down") {
       return yield* pollDeviceToken(http, clientId, clientSecret, deviceCode, interval + 5, deadline)
     }
-    return yield* Effect.fail(new Error(`Device authorization failed: ${body.__type ?? response.status}`))
+    return yield* Effect.fail(new Error(`Device authorization failed: ${body.error ?? response.status}`))
   })
 }
 
