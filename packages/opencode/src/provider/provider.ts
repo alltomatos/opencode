@@ -1,5 +1,7 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import os from "os"
+import type { Credential } from "@opencode-ai/core/credential"
+import { createAntigravityFetch } from "./antigravity-adapter"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
@@ -217,6 +219,24 @@ function agentRouterModel(id: string, name: string, baseURL: string): Model {
 
 function custom(dep: CustomDep): Record<string, CustomLoader> {
   return {
+    "google-antigravity": Effect.fnUntraced(function* (input: Info) {
+      return {
+        autoload: true,
+        options: {
+          apiKey: input.options?.apiKey ?? input.key ?? "antigravity-oauth",
+          fetch: createAntigravityFetch("ide", () => input.options ?? {}),
+        },
+      }
+    }),
+    "google-antigravity-cli": Effect.fnUntraced(function* (input: Info) {
+      return {
+        autoload: true,
+        options: {
+          apiKey: input.options?.apiKey ?? input.key ?? "antigravity-oauth",
+          fetch: createAntigravityFetch("cli", () => input.options ?? {}),
+        },
+      }
+    }),
     anthropic: () =>
       Effect.succeed({
         autoload: false,
@@ -1278,6 +1298,7 @@ export interface Interface {
     providerID: ProviderV2.ID,
     catalogProvider: ProviderV2.Info,
     models: ModelV2.Info[],
+    integrationCredential?: Credential.Value,
   ) => Effect.Effect<void>
   readonly getLanguage: (model: Model) => Effect.Effect<LanguageModelV3, ModelNotFoundError>
   readonly closest: (
@@ -2048,14 +2069,32 @@ const layer = Layer.effect(
       providerID: ProviderV2.ID,
       catalogProvider: ProviderV2.Info,
       models: ModelV2.Info[],
+      integrationCredential?: Credential.Value,
     ) {
       const s = yield* InstanceState.get(state)
       const info = fromCatalog(catalogProvider, models)
-      const credential = yield* auth.get(providerID).pipe(Effect.orElseSucceed(() => undefined))
-      if (credential?.type === "api") info.key = credential.key
+      const credential =
+        integrationCredential ?? (yield* auth.get(providerID).pipe(Effect.orElseSucceed(() => undefined)))
+      if (credential?.type === "api" || credential?.type === "key") info.key = credential.key
+      if (credential?.type === "oauth") {
+        info.key = credential.access
+        const meta = (credential as any).metadata
+        info.options = {
+          ...info.options,
+          apiKey: credential.access,
+          accessToken: credential.access,
+          projectID: meta?.projectID || "aicode-consumers",
+          clientProfile: meta?.clientProfile || (providerID.endsWith("-cli") ? "cli" : "ide"),
+        }
+      }
       const existing = s.providers[providerID]
-      if (existing) Object.assign(existing.models, info.models)
-      else s.providers[providerID] = info
+      if (existing) {
+        Object.assign(existing.models, info.models)
+        if (info.key) existing.key = info.key
+        if (info.options) existing.options = { ...existing.options, ...info.options }
+      } else {
+        s.providers[providerID] = info
+      }
     })
 
     const getModel = Effect.fn("Provider.getModel")(function* (providerID: ProviderV2.ID, modelID: ModelV2.ID) {

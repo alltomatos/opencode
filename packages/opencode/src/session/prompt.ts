@@ -1,5 +1,7 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { Catalog } from "@opencode-ai/core/catalog"
+import { Integration } from "@opencode-ai/core/integration"
+import { IntegrationRotation } from "@opencode-ai/core/integration/rotation"
 import { PluginInternal } from "@opencode-ai/core/plugin/internal"
 import { Location } from "@opencode-ai/core/location"
 import { LocationServiceMap } from "@opencode-ai/core/location-services"
@@ -612,11 +614,16 @@ const layer = Layer.effect(
         const internal = yield* PluginInternal.Service
         yield* internal.ready.pipe(Effect.timeout("5 seconds"), Effect.catch(() => Effect.void))
         const catalog = yield* Catalog.Service
+        const integrations = yield* Integration.Service
         const model = yield* catalog.model.get(providerID, modelID)
         if (!model) return false
         const catalogProvider = yield* catalog.provider.get(providerID)
         if (!catalogProvider) return false
-        yield* provider.syncCatalogModel(providerID, catalogProvider, [model])
+        const integrationID = catalogProvider.integrationID ?? Integration.ID.make(providerID)
+        const connections = yield* integrations.connection.list(integrationID)
+        const picked = IntegrationRotation.pick(integrationID, connections)
+        const credential = picked ? yield* integrations.connection.resolve(picked) : undefined
+        yield* provider.syncCatalogModel(providerID, catalogProvider, [model], credential)
         return true
       }).pipe(
         Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))),
