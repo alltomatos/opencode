@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "tag": "v1.21.26",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção: chat funcionando com Google Antigravity (IDE e CLI)",
+              "description": "As contas Google Antigravity conectadas agora conversam de verdade — antes a chamada real caía num endpoint que não existe no Google."
+            },
+            {
+              "title": "Proteção de cota e rotação automática de contas",
+              "description": "Uma conta Google Antigravity é pausada automaticamente antes de esgotar a cota (a partir de 95% de uso) ou ao receber um erro real de limite, e a próxima conta conectada assume no lugar dela."
+            },
+            {
+              "title": "Modelos do Kiro disponíveis para conexão",
+              "description": "Os modelos reais do Kiro (Claude Sonnet 5/4.5, Haiku 4.5, DeepSeek, GLM-5, GPT-5.6 e outros) já aparecem no seletor de provedores — a conversa em si ainda depende de trabalho adicional."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.25",
       "highlights": [
         {
