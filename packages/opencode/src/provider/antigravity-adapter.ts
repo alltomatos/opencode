@@ -1,4 +1,3 @@
-import { DatabaseSync } from "node:sqlite"
 import { Database as CoreDatabase } from "@opencode-ai/core/database/database"
 
 const MODEL_ALIASES: Record<string, string> = {
@@ -21,10 +20,36 @@ const CLIENT_CONFIGS = {
   },
 }
 
+let DatabaseConstructor: any
+
+async function getDb(dbFile: string) {
+  if (DatabaseConstructor) return new DatabaseConstructor(dbFile)
+  if (typeof (process.versions as any).bun !== "undefined") {
+    const mod = await import("bun:sqlite")
+    DatabaseConstructor = class BunDbWrapper {
+      db: any
+      constructor(file: string) {
+        this.db = new mod.Database(file)
+      }
+      prepare(sql: string) {
+        const query = this.db.query(sql)
+        return {
+          all: (...args: any[]) => query.all(...args),
+          run: (...args: any[]) => query.run(...args),
+        }
+      }
+    }
+  } else {
+    const mod = await import("node:sqlite")
+    DatabaseConstructor = mod.DatabaseSync
+  }
+  return new DatabaseConstructor(dbFile)
+}
+
 async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Promise<{ token: string; projectID: string }> {
   try {
     const dbFile = CoreDatabase.path()
-    const db = new DatabaseSync(dbFile)
+    const db = await getDb(dbFile)
     const rows = db
       .prepare("SELECT id, value FROM credential WHERE integration_id = ? ORDER BY time_updated DESC LIMIT 1")
       .all(integrationID) as { id: string; value: string }[]

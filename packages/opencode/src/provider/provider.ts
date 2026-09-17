@@ -224,6 +224,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         autoload: true,
         options: {
           apiKey: input.options?.apiKey ?? input.key ?? "antigravity-oauth",
+          baseURL: "https://cloudcode-pa.googleapis.com/v1internal",
           fetch: createAntigravityFetch("ide", () => input.options ?? {}),
         },
       }
@@ -233,6 +234,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         autoload: true,
         options: {
           apiKey: input.options?.apiKey ?? input.key ?? "antigravity-oauth",
+          baseURL: "https://cloudcode-pa.googleapis.com/v1internal",
           fetch: createAntigravityFetch("cli", () => input.options ?? {}),
         },
       }
