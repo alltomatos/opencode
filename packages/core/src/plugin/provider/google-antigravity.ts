@@ -109,15 +109,17 @@ function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, tok
 // backing this account. Required on every Code Assist call — the token
 // alone isn't enough. Best-effort: a failure here still leaves the account
 // usable, since onboarding can complete lazily on the first real request.
-function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
+function discoverProject(http: HttpClient.HttpClient, accessToken: string, clientProfile: ClientProfile) {
+  // The IDE surface's onboardUser rejects `pluginType: "GEMINI"` with a bare
+  // 403 PermissionDenied — confirmed live (the account onboards fine through
+  // the real Antigravity IDE app, just not through this metadata shape).
+  // OmniRoute's reverse-engineered client uses `ideType: "ANTIGRAVITY"`
+  // instead; kept scoped to the "ide" profile since "cli" is confirmed
+  // working today with the GEMINI tag and there's no reason to risk
+  // regressing it on an untested guess.
+  const metadata = clientProfile === "ide" ? { ideType: "ANTIGRAVITY" } : { pluginType: "GEMINI" }
   return Effect.gen(function* () {
-    const loaded = yield* post(
-      http,
-      loadCodeAssistUrl,
-      accessToken,
-      { metadata: { pluginType: "GEMINI" } },
-      LoadCodeAssistResponse,
-    )
+    const loaded = yield* post(http, loadCodeAssistUrl, accessToken, { metadata }, LoadCodeAssistResponse)
     if (loaded.cloudaicompanionProject) {
       return { projectID: loaded.cloudaicompanionProject, tier: loaded.currentTier?.id }
     }
@@ -125,7 +127,7 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
       http,
       onboardUserUrl,
       accessToken,
-      { tierId: loaded.currentTier?.id ?? "free-tier", metadata: { pluginType: "GEMINI" } },
+      { tierId: loaded.currentTier?.id ?? "free-tier", metadata },
       OnboardUserResponse,
     )
     return { projectID: onboarded.response?.cloudaicompanionProject, tier: loaded.currentTier?.id }
@@ -161,7 +163,7 @@ function exchange(
         get(http, userInfoUrl, token.access_token, UserInfo).pipe(
           Effect.catch(() => Effect.succeed({ email: undefined as string | undefined })),
         ),
-        discoverProject(http, token.access_token),
+        discoverProject(http, token.access_token, profile.clientProfile),
       ],
       { concurrency: 2 },
     )
