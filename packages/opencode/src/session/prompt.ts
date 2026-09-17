@@ -224,9 +224,9 @@ const layer = Layer.effect(
       const ag = yield* agents.get("title")
       if (!ag) return
       const mdl = ag.model
-        ? yield* provider.getModel(ag.model.providerID, ag.model.modelID)
+        ? yield* getModel(ag.model.providerID, ag.model.modelID, input.session.id)
         : ((yield* provider.getSmallModel(input.providerID)) ??
-          (yield* provider.getModel(input.providerID, input.modelID)))
+          (yield* getModel(input.providerID, input.modelID, input.session.id)))
       const msgs = onlySubtasks
         ? [{ role: "user" as const, content: subtasks.map((p) => p.prompt).join("\n") }]
         : yield* MessageV2.toModelMessagesEffect(context, mdl)
@@ -906,7 +906,7 @@ const layer = Layer.effect(
                     text: `Called the Read tool with the following input: ${JSON.stringify(args)}`,
                   },
                 ]
-                const exit = yield* provider.getModel(info.model.providerID, info.model.modelID).pipe(
+                const exit = yield* getModel(info.model.providerID, info.model.modelID, input.sessionID).pipe(
                   Effect.flatMap((mdl) => execRead(args, { model: mdl })),
                   Effect.exit,
                 )
