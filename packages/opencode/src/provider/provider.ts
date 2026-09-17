@@ -2,6 +2,7 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import os from "os"
 import type { Credential } from "@opencode-ai/core/credential"
 import { createAntigravityFetch } from "./antigravity-adapter"
+import { createKiroFetch } from "./kiro-adapter"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
@@ -236,6 +237,20 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           apiKey: input.options?.apiKey ?? input.key ?? "antigravity-oauth",
           baseURL: "https://daily-cloudcode-pa.googleapis.com/v1internal",
           fetch: createAntigravityFetch("cli", () => input.options ?? {}),
+        },
+      }
+    }),
+    kiro: Effect.fnUntraced(function* (input: Info) {
+      return {
+        autoload: true,
+        options: {
+          apiKey: input.options?.apiKey ?? input.key ?? "kiro-oauth",
+          // Placeholder — createKiroFetch never actually calls this URL, it
+          // intercepts the /chat/completions request and speaks Kiro's real
+          // envelope instead. Required because @ai-sdk/openai-compatible
+          // validates baseURL is present.
+          baseURL: "https://codewhisperer.us-east-1.amazonaws.com/v1-fake",
+          fetch: createKiroFetch(() => input.options ?? {}),
         },
       }
     }),
@@ -2096,6 +2111,18 @@ const layer = Layer.effect(
         // fresh options object each time.
         if (providerID.startsWith("google-antigravity")) {
           info.options.fetch = createAntigravityFetch(clientProfile, () => info.options)
+        }
+        // Same bridge for Kiro: the v2 catalog registration (kiro.ts) only
+        // carries OAuth + model names, it knows nothing about the AWS
+        // CodeWhisperer wire protocol. profileArn/region live in the
+        // credential's own metadata (set at OAuth time), not in catalog
+        // options, so createKiroFetch re-derives them itself when they're
+        // missing here — this injection just needs to happen on every sync
+        // since a fresh access token means a fresh options object.
+        if (providerID === "kiro" || providerID.startsWith("kiro-")) {
+          info.options.profileArn = meta?.profileArn
+          info.options.region = meta?.region
+          info.options.fetch = createKiroFetch(() => info.options)
         }
       }
       const existing = s.providers[providerID]

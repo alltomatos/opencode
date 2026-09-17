@@ -461,7 +461,14 @@ export const KiroPlugin = define<HttpClient.HttpClient | Scope.Scope>({
       catalog.provider.update(providerID, (provider) => {
         provider.name = "Kiro"
         provider.integrationID = integrationID
-        provider.api = { type: "aisdk", package: "@ai-sdk/anthropic" }
+        // "@ai-sdk/anthropic" was a placeholder — real inference now happens
+        // through a custom fetch adapter (packages/opencode/src/provider/kiro-adapter.ts)
+        // wired via Provider.syncCatalogModel, which disguises the wire call as
+        // an "@ai-sdk/openai-compatible" chat-completions request and translates
+        // it to/from Kiro's real AWS CodeWhisperer envelope. openai-compatible's
+        // flat message list + tool_calls/tool_result shape maps far more directly
+        // onto Kiro's own request/response shape than Anthropic's content blocks do.
+        provider.api = { type: "aisdk", package: "@ai-sdk/openai-compatible" }
       })
 
       // Model IDs and context/output limits below come from Kiro's live
