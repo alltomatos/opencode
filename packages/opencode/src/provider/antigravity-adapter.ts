@@ -9,6 +9,12 @@ const MODEL_ALIASES: Record<string, string> = {
   "gemini-3.1-pro-high": "gemini-pro-agent",
 }
 
+const ANTIGRAVITY_BASE_URLS = [
+  "https://daily-cloudcode-pa.googleapis.com",
+  "https://cloudcode-pa.googleapis.com",
+  "https://daily-cloudcode-pa.sandbox.googleapis.com",
+]
+
 const CLIENT_CONFIGS = {
   ide: {
     id: "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
@@ -160,7 +166,7 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
   const integrationID = profile === "cli" ? "google-antigravity-cli" : "google-antigravity"
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-    if (!urlStr.includes("streamGenerateContent")) {
+    if (!urlStr.includes("GenerateContent") && !urlStr.includes("generateContent")) {
       return fetch(input, init)
     }
 
@@ -206,15 +212,55 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
       headers["Authorization"] = `Bearer ${token}`
     }
 
-    const upstream = await fetch("https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(envelope),
-      signal: init?.signal,
-    })
+    // Try fallback endpoints if one returns 429 / 404 (matches OmniRoute getBaseUrls)
+    let upstream: Response | undefined
+    for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+      try {
+        const res = await fetch(`${baseUrl}/v1internal:streamGenerateContent?alt=sse`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(envelope),
+          signal: init?.signal,
+        })
+        upstream = res
+        if (res.ok) break
+      } catch (e) {
+        if (!upstream) upstream = new Response(String(e), { status: 500 })
+      }
+    }
 
-    if (!upstream.ok || !upstream.body) {
+    if (!upstream || !upstream.ok) {
+      return upstream ?? new Response("Antigravity API Unavailable", { status: 502 })
+    }
+
+    if (!upstream.body) {
       return upstream
+    }
+
+    // If client requested non-streaming generateContent (e.g. title generation / doGenerate)
+    if (!urlStr.includes("alt=sse")) {
+      const text = await upstream.text()
+      // Unwrap SSE chunks into single JSON response for SDK
+      let unwrapped: any = { candidates: [] }
+      const lines = text.split("\n")
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const dataContent = line.slice(6).trim()
+          if (dataContent && dataContent !== "[DONE]") {
+            try {
+              const parsed = JSON.parse(dataContent)
+              const chunkCandidates = parsed.response?.candidates ?? parsed.candidates
+              if (Array.isArray(chunkCandidates)) {
+                unwrapped.candidates.push(...chunkCandidates)
+              }
+            } catch {}
+          }
+        }
+      }
+      return new Response(JSON.stringify(unwrapped), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
     const transformed = transformSseStream(upstream.body)
