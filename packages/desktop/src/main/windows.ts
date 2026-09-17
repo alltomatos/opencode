@@ -4,7 +4,7 @@ import type { DesktopTheme } from "@opencode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
 import { rmSync } from "node:fs"
-import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, shell } from "electron"
+import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, session, shell } from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
@@ -258,10 +258,50 @@ export function getWindowBrowserPanel(win: BrowserWindow | null) {
   return getBrowserPanel(win)
 }
 
+// Kiro's OAuth screens (AWS SSO device-code verification, its own social
+// login) always open in the OS default browser via shell.openExternal,
+// which reuses that browser's normal signed-in session — so connecting a
+// second Kiro account silently re-authenticates as the first one instead
+// of prompting. Routing just these hosts through an ephemeral, in-memory
+// Electron session sidesteps that without touching every other provider's
+// (working, expected) external-browser OAuth flow.
+const kiroOAuthHostPattern = /(^|\.)awsapps\.com$|(^|\.)sso\.[a-z0-9-]+\.amazonaws\.com$|(^|\.)auth\.desktop\.kiro\.dev$/i
+
+function isKiroOAuthURL(url: string): boolean {
+  try {
+    return kiroOAuthHostPattern.test(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function openEphemeralOAuthWindow(url: string) {
+  const partition = `oauth-kiro-${randomUUID()}`
+  const win = new BrowserWindow({
+    width: 480,
+    height: 720,
+    title: "Conectar Kiro",
+    webPreferences: {
+      session: session.fromPartition(partition, { cache: false }),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+  win.setMenuBarVisibility(false)
+  win.once("closed", () => {
+    void session.fromPartition(partition, { cache: false }).clearStorageData()
+  })
+  void win.loadURL(url)
+}
+
 export function openExternalURL(value: string) {
   const url = resolveExternalURL(value)
   if (!url) {
     writeLog("window", "blocked external target", { url: value }, "warn")
+    return
+  }
+  if (isKiroOAuthURL(url)) {
+    openEphemeralOAuthWindow(url)
     return
   }
   void shell.openExternal(url)
