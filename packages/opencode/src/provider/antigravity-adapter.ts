@@ -1,4 +1,6 @@
 import { Database as CoreDatabase } from "@opencode-ai/core/database/database"
+import { IntegrationRotation } from "@opencode-ai/core/integration/rotation"
+import { Integration } from "@opencode-ai/core/integration"
 
 const MODEL_ALIASES: Record<string, string> = {
   "gemini-3.7-flash-high": "gemini-3.7-flash-tiered",
@@ -51,11 +53,22 @@ async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Prom
     const dbFile = CoreDatabase.path()
     const db = await getDb(dbFile)
     const rows = db
-      .prepare("SELECT id, value FROM credential WHERE integration_id = ? ORDER BY time_updated DESC LIMIT 1")
+      .prepare("SELECT id, value FROM credential WHERE integration_id = ? ORDER BY time_updated ASC")
       .all(integrationID) as { id: string; value: string }[]
     if (!rows.length) return { token: "", projectID: "aicode-consumers" }
 
-    const parsed = JSON.parse(rows[0].value)
+    // Convert rows to IntegrationConnection format for rotation picker
+    const connections = rows.map((r) => ({
+      type: "credential" as const,
+      id: r.id as any,
+      label: r.id,
+    }))
+
+    const picked = IntegrationRotation.pick(Integration.ID.make(integrationID), connections)
+    const selectedId = picked?.type === "credential" ? picked.id : undefined
+    const selectedRow = rows.find((r) => r.id === selectedId) ?? rows[0]
+
+    const parsed = JSON.parse(selectedRow.value)
     const now = Date.now()
     let access = parsed.access as string
     const projectID = parsed.metadata?.projectID || "aicode-consumers"
@@ -82,7 +95,7 @@ async function getLiveToken(integrationID: string, profile: "ide" | "cli"): Prom
         db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
           JSON.stringify(parsed),
           Date.now(),
-          rows[0].id,
+          selectedRow.id,
         )
       }
     }

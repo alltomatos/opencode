@@ -156,7 +156,7 @@ const ProviderAccountList: Component<{
   }
 
   return (
-    <Show when={accounts().length > 1}>
+    <Show when={accounts().length > 0}>
       <div class="settings-v2-provider-accounts">
         <For each={accounts()}>
           {(account) => (
@@ -430,8 +430,8 @@ export const SettingsProvidersV2: Component<{
                             </ButtonV2>
                           </Show>
                           <Show when={protocol() !== "v1"}>
-                            <ButtonV2 size="normal" variant="ghost-muted" onClick={() => connect(item.id)}>
-                              {language.t("common.connect")}
+                            <ButtonV2 size="normal" variant="ghost-muted" icon="plus" onClick={() => connect(item.id)}>
+                              {language.t("common.add")}
                             </ButtonV2>
                           </Show>
                           <ButtonV2
