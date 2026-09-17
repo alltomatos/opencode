@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.21.27",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção: fluxo de conexão do Kiro",
+              "description": "O login do Kiro (Builder ID / IAM Identity Center) estava sempre falhando com \"Device authorization failed: 400\" — o app não reconhecia a resposta padrão do Google durante a espera de aprovação. Kiro agora conecta e conversa normalmente, com múltiplas contas e a janela de login isolada (sem reaproveitar sessão de outra conta)."
+            },
+            {
+              "title": "Removido: Antigravity IDE (mantido só o CLI)",
+              "description": "O perfil \"AGY\" (IDE) exigia vincular manualmente um projeto Google Cloud com licença paga do Gemini Code Assist — uma exigência do próprio Google, sem contorno possível. O AGY CLI cobre os mesmos modelos sem essa exigência, então o perfil IDE foi removido para simplificar."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.26",
       "highlights": [
         {
