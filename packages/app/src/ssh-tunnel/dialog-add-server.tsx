@@ -24,10 +24,13 @@ export function DialogAddSshTunnelServer() {
     port: "22",
     sshUsername: "root",
     keyPath: "",
+    certPath: "",
+    sshPassword: "",
     remotePort: "4096",
     serverUsername: "opencode",
     serverPassword: "",
     label: "",
+    autoSetup: true,
   })
 
   const submit = async () => {
@@ -44,10 +47,13 @@ export function DialogAddSshTunnelServer() {
         port: Number(store.port) || 22,
         sshUsername: store.sshUsername.trim() || "root",
         keyPath: store.keyPath || null,
+        certPath: store.certPath || null,
+        sshPassword: store.sshPassword || null,
         remotePort: Number(store.remotePort) || 4096,
         serverUsername: store.serverUsername.trim() || "opencode",
         serverPassword: store.serverPassword,
         label: store.label.trim() || undefined,
+        autoSetup: store.autoSetup,
       })
       dialog.close()
     } catch (err) {
@@ -135,16 +141,42 @@ export function DialogAddSshTunnelServer() {
             </div>
           </div>
 
-          <div class="flex w-full min-w-0 flex-col gap-2">
-            <label class="settings-v2-server-dialog-label">{language.t("sshTunnel.add.label")}</label>
+          <div class="grid w-full min-w-0 grid-cols-2 gap-4">
+            <div class="flex min-w-0 flex-col gap-2">
+              <label class="settings-v2-server-dialog-label">{language.t("sshTunnel.add.key")}</label>
+              <select
+                class="settings-v2-server-dialog-select"
+                value={store.keyPath}
+                disabled={busy()}
+                onChange={(event) => setStore("keyPath", event.currentTarget.value)}
+              >
+                <option value="">{language.t("sshTunnel.add.keyDefault")}</option>
+                <For each={keys()}>{(key) => <option value={key.path}>{key.name}</option>}</For>
+              </select>
+            </div>
+            <div class="flex min-w-0 flex-col gap-2">
+              <label class="settings-v2-server-dialog-label">{language.t("sshTunnel.add.cert")}</label>
+              <select
+                class="settings-v2-server-dialog-select"
+                value={store.certPath}
+                disabled={busy()}
+                onChange={(event) => setStore("certPath", event.currentTarget.value)}
+              >
+                <option value="">{language.t("sshTunnel.add.certDefault")}</option>
+                <For each={keys()}>{(key) => <option value={key.path}>{key.name}</option>}</For>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex min-w-0 flex-col gap-2">
+            <label class="settings-v2-server-dialog-label">{language.t("sshTunnel.add.sshPassword")}</label>
             <TextInputV2
-              type="text"
+              type="password"
               appearance="large"
               class="!w-full self-stretch"
-              value={store.label}
-              placeholder={language.t("sshTunnel.add.labelPlaceholder")}
+              value={store.sshPassword}
               disabled={busy()}
-              onInput={(event) => setStore("label", event.currentTarget.value)}
+              onInput={(event) => setStore("sshPassword", event.currentTarget.value)}
               onKeyDown={keyDown}
             />
           </div>
@@ -188,6 +220,33 @@ export function DialogAddSshTunnelServer() {
                 onKeyDown={keyDown}
               />
             </div>
+          </div>
+
+          <div class="flex min-w-0 flex-col gap-2">
+            <label class="settings-v2-server-dialog-label">{language.t("sshTunnel.add.label")}</label>
+            <TextInputV2
+              type="text"
+              appearance="large"
+              class="!w-full self-stretch"
+              value={store.label}
+              placeholder={language.t("sshTunnel.add.labelPlaceholder")}
+              disabled={busy()}
+              onInput={(event) => setStore("label", event.currentTarget.value)}
+              onKeyDown={keyDown}
+            />
+          </div>
+
+          <div class="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={store.autoSetup}
+              disabled={busy()}
+              onChange={(event) => setStore("autoSetup", event.currentTarget.checked)}
+              class="mt-0.5"
+            />
+            <label class="text-sm font-medium">
+              {language.t("sshTunnel.add.autoSetup")}
+            </label>
           </div>
         </div>
       </DialogBody>

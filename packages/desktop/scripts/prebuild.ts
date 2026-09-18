@@ -7,6 +7,10 @@ import { ZipReader, Uint8ArrayReader, Uint8ArrayWriter } from "@zip.js/zip.js"
 import { downloadCliToResources, resolveChannel } from "./utils"
 
 const channel = resolveChannel()
+const desktopPkg = await Bun.file(join(import.meta.dirname, "..", "package.json")).json()
+process.env.OPENCODE_VERSION ??= desktopPkg.version
+process.env.OPENCODE_CHANNEL ??= channel
+
 await $`bun ./scripts/copy-icons.ts ${channel}`
 await $`bun ./scripts/copy-metainfo.ts ${channel}`
 

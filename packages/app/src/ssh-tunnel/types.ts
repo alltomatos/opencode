@@ -9,10 +9,13 @@ export type SshServerConfig = {
   port: number // SSH port on the remote host, default 22
   sshUsername: string
   keyPath: string | null // null = let the ssh client pick (agent/default keys)
+  certPath: string | null // null = let the ssh client pick (agent/default certs)
+  sshPassword: string | null // null = use key-based auth, otherwise use password auth
   remotePort: number // port the opencode server listens on, remotely
   serverUsername: string // Basic Auth username for the remote opencode server
   serverPassword: string // Basic Auth password for the remote opencode server
   label?: string
+  autoSetup?: boolean // auto-install/update opencode on the remote server
 }
 
 export type SshServerRuntime =

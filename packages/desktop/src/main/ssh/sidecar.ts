@@ -10,6 +10,105 @@ export type SshTunnel = {
   password: string
 }
 
+type RemoteCommandResult = {
+  success: boolean
+  output: string
+  error?: string
+}
+
+async function runRemoteCommand(
+  config: SshServerConfig,
+  command: string,
+  timeoutMs = 30_000,
+): Promise<RemoteCommandResult> {
+  const args = ["-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes"]
+
+  if (config.keyPath) args.push("-i", config.keyPath)
+  if (config.certPath) args.push("-o", "CertificateFile=" + config.certPath)
+  if (config.sshPassword) {
+    args.push("-o", "PasswordAuthentication=yes")
+    args.push("-o", "BatchMode=no")
+  }
+
+  args.push(`${config.sshUsername}@${config.host}`)
+  args.push(command)
+
+  let cmd = "ssh"
+  const spawnOpts: Parameters<typeof spawn>[2] = { stdio: ["ignore", "pipe", "pipe"], windowsHide: true, timeout: timeoutMs }
+
+  if (config.sshPassword) {
+    cmd = "sshpass"
+    spawnOpts.env = { ...process.env, SSHPASS: config.sshPassword }
+    args.unshift("-e")
+    args.unshift("ssh")
+  }
+
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, spawnOpts)
+    let stdout = ""
+    let stderr = ""
+
+    child.stdout?.on("data", (chunk: Buffer) => (stdout += chunk.toString()))
+    child.stderr?.on("data", (chunk: Buffer) => (stderr += chunk.toString()))
+
+    child.on("error", () =>
+      resolve({
+        success: false,
+        output: "",
+        error: `Erro ao executar comando remoto: ${stderr}`,
+      }),
+    )
+    child.on("exit", (code: number | null) => {
+      if (code === 0) {
+        resolve({ success: true, output: stdout.trim() })
+      } else {
+        resolve({ success: false, output: stdout.trim(), error: stderr.trim() })
+      }
+    })
+  })
+}
+
+async function ensureOpencodeOnRemote(
+  config: SshServerConfig,
+  onLine?: (message: string) => void,
+): Promise<{ installed: boolean; updated: boolean; version?: string }> {
+  const checkResult = await runRemoteCommand(config, "opencode --version 2>/dev/null || echo 'not-installed'")
+
+  if (!checkResult.success || checkResult.output === "not-installed" || checkResult.error?.includes("not-installed")) {
+    onLine?.("opencode não encontrado no servidor remoto, instalando...")
+
+    const installResult = await runRemoteCommand(
+      config,
+      "mkdir -p ~/.npm-global && npm config set prefix ~/.npm-global && npm install -g @opencode-ai/server && hash -r && opencode --version",
+    )
+
+    if (installResult.success) {
+      const version = installResult.output.split("\n").pop()?.trim()
+      onLine?.(`opencode instalado com sucesso (versão: ${version})`)
+      return { installed: true, updated: true, version }
+    } else {
+      onLine?.(`Falha ao instalar opencode: ${installResult.error || installResult.output}`)
+      return { installed: false, updated: false }
+    }
+  }
+
+  const version = checkResult.output.split("\n").pop()?.trim()
+  onLine?.(`opencode já instalado (versão: ${version})`)
+
+  const pullResult = await runRemoteCommand(config, "npm install -g @opencode-ai/server@latest 2>&1")
+
+  if (pullResult.success || !pullResult.output?.includes("EESM") || pullResult.output?.includes("already")) {
+    const newVersionResult = await runRemoteCommand(config, "opencode --version 2>/dev/null || echo 'unknown'")
+    const newVersion = newVersionResult.success ? newVersionResult.output.trim() : version
+    if (newVersion !== version) {
+      onLine?.(`opencode atualizado para a versão ${newVersion}`)
+      return { installed: true, updated: true, version: newVersion }
+    }
+  }
+
+  return { installed: true, updated: false, version }
+}
+
 async function checkOpencodeHealth(url: string, username: string, password: string): Promise<boolean> {
   const auth = Buffer.from(`${username}:${password}`).toString("base64")
   for (const path of ["/api/health", "/global/health"]) {
@@ -77,6 +176,11 @@ export async function spawnSshTunnel(
     `${config.sshUsername}@${config.host}`,
   ]
   if (config.keyPath) args.push("-i", config.keyPath)
+  if (config.certPath) args.push("-o", "CertificateFile=" + config.certPath)
+  if (config.sshPassword) {
+    args.push("-o", "PasswordAuthentication=yes")
+    args.push("-o", "BatchMode=no")
+  }
 
   const child = spawn("ssh", args, { stdio: ["ignore", "pipe", "pipe"], windowsHide: true })
 
@@ -125,6 +229,18 @@ export async function spawnSshTunnel(
       clearTimeout(timeout)
       startup.abort()
     })
+
+  if (config.autoSetup) {
+    opts.onLine?.({ stream: "stdout", text: "executando setup automático do opencode..." })
+    try {
+      await ensureOpencodeOnRemote(
+        config,
+        (msg) => opts.onLine?.({ stream: "stdout", text: msg }),
+      )
+    } catch (e) {
+      opts.onLine?.({ stream: "stderr", text: `setup automático falhou: ${String(e)}` })
+    }
+  }
 
   return {
     listener: {

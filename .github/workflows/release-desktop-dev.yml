@@ -71,6 +71,7 @@ jobs:
         run: bun run ${{ matrix.script }} -- ${{ matrix.extra_args }} --publish always
         env:
           OPENCODE_CHANNEL: dev
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # See release-desktop.yml — same OOM fix for the --universal mac build.

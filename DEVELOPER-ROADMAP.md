@@ -25,6 +25,7 @@ GitHub (`alltomatos/opencode`, branch default `dev`) é a fonte persistente de r
 | [**[E15] Dashboard de KPIs & Estatísticas de Uso de Tokens (/stats)**](https://github.com/alltomatos/opencode/issues/212) | Painel central de métricas agregadas de consumo de tokens (input/output/reasoning/cache) e custos | done | [#212](https://github.com/alltomatos/opencode/issues/212) |
 | [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) | Agendamento e automação de rotinas em segundo plano multiplataforma | in_progress | [#213](https://github.com/alltomatos/opencode/issues/213) |
 | [**[E17] Otimização de Performance e Latência de UI/Navegação**](https://github.com/alltomatos/opencode/issues/228) | Otimização de queries SQLite, transição de timeline sem render stall, favicon glob e desoneração do boot desktop | done | [#228](https://github.com/alltomatos/opencode/issues/228) |
+| [**[E18] Multi-Account OAuth e Resiliência de Provedores**](https://github.com/alltomatos/opencode/issues/248) | Suporte multi-conta para Google Antigravity, Kiro AI e Kilo Code, com rotação em 429 e resiliência | in_progress | [#248](https://github.com/alltomatos/opencode/issues/248) |
 
 ---
 
@@ -68,6 +69,7 @@ GitHub (`alltomatos/opencode`, branch default `dev`) é a fonte persistente de r
   - [**[E13] CI Flaky e Isolamento de Testes**](https://github.com/alltomatos/opencode/issues/181) (`in_progress`)
   - [**[E14] Sincronização com Upstream Anomalyco**](https://github.com/alltomatos/opencode/issues/200) (`done`)
   - [**[E15] Dashboard de KPIs & Estatísticas de Uso de Tokens (/stats)**](https://github.com/alltomatos/opencode/issues/212) (`done`)
+  - [**[E18] Multi-Account OAuth e Resiliência de Provedores**](https://github.com/alltomatos/opencode/issues/248) (`in_progress`)
 - **Estado:** `in_progress`
 
 ### M6: Automation & High Performance

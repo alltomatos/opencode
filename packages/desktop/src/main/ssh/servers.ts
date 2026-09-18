@@ -212,10 +212,13 @@ function normalizePersistedServer(value: unknown): SshServerConfig[] {
       port: typeof record.port === "number" ? record.port : 22,
       sshUsername: typeof record.sshUsername === "string" ? record.sshUsername : "root",
       keyPath: typeof record.keyPath === "string" ? record.keyPath : null,
+      certPath: typeof record.certPath === "string" ? record.certPath : null,
+      sshPassword: typeof record.sshPassword === "string" ? record.sshPassword : null,
       remotePort: typeof record.remotePort === "number" ? record.remotePort : 4096,
       serverUsername: typeof record.serverUsername === "string" ? record.serverUsername : "opencode",
       serverPassword: typeof record.serverPassword === "string" ? record.serverPassword : "",
       label: typeof record.label === "string" ? record.label : undefined,
+      autoSetup: typeof record.autoSetup === "boolean" ? record.autoSetup : undefined,
     },
   ]
 }

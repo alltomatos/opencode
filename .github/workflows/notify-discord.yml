@@ -6,6 +6,7 @@ on:
 
 jobs:
   notify:
+    if: ${{ secrets.DISCORD_WEBHOOK != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Send nicely-formatted embed to Discord
