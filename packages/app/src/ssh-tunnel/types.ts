@@ -29,9 +29,33 @@ export type SshServerItem = {
   runtime: SshServerRuntime
 }
 
+export type SshSetupStep = "test_ssh" | "check_install" | "start_service" | "tunnel"
+
+export type SshStepStatus = "pending" | "running" | "done" | "failed"
+
+export type SshLogEntry = {
+  id: string
+  timestamp: number
+  level: "info" | "stdout" | "stderr" | "success" | "error"
+  message: string
+}
+
+export type SshConnectionProgress = {
+  serverId: string
+  host: string
+  active: boolean
+  currentStep: SshSetupStep
+  steps: Record<SshSetupStep, { status: SshStepStatus; label?: string; error?: string }>
+  logs: SshLogEntry[]
+  completed: boolean
+  success: boolean
+  error?: string
+}
+
 export type SshServersState = {
   servers: SshServerItem[]
   availableKeys: SshKeyInfo[]
+  progress?: SshConnectionProgress | null
 }
 
 export type SshServersEvent = { type: "state"; state: SshServersState }
@@ -43,6 +67,8 @@ export type SshServersPlatform = {
   addServer(config: Omit<SshServerConfig, "id">): Promise<SshServerConfig>
   removeServer(id: string): Promise<void>
   startServer(id: string): Promise<void>
+  updateServer?(id: string): Promise<void>
+  clearProgress?(): Promise<void>
   syncCredentials?(
     id: string,
     credentials: Array<{ integrationID: string; label?: string; value: unknown }>,

@@ -1,8 +1,19 @@
 import { randomUUID } from "node:crypto"
-import type { SshServerConfig, SshServerItem, SshServerRuntime, SshServersEvent, SshServersState } from "@opencode-ai/app/ssh-tunnel/types"
+import type {
+  SshConnectionProgress,
+  SshLogEntry,
+  SshServerConfig,
+  SshServerItem,
+  SshServerRuntime,
+  SshServersEvent,
+  SshServersState,
+  SshSetupStep,
+  SshStepStatus,
+} from "@opencode-ai/app/ssh-tunnel/types"
 import { SSH_SERVERS_KEY } from "../store-keys"
 import { getStore } from "../store"
 import { listSshKeys } from "./keys"
+import { type SshTunnelOpts, updateRemoteOpencode } from "./sidecar"
 
 type RunningTunnel = {
   listener: { stop: () => void; onExit: (cb: (code: number | null, signal: NodeJS.Signals | null) => void) => void }
@@ -11,7 +22,7 @@ type RunningTunnel = {
   password: string
 }
 
-type SpawnTunnel = (config: SshServerConfig) => Promise<RunningTunnel>
+type SpawnTunnel = (config: SshServerConfig, opts?: SshTunnelOpts) => Promise<RunningTunnel>
 
 type ControllerLogger = {
   log: (message: string, meta?: unknown) => void
@@ -28,7 +39,7 @@ type SshServersControllerOptions = {
 }
 
 export function createSshServersController(spawnTunnel: SpawnTunnel, options?: SshServersControllerOptions) {
-  let state: SshServersState = { servers: [], availableKeys: [] }
+  let state: SshServersState = { servers: [], availableKeys: [], progress: null }
   const listeners = new Set<(event: SshServersEvent) => void>()
   const tunnels = new Map<string, RunningTunnel>()
   const startAttempts = new Map<string, number>()
@@ -79,8 +90,53 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
     if (!isCurrentStartAttempt(id, attempt)) return
     setRuntime(id, { kind: "starting" })
     logger?.log("ssh tunnel starting", { id, host: item.config.host })
+
+    const progress: SshConnectionProgress = {
+      serverId: id,
+      host: item.config.host,
+      active: true,
+      currentStep: "test_ssh",
+      steps: {
+        test_ssh: { status: "pending" },
+        check_install: { status: "pending" },
+        start_service: { status: "pending" },
+        tunnel: { status: "pending" },
+      },
+      logs: [],
+      completed: false,
+      success: false,
+    }
+
+    setState({ progress })
+
+    const onStep = (step: SshSetupStep, status: SshStepStatus, error?: string) => {
+      if (!isCurrentStartAttempt(id, attempt)) return
+      progress.currentStep = step
+      progress.steps = { ...progress.steps, [step]: { status, error } }
+      setState({ progress: { ...progress } })
+    }
+
+    const onLog = (level: "info" | "stdout" | "stderr" | "success" | "error", message: string) => {
+      if (!isCurrentStartAttempt(id, attempt)) return
+      const entry: SshLogEntry = {
+        id: randomUUID(),
+        timestamp: Date.now(),
+        level,
+        message,
+      }
+      const updatedLogs = [...progress.logs, entry]
+      if (updatedLogs.length > 250) updatedLogs.shift()
+      progress.logs = updatedLogs
+      setState({ progress: { ...progress, logs: updatedLogs } })
+    }
+
     try {
-      const tunnel = await spawnTunnel(item.config)
+      const tunnel = await spawnTunnel(item.config, {
+        onStep,
+        onLog,
+        onLine: (line) => logger?.log("ssh tunnel line", { id, stream: line.stream, text: line.text }),
+      })
+
       if (!isCurrentStartAttempt(id, attempt)) {
         try {
           tunnel.listener.stop()
@@ -89,8 +145,15 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
         }
         return
       }
+
       tunnels.set(id, tunnel)
       setRuntime(id, { kind: "ready", url: tunnel.url, username: tunnel.username, password: tunnel.password })
+
+      progress.active = false
+      progress.completed = true
+      progress.success = true
+      setState({ progress: { ...progress } })
+
       tunnel.listener.onExit((code, signal) => {
         if (tunnels.get(id) !== tunnel) return
         tunnels.delete(id)
@@ -102,6 +165,11 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
       if (!isCurrentStartAttempt(id, attempt)) return
       const message = error instanceof Error ? error.message : String(error)
       setRuntime(id, { kind: "failed", message })
+      progress.active = false
+      progress.completed = true
+      progress.success = false
+      progress.error = message
+      setState({ progress: { ...progress } })
       logger?.error("ssh tunnel failed to start", { id, host: item.config.host, message })
     }
   }
@@ -127,6 +195,9 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
       for (const item of state.servers) void startServer(item.config.id)
     },
     listKeys,
+    clearProgress() {
+      setState({ progress: null })
+    },
     async addServer(config: Omit<SshServerConfig, "id">): Promise<SshServerConfig> {
       const full: SshServerConfig = { ...config, id: `ssh:${randomUUID()}` }
       const persisted = [...readServers(), full]
@@ -142,6 +213,91 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
       setState({ servers: state.servers.filter((item) => item.config.id !== id) })
     },
     startServer,
+    async updateServer(id: string) {
+      const item = state.servers.find((x) => x.config.id === id)
+      if (!item) return
+      const attempt = nextStartAttempt(id)
+      stopTunnelInternal(id)
+      if (!isCurrentStartAttempt(id, attempt)) return
+      setRuntime(id, { kind: "starting" })
+
+      const progress: SshConnectionProgress = {
+        serverId: id,
+        host: item.config.host,
+        active: true,
+        currentStep: "check_install",
+        steps: {
+          test_ssh: { status: "done" },
+          check_install: { status: "pending" },
+          start_service: { status: "pending" },
+          tunnel: { status: "pending" },
+        },
+        logs: [],
+        completed: false,
+        success: false,
+      }
+      setState({ progress })
+
+      const onStep = (step: SshSetupStep, status: SshStepStatus, error?: string) => {
+        if (!isCurrentStartAttempt(id, attempt)) return
+        progress.currentStep = step
+        progress.steps = { ...progress.steps, [step]: { status, error } }
+        setState({ progress: { ...progress } })
+      }
+
+      const onLog = (level: "info" | "stdout" | "stderr" | "success" | "error", message: string) => {
+        if (!isCurrentStartAttempt(id, attempt)) return
+        const entry: SshLogEntry = {
+          id: randomUUID(),
+          timestamp: Date.now(),
+          level,
+          message,
+        }
+        const updatedLogs = [...progress.logs, entry]
+        if (updatedLogs.length > 250) updatedLogs.shift()
+        progress.logs = updatedLogs
+        setState({ progress: { ...progress, logs: updatedLogs } })
+      }
+
+      try {
+        await updateRemoteOpencode(item.config, {
+          onStep,
+          onLog,
+          onLine: (line) => logger?.log("ssh update line", { id, stream: line.stream, text: line.text }),
+        })
+
+        const tunnel = await spawnTunnel(item.config, {
+          onStep,
+          onLog,
+          onLine: (line) => logger?.log("ssh tunnel line", { id, stream: line.stream, text: line.text }),
+        })
+
+        if (!isCurrentStartAttempt(id, attempt)) {
+          try {
+            tunnel.listener.stop()
+          } catch {
+            // ignore
+          }
+          return
+        }
+
+        tunnels.set(id, tunnel)
+        setRuntime(id, { kind: "ready", url: tunnel.url, username: tunnel.username, password: tunnel.password })
+        progress.active = false
+        progress.completed = true
+        progress.success = true
+        setState({ progress: { ...progress } })
+      } catch (error) {
+        if (!isCurrentStartAttempt(id, attempt)) return
+        const message = error instanceof Error ? error.message : String(error)
+        setRuntime(id, { kind: "failed", message })
+        progress.active = false
+        progress.completed = true
+        progress.success = false
+        progress.error = message
+        setState({ progress: { ...progress } })
+      }
+    },
     async syncCredentials(
       id: string,
       credentials: Array<{ integrationID: string; label?: string; value: unknown }>,

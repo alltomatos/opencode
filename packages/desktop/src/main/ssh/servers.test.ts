@@ -159,3 +159,42 @@ test("syncCredentials sends credentials to remote endpoint", async () => {
     globalThis.fetch = originalFetch
   }
 })
+
+test("startServer populates progress state with sequential steps and logs", async () => {
+  const { controller } = makeTestController(async (config, opts) => {
+    opts?.onStep?.("test_ssh", "running")
+    opts?.onLog?.("info", "Testing SSH...")
+    opts?.onStep?.("test_ssh", "done")
+
+    opts?.onStep?.("check_install", "running")
+    opts?.onLog?.("success", "OpenCode installed")
+    opts?.onStep?.("check_install", "done")
+
+    opts?.onStep?.("start_service", "running")
+    opts?.onStep?.("start_service", "done")
+
+    opts?.onStep?.("tunnel", "running")
+    opts?.onStep?.("tunnel", "done")
+
+    return {
+      listener: { stop: () => {}, onExit: () => {} },
+      url: "http://127.0.0.1:4096",
+      username: config.serverUsername,
+      password: config.serverPassword,
+    }
+  })
+
+  const config = await controller.addServer(baseConfig())
+  await waitForRuntime(controller, config.id, "ready")
+
+  const progress = controller.getState().progress
+  expect(progress).toBeDefined()
+  expect(progress?.serverId).toBe(config.id)
+  expect(progress?.completed).toBe(true)
+  expect(progress?.success).toBe(true)
+  expect(progress?.steps.test_ssh.status).toBe("done")
+  expect(progress?.steps.check_install.status).toBe("done")
+  expect(progress?.steps.start_service.status).toBe("done")
+  expect(progress?.steps.tunnel.status).toBe("done")
+  expect(progress?.logs.length).toBeGreaterThanOrEqual(2)
+})

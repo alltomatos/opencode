@@ -1,18 +1,20 @@
 import { Tag } from "@opencode-ai/ui/v2/badge-v2"
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useMutation } from "@tanstack/solid-query"
 import fuzzysort from "fuzzysort"
 import { type Accessor, For, Show, createMemo } from "solid-js"
 import type { useServerManagementController } from "@/components/dialog-select-server"
+import { DialogServerQrCode } from "@/components/settings-v2/dialog-server-qr-code"
 import { ServerHealthIndicator } from "@/components/server/server-row"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { ServerConnection } from "@/context/server"
 import { showToast } from "@/utils/toast"
+import { DialogSshConnectionProgress } from "./dialog-ssh-progress"
 import { useSshServers } from "./context"
 
 type Controller = ReturnType<typeof useServerManagementController>
@@ -35,6 +37,7 @@ export function SshServerSettings(props: {
   controller: Controller
   servers: ReturnType<typeof useFilteredSshServers>
 }) {
+  const dialog = useDialog()
   const platform = usePlatform()
   const language = useLanguage()
   const api = platform.sshServers
@@ -48,6 +51,33 @@ export function SshServerSettings(props: {
         description: error instanceof Error ? error.message : String(error),
       }),
   }))
+
+  const openLogsAndReconnect = (serverId: string, host: string, restart = false) => {
+    dialog.show(() => <DialogSshConnectionProgress serverId={serverId} host={host} />)
+    if (restart && api) {
+      void api.startServer(serverId)
+    }
+  }
+
+  const openUpdateOpencode = (serverId: string, host: string) => {
+    dialog.show(() => <DialogSshConnectionProgress serverId={serverId} host={host} />)
+    if (api?.updateServer) {
+      void api.updateServer(serverId)
+    }
+  }
+
+  const openQrCode = (item: { config: { host: string; remotePort: number; serverUsername?: string; serverPassword?: string; label?: string } }) => {
+    const conn: ServerConnection.Http = {
+      type: "http",
+      displayName: item.config.label ?? item.config.host,
+      http: {
+        url: `http://${item.config.host}:${item.config.remotePort}`,
+        username: item.config.serverUsername || "opencode",
+        password: item.config.serverPassword || "",
+      },
+    }
+    dialog.show(() => <DialogServerQrCode server={conn} />)
+  }
 
   return (
     <Show when={api}>
@@ -89,10 +119,34 @@ export function SshServerSettings(props: {
                     <MenuV2.Content>
                       <MenuV2.Group>
                         <MenuV2.GroupLabel>{language.t("sshTunnel.server.menu.label")}</MenuV2.GroupLabel>
+                        <MenuV2.Item onSelect={() => openQrCode(item)}>
+                          <IconV2 name="share" size="small" />
+                          {language.t("sshTunnel.server.qrCode")}
+                        </MenuV2.Item>
+                        <MenuV2.Item onSelect={() => openUpdateOpencode(item.config.id, item.config.host)}>
+                          <IconV2 name="reset" size="small" />
+                          {language.t("sshTunnel.server.update")}
+                        </MenuV2.Item>
+                        <MenuV2.Item onSelect={() => openLogsAndReconnect(item.config.id, item.config.host, retryable)}>
+                          <IconV2 name="console" size="small" />
+                          {language.t("sshTunnel.server.viewLogs")}
+                        </MenuV2.Item>
                         <Show when={retryable}>
                           <MenuV2.Item onSelect={() => api && request.mutate(() => api.startServer(item.config.id))}>
                             <IconV2 name="reset" size="small" />
                             {language.t("sshTunnel.server.retryStart")}
+                          </MenuV2.Item>
+                        </Show>
+                        <Show when={props.controller.canDefault() && props.controller.defaultKey() !== key}>
+                          <MenuV2.Item onSelect={() => props.controller.setDefault(key)}>
+                            <IconV2 name="check" size="small" />
+                            {language.t("dialog.server.menu.default")}
+                          </MenuV2.Item>
+                        </Show>
+                        <Show when={props.controller.canDefault() && props.controller.defaultKey() === key}>
+                          <MenuV2.Item onSelect={() => props.controller.setDefault(null)}>
+                            <IconV2 name="close" size="small" />
+                            {language.t("dialog.server.menu.defaultRemove")}
                           </MenuV2.Item>
                         </Show>
                         <MenuV2.Separator />

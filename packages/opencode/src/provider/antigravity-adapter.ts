@@ -178,8 +178,8 @@ async function getLiveToken(
     let access = parsed.access as string
     const projectID = parsed.metadata?.projectID || "aicode-consumers"
 
-    // If token expires in less than 2 minutes, refresh proactively
-    if (parsed.refresh && (!parsed.expires || parsed.expires - now < 120_000)) {
+    // If token expires in less than 5 minutes (or expired/missing expiry), refresh proactively
+    if (parsed.refresh && (!parsed.expires || parsed.expires - now < 300_000)) {
       const client = CLIENT_CONFIGS[profile]
       const params = new URLSearchParams({
         grant_type: "refresh_token",
@@ -193,9 +193,16 @@ async function getLiveToken(
         body: params.toString(),
       })
       if (res.ok) {
-        const refreshed = (await res.json()) as { access_token: string; expires_in: number }
+        const refreshed = (await res.json()) as {
+          access_token: string
+          refresh_token?: string
+          expires_in: number
+        }
         access = refreshed.access_token
         parsed.access = access
+        if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token) {
+          parsed.refresh = refreshed.refresh_token
+        }
         parsed.expires = Date.now() + refreshed.expires_in * 1000
         db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
           JSON.stringify(parsed),

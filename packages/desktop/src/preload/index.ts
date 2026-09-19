@@ -52,6 +52,8 @@ const api: ElectronAPI = {
     addServer: (config) => ipcRenderer.invoke("ssh-servers-add", config),
     removeServer: (id) => ipcRenderer.invoke("ssh-servers-remove", id),
     startServer: (id) => ipcRenderer.invoke("ssh-servers-start", id),
+    updateServer: (id) => ipcRenderer.invoke("ssh-servers-update", id),
+    clearProgress: () => ipcRenderer.invoke("ssh-servers-clear-progress"),
     syncCredentials: (id, credentials) => ipcRenderer.invoke("ssh-servers-sync-credentials", id, credentials),
   },
   checkTailscale: () => ipcRenderer.invoke("tailscale-check"),

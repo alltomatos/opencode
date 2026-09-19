@@ -207,10 +207,14 @@ const main = Effect.gen(function* () {
     },
   )
   const sshServers = createSshServersController(
-    async (config) => {
+    async (config, opts) => {
       logger.log("spawning ssh tunnel", { host: config.host })
       return spawnSshTunnel(config, {
-        onLine: (line) => logger.log("ssh tunnel", { host: config.host, stream: line.stream, text: line.text }),
+        ...opts,
+        onLine: (line) => {
+          opts?.onLine?.(line)
+          logger.log("ssh tunnel", { host: config.host, stream: line.stream, text: line.text })
+        },
       })
     },
     {

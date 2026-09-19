@@ -76,31 +76,27 @@ function eventually<A>(
 }
 
 describe("GoogleAntigravityPlugin", () => {
-  it.effect("registers both the IDE and CLI integrations with baked-in official client ids", () =>
+  it.effect("registers the CLI integration with baked-in official client id", () =>
     Effect.gen(function* () {
       yield* addPlugin()
       const integrations = yield* Integration.Service
-      expect((yield* integrations.get(ideID))?.methods).toEqual([{ id: methodID, type: "oauth", label: "Google account" }])
       expect((yield* integrations.get(cliID))?.methods).toEqual([{ id: methodID, type: "oauth", label: "Google account" }])
     }),
   )
 
-  it.effect("registers a connectable catalog card for both providers", () =>
+  it.effect("registers a connectable catalog card for the provider", () =>
     Effect.gen(function* () {
       yield* addPlugin()
       const catalog = yield* Catalog.Service
-      expect((yield* catalog.provider.get(ProviderV2.ID.make("google-antigravity")))?.name).toBe("Google Antigravity")
       expect((yield* catalog.provider.get(ProviderV2.ID.make("google-antigravity-cli")))?.name).toBe(
-        "Google Antigravity CLI",
+        "AGY CLI",
       )
     }),
   )
 
-  it.effect("uses distinct env var pairs to override each profile's client id/secret", () =>
+  it.effect("uses AGY env var pair to override client id/secret", () =>
     withEnv(
       {
-        ANTIGRAVITY_OAUTH_CLIENT_ID: "ide-client",
-        ANTIGRAVITY_OAUTH_CLIENT_SECRET: "ide-secret",
         AGY_OAUTH_CLIENT_ID: "cli-client",
         AGY_OAUTH_CLIENT_SECRET: "cli-secret",
       },
@@ -108,10 +104,6 @@ describe("GoogleAntigravityPlugin", () => {
         Effect.gen(function* () {
           yield* addPlugin()
           const integrations = yield* Integration.Service
-          const ideAttempt = yield* integrations.connection.oauth({ integrationID: ideID, methodID, inputs: {} })
-          expect(ideAttempt.url).toContain("client_id=ide-client")
-          yield* integrations.attempt.cancel(ideAttempt.attemptID)
-
           const cliAttempt = yield* integrations.connection.oauth({ integrationID: cliID, methodID, inputs: {} })
           expect(cliAttempt.url).toContain("client_id=cli-client")
           yield* integrations.attempt.cancel(cliAttempt.attemptID)
@@ -135,7 +127,7 @@ describe("GoogleAntigravityPlugin", () => {
       })
       yield* addPlugin(http)
       const integrations = yield* Integration.Service
-      const attempt = yield* integrations.connection.oauth({ integrationID: ideID, methodID, inputs: {} })
+      const attempt = yield* integrations.connection.oauth({ integrationID: cliID, methodID, inputs: {} })
       expect(attempt.mode).toBe("auto")
 
       const redirect = new URL(new URL(attempt.url).searchParams.get("redirect_uri")!)
@@ -147,13 +139,13 @@ describe("GoogleAntigravityPlugin", () => {
       yield* eventually(integrations.attempt.status(attempt.attemptID), (status) => status.status === "complete")
 
       const credentials = yield* Credential.Service
-      const stored = (yield* credentials.list(ideID))[0]
+      const stored = (yield* credentials.list(cliID))[0]
       expect(stored?.value).toMatchObject({
         type: "oauth",
         methodID,
         access: "access-token",
         refresh: "refresh-token",
-        metadata: { email: "person@example.com", projectID: "project-123", tier: "free-tier", clientProfile: "ide" },
+        metadata: { email: "person@example.com", projectID: "project-123", tier: "free-tier", clientProfile: "cli" },
       })
     }),
   )

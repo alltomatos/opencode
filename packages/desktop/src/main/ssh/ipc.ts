@@ -52,6 +52,10 @@ export function registerSshIpcHandlers(controller: SshServersController) {
   ipcMain.handle("ssh-servers-start", (_event: IpcMainInvokeEvent, id: string) =>
     controller.startServer(requireString("server id", id)),
   )
+  ipcMain.handle("ssh-servers-update", (_event: IpcMainInvokeEvent, id: string) =>
+    controller.updateServer(requireString("server id", id)),
+  )
+  ipcMain.handle("ssh-servers-clear-progress", () => controller.clearProgress())
   ipcMain.handle(
     "ssh-servers-sync-credentials",
     (
