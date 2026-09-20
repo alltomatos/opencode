@@ -67,6 +67,7 @@ export type OAuthAuthorization = {
   | {
       readonly mode: "auto"
       readonly callback: Effect.Effect<Credential.OAuth, unknown>
+      readonly complete?: (code: string) => Effect.Effect<Credential.OAuth, unknown>
     }
   | {
       readonly mode: "code"
@@ -437,7 +438,7 @@ export const locationLayer = Layer.effect(
           yield* SynchronizedRef.update(attempts, (current) =>
             new Map(current).set(id, {
               status: "pending",
-              completing: authorization.mode === "auto",
+              completing: false,
               authorization,
               integrationID: input.integrationID,
               methodID: input.methodID,
@@ -502,7 +503,11 @@ export const locationLayer = Layer.effect(
           if (attempt.completing) return yield* Effect.die(`OAuth attempt already completing: ${input.attemptID}`)
           const callback =
             attempt.authorization.mode === "auto"
-              ? attempt.authorization.callback
+              ? "complete" in attempt.authorization &&
+                typeof attempt.authorization.complete === "function" &&
+                input.code !== undefined
+                ? attempt.authorization.complete(input.code)
+                : attempt.authorization.callback
               : attempt.authorization.callback(input.code as string)
           const exit = yield* authorize(callback).pipe(Effect.exit)
           yield* settle(input.attemptID, exit)

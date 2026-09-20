@@ -21,22 +21,15 @@ import { ProviderV2 } from "../../provider"
 // from third-party reverse-engineering (OmniRoute's kiro provider) rather
 // than independently confirmed here, and should be treated as best-effort.
 const ssoOidcRegion = "us-east-1"
-const qDeveloperEndpoint = "https://q.us-east-1.amazonaws.com"
 const builderIdStartUrl = "https://view.awsapps.com/start"
-const socialAuthEndpoint = "https://prod.us-east-1.auth.desktop.kiro.dev"
-const socialAuthorizeUrl = "https://prod.us-east-1.auth.desktop.kiro.dev/authorize"
 const scopes = ["codewhisperer:completions", "codewhisperer:analysis", "codewhisperer:conversations"]
 
 const builderIdProfileArn = "arn:aws:codewhisperer:us-east-1:638616132270:profile/AAAACCCCXXXX"
-const socialProfileArn = "arn:aws:codewhisperer:us-east-1:699475941385:profile/EHGA3GRVQMUK"
 
 const integrationID = Integration.ID.make("kiro")
 const builderIdMethodID = Integration.MethodID.make("builder-id")
-const idcMethodID = Integration.MethodID.make("idc")
-const socialMethodID = Integration.MethodID.make("social")
-const importMethodID = Integration.MethodID.make("import")
 
-type AuthMethod = "builder-id" | "idc" | "social"
+type AuthMethod = "builder-id"
 
 // -- AWS SSO OIDC (Builder ID / IdC) --------------------------------------
 
@@ -148,35 +141,6 @@ function refreshOidcToken(http: HttpClient.HttpClient, clientId: string, clientS
     .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(TokenResponse)))
 }
 
-// -- Q Developer / CodeWhisperer profile discovery (IdC only) ------------
-
-const ListProfilesResponse = Schema.Struct({
-  profiles: Schema.optional(Schema.Array(Schema.Struct({ arn: Schema.String }))),
-})
-
-// Best-effort: IdC accounts need a region-bound profileArn on every
-// CodeWhisperer call, discovered via the AmazonCodeWhispererService
-// ListAvailableProfiles JSON-RPC operation (bearer-token authenticated).
-// Never blocks login — a missing profileArn just means it's resolved lazily
-// on first real request.
-function discoverProfileArn(http: HttpClient.HttpClient, accessToken: string) {
-  return http
-    .execute(
-      HttpClientRequest.post(qDeveloperEndpoint).pipe(
-        HttpClientRequest.bearerToken(accessToken),
-        HttpClientRequest.setHeader("content-type", "application/x-amz-json-1.0"),
-        HttpClientRequest.setHeader("x-amz-target", "AmazonCodeWhispererService.ListAvailableProfiles"),
-        HttpClientRequest.bodyJsonUnsafe({}),
-      ),
-    )
-    .pipe(
-      Effect.flatMap(HttpClientResponse.filterStatusOk),
-      Effect.flatMap(HttpClientResponse.schemaBodyJson(ListProfilesResponse)),
-      Effect.map((result) => result.profiles?.[0]?.arn),
-      Effect.catch(() => Effect.succeed(undefined)),
-    )
-}
-
 // -- Credential helpers ----------------------------------------------------
 
 function credentialFromToken(
@@ -204,33 +168,16 @@ function credentialFromToken(
   })
 }
 
-// -- Builder ID / IdC (shared device-code machinery) ----------------------
+// -- Builder ID device-code method -----------------------------------------
 
-function deviceMethod(http: HttpClient.HttpClient, methodID: Integration.MethodID, authMethod: "builder-id" | "idc") {
+function deviceMethod(http: HttpClient.HttpClient, methodID: Integration.MethodID) {
   return {
     integrationID,
-    method:
-      authMethod === "builder-id"
-        ? { id: methodID, type: "oauth", label: "AWS Builder ID" }
-        : {
-            id: methodID,
-            type: "oauth",
-            label: "AWS IAM Identity Center",
-            prompts: [
-              {
-                type: "text" as const,
-                key: "startUrl",
-                message: "AWS IAM Identity Center start URL",
-                placeholder: "https://my-org.awsapps.com/start",
-              },
-            ],
-          },
-    authorize: (inputs) =>
+    method: { id: methodID, type: "oauth", label: "AWS Builder ID" },
+    authorize: () =>
       Effect.gen(function* () {
-        const startUrl = authMethod === "idc" ? inputs.startUrl : builderIdStartUrl
-        if (authMethod === "idc" && !startUrl) return yield* Effect.fail(new Error("Start URL is required"))
         const client = yield* registerClient(http)
-        const device = yield* startDeviceAuthorization(http, client.clientId, client.clientSecret, startUrl)
+        const device = yield* startDeviceAuthorization(http, client.clientId, client.clientSecret, builderIdStartUrl)
         const deadline = Date.now() + device.expiresIn * 1000
         return {
           mode: "auto" as const,
@@ -245,9 +192,9 @@ function deviceMethod(http: HttpClient.HttpClient, methodID: Integration.MethodI
               device.interval ?? 5,
               deadline,
             )
-            const profileArn =
-              authMethod === "builder-id" ? builderIdProfileArn : yield* discoverProfileArn(http, token.accessToken)
-            return credentialFromToken(methodID, authMethod, client.clientId, client.clientSecret, token, { profileArn })
+            return credentialFromToken(methodID, "builder-id", client.clientId, client.clientSecret, token, {
+              profileArn: builderIdProfileArn,
+            })
           }),
         }
       }),
@@ -285,165 +232,12 @@ function deviceMethod(http: HttpClient.HttpClient, methodID: Integration.MethodI
           },
         }
       }),
-    // AWS's device-code flow exposes no identity endpoint (no email, no
-    // username) — every connected account otherwise displays as the same
-    // generic label with no way to tell them apart. Each authorize() call
-    // registers its own OIDC client, so that clientId is already a stable,
-    // unique-per-connection value; a short slice of it is at least a
-    // distinguishing label until a real identity lookup exists.
     label: (credential) =>
       typeof credential.metadata?.email === "string"
         ? credential.metadata.email
         : typeof credential.metadata?.clientId === "string"
-          ? `${authMethod === "builder-id" ? "Builder ID" : "IdC"} (${credential.metadata.clientId.slice(-8)})`
+          ? `Builder ID (${credential.metadata.clientId.slice(-8)})`
           : undefined,
-  } satisfies IntegrationOAuthMethodRegistration
-}
-
-// -- Social login (Google / GitHub via Kiro's own backend) ----------------
-//
-// Kiro's AuthServiceClient (confirmed in the installed extension bundle)
-// exchanges an authorization code for tokens at `${endpoint}/oauth/token`
-// and refreshes at `${endpoint}/refreshToken`. The browser-facing authorize
-// URL that starts the Google/GitHub consent flow lives in Kiro's Electron
-// shell (not the extension bundle we could inspect), so it's approximated
-// here rather than confirmed — treat this method as best-effort until that
-// URL is verified against a real login.
-function social(http: HttpClient.HttpClient) {
-  return {
-    integrationID,
-    method: { id: socialMethodID, type: "oauth", label: "Google or GitHub (social login)" },
-    authorize: () =>
-      Effect.gen(function* () {
-        const verifier = crypto.randomUUID() + crypto.randomUUID()
-        const challenge = Buffer.from(
-          yield* Effect.promise(() => crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))),
-        ).toString("base64url")
-        const state = crypto.randomUUID()
-        const url = new URL(socialAuthorizeUrl)
-        url.searchParams.set("response_type", "code")
-        url.searchParams.set("code_challenge", challenge)
-        url.searchParams.set("code_challenge_method", "S256")
-        url.searchParams.set("state", state)
-        return {
-          mode: "code" as const,
-          url: url.href,
-          instructions: "Sign in with Google or GitHub, then paste the `code` from the redirect URL here.",
-          callback: (code: string) =>
-            Effect.gen(function* () {
-              const value = code.includes("code=") ? new URL(code).searchParams.get("code")! : code
-              const response = yield* HttpClient.filterStatusOk(http)
-                .execute(
-                  HttpClientRequest.post(`${socialAuthEndpoint}/oauth/token`).pipe(
-                    HttpClientRequest.acceptJson,
-                    HttpClientRequest.bodyJsonUnsafe({ code: value, code_verifier: verifier, redirect_uri: url.href }),
-                  ),
-                )
-                .pipe(
-                  Effect.flatMap(
-                    HttpClientResponse.schemaBodyJson(
-                      Schema.Struct({
-                        accessToken: Schema.String,
-                        refreshToken: Schema.optional(Schema.String),
-                        expiresIn: Schema.optional(Schema.Number),
-                        email: Schema.optional(Schema.String),
-                      }),
-                    ),
-                  ),
-                )
-              return Credential.OAuth.make({
-                type: "oauth" as const,
-                methodID: socialMethodID,
-                access: response.accessToken,
-                refresh: response.refreshToken ?? "",
-                expires: Date.now() + (response.expiresIn ?? 3600) * 1000,
-                metadata: {
-                  authMethod: "social" as const,
-                  profileArn: socialProfileArn,
-                  ...(response.email ? { email: response.email } : {}),
-                },
-              })
-            }),
-        }
-      }),
-    refresh: (credential) =>
-      HttpClient.filterStatusOk(http)
-        .execute(
-          HttpClientRequest.post(`${socialAuthEndpoint}/refreshToken`).pipe(
-            HttpClientRequest.acceptJson,
-            HttpClientRequest.bodyJsonUnsafe({ refreshToken: credential.refresh }),
-          ),
-        )
-        .pipe(
-          Effect.flatMap(
-            HttpClientResponse.schemaBodyJson(
-              Schema.Struct({
-                accessToken: Schema.String,
-                refreshToken: Schema.optional(Schema.String),
-                expiresIn: Schema.optional(Schema.Number),
-              }),
-            ),
-          ),
-          Effect.map((token) => ({
-            ...credential,
-            access: token.accessToken,
-            refresh: token.refreshToken ?? credential.refresh,
-            expires: Date.now() + (token.expiresIn ?? 3600) * 1000,
-          })),
-        ),
-    label: (credential) =>
-      typeof credential.metadata?.email === "string" ? credential.metadata.email : `Social (${credential.access.slice(-8)})`,
-  } satisfies IntegrationOAuthMethodRegistration
-}
-
-// -- Import (paste an existing refresh token) ------------------------------
-//
-// Validates the pasted token against AWS SSO OIDC's known refresh-token
-// prefix and self-registers an isolated OIDC client to redeem it — kept
-// isolated (rather than reusing another connection's client) so importing
-// several accounts never shares one backend session.
-function importToken(http: HttpClient.HttpClient) {
-  return {
-    integrationID,
-    method: { id: importMethodID, type: "oauth", label: "Import an existing refresh token" },
-    authorize: () =>
-      Effect.succeed({
-        mode: "code" as const,
-        url: "https://docs.aws.amazon.com/singlesignon/latest/userguide/get-set-up-for-idc.html",
-        instructions: "Paste an existing AWS SSO OIDC refresh token (starts with `aorAAAAAG`).",
-        callback: (code: string) =>
-          Effect.gen(function* () {
-            const token = code.trim()
-            if (!token.startsWith("aorAAAAAG")) {
-              return yield* Effect.fail(new Error("This doesn't look like an AWS SSO OIDC refresh token"))
-            }
-            const client = yield* registerClient(http)
-            const refreshed = yield* refreshOidcToken(http, client.clientId, client.clientSecret, token)
-            return credentialFromToken(
-              importMethodID,
-              "builder-id",
-              client.clientId,
-              client.clientSecret,
-              { ...refreshed, refreshToken: refreshed.refreshToken ?? token },
-              { profileArn: builderIdProfileArn },
-            )
-          }),
-      }),
-    refresh: (credential) =>
-      Effect.gen(function* () {
-        const clientId = typeof credential.metadata?.clientId === "string" ? credential.metadata.clientId : undefined
-        const clientSecret =
-          typeof credential.metadata?.clientSecret === "string" ? credential.metadata.clientSecret : undefined
-        if (!clientId || !clientSecret) return yield* Effect.fail(new Error("Missing AWS SSO OIDC client credentials"))
-        const token = yield* refreshOidcToken(http, clientId, clientSecret, credential.refresh)
-        return {
-          ...credential,
-          access: token.accessToken,
-          refresh: token.refreshToken ?? credential.refresh,
-          expires: Date.now() + token.expiresIn * 1000,
-        }
-      }),
-    label: (credential) => `Imported token (${credential.access.slice(-8)})`,
   } satisfies IntegrationOAuthMethodRegistration
 }
 
@@ -455,10 +249,7 @@ export const KiroPlugin = define<HttpClient.HttpClient | Scope.Scope>({
       draft.update(integrationID, (integration) => {
         integration.name = "Kiro"
       })
-      draft.method.update(deviceMethod(http, builderIdMethodID, "builder-id"))
-      draft.method.update(deviceMethod(http, idcMethodID, "idc"))
-      draft.method.update(social(http))
-      draft.method.update(importToken(http))
+      draft.method.update(deviceMethod(http, builderIdMethodID))
     })
     // Registers a connectable card in the provider catalog — without a
     // catalog.provider entry the "Connect a provider" picker has nothing to

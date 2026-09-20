@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "tag": "v1.21.28",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Suporte a OAuth em servidores remotos",
+              "description": "Adicionado campo para colar a URL de retorno ou código de autorização durante o fluxo OAuth (loopback), com extração automática do token e relay para hosts remotos/VPS."
+            },
+            {
+              "title": "Correção no Kilo Gateway",
+              "description": "Corrigido bug onde o Kilo Gateway continuava listado em provedores conectados mesmo após a desconexão."
+            },
+            {
+              "title": "Simplificação do Kiro",
+              "description": "Mantido exclusivamente o método AWS Builder ID para conexão com o provedor Kiro, indo direto ao fluxo de login."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.27",
       "highlights": [
         {

@@ -173,6 +173,7 @@ export function integrationHost(integration: Integration.Interface): PluginConte
                     input.authorize(inputs).pipe(
                       Effect.map((authorization) => {
                         if (authorization.mode === "auto") {
+                          const complete = authorization.complete
                           return {
                             ...authorization,
                             callback: authorization.callback.pipe(
@@ -183,6 +184,17 @@ export function integrationHost(integration: Integration.Interface): PluginConte
                                 }),
                               ),
                             ),
+                            complete: complete
+                              ? (code: string) =>
+                                  complete(code).pipe(
+                                    Effect.map((credential) =>
+                                      Credential.OAuth.make({
+                                        ...credential,
+                                        methodID: Integration.MethodID.make(credential.methodID),
+                                      }),
+                                    ),
+                                  )
+                              : undefined,
                           }
                         }
                         return {

@@ -185,6 +185,9 @@ export const dict = {
   "provider.connect.oauth.auto.confirmationCode": "Confirmation code",
   "provider.connect.toast.connected.title": "{{provider}} connected",
   "provider.connect.toast.connected.description": "{{provider}} models are now available to use.",
+  "provider.action.relogin": "Re-login",
+  "provider.action.refreshToken": "Refresh token",
+  "provider.action.refreshToken.success": "Token refreshed successfully",
 
   "provider.custom.title": "Custom provider",
   "provider.custom.unavailable": "Custom providers are unavailable on this server",

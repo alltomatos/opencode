@@ -113,12 +113,15 @@ const PROVIDER_ICON_SIZE = 16
 const ProviderAccountList: Component<{
   integrationID: string
   directory: Accessor<string | undefined>
+  onRelogin?: (providerID: string) => void
   onChanged?: () => void
 }> = (props) => {
+  const dialog = useDialog()
   const language = useLanguage()
   const serverSdk = useServerSDK()
   const integrationApi = createMemo(() => createIntegrationFetchApi(serverSdk().server.http))
   const [removing, setRemoving] = createSignal<Set<string>>(new Set())
+  const [refreshing, setRefreshing] = createSignal<Set<string>>(new Set())
 
   const [integration, { refetch }] = createResource(
     () => ({ integrationID: props.integrationID, directory: props.directory() }),
@@ -155,6 +158,31 @@ const ProviderAccountList: Component<{
     }
   }
 
+  const handleRefresh = async (account: { id: string; label?: string }) => {
+    setRefreshing((prev) => new Set(prev).add(account.id))
+    try {
+      // Discard server caches and force reload model catalog
+      await serverSdk().client.global.dispose().catch(() => undefined)
+      await refetch()
+      props.onChanged?.()
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("provider.action.refreshToken.success"),
+        description: account.label,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev)
+        next.delete(account.id)
+        return next
+      })
+    }
+  }
+
   return (
     <Show when={accounts().length > 0}>
       <div class="settings-v2-provider-accounts">
@@ -162,18 +190,39 @@ const ProviderAccountList: Component<{
           {(account) => (
             <div class="settings-v2-provider-account-row">
               <span class="settings-v2-provider-account-label truncate">{account.label}</span>
-              <ButtonV2
-                size="normal"
-                variant="ghost-muted"
-                class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
-                disabled={removing().has(account.id)}
-                onClick={() => void remove(account.id)}
-              >
-                <Show when={removing().has(account.id)}>
-                  <Spinner class="size-4" />
-                </Show>
-                {language.t("common.disconnect")}
-              </ButtonV2>
+              <div class="flex items-center gap-1.5">
+                <ButtonV2
+                  size="normal"
+                  variant="ghost-muted"
+                  disabled={refreshing().has(account.id)}
+                  onClick={() => void handleRefresh(account)}
+                >
+                  <Show when={refreshing().has(account.id)}>
+                    <Spinner class="size-3.5" />
+                  </Show>
+                  {language.t("provider.action.refreshToken")}
+                </ButtonV2>
+                <ButtonV2
+                  size="normal"
+                  variant="ghost-muted"
+                  disabled={refreshing().has(account.id)}
+                  onClick={() => props.onRelogin?.(props.integrationID)}
+                >
+                  {language.t("provider.action.relogin")}
+                </ButtonV2>
+                <ButtonV2
+                  size="normal"
+                  variant="ghost-muted"
+                  class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                  disabled={removing().has(account.id)}
+                  onClick={() => void remove(account.id)}
+                >
+                  <Show when={removing().has(account.id)}>
+                    <Spinner class="size-4" />
+                  </Show>
+                  {language.t("common.disconnect")}
+                </ButtonV2>
+              </div>
             </div>
           )}
         </For>
@@ -224,12 +273,22 @@ export const SettingsProvidersV2: Component<{
   )
 
   const connected = createMemo(() => {
+    const extraIntegrations = integrationsList() ?? []
+    const integrationMap = new Map(extraIntegrations.map((i) => [i.id, i]))
+
     const list = providers
       .connected()
-      .filter((p) => p.id !== "opencode" || Object.values(p.models).find((m) => m.cost?.input))
+      .filter((p) => {
+        if (p.id === "opencode" && !Object.values(p.models).find((m) => m.cost?.input)) return false
+        const integrationID = "integrationID" in p && typeof p.integrationID === "string" ? p.integrationID : undefined
+        const integration = integrationMap.get(p.id) ?? (integrationID ? integrationMap.get(integrationID) : undefined)
+        if (integration) {
+          return integration.connections.length > 0
+        }
+        return true
+      })
       .slice()
 
-    const extraIntegrations = integrationsList() ?? []
     for (const integration of extraIntegrations) {
       if (integration.connections.length > 0 && !list.some((p) => p.id === integration.id)) {
         list.push({
@@ -346,30 +405,26 @@ export const SettingsProvidersV2: Component<{
             .catch(() => undefined)
         }
       }
-      refetchIntegrations()
     }
     if (isConfigCustom(providerID)) {
       await serverSdk()
         .client.auth.remove({ providerID })
         .catch(() => undefined)
       await disableProvider(providerID, name)
+      refetchIntegrations()
       return
     }
     await serverSdk()
       .client.auth.remove({ providerID })
-      .then(async () => {
-        await serverSdk().client.global.dispose()
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
-          description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
-        })
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err)
-        showToast({ title: language.t("common.requestFailed"), description: message })
-      })
+      .catch(() => undefined)
+    await serverSdk().client.global.dispose().catch(() => undefined)
+    refetchIntegrations()
+    showToast({
+      variant: "success",
+      icon: "circle-check",
+      title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
+      description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
+    })
   }
 
   const handleDisconnect = async (providerID: string, name: string) => {
@@ -455,6 +510,7 @@ export const SettingsProvidersV2: Component<{
                         <ProviderAccountList
                           integrationID={item.id}
                           directory={props.directory}
+                          onRelogin={(id) => connect(id)}
                           onChanged={() => {
                             refetchIntegrations()
                           }}

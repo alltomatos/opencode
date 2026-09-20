@@ -1,10 +1,12 @@
-import { createMemo, createSignal, startTransition } from "solid-js"
+import { createEffect, createMemo, createSignal, onMount, startTransition } from "solid-js"
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useGlobal } from "@/context/global"
+import { ServerConnection } from "@/context/server"
 import { SettingsGeneralV2 } from "@/components/settings-v2/general"
 import { SettingsKeybinds } from "@/components/settings-keybinds"
 import { SettingsProvidersV2 } from "@/components/settings-v2/providers"
@@ -16,6 +18,7 @@ import { SettingsMemoryV2 } from "@/components/settings-v2/memory"
 import { SettingsMcpV2 } from "@/components/settings-v2/mcp"
 import { SettingsIntegrationsV2 } from "@/components/settings-v2/integrations"
 import { SettingsExternalAgentsV2 } from "@/components/settings-v2/external-agents"
+import { SettingsServerPicker, SettingsServerScope } from "@/components/settings-server-picker"
 import "@/components/settings-v2/settings-v2.css"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -30,12 +33,38 @@ export function SettingsPage() {
   const [searchParams] = useSearchParams<{ session?: string }>()
   const layout = useLayout()
   const tabs = useTabs()
+  const global = useGlobal()
   const serverSync = useServerSync()
   const home = createHomeController()
   const [tab, setTab] = createSignal(params.tab || "general")
 
-  const directory = createMemo(() => {
+  // Auto-scope settings to active route's server if opening from a remote session/project
+  onMount(() => {
     const route = layout.route()
+    const targetServerKey =
+      (route.type === "session" || route.type === "draft" || route.type === "dir-new-sesssion") && route.server
+        ? route.server
+        : layout.home.selection().server
+    if (targetServerKey) {
+      global.settings.server.set(targetServerKey)
+    }
+  })
+
+  const directory = createMemo(() => {
+    // If the currently selected server in settings is not the local server
+    // or does not match the active session/route server, we should NOT pass
+    // a local/foreign worktree directory to avoid scoping to an invalid directory.
+    const selectedServerKey = global.settings.server.key
+    const route = layout.route()
+    const routeServerKey =
+      (route.type === "session" || route.type === "draft" || route.type === "dir-new-sesssion") && route.server
+        ? route.server
+        : layout.home.selection().server
+
+    if (selectedServerKey && routeServerKey && selectedServerKey !== routeServerKey) {
+      return undefined
+    }
+
     if (route.type === "dir-new-sesssion") return route.dir
     if (route.type === "draft") {
       const draft = tabs.store.find((item) => item.type === "draft" && item.draftID === route.draftID)
@@ -74,6 +103,7 @@ export function SettingsPage() {
           onClick={() => navigate(-1)}
         />
         <span class="flex-1 text-13-medium text-v2-text-text-base">{language.t("settings.title")}</span>
+        <SettingsServerPicker />
         <IconButtonV2
           variant="ghost-muted"
           size="small"
@@ -181,28 +211,44 @@ export function SettingsPage() {
             <SettingsServersV2 />
           </TabsV2.Content>
           <TabsV2.Content value="providers" class="settings-v2-panel">
-            <SettingsProvidersV2 directory={directory} onBack={showProviders} />
+            <SettingsServerScope>
+              <SettingsProvidersV2 directory={directory} onBack={showProviders} />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="models" class="settings-v2-panel">
-            <SettingsModelsV2 />
+            <SettingsServerScope>
+              <SettingsModelsV2 />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="combos" class="settings-v2-panel">
-            <SettingsCombosV2 />
+            <SettingsServerScope>
+              <SettingsCombosV2 />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="skills" class="settings-v2-panel">
-            <SettingsSkillsV2 directory={directory} />
+            <SettingsServerScope>
+              <SettingsSkillsV2 directory={directory} />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="memory" class="settings-v2-panel">
-            <SettingsMemoryV2 />
+            <SettingsServerScope>
+              <SettingsMemoryV2 />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="mcp" class="settings-v2-panel">
-            <SettingsMcpV2 />
+            <SettingsServerScope>
+              <SettingsMcpV2 />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="integrations" class="settings-v2-panel">
-            <SettingsIntegrationsV2 />
+            <SettingsServerScope>
+              <SettingsIntegrationsV2 />
+            </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="externalAgents" class="settings-v2-panel">
-            <SettingsExternalAgentsV2 />
+            <SettingsServerScope>
+              <SettingsExternalAgentsV2 />
+            </SettingsServerScope>
           </TabsV2.Content>
         </TabsV2>
       </div>

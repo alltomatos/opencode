@@ -7,6 +7,7 @@ import { Credential } from "../../credential"
 import { InstallationVersion } from "../../installation/version"
 import { Integration } from "../../integration"
 import { ModelV2 } from "../../model"
+import { extractOAuthCode } from "../../oauth/code"
 import { OauthCallbackPage } from "../../oauth/page"
 import { ProviderV2 } from "../../provider"
 import type { PluginInternal } from "../internal"
@@ -88,6 +89,10 @@ const browser = {
           Effect.flatMap((value) => exchange(value, redirect, pkce)),
           Effect.map((tokens) => credential(browserMethodID, tokens)),
         ),
+        complete: (codeOrUrl: string) =>
+          exchange(extractOAuthCode(codeOrUrl), redirect, pkce).pipe(
+            Effect.map((tokens) => credential(browserMethodID, tokens)),
+          ),
       }
     }),
   refresh: (value) => refresh(browserMethodID, value),

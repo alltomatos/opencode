@@ -70,9 +70,9 @@ const layer = Layer.effect(
 
     const available = (provider: ProviderV2.Info, integration: Integration.Info | undefined) => {
       if (provider.disabled) return false
+      if (integration) return integration.connections.length > 0
       if (typeof provider.request.body.apiKey === "string") return true
-      if (integration?.connections.length) return true
-      return provider.integrationID === undefined && !integration
+      return provider.integrationID === undefined
     }
 
     const projectModel = (model: ModelV2.Info, provider: ProviderV2.Info) => {

@@ -19,6 +19,7 @@ export type IntegrationOAuthAuthorization = {
   | {
       readonly mode: "auto"
       readonly callback: Effect.Effect<CredentialOAuth, unknown>
+      readonly complete?: (code: string) => Effect.Effect<CredentialOAuth, unknown>
     }
   | {
       readonly mode: "code"

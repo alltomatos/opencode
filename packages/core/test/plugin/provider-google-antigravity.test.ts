@@ -150,6 +150,44 @@ describe("GoogleAntigravityPlugin", () => {
     }),
   )
 
+  it.live("completes authorization manually when redirect URL or code is pasted", () =>
+    Effect.gen(function* () {
+      const http = mockHttp({
+        "https://oauth2.googleapis.com/token": () => ({
+          access_token: "manual-access-token",
+          refresh_token: "manual-refresh-token",
+          expires_in: 3600,
+        }),
+        "https://www.googleapis.com/oauth2/v1/userinfo": () => ({ email: "manual@example.com" }),
+        "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist": () => ({
+          cloudaicompanionProject: "project-manual",
+          currentTier: { id: "free-tier" },
+        }),
+      })
+      yield* addPlugin(http)
+      const integrations = yield* Integration.Service
+      const attempt = yield* integrations.connection.oauth({ integrationID: cliID, methodID, inputs: {} })
+      expect(attempt.mode).toBe("auto")
+
+      const redirectUri = new URL(attempt.url).searchParams.get("redirect_uri")!
+      const pastedUrl = `${redirectUri}?code=manual-code-456&state=some-state`
+      yield* integrations.attempt.complete({ attemptID: attempt.attemptID, code: pastedUrl })
+
+      const status = yield* integrations.attempt.status(attempt.attemptID)
+      expect(status.status).toBe("complete")
+
+      const credentials = yield* Credential.Service
+      const stored = (yield* credentials.list(cliID))[0]
+      expect(stored?.value).toMatchObject({
+        type: "oauth",
+        methodID,
+        access: "manual-access-token",
+        refresh: "manual-refresh-token",
+        metadata: { email: "manual@example.com", projectID: "project-manual", tier: "free-tier", clientProfile: "cli" },
+      })
+    }),
+  )
+
   it.effect("refreshes an expiring credential", () =>
     Effect.gen(function* () {
       const http = mockHttp({

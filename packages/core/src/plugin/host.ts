@@ -129,6 +129,7 @@ export const make = Effect.fn("PluginHost.make")(function* (plugin: PluginV2.Int
                       input.authorize(inputs).pipe(
                         Effect.map((authorization) => {
                           if (authorization.mode === "auto") {
+                            const complete = authorization.complete
                             return {
                               ...authorization,
                               callback: authorization.callback.pipe(
@@ -139,6 +140,17 @@ export const make = Effect.fn("PluginHost.make")(function* (plugin: PluginV2.Int
                                   }),
                                 ),
                               ),
+                              complete: complete
+                                ? (code: string) =>
+                                    complete(code).pipe(
+                                      Effect.map((credential) =>
+                                        Credential.OAuth.make({
+                                          ...credential,
+                                          methodID: Integration.MethodID.make(credential.methodID),
+                                        }),
+                                      ),
+                                    )
+                                : undefined,
                             }
                           }
                           return {

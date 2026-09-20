@@ -6,6 +6,7 @@ import { define } from "@opencode-ai/plugin/v2/effect/plugin"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { Credential } from "../../credential"
 import { Integration } from "../../integration"
+import { extractOAuthCode } from "../../oauth/code"
 import { OauthCallbackPage } from "../../oauth/page"
 import { ProviderV2 } from "../../provider"
 
@@ -140,9 +141,9 @@ function exchange(
   code: string,
   verifier: string,
 ) {
-  return Effect.gen(function* () {
-    const token = yield* HttpClient.filterStatusOk(http)
-      .execute(
+  return Effect.scoped(
+    Effect.gen(function* () {
+      const response = yield* http.execute(
         HttpClientRequest.post(tokenUrl).pipe(
           HttpClientRequest.acceptJson,
           HttpClientRequest.bodyUrlParams({
@@ -155,32 +156,44 @@ function exchange(
           }),
         ),
       )
-      .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(Token)))
 
-    const [userInfo, project] = yield* Effect.all(
-      [
-        get(http, userInfoUrl, token.access_token, UserInfo).pipe(
-          Effect.catch(() => Effect.succeed({ email: undefined as string | undefined })),
-        ),
-        discoverProject(http, token.access_token),
-      ],
-      { concurrency: 2 },
-    )
+      if (response.status < 200 || response.status >= 300) {
+        const body = yield* HttpClientResponse.schemaBodyJson(Schema.Unknown)(response).pipe(
+          Effect.catch(() => Effect.succeed(undefined)),
+        )
+        const errorObj = body as { error?: string; error_description?: string } | undefined
+        const description = errorObj?.error_description ?? errorObj?.error
+        const message = description ? `${description}` : `Google OAuth request failed (${response.status})`
+        return yield* Effect.fail(new Error(message))
+      }
 
-    return Credential.OAuth.make({
-      type: "oauth" as const,
-      methodID: profile.methodID,
-      access: token.access_token,
-      refresh: token.refresh_token ?? "",
-      expires: Date.now() + token.expires_in * 1000,
-      metadata: {
-        email: userInfo.email,
-        projectID: project.projectID,
-        tier: project.tier,
-        clientProfile: profile.clientProfile,
-      },
-    })
-  })
+      const token = yield* HttpClientResponse.schemaBodyJson(Token)(response)
+
+      const [userInfo, project] = yield* Effect.all(
+        [
+          get(http, userInfoUrl, token.access_token, UserInfo).pipe(
+            Effect.catch(() => Effect.succeed({ email: undefined as string | undefined })),
+          ),
+          discoverProject(http, token.access_token),
+        ],
+        { concurrency: 2 },
+      )
+
+      return Credential.OAuth.make({
+        type: "oauth" as const,
+        methodID: profile.methodID,
+        access: token.access_token,
+        refresh: token.refresh_token ?? "",
+        expires: Date.now() + token.expires_in * 1000,
+        metadata: {
+          email: userInfo.email,
+          projectID: project.projectID,
+          tier: project.tier,
+          clientProfile: profile.clientProfile,
+        },
+      })
+    }),
+  )
 }
 
 async function generatePkce() {
@@ -271,6 +284,8 @@ function oauth(http: HttpClient.HttpClient, profile: Profile) {
           callback: Deferred.await(code).pipe(
             Effect.flatMap((value) => exchange(http, profile, redirectUri, value, pkce.verifier)),
           ),
+          complete: (codeOrUrl: string) =>
+            exchange(http, profile, redirectUri, extractOAuthCode(codeOrUrl), pkce.verifier),
         }
       }),
     refresh: (credential) =>

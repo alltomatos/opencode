@@ -15,9 +15,6 @@ import { PluginTestLayer } from "./fixture"
 const it = testEffect(PluginTestLayer)
 const integrationID = Integration.ID.make("kiro")
 const builderIdMethodID = Integration.MethodID.make("builder-id")
-const idcMethodID = Integration.MethodID.make("idc")
-const socialMethodID = Integration.MethodID.make("social")
-const importMethodID = Integration.MethodID.make("import")
 
 const addPlugin = Effect.fn(function* (http?: HttpClient.HttpClient) {
   const plugin = yield* PluginV2.Service
@@ -47,18 +44,13 @@ function eventually<A>(effect: Effect.Effect<A>, predicate: (value: A) => boolea
 }
 
 describe("KiroPlugin", () => {
-  it.effect("registers all four auth methods on the same integration", () =>
+  it.effect("registers the AWS Builder ID auth method on the integration", () =>
     Effect.gen(function* () {
       yield* addPlugin()
       const integration = yield* (yield* Integration.Service).get(integrationID)
       expect(integration?.methods.map((m) => (m.type === "oauth" ? m.id : m.type))).toEqual([
         builderIdMethodID,
-        idcMethodID,
-        socialMethodID,
-        importMethodID,
       ])
-      const idc = integration?.methods.find((m) => m.type === "oauth" && m.id === idcMethodID)
-      expect(idc).toMatchObject({ prompts: [{ type: "text", key: "startUrl" }] })
     }),
   )
 
@@ -92,7 +84,7 @@ describe("KiroPlugin", () => {
           }
           if (request.url.endsWith("/token")) {
             polls++
-            if (polls < 2) return json(request, { __type: "AuthorizationPendingException" }, 400)
+            if (polls < 2) return json(request, { error: "authorization_pending" }, 400)
             return json(request, { accessToken: "access-1", refreshToken: "refresh-1", expiresIn: 3600 })
           }
           throw new Error(`Unexpected request: ${request.url}`)
@@ -122,18 +114,6 @@ describe("KiroPlugin", () => {
           profileArn: "arn:aws:codewhisperer:us-east-1:638616132270:profile/AAAACCCCXXXX",
         },
       })
-    }),
-  )
-
-  it.effect("requires a start URL for IdC", () =>
-    Effect.gen(function* () {
-      yield* addPlugin()
-      const integrations = yield* Integration.Service
-      const error = yield* integrations.connection
-        .oauth({ integrationID, methodID: idcMethodID, inputs: {} })
-        .pipe(Effect.flip)
-      expect(error).toBeInstanceOf(Integration.AuthorizationError)
-      expect(String((error as Integration.AuthorizationError).cause)).toContain("Start URL is required")
     }),
   )
 
@@ -172,74 +152,6 @@ describe("KiroPlugin", () => {
       const resolved = yield* integrations.connection.resolve({ type: "credential", id: stored.id, label: stored.label })
       expect(resolved).toMatchObject({ access: "new-access", refresh: "new-refresh" })
       expect(registrations).toBe(1)
-    }),
-  )
-
-  it.effect("rejects an import token that doesn't look like an AWS SSO OIDC refresh token", () =>
-    Effect.gen(function* () {
-      yield* addPlugin()
-      const integrations = yield* Integration.Service
-      const attempt = yield* integrations.connection.oauth({ integrationID, methodID: importMethodID, inputs: {} })
-      expect(attempt.mode).toBe("code")
-      const error = yield* integrations.attempt
-        .complete({ attemptID: attempt.attemptID, code: "not-a-real-token" })
-        .pipe(Effect.flip)
-      expect(error).toBeInstanceOf(Integration.AuthorizationError)
-      expect(String((error as Integration.AuthorizationError).cause)).toContain("doesn't look like")
-    }),
-  )
-
-  it.effect("imports a well-formed refresh token by redeeming it against a fresh OIDC client", () =>
-    Effect.gen(function* () {
-      const http = HttpClient.make((request) =>
-        Effect.sync(() => {
-          if (request.url.endsWith("/client/register")) {
-            return json(request, { clientId: "imported-client", clientSecret: "imported-secret" })
-          }
-          if (request.url.endsWith("/token")) {
-            return json(request, { accessToken: "imported-access", refreshToken: "imported-refresh", expiresIn: 3600 })
-          }
-          throw new Error(`Unexpected request: ${request.url}`)
-        }),
-      )
-      yield* addPlugin(http)
-      const integrations = yield* Integration.Service
-      const attempt = yield* integrations.connection.oauth({ integrationID, methodID: importMethodID, inputs: {} })
-      yield* integrations.attempt.complete({ attemptID: attempt.attemptID, code: "aorAAAAAG-existing-token" })
-
-      const credentials = yield* Credential.Service
-      const stored = (yield* credentials.list(integrationID))[0]
-      expect(stored?.value).toMatchObject({ access: "imported-access", refresh: "imported-refresh" })
-    }),
-  )
-
-  it.effect("exchanges a social login code against Kiro's own token endpoint", () =>
-    Effect.gen(function* () {
-      const http = HttpClient.make((request) =>
-        Effect.sync(() => {
-          if (request.url.endsWith("/oauth/token")) {
-            return json(request, { accessToken: "social-access", refreshToken: "social-refresh", expiresIn: 3600, email: "person@example.com" })
-          }
-          throw new Error(`Unexpected request: ${request.url}`)
-        }),
-      )
-      yield* addPlugin(http)
-      const integrations = yield* Integration.Service
-      const attempt = yield* integrations.connection.oauth({ integrationID, methodID: socialMethodID, inputs: {} })
-      expect(attempt.mode).toBe("code")
-      yield* integrations.attempt.complete({ attemptID: attempt.attemptID, code: "social-code" })
-
-      const credentials = yield* Credential.Service
-      const stored = (yield* credentials.list(integrationID))[0]
-      expect(stored?.value).toMatchObject({
-        access: "social-access",
-        refresh: "social-refresh",
-        metadata: {
-          authMethod: "social",
-          profileArn: "arn:aws:codewhisperer:us-east-1:699475941385:profile/EHGA3GRVQMUK",
-          email: "person@example.com",
-        },
-      })
     }),
   )
 })

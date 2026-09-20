@@ -17,8 +17,8 @@ export function SettingsServerScope(props: ParentProps) {
 
   return (
     <Show when={settings.general.newLayoutDesigns()} fallback={props.children}>
-      <Show when={global.settings.server.selected()}>
-        {(server) => <SettingsServerDataProviders server={server()}>{props.children}</SettingsServerDataProviders>}
+      <Show when={global.settings.server.selected()} keyed>
+        {(server) => <SettingsServerDataProviders server={server}>{props.children}</SettingsServerDataProviders>}
       </Show>
     </Show>
   )
@@ -31,7 +31,7 @@ function SettingsServerDataProviders(props: ParentProps<{ server: ServerConnecti
   return (
     <QueryClientProvider client={serverCtx().queryClient}>
       <ServerSDKProvider server={() => props.server}>
-        <ServerSyncProvider>
+        <ServerSyncProvider server={() => props.server}>
           <ModelsProvider>{props.children}</ModelsProvider>
         </ServerSyncProvider>
       </ServerSDKProvider>

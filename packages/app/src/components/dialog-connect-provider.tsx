@@ -12,6 +12,7 @@ import { TextField } from "@opencode-ai/ui/text-field"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { extractOAuthCode } from "@/utils/oauth"
 import { showToast } from "@/utils/toast"
 import {
   type Accessor,
@@ -988,6 +989,7 @@ function ProviderConnection(props: {
     const errorID = createUniqueId()
     const [formStore, setFormStore] = createStore({
       value: "",
+      submitting: false,
       error: undefined as string | undefined,
     })
 
@@ -998,17 +1000,20 @@ function ProviderConnection(props: {
 
     async function handleSubmit(e: SubmitEvent) {
       e.preventDefault()
+      if (formStore.submitting) return
 
       const form = e.currentTarget as HTMLFormElement
       const formData = new FormData(form)
-      const code = formData.get("code") as string
+      const raw = formData.get("code") as string
+      const code = extractOAuthCode(raw ?? "")
 
-      if (!code?.trim()) {
+      if (!code) {
         setFormStore("error", language.t("provider.connect.oauth.code.required"))
         return
       }
 
       setFormStore("error", undefined)
+      setFormStore("submitting", true)
       const result = await integrationApi()
         .integration.oauth.complete({
           attemptID: store.authorization!.attemptID,
@@ -1017,6 +1022,9 @@ function ProviderConnection(props: {
         })
         .then(() => ({ ok: true as const }))
         .catch((error) => ({ ok: false as const, error }))
+      if (!alive.value) return
+      setFormStore("submitting", false)
+
       if (result.ok) {
         await complete()
         return
@@ -1043,6 +1051,7 @@ function ProviderConnection(props: {
                 name="code"
                 placeholder={language.t("provider.connect.oauth.code.placeholder")}
                 value={formStore.value}
+                disabled={formStore.submitting}
                 invalid={formStore.error !== undefined}
                 aria-describedby={formStore.error ? errorID : undefined}
                 autocomplete="off"
@@ -1057,7 +1066,10 @@ function ProviderConnection(props: {
                 </div>
               )}
             </Show>
-            <ButtonV2 type="submit" variant="contrast">
+            <ButtonV2 type="submit" variant="contrast" disabled={formStore.submitting}>
+              <Show when={formStore.submitting}>
+                <Spinner class="size-4" />
+              </Show>
               {language.t("common.continue")}
             </ButtonV2>
           </form>
@@ -1082,11 +1094,15 @@ function ProviderConnection(props: {
             placeholder={language.t("provider.connect.oauth.code.placeholder")}
             name="code"
             value={formStore.value}
+            disabled={formStore.submitting}
             onChange={(v) => setFormStore("value", v)}
             validationState={formStore.error ? "invalid" : undefined}
             error={formStore.error}
           />
-          <Button class="w-auto" type="submit" size="large" variant="primary">
+          <Button class="w-auto" type="submit" size="large" variant="primary" disabled={formStore.submitting}>
+            <Show when={formStore.submitting}>
+              <Spinner class="size-4" />
+            </Show>
             {language.t("common.continue")}
           </Button>
         </form>
@@ -1095,10 +1111,25 @@ function ProviderConnection(props: {
   }
 
   function OAuthAutoView() {
+    const manualErrorID = createUniqueId()
+    let manualInput: HTMLInputElement | undefined
+    const [manualStore, setManualStore] = createStore({
+      value: "",
+      submitting: false,
+      error: undefined as string | undefined,
+    })
+
     const code = createMemo(() => {
       const instructions = store.authorization?.instructions
-      if (instructions?.includes(":")) {
+      if (!instructions) return undefined
+      if (instructions.includes(":")) {
         return instructions.split(":").pop()?.trim()
+      }
+      if (
+        instructions.toLowerCase().includes("complete authorization") ||
+        instructions.toLowerCase().includes("browser")
+      ) {
+        return undefined
       }
       return instructions
     })
@@ -1136,26 +1167,183 @@ function ProviderConnection(props: {
       void poll()
     })
 
+    async function handleManualSubmit(e: SubmitEvent) {
+      e.preventDefault()
+      if (manualStore.submitting) return
+
+      const form = e.currentTarget as HTMLFormElement
+      const formData = new FormData(form)
+      const raw = ((formData.get("manualCode") as string) ?? "").trim()
+      const inputCode = extractOAuthCode(raw)
+
+      if (!inputCode) {
+        setManualStore("error", language.t("provider.connect.oauth.code.required"))
+        return
+      }
+
+      setManualStore("error", undefined)
+      setManualStore("submitting", true)
+
+      if (raw.startsWith("http://127.0.0.1:") || raw.startsWith("http://localhost:") || raw.includes("/oauth")) {
+        fetch(raw, { mode: "no-cors" }).catch(() => {})
+
+        try {
+          const sdk = serverSDK()
+          const isV1 = (await sdk.protocol) === "v1"
+          if (isV1) {
+            await sdk.client.pty.create({ command: "curl", args: ["-s", "-m", "5", raw] }).catch(() => {})
+          } else {
+            await sdk.api.pty.create({ location: location(), command: "curl", args: ["-s", "-m", "5", raw] }).catch(() => {})
+          }
+        } catch {}
+      }
+
+      const result = await integrationApi()
+        .integration.oauth.complete({
+          attemptID: store.authorization!.attemptID,
+          location: location(),
+          code: inputCode,
+        })
+        .then(() => ({ ok: true as const }))
+        .catch((error) => ({ ok: false as const, error }))
+
+      if (result.ok) {
+        if (!alive.value) return
+        setManualStore("submitting", false)
+        await complete()
+        return
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      if (!alive.value) return
+
+      const statusCheck = await integrationApi()
+        .integration.oauth.status({
+          attemptID: store.authorization!.attemptID,
+          location: location(),
+        })
+        .then((v) => v.data)
+        .catch(() => undefined)
+
+      if (!alive.value) return
+      setManualStore("submitting", false)
+
+      if (statusCheck?.status === "complete") {
+        await complete()
+        return
+      }
+
+      setManualStore("error", formatError(result.error, language.t("provider.connect.oauth.code.invalid")))
+    }
+
+    if (newLayout())
+      return (
+        <div class="flex flex-col gap-5 px-3 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted">
+          <div>
+            {code()
+              ? language.t("provider.connect.oauth.auto.visit.prefix")
+              : language.t("provider.connect.oauth.code.visit.prefix")}
+            <ExternalLink href={store.authorization!.url} class="text-v2-text-text-base">
+              {language.t("provider.connect.oauth.code.visit.link")}
+            </ExternalLink>
+            {code()
+              ? language.t("provider.connect.oauth.auto.visit.suffix", { provider: provider().name })
+              : language.t("provider.connect.oauth.code.visit.suffix", { provider: provider().name })}
+          </div>
+          <Show when={code()}>
+            {(c) => (
+              <label class="flex w-full flex-col gap-1 font-[530] leading-4 text-v2-text-text-base">
+                {language.t("provider.connect.oauth.auto.confirmationCode")}
+                <TextInputV2 class="!w-full font-mono" value={c()} readOnly showCopyButton />
+              </label>
+            )}
+          </Show>
+          <div class="flex items-center gap-2 text-v2-text-text-base">
+            <Spinner />
+            <span>{language.t("provider.connect.status.waiting")}</span>
+          </div>
+          <form onSubmit={handleManualSubmit} class="flex flex-col items-start gap-3 self-stretch border-t border-v2-stroke-subtle pt-4">
+            <label class="flex w-full flex-col gap-1 font-[530] leading-4 text-v2-text-text-base">
+              {language.t("provider.connect.oauth.code.label", { method: method()?.label ?? "" })}
+              <TextInputV2
+                ref={manualInput}
+                class="!w-full"
+                name="manualCode"
+                placeholder={language.t("provider.connect.oauth.code.placeholder")}
+                value={manualStore.value}
+                disabled={manualStore.submitting}
+                invalid={manualStore.error !== undefined}
+                aria-describedby={manualStore.error ? manualErrorID : undefined}
+                autocomplete="off"
+                spellcheck={false}
+                onInput={(event) => setManualStore("value", event.currentTarget.value)}
+              />
+            </label>
+            <Show when={manualStore.error}>
+              {(error) => (
+                <div id={manualErrorID} role="alert" class="text-xs text-v2-state-fg-danger">
+                  {error()}
+                </div>
+              )}
+            </Show>
+            <ButtonV2 type="submit" variant="contrast" disabled={manualStore.submitting}>
+              <Show when={manualStore.submitting}>
+                <Spinner class="size-4" />
+              </Show>
+              {language.t("common.continue")}
+            </ButtonV2>
+          </form>
+        </div>
+      )
+
     return (
       <div class="flex flex-col gap-6">
         <div class="text-14-regular text-text-base">
-          {language.t("provider.connect.oauth.auto.visit.prefix")}
+          {code()
+            ? language.t("provider.connect.oauth.auto.visit.prefix")
+            : language.t("provider.connect.oauth.code.visit.prefix")}
           <ExternalLink href={store.authorization!.url}>
-            {language.t("provider.connect.oauth.auto.visit.link")}
+            {language.t("provider.connect.oauth.code.visit.link")}
           </ExternalLink>
-          {language.t("provider.connect.oauth.auto.visit.suffix", { provider: provider().name })}
+          {code()
+            ? language.t("provider.connect.oauth.auto.visit.suffix", { provider: provider().name })
+            : language.t("provider.connect.oauth.code.visit.suffix", { provider: provider().name })}
         </div>
-        <TextField
-          label={language.t("provider.connect.oauth.auto.confirmationCode")}
-          class="font-mono"
-          value={code()}
-          readOnly
-          copyable
-        />
+        <Show when={code()}>
+          {(c) => (
+            <TextField
+              label={language.t("provider.connect.oauth.auto.confirmationCode")}
+              class="font-mono"
+              value={c()}
+              readOnly
+              copyable
+            />
+          )}
+        </Show>
         <div class="text-14-regular text-text-base flex items-center gap-4">
           <Spinner />
           <span>{language.t("provider.connect.status.waiting")}</span>
         </div>
+        <form onSubmit={handleManualSubmit} class="flex flex-col items-start gap-4 border-t border-border-base pt-4">
+          <TextField
+            ref={manualInput}
+            type="text"
+            label={language.t("provider.connect.oauth.code.label", { method: method()?.label ?? "" })}
+            placeholder={language.t("provider.connect.oauth.code.placeholder")}
+            name="manualCode"
+            value={manualStore.value}
+            disabled={manualStore.submitting}
+            onChange={(v) => setManualStore("value", v)}
+            validationState={manualStore.error ? "invalid" : undefined}
+            error={manualStore.error}
+          />
+          <Button class="w-auto" type="submit" size="large" variant="primary" disabled={manualStore.submitting}>
+            <Show when={manualStore.submitting}>
+              <Spinner class="size-4" />
+            </Show>
+            {language.t("common.continue")}
+          </Button>
+        </form>
       </div>
     )
   }
