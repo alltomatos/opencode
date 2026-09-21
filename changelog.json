@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.21.30",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Aprimoramento do Provedor AGY (Google Antigravity)",
+              "description": "Alinhamento do cliente OAuth, User-Agent e envelope de chamada com o 9router, eliminando restrições de licença corporativa (#3501) e suportando contas pessoais e Pro."
+            },
+            {
+              "title": "Correção de Seleção de Provedores na UI",
+              "description": "Tratamento defensivo para evitar TypeError ao abrir o modal de conexão de novos provedores e detecção dinâmica de plataforma no onboarding."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.29",
       "highlights": [
         {
