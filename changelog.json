@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "tag": "v1.21.31",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Integração Direta de Combos no Chat",
+              "description": "Combos cadastrados agora aparecem automaticamente no seletor de modelos do prompt sob a categoria Combos, com suporte a resolução dinâmica e failover em tempo real."
+            },
+            {
+              "title": "Filtro Estrito de Provedores Conectados",
+              "description": "O menu de seleção do chat agora exibe exclusivamente provedores com credenciais/contas ativas e combos configurados."
+            },
+            {
+              "title": "Monitoramento de Cota Diferenciado para AGY e AGY CLI",
+              "description": "Consulta de baldes independentes para o perfil IDE (fetchAvailableModels) e CLI (retrieveUserQuota), refletindo as cotas reais de cada pool."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.30",
       "highlights": [
         {
