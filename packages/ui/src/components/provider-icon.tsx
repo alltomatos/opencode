@@ -12,6 +12,7 @@ export const ProviderIcon: Component<ProviderIconProps> = (props) => {
   const resolved = createMemo(() => {
     if (iconNames.includes(local.id as IconName)) return local.id
     if (local.id.startsWith("google-antigravity")) return "google"
+    if (local.id === "combo" || local.id === "combos") return "submodel"
     return "synthetic"
   })
   return (

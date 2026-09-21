@@ -63,6 +63,7 @@ import { SessionTable } from "@opencode-ai/core/session/sql"
 import { SessionReminders } from "./reminders"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@opencode-ai/llm"
+import { Combo } from "@/combo"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -148,6 +149,7 @@ const layer = Layer.effect(
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
     const locations = yield* LocationServiceMap.Service
+    const combo = yield* Combo.Service
     const { db } = database
     const ops = Effect.fn("SessionPrompt.ops")(function* () {
       return {
@@ -632,10 +634,17 @@ const layer = Layer.effect(
     })
 
     const getModel = Effect.fn("SessionPrompt.getModel")(function* (
-      providerID: ProviderV2.ID,
-      modelID: ModelV2.ID,
+      targetProviderID: ProviderV2.ID,
+      targetModelID: ModelV2.ID,
       sessionID: SessionID,
     ) {
+      let providerID = targetProviderID
+      let modelID = targetModelID
+      if ((providerID as string) === "combo") {
+        const resolved = yield* combo.resolve(modelID).pipe(Effect.orDie)
+        providerID = ProviderV2.ID.make(resolved.providerID)
+        modelID = ModelV2.ID.make(resolved.modelID)
+      }
       const exit = yield* provider.getModel(providerID, modelID).pipe(Effect.exit)
       if (Exit.isSuccess(exit)) return exit.value
       let err = Cause.squash(exit.cause)
@@ -1673,6 +1682,7 @@ export const node = LayerNode.make({
     RuntimeFlags.node,
     Database.node,
     LocationServiceMap.node,
+    Combo.node,
   ],
 })
 

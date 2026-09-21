@@ -488,27 +488,54 @@ export async function fetchUserQuotaDetails(
     }
 
     let data: any
-    for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
-      try {
-        let res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ project: projectID }),
-          signal: AbortSignal.timeout(8000),
-        })
-        if (!res.ok) {
-          res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
+    let isAvailableModelsFormat = false
+
+    if (profile === "ide") {
+      for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+        try {
+          const res = await fetch(`${baseUrl}/v1internal:fetchAvailableModels`, {
             method: "POST",
             headers,
-            body: "{}",
+            body: JSON.stringify(projectID ? { project: projectID } : {}),
             signal: AbortSignal.timeout(8000),
           })
+          if (res.ok) {
+            const json = await res.json()
+            if (json && json.models && typeof json.models === "object") {
+              data = json
+              isAvailableModelsFormat = true
+              break
+            }
+          }
+        } catch {
+          continue
         }
-        if (!res.ok) continue
-        data = await res.json()
-        break
-      } catch {
-        continue
+      }
+    }
+
+    if (!data) {
+      for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+        try {
+          let res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ project: projectID }),
+            signal: AbortSignal.timeout(8000),
+          })
+          if (!res.ok) {
+            res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
+              method: "POST",
+              headers,
+              body: "{}",
+              signal: AbortSignal.timeout(8000),
+            })
+          }
+          if (!res.ok) continue
+          data = await res.json()
+          break
+        } catch {
+          continue
+        }
       }
     }
 
@@ -533,7 +560,24 @@ export async function fetchUserQuotaDetails(
     let totalFraction = 0
     let validCount = 0
 
-    if (Array.isArray(data.buckets) && data.buckets.length > 0) {
+    if (isAvailableModelsFormat && data.models) {
+      for (const [modelKey, info] of Object.entries(data.models as Record<string, any>)) {
+        if (!info?.quotaInfo) continue
+        const raw = info.quotaInfo.remainingFraction
+        const fraction = typeof raw === "number" ? Math.max(0, Math.min(1, raw)) : 1
+        const pct = Math.round(fraction * 100)
+        buckets.push({
+          modelId: modelKey,
+          remainingFraction: fraction,
+          remainingPercentage: pct,
+          resetTime: info.quotaInfo.resetTime || null,
+        })
+        if (typeof raw === "number") {
+          totalFraction += fraction
+          validCount++
+        }
+      }
+    } else if (Array.isArray(data.buckets) && data.buckets.length > 0) {
       for (const bucket of data.buckets) {
         const raw = bucket?.remainingFraction
         const fraction = typeof raw === "number" ? Math.max(0, Math.min(1, raw)) : 1
@@ -565,7 +609,19 @@ export async function fetchUserQuotaDetails(
 
     const avgFraction = validCount > 0 ? totalFraction / validCount : 1
     // Detect Pro tier: Pro accounts usually have more than 5 model buckets (including pro models like gemini-3.1-pro-high)
-    const isPro = data.userTier === "PRO" || data.tier === "pro" || Boolean(data.isProUser) || (Array.isArray(data.buckets) && data.buckets.some((b: any) => b?.modelId?.includes("pro") || b?.modelId?.includes("3.1-pro") || b?.modelId?.includes("3.7-flash")))
+    const isPro =
+      isAvailableModelsFormat ||
+      data.userTier === "PRO" ||
+      data.tier === "pro" ||
+      Boolean(data.isProUser) ||
+      (Array.isArray(data.buckets) &&
+        data.buckets.some(
+          (b: any) =>
+            b?.modelId?.includes("pro") ||
+            b?.modelId?.includes("3.1-pro") ||
+            b?.modelId?.includes("3.7-flash") ||
+            b?.modelId?.includes("3.8-flash"),
+        ))
 
     return {
       email: parsed.metadata?.email,

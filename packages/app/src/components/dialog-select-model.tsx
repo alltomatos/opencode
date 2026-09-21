@@ -35,6 +35,8 @@ const modelKey = (model: ModelItem) => `${model.provider.id}:${model.id}`
 const manageKey = "action:manage"
 
 const sortModelGroups = (a: { category: string; items: ModelItem[] }, b: { category: string; items: ModelItem[] }) => {
+  if (a.category === "combo") return -1
+  if (b.category === "combo") return 1
   const aIndex = popularProviders.indexOf(a.category)
   const bIndex = popularProviders.indexOf(b.category)
   const aPopular = aIndex >= 0
@@ -47,6 +49,8 @@ const sortModelGroups = (a: { category: string; items: ModelItem[] }, b: { categ
 }
 
 const sortProviders = (a: { id: string; name: string }, b: { id: string; name: string }) => {
+  if (a.id === "combo") return -1
+  if (b.id === "combo") return 1
   const aIndex = popularProviders.indexOf(a.id)
   const bIndex = popularProviders.indexOf(b.id)
   const aPopular = aIndex >= 0

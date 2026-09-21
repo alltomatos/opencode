@@ -5,6 +5,7 @@ import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { Provider } from "@/provider/provider"
 import { Auth } from "@/auth"
 import { fetchUserQuotaDetails } from "@/provider/antigravity-adapter"
+import { Combo } from "@/combo"
 
 import { mapValues } from "remeda"
 import { Effect, Layer, Schema } from "effect"
@@ -126,10 +127,51 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
         connected,
         Object.fromEntries(catalogList.filter((item) => !(item.id in connected)).map((item) => [item.id, item])),
       )
+
+      const comboSvc = yield* Combo.Service.pipe(Effect.orElseSucceed(() => undefined))
+      const combos = comboSvc ? yield* comboSvc.list().pipe(Effect.orElseSucceed(() => [])) : []
+      if (combos.length > 0) {
+        providers["combo"] = {
+          id: ProviderV2.ID.make("combo"),
+          name: "Combos",
+          models: Object.fromEntries(
+            combos.map((c) => [
+              c.id,
+              {
+                id: c.id,
+                name: c.name,
+                providerID: "combo",
+                capabilities: {
+                  tools: true,
+                  temperature: true,
+                  vision: true,
+                  reasoning: true,
+                  input: { text: true },
+                  output: { text: true },
+                },
+              } as any,
+            ]),
+          ),
+          source: "custom",
+          env: [],
+          options: {},
+        }
+      }
+
+      const connectedIDs = Object.keys(providers).filter((id) => {
+        if (id === "combo") return combos.length > 0
+        if (credentials[id]) return true
+        if (id in connected) {
+          const item = (connected as any)[id]
+          if (item?.key || item?.options?.apiKey || item?.options?.accessToken) return true
+        }
+        return false
+      })
+
       return {
         all: Object.values(providers).map(Provider.toPublicInfo),
         default: Provider.defaultModelIDs(providers),
-        connected: Object.keys(providers).filter((id) => id in connected || credentials[id] || availableCatalogIds.has(ProviderV2.ID.make(id))),
+        connected: connectedIDs.map((id) => ProviderV2.ID.make(id)),
       }
     })
 
@@ -189,7 +231,8 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       query: { credentialID: string }
     }) {
       if (ctx.params.providerID === "google-antigravity-cli" || ctx.params.providerID === "google-antigravity") {
-        const details = yield* Effect.tryPromise(() => fetchUserQuotaDetails(ctx.query.credentialID, "cli")).pipe(
+        const profile: "ide" | "cli" = ctx.params.providerID === "google-antigravity" ? "ide" : "cli"
+        const details = yield* Effect.tryPromise(() => fetchUserQuotaDetails(ctx.query.credentialID, profile)).pipe(
           Effect.orElseSucceed(() => null),
         )
         return details
