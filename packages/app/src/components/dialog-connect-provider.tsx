@@ -195,6 +195,7 @@ function ProviderPicker(props: {
         return [
           { id: CUSTOM_ID, name: customLabel() },
           ...(connected.has(OMNIROUTE_PROVIDER_ID) ? [] : [{ id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" }]),
+          ...(connected.has("google-antigravity") ? [] : [{ id: "google-antigravity", name: "AGY" }]),
           ...(connected.has("google-antigravity-cli") ? [] : [{ id: "google-antigravity-cli", name: "AGY CLI" }]),
           ...connected.values(),
         ]
@@ -260,6 +261,7 @@ function ProviderPickerV2(props: {
     "opencode-go",
     "anthropic",
     "openai",
+    "google-antigravity",
     "google-antigravity-cli",
     "openrouter",
   ]
@@ -272,6 +274,7 @@ function ProviderPickerV2(props: {
     const values = [
       custom(),
       ...(connected.has(OMNIROUTE_PROVIDER_ID) ? [] : [omniroutePlaceholder()]),
+      ...(connected.has("google-antigravity") ? [] : [{ id: "google-antigravity", name: "AGY" }]),
       ...(connected.has("google-antigravity-cli") ? [] : [{ id: "google-antigravity-cli", name: "AGY CLI" }]),
       ...connected.values(),
     ]

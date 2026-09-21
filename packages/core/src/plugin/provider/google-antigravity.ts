@@ -52,6 +52,16 @@ type Profile = {
 function profiles(): Profile[] {
   return [
     {
+      integrationID: Integration.ID.make("google-antigravity"),
+      methodID: Integration.MethodID.make("oauth"),
+      label: "Google account",
+      providerName: "AGY",
+      clientProfile: "ide",
+      clientID:
+        process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
+      clientSecret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
+    },
+    {
       integrationID: Integration.ID.make("google-antigravity-cli"),
       methodID: Integration.MethodID.make("oauth"),
       label: "Google account",
@@ -112,13 +122,14 @@ function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, tok
 // backing this account. Required on every Code Assist call — the token
 // alone isn't enough. Best-effort: a failure here still leaves the account
 // usable, since onboarding can complete lazily on the first real request.
-function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
+function discoverProject(http: HttpClient.HttpClient, accessToken: string, clientProfile: ClientProfile = "cli") {
   return Effect.gen(function* () {
+    const metadata = clientProfile === "ide" ? { ideType: 9, platform: 5, pluginType: 2 } : { pluginType: "GEMINI" }
     const loaded = yield* post(
       http,
       loadCodeAssistUrl,
       accessToken,
-      { metadata: { pluginType: "GEMINI" } },
+      { metadata },
       LoadCodeAssistResponse,
     )
     const existingProject = extractProjectId(loaded.cloudaicompanionProject)
@@ -134,7 +145,7 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
         http,
         onboardUserUrl,
         accessToken,
-        { tier_id: tierId, metadata: { pluginType: "GEMINI" } },
+        { tier_id: tierId, tierId, metadata },
         OnboardUserResponse,
       )
       const projectID = extractProjectId(onboarded.response?.cloudaicompanionProject)
@@ -189,7 +200,7 @@ function exchange(
           get(http, userInfoUrl, token.access_token, UserInfo).pipe(
             Effect.catch(() => Effect.succeed({ email: undefined as string | undefined })),
           ),
-          discoverProject(http, token.access_token),
+          discoverProject(http, token.access_token, profile.clientProfile),
         ],
         { concurrency: 2 },
       )
