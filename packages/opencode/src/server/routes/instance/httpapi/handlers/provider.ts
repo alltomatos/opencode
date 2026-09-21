@@ -6,6 +6,7 @@ import { Provider } from "@/provider/provider"
 import { Auth } from "@/auth"
 import { fetchUserQuotaDetails } from "@/provider/antigravity-adapter"
 import { Combo } from "@/combo"
+import { Credential } from "@opencode-ai/core/credential"
 
 import { mapValues } from "remeda"
 import { Effect, Layer, Schema } from "effect"
@@ -46,6 +47,7 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
     const provider = yield* Provider.Service
     const svc = yield* ProviderAuth.Service
     const authStore = yield* Auth.Service
+    const credentialSvc = yield* Credential.Service
     const locations = yield* LocationServiceMap.Service
 
     // Providers registered by a Native Provider Plugin (packages/core's
@@ -128,6 +130,15 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
         Object.fromEntries(catalogList.filter((item) => !(item.id in connected)).map((item) => [item.id, item])),
       )
 
+      const storedCredentials = yield* credentialSvc.all().pipe(Effect.orDie)
+      const activeIntegrationIDs = new Set(storedCredentials.map((c) => c.integrationID as string))
+
+      for (const catalogItem of catalogList) {
+        if (activeIntegrationIDs.has(catalogItem.id) && !providers[catalogItem.id]) {
+          providers[catalogItem.id] = catalogItem
+        }
+      }
+
       const comboSvc = yield* Combo.Service.pipe(Effect.orElseSucceed(() => undefined))
       const combos = comboSvc ? yield* comboSvc.list().pipe(Effect.orElseSucceed(() => [])) : []
       if (combos.length > 0) {
@@ -160,10 +171,12 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
 
       const connectedIDs = Object.keys(providers).filter((id) => {
         if (id === "combo") return combos.length > 0
-        if (credentials[id]) return true
+        if (activeIntegrationIDs.has(id)) return true
+        if (credentials[id] && (credentials[id] as any).key !== "opencode-oauth-dummy-key") return true
         if (id in connected) {
           const item = (connected as any)[id]
-          if (item?.key || item?.options?.apiKey || item?.options?.accessToken) return true
+          if (item?.key && item.key !== "opencode-oauth-dummy-key") return true
+          if (item?.options?.apiKey || item?.options?.accessToken) return true
         }
         return false
       })

@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.32",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Sincronização Perfeita de Credenciais e Combos no Chat",
+              "description": "Integração do serviço de credenciais SQLite com o catálogo do chat para exibir os provedores AGY, AGY CLI, Omniroute e a categoria Combos em qualquer projeto."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.31",
       "highlights": [
         {
