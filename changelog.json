@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "tag": "v1.21.29",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Assistente de IA Especialista em Combos",
+              "description": "Criação inteligente de combos por linguagem natural, recomendando e orquestrando hierarquias de modelos e failover com base nos provedores conectados."
+            },
+            {
+              "title": "Monitoramento de Cota e Tier em Tempo Real",
+              "description": "Exibição de tags de plano (Pro / Gratuito) e porcentagem em tempo real ao lado de cada conta, além de modal detalhado de cota e tempo de renovação por modelo."
+            },
+            {
+              "title": "Melhorias de Seletor de Modelos em Combos",
+              "description": "Sincronização dos provedores com conexões OAuth e integração direta de modelos de múltiplos provedores conectados."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.28",
       "highlights": [
         {
