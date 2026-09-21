@@ -146,6 +146,63 @@ async function checkQuotaAndBenchIfLow(
   }
 }
 
+async function refreshAccountToken(
+  connectionId: string,
+  profile: "ide" | "cli",
+): Promise<{ token?: string; projectID?: string; error?: string }> {
+  try {
+    const dbFile = CoreDatabase.path()
+    const db = await getDb(dbFile)
+    const row = db.prepare("SELECT value FROM credential WHERE id = ?").get(connectionId) as { value: string } | undefined
+    if (!row) return { error: "Credential not found" }
+
+    const parsed = JSON.parse(row.value)
+    if (!parsed.refresh) return { error: "No refresh token available" }
+
+    const client = CLIENT_CONFIGS[profile]
+    const params = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: parsed.refresh,
+      client_id: client.id,
+      client_secret: client.secret,
+    })
+
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+      signal: AbortSignal.timeout(10000),
+    })
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "")
+      return { error: errText || `Refresh failed with status ${res.status}` }
+    }
+
+    const refreshed = (await res.json()) as {
+      access_token: string
+      refresh_token?: string
+      expires_in: number
+    }
+
+    parsed.access = refreshed.access_token
+    if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token) {
+      parsed.refresh = refreshed.refresh_token
+    }
+    parsed.expires = Date.now() + refreshed.expires_in * 1000
+
+    db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
+      JSON.stringify(parsed),
+      Date.now(),
+      connectionId,
+    )
+
+    return { token: refreshed.access_token, projectID: parsed.metadata?.projectID || "aicode-consumers" }
+  } catch (err) {
+    return { error: String(err) }
+  }
+}
+
 async function getLiveToken(
   integrationID: string,
   profile: "ide" | "cli",
@@ -153,10 +210,25 @@ async function getLiveToken(
   try {
     const dbFile = CoreDatabase.path()
     const db = await getDb(dbFile)
-    const rows = db
-      .prepare("SELECT id, value FROM credential WHERE integration_id = ? ORDER BY time_updated ASC")
-      .all(integrationID) as { id: string; value: string }[]
-    if (!rows.length) return { token: "", projectID: "aicode-consumers" }
+    const rawRows = db
+      .prepare("SELECT id, label, value, time_updated, time_created FROM credential WHERE integration_id = ? ORDER BY time_updated DESC, time_created DESC")
+      .all(integrationID) as { id: string; label: string; value: string; time_updated?: number; time_created?: number }[]
+    if (!rawRows.length) return { token: "", projectID: "aicode-consumers" }
+
+    // Deduplicate in memory by email / label
+    const seen = new Set<string>()
+    const rows: { id: string; value: string }[] = []
+    for (const r of rawRows) {
+      try {
+        const p = JSON.parse(r.value)
+        const email = p?.metadata?.email || r.label
+        if (email && seen.has(email)) continue
+        if (email) seen.add(email)
+        rows.push({ id: r.id, value: r.value })
+      } catch {
+        rows.push({ id: r.id, value: r.value })
+      }
+    }
 
     // Convert rows to IntegrationConnection format for rotation picker
     const connections = rows.map((r) => ({
@@ -169,8 +241,9 @@ async function getLiveToken(
       return { token: "", projectID: "aicode-consumers", exhausted: true }
     }
 
-    const picked = IntegrationRotation.pick(Integration.ID.make(integrationID), connections)
-    const selectedId = picked?.type === "credential" ? picked.id : undefined
+    const availableConnections = connections.filter((c) => IntegrationRotation.isAvailable(c))
+    const picked = IntegrationRotation.pick(Integration.ID.make(integrationID), availableConnections)
+    const selectedId = picked?.type === "credential" ? picked.id : availableConnections[0]?.id
     const selectedRow = rows.find((r) => r.id === selectedId) ?? rows[0]
 
     const parsed = JSON.parse(selectedRow.value)
@@ -180,35 +253,9 @@ async function getLiveToken(
 
     // If token expires in less than 5 minutes (or expired/missing expiry), refresh proactively
     if (parsed.refresh && (!parsed.expires || parsed.expires - now < 300_000)) {
-      const client = CLIENT_CONFIGS[profile]
-      const params = new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: parsed.refresh,
-        client_id: client.id,
-        client_secret: client.secret,
-      })
-      const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      })
-      if (res.ok) {
-        const refreshed = (await res.json()) as {
-          access_token: string
-          refresh_token?: string
-          expires_in: number
-        }
-        access = refreshed.access_token
-        parsed.access = access
-        if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token) {
-          parsed.refresh = refreshed.refresh_token
-        }
-        parsed.expires = Date.now() + refreshed.expires_in * 1000
-        db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
-          JSON.stringify(parsed),
-          Date.now(),
-          selectedRow.id,
-        )
+      const refreshed = await refreshAccountToken(selectedRow.id, profile)
+      if (refreshed.token) {
+        access = refreshed.token
       }
     }
 
@@ -524,20 +571,72 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
       headers["Authorization"] = `Bearer ${token}`
     }
 
-    // Try fallback endpoints if one returns 429 / 404 (matches OmniRoute getBaseUrls)
-    let upstream: Response | undefined
-    for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
-      try {
-        const res = await fetch(`${baseUrl}/v1internal:streamGenerateContent?alt=sse`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(envelope),
-          signal: init?.signal,
-        })
-        upstream = res
-        if (res.ok) break
-      } catch (e) {
-        if (!upstream) upstream = new Response(String(e), { status: 500 })
+    const executeGenerate = async (
+      authToken: string,
+      pId: string,
+    ): Promise<Response | undefined> => {
+      const currentHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        "User-Agent": client.userAgent,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      }
+      const currentEnvelope = {
+        project: pId ?? "aicode-consumers",
+        model,
+        request: reqBody,
+      }
+
+      let res: Response | undefined
+      for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+        try {
+          const r = await fetch(`${baseUrl}/v1internal:streamGenerateContent?alt=sse`, {
+            method: "POST",
+            headers: currentHeaders,
+            body: JSON.stringify(currentEnvelope),
+            signal: init?.signal,
+          })
+          res = r
+          if (r.ok) break
+        } catch (e) {
+          if (!res) res = new Response(String(e), { status: 500 })
+        }
+      }
+      return res
+    }
+
+    let upstream = await executeGenerate(token, projectID)
+
+    // Handle 401 / UNAUTHENTICATED / Token expiration with automatic refresh and failover
+    if (upstream && !upstream.ok && (upstream.status === 401 || upstream.status === 403)) {
+      const bodyText = await upstream
+        .clone()
+        .text()
+        .catch(() => "")
+      const isAuthIssue =
+        upstream.status === 401 ||
+        bodyText.includes("UNAUTHENTICATED") ||
+        bodyText.includes("Verify your account") ||
+        bodyText.includes("invalid_grant") ||
+        bodyText.includes("ACCESS_TOKEN_EXPIRED")
+
+      if (isAuthIssue && usedConnectionId) {
+        // 1. Try immediate token refresh
+        const refreshed = await refreshAccountToken(usedConnectionId, profile)
+        if (refreshed.token) {
+          token = refreshed.token
+          projectID = refreshed.projectID || projectID
+          upstream = await executeGenerate(token, projectID)
+        } else {
+          // 2. Refresh failed or account requires verification -> bench account & try failover to next account
+          IntegrationRotation.markUnavailable(toConnection(usedConnectionId), 15 * 60_000)
+          const nextLive = await getLiveToken(integrationID, profile)
+          if (nextLive.token && nextLive.connectionId !== usedConnectionId) {
+            token = nextLive.token
+            projectID = nextLive.projectID
+            usedConnectionId = nextLive.connectionId
+            upstream = await executeGenerate(token, projectID)
+          }
+        }
       }
     }
 

@@ -26,6 +26,10 @@ export interface ModelPickerV2Props {
    * global-catalog behavior by omitting this.
    */
   directory?: string
+  /** Require models supporting vision / image inputs */
+  requireVision?: boolean
+  /** Require models supporting PDF / document inputs */
+  requirePdf?: boolean
 }
 
 function splitModel(value: string) {
@@ -108,7 +112,30 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const allModels = createMemo(() => {
     const provider = selectedProvider()
     if (!provider) return []
-    return Object.values(provider.models).sort((a, b) => a.name.localeCompare(b.name))
+    let models = Object.values(provider.models)
+
+    if (props.requireVision) {
+      models = models.filter((m) => {
+        const inputCaps = m.capabilities?.input
+        if (Array.isArray(inputCaps)) return inputCaps.includes("image")
+        if (inputCaps && typeof inputCaps === "object") return Boolean(inputCaps.image)
+        if (m.modalities?.input) return m.modalities.input.includes("image")
+        // Default models known for vision
+        return m.attachment || m.id.includes("flash") || m.id.includes("pro") || m.id.includes("vision") || m.id.includes("sonnet") || m.id.includes("opus") || m.id.includes("gpt-4") || m.id.includes("gpt-5")
+      })
+    }
+
+    if (props.requirePdf) {
+      models = models.filter((m) => {
+        const inputCaps = m.capabilities?.input
+        if (Array.isArray(inputCaps)) return inputCaps.includes("pdf")
+        if (inputCaps && typeof inputCaps === "object") return Boolean(inputCaps.pdf)
+        if (m.modalities?.input) return m.modalities.input.includes("pdf")
+        return m.attachment || m.id.includes("flash") || m.id.includes("pro") || m.id.includes("sonnet")
+      })
+    }
+
+    return models.sort((a, b) => a.name.localeCompare(b.name))
   })
 
   // Some providers (OpenRouter, Omniroute, ...) expose thousands of models —

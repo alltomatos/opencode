@@ -62,4 +62,45 @@ describe("Credential", () => {
       expect(yield* credentials.list(integrationID)).toEqual([other])
     }),
   )
+
+  it.effect("updates existing credential on relogin with same label without duplicating", () =>
+    Effect.gen(function* () {
+      const credentials = yield* Credential.Service
+      const integrationID = Integration.ID.make("google-antigravity-cli")
+      const first = yield* credentials.create({
+        integrationID,
+        label: "user@gmail.com",
+        value: Credential.OAuth.make({
+          type: "oauth",
+          methodID: Integration.MethodID.make("oauth"),
+          access: "initial-token",
+          refresh: "initial-refresh",
+          expires: Date.now() + 3600_000,
+          metadata: { email: "user@gmail.com" },
+        }),
+      })
+
+      expect(yield* credentials.list(integrationID)).toHaveLength(1)
+
+      // Re-login with same email / label
+      const relogin = yield* credentials.create({
+        integrationID,
+        label: "user@gmail.com",
+        value: Credential.OAuth.make({
+          type: "oauth",
+          methodID: Integration.MethodID.make("oauth"),
+          access: "new-token",
+          refresh: "new-refresh",
+          expires: Date.now() + 3600_000,
+          metadata: { email: "user@gmail.com" },
+        }),
+      })
+
+      // ID should be preserved and count must still be 1 (no duplicate)
+      expect(relogin.id).toBe(first.id)
+      const stored = yield* credentials.list(integrationID)
+      expect(stored).toHaveLength(1)
+      expect((stored[0].value as Credential.OAuth).access).toBe("new-token")
+    }),
+  )
 })

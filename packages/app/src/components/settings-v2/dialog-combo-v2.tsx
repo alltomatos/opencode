@@ -44,6 +44,9 @@ export const DialogComboV2: Component<{
   const [aiGenerating, setAiGenerating] = createSignal(false)
   const [aiError, setAiError] = createSignal<string | undefined>()
 
+  const [requireVision, setRequireVision] = createSignal(false)
+  const [requirePdf, setRequirePdf] = createSignal(false)
+
   const [form, setForm] = createStore<ComboForm>(
     props.combo ?? {
       id: crypto.randomUUID(),
@@ -182,12 +185,36 @@ export const DialogComboV2: Component<{
         </div>
 
         <div class="flex flex-col gap-2">
-          <label class="settings-v2-server-dialog-label">{language.t("settings.combos.field.models")}</label>
+          <div class="flex items-center justify-between">
+            <label class="settings-v2-server-dialog-label">{language.t("settings.combos.field.models")}</label>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1.5 text-11-regular text-v2-text-text-muted cursor-pointer hover:text-v2-text-text-base transition-colors">
+                <input
+                  type="checkbox"
+                  class="rounded border-v2-border-border-base cursor-pointer"
+                  checked={requireVision()}
+                  onChange={(e) => setRequireVision(e.currentTarget.checked)}
+                />
+                {language.t("settings.combos.filter.requireVision")}
+              </label>
+              <label class="flex items-center gap-1.5 text-11-regular text-v2-text-text-muted cursor-pointer hover:text-v2-text-text-base transition-colors">
+                <input
+                  type="checkbox"
+                  class="rounded border-v2-border-border-base cursor-pointer"
+                  checked={requirePdf()}
+                  onChange={(e) => setRequirePdf(e.currentTarget.checked)}
+                />
+                {language.t("settings.combos.filter.requirePdf")}
+              </label>
+            </div>
+          </div>
           <For each={form.models}>
             {(row, index) => (
               <div class="flex items-center gap-2">
                 <ModelPickerV2
                   directory={props.directory}
+                  requireVision={requireVision()}
+                  requirePdf={requirePdf()}
                   value={row.model}
                   onChange={(value) => setForm("models", index(), "model", value)}
                 />

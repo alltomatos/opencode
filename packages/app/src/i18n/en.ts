@@ -188,6 +188,9 @@ export const dict = {
   "provider.action.relogin": "Re-login",
   "provider.action.refreshToken": "Refresh token",
   "provider.action.refreshToken.success": "Token refreshed successfully",
+  "provider.authError.toast.title": "Account verification required",
+  "provider.authError.toast.description": "Your account requires re-authentication or verification to continue.",
+  "provider.authError.action.reconnect": "Log in / Reconnect account",
 
   "provider.custom.title": "Custom provider",
   "provider.custom.unavailable": "Custom providers are unavailable on this server",
@@ -1069,6 +1072,8 @@ export const dict = {
   "settings.combos.failover.priority": "Priority order",
   "settings.combos.failover.roundRobin": "Round-robin",
   "settings.combos.field.requestsPerMinute": "Requests / minute (optional)",
+  "settings.combos.filter.requireVision": "Require Vision / Image support",
+  "settings.combos.filter.requirePdf": "Require Document / PDF support",
   "settings.combos.field.tokensPerMinute": "Tokens / minute (optional)",
   "settings.combos.ai.title": "AI Combo Specialist",
   "settings.combos.ai.hint": "Describe what you need (e.g. heavy coding focus with fast fallback, token economy, or high resilience). The specialist will inspect your connected providers and models to design the ideal failover chain.",

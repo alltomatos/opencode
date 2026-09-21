@@ -1,3 +1,5 @@
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { showToast } from "@/utils/toast"
 import {
   createEffect,
   createMemo,
@@ -108,6 +110,8 @@ export function MessageTimeline(props: {
   const initialMeasurements = cached?.measurements
   const coldBottomMount = !initialMeasurements?.length && props.shouldAnchorBottom()
   const platform = usePlatform()
+  const dialog = useDialog()
+  const notifiedErrors = new Set<string>()
 
   const [listRoot, setListRoot] = createSignal<HTMLDivElement>()
   const sessionID = createMemo(() => params.id)
@@ -661,11 +665,61 @@ export function MessageTimeline(props: {
       }
       case "Error": {
         const errorRow = row as Accessor<TimelineRowByTag<"Error">>
+        const text = () => errorRow().text
+        const isAuthError = createMemo(() => {
+          const t = text().toLowerCase()
+          return (
+            t.includes("verify your account") ||
+            t.includes("unauthenticated") ||
+            t.includes("invalid_grant") ||
+            t.includes("access_token_expired") ||
+            t.includes("cannot connect to api")
+          )
+        })
+
+        const handleReconnect = () => {
+          void import("@/components/dialog-connect-provider").then(
+            ({ DialogConnectProvider, useProviderConnectController }) => {
+              const controller = useProviderConnectController()
+              const t = text().toLowerCase()
+              if (t.includes("antigravity") || t.includes("agy") || t.includes("google")) {
+                controller.select("google-antigravity-cli")
+              }
+              void dialog.show(() => <DialogConnectProvider controller={controller} />)
+            },
+          )
+        }
+
+        createEffect(() => {
+          const t = text()
+          if (isAuthError() && !notifiedErrors.has(t)) {
+            notifiedErrors.add(t)
+            showToast({
+              variant: "error",
+              icon: "warning",
+              title: language.t("provider.authError.toast.title"),
+              description: language.t("provider.authError.toast.description"),
+            })
+          }
+        })
+
         return (
           <TimelineRowFrame row={errorRow}>
             <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
-              <Card variant="error" class="error-card">
-                {errorRow().text}
+              <Card variant="error" class="error-card flex flex-col gap-2">
+                <div>{errorRow().text}</div>
+                <Show when={isAuthError()}>
+                  <div class="flex items-center gap-2 pt-1 border-t border-v2-border-border-base/50">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-v2-state-bg-danger-hover hover:bg-v2-state-bg-danger-active text-v2-text-text-base text-12-medium cursor-pointer transition-colors"
+                      onClick={handleReconnect}
+                    >
+                      <Icon name="providers" class="size-3.5" />
+                      {language.t("provider.authError.action.reconnect")}
+                    </button>
+                  </div>
+                </Show>
               </Card>
             </div>
           </TimelineRowFrame>

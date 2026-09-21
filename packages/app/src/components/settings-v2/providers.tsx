@@ -196,7 +196,18 @@ const ProviderAccountList: Component<{
         .catch(() => undefined),
   )
 
-  const accounts = createMemo(() => (integration.latest?.connections ?? []).filter((c) => c.type === "credential"))
+  const accounts = createMemo(() => {
+    const raw = (integration.latest?.connections ?? []).filter((c) => c.type === "credential")
+    const seen = new Set<string>()
+    const unique: typeof raw = []
+    for (const c of raw) {
+      const key = (c.label || c.id).trim().toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      unique.push(c)
+    }
+    return unique
+  })
 
   const remove = async (credentialID: string) => {
     setRemoving((prev) => new Set(prev).add(credentialID))

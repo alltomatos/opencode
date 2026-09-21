@@ -63,26 +63,65 @@ const layer = Layer.effect(
       })
     }
 
+    const deduplicate = Effect.fnUntraced(function* (rows: (typeof CredentialTable.$inferSelect)[]) {
+      const seen = new Map<string, typeof CredentialTable.$inferSelect>()
+      const duplicatesToRemove: string[] = []
+
+      for (const row of rows) {
+        if (!row.integration_id) continue
+        const val = row.value as { metadata?: { email?: string } } | undefined
+        const email = val?.metadata?.email
+        const key = `${row.integration_id}:${email ?? row.label}`
+
+        const existing = seen.get(key)
+        if (existing) {
+          // Keep the newer entry, mark older for removal
+          const existingUpdated = (existing.time_updated ?? existing.time_created ?? 0) as number
+          const currentUpdated = (row.time_updated ?? row.time_created ?? 0) as number
+          if (currentUpdated >= existingUpdated) {
+            duplicatesToRemove.push(existing.id)
+            seen.set(key, row)
+          } else {
+            duplicatesToRemove.push(row.id)
+          }
+        } else {
+          seen.set(key, row)
+        }
+      }
+
+      if (duplicatesToRemove.length > 0) {
+        for (const id of duplicatesToRemove) {
+          yield* db.delete(CredentialTable).where(eq(CredentialTable.id, id as any)).run().pipe(Effect.orDie)
+        }
+      }
+
+      return Array.from(seen.values())
+    })
+
     return Service.of({
       all: Effect.fn("Credential.all")(function* () {
-        return (yield* db
+        const rows = yield* db
           .select()
           .from(CredentialTable)
           .orderBy(asc(CredentialTable.time_created))
           .all()
-          .pipe(Effect.orDie)).flatMap((row) => {
+          .pipe(Effect.orDie)
+        const unique = yield* deduplicate(rows)
+        return unique.flatMap((row) => {
           const credential = stored(row)
           return credential ? [credential] : []
         })
       }),
       list: Effect.fn("Credential.list")(function* (integrationID) {
-        return (yield* db
+        const rows = yield* db
           .select()
           .from(CredentialTable)
           .where(eq(CredentialTable.integration_id, integrationID))
           .orderBy(asc(CredentialTable.time_created))
           .all()
-          .pipe(Effect.orDie)).flatMap((row) => {
+          .pipe(Effect.orDie)
+        const unique = yield* deduplicate(rows)
+        return unique.flatMap((row) => {
           const credential = stored(row)
           return credential ? [credential] : []
         })
@@ -92,10 +131,51 @@ const layer = Layer.effect(
         return row ? stored(row) : undefined
       }),
       create: Effect.fn("Credential.create")(function* (input) {
+        const targetLabel = input.label ?? "default"
+        const inputVal = input.value as { metadata?: { email?: string } } | undefined
+        const targetEmail = inputVal?.metadata?.email
+
+        const existingRows = yield* db
+          .select()
+          .from(CredentialTable)
+          .where(eq(CredentialTable.integration_id, input.integrationID))
+          .all()
+          .pipe(Effect.orDie)
+
+        const match = existingRows.find((row) => {
+          if (targetEmail) {
+            const val = row.value as { metadata?: { email?: string } } | undefined
+            if (val?.metadata?.email && val.metadata.email === targetEmail) return true
+            if (row.label === targetEmail) return true
+          }
+          if (targetLabel !== "default" && row.label === targetLabel) return true
+          return false
+        })
+
+        if (match) {
+          yield* db
+            .update(CredentialTable)
+            .set({
+              label: targetLabel,
+              value: input.value,
+              time_updated: Date.now(),
+            })
+            .where(eq(CredentialTable.id, match.id))
+            .run()
+            .pipe(Effect.orDie)
+
+          return new Info({
+            id: match.id,
+            integrationID: input.integrationID,
+            label: targetLabel,
+            value: input.value,
+          })
+        }
+
         const credential = new Info({
           id: ID.create(),
           integrationID: input.integrationID,
-          label: input.label ?? "default",
+          label: targetLabel,
           value: input.value,
         })
         yield* db
