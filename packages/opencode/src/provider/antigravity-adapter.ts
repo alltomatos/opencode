@@ -146,67 +146,124 @@ async function checkQuotaAndBenchIfLow(
   }
 }
 
+const inFlightRefreshes = new Map<string, Promise<{ token?: string; projectID?: string; error?: string }>>()
+
 async function refreshAccountToken(
   connectionId: string,
   profile: "ide" | "cli",
 ): Promise<{ token?: string; projectID?: string; error?: string }> {
-  try {
-    const dbFile = CoreDatabase.path()
-    const db = await getDb(dbFile)
-    const row = db.prepare("SELECT value FROM credential WHERE id = ?").get(connectionId) as { value: string } | undefined
-    if (!row) return { error: "Credential not found" }
+  const existing = inFlightRefreshes.get(connectionId)
+  if (existing) return existing
 
-    const parsed = JSON.parse(row.value)
-    if (!parsed.refresh) return { error: "No refresh token available" }
+  const promise = (async () => {
+    try {
+      const dbFile = CoreDatabase.path()
+      const db = await getDb(dbFile)
+      const row = db.prepare("SELECT value FROM credential WHERE id = ?").get(connectionId) as { value: string } | undefined
+      if (!row) return { error: "Credential not found" }
 
-    const client = CLIENT_CONFIGS[profile]
-    const params = new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: parsed.refresh,
-      client_id: client.id,
-      client_secret: client.secret,
-    })
+      const parsed = JSON.parse(row.value)
+      if (!parsed.refresh) return { error: "No refresh token available" }
 
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-      signal: AbortSignal.timeout(10000),
-    })
+      const client = CLIENT_CONFIGS[profile]
+      const params = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: parsed.refresh,
+        client_id: client.id,
+        client_secret: client.secret,
+      })
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "")
-      return { error: errText || `Refresh failed with status ${res.status}` }
+      const res = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+        signal: AbortSignal.timeout(10000),
+      })
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "")
+        return { error: errText || `Refresh failed with status ${res.status}` }
+      }
+
+      const refreshed = (await res.json()) as {
+        access_token: string
+        refresh_token?: string
+        expires_in: number
+      }
+
+      parsed.access = refreshed.access_token
+      if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token.trim()) {
+        parsed.refresh = refreshed.refresh_token.trim()
+      }
+      parsed.expires = Date.now() + refreshed.expires_in * 1000
+
+      db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
+        JSON.stringify(parsed),
+        Date.now(),
+        connectionId,
+      )
+
+      return { token: refreshed.access_token, projectID: parsed.metadata?.projectID || "aicode-consumers" }
+    } catch (err) {
+      return { error: String(err) }
     }
+  })().finally(() => {
+    inFlightRefreshes.delete(connectionId)
+  })
 
-    const refreshed = (await res.json()) as {
-      access_token: string
-      refresh_token?: string
-      expires_in: number
+  inFlightRefreshes.set(connectionId, promise)
+  return promise
+}
+
+// Background proactive token refresh — runs every 5 minutes and refreshes accounts expiring in < 30 minutes
+const BACKGROUND_REFRESH_LEAD_MS = 30 * 60 * 1000
+let backgroundRefreshStarted = false
+
+function ensureBackgroundTokenRefresh() {
+  if (backgroundRefreshStarted) return
+  backgroundRefreshStarted = true
+
+  const tick = async () => {
+    try {
+      const dbFile = CoreDatabase.path()
+      const db = await getDb(dbFile)
+      const rows = db
+        .prepare("SELECT id, value, integration_id FROM credential WHERE integration_id IN ('google-antigravity-cli', 'google-antigravity')")
+        .all() as { id: string; value: string; integration_id: string }[]
+
+      const now = Date.now()
+      for (const row of rows) {
+        try {
+          const parsed = JSON.parse(row.value)
+          if (!parsed.refresh) continue
+          const expires = parsed.expires as number | undefined
+          // Refresh if expires in less than 30 minutes, or missing expiration time
+          if (!expires || expires - now < BACKGROUND_REFRESH_LEAD_MS) {
+            const profile: "ide" | "cli" = row.integration_id === "google-antigravity" ? "ide" : "cli"
+            await refreshAccountToken(row.id, profile)
+          }
+        } catch {
+          // Ignore parse errors per row
+        }
+      }
+    } catch {
+      // Fail-open for entire background tick
     }
-
-    parsed.access = refreshed.access_token
-    if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token) {
-      parsed.refresh = refreshed.refresh_token
-    }
-    parsed.expires = Date.now() + refreshed.expires_in * 1000
-
-    db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
-      JSON.stringify(parsed),
-      Date.now(),
-      connectionId,
-    )
-
-    return { token: refreshed.access_token, projectID: parsed.metadata?.projectID || "aicode-consumers" }
-  } catch (err) {
-    return { error: String(err) }
   }
+
+  // Initial delayed tick after 10s, then repeat every 5 minutes
+  setTimeout(() => {
+    void tick()
+    const timer = setInterval(() => void tick(), 5 * 60 * 1000)
+    if (typeof timer.unref === "function") timer.unref()
+  }, 10_000)
 }
 
 async function getLiveToken(
   integrationID: string,
   profile: "ide" | "cli",
 ): Promise<{ token: string; projectID: string; connectionId?: string; exhausted?: boolean }> {
+  ensureBackgroundTokenRefresh()
   try {
     const dbFile = CoreDatabase.path()
     const db = await getDb(dbFile)

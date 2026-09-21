@@ -70,13 +70,25 @@ const Token = Schema.Struct({
   expires_in: Schema.Number,
 })
 const UserInfo = Schema.Struct({ email: Schema.String })
+const ProjectIdSchema = Schema.Union([
+  Schema.String,
+  Schema.Struct({ id: Schema.optional(Schema.String) }),
+])
+
 const LoadCodeAssistResponse = Schema.Struct({
-  cloudaicompanionProject: Schema.optional(Schema.String),
+  cloudaicompanionProject: Schema.optional(ProjectIdSchema),
   currentTier: Schema.optional(Schema.Struct({ id: Schema.optional(Schema.String) })),
 })
 const OnboardUserResponse = Schema.Struct({
-  response: Schema.optional(Schema.Struct({ cloudaicompanionProject: Schema.optional(Schema.String) })),
+  response: Schema.optional(Schema.Struct({ cloudaicompanionProject: Schema.optional(ProjectIdSchema) })),
+  done: Schema.optional(Schema.Boolean),
 })
+
+function extractProjectId(raw: string | { id?: string | undefined } | undefined): string | undefined {
+  if (!raw) return undefined
+  if (typeof raw === "string") return raw.trim()
+  return raw.id?.trim()
+}
 
 function post<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, token: string, body: unknown, schema: S) {
   return HttpClient.filterStatusOk(http)
@@ -100,17 +112,6 @@ function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, tok
 // backing this account. Required on every Code Assist call — the token
 // alone isn't enough. Best-effort: a failure here still leaves the account
 // usable, since onboarding can complete lazily on the first real request.
-//
-// NOTE: only the CLI profile is registered (see profiles() below) — the
-// Antigravity IDE profile was removed. Its onboardUser call kept returning
-// Google's real, documented "BYOP" (bring-your-own-project) response for
-// consumer accounts: `done: true` but an empty `cloudaicompanionProject`,
-// because Google requires those accounts to link a real Google Cloud
-// project with a paid Gemini Code Assist license attached — confirmed by
-// reading OmniRoute's own source (antigravityProjectGate.ts, #11284), which
-// hits the identical wall and just marks those connections "degraded"
-// rather than actually resolving it. Not fixable from this side; CLI has no
-// such requirement and covers the same models.
 function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
   return Effect.gen(function* () {
     const loaded = yield* post(
@@ -120,17 +121,31 @@ function discoverProject(http: HttpClient.HttpClient, accessToken: string) {
       { metadata: { pluginType: "GEMINI" } },
       LoadCodeAssistResponse,
     )
-    if (loaded.cloudaicompanionProject) {
-      return { projectID: loaded.cloudaicompanionProject, tier: loaded.currentTier?.id }
+    const existingProject = extractProjectId(loaded.cloudaicompanionProject)
+    if (existingProject) {
+      return { projectID: existingProject, tier: loaded.currentTier?.id }
     }
-    const onboarded = yield* post(
-      http,
-      onboardUserUrl,
-      accessToken,
-      { tier_id: loaded.currentTier?.id ?? "legacy-tier", metadata: { pluginType: "GEMINI" } },
-      OnboardUserResponse,
-    )
-    return { projectID: onboarded.response?.cloudaicompanionProject, tier: loaded.currentTier?.id }
+
+    const tierId = loaded.currentTier?.id ?? "legacy-tier"
+
+    // Retry onboarding up to 5 times (matches 9router pattern)
+    for (let i = 0; i < 5; i++) {
+      const onboarded = yield* post(
+        http,
+        onboardUserUrl,
+        accessToken,
+        { tier_id: tierId, metadata: { pluginType: "GEMINI" } },
+        OnboardUserResponse,
+      )
+      const projectID = extractProjectId(onboarded.response?.cloudaicompanionProject)
+      if (projectID) {
+        return { projectID, tier: tierId }
+      }
+      if (onboarded.done === true) break
+      yield* Effect.sleep("2 seconds")
+    }
+
+    return { projectID: undefined, tier: tierId }
   }).pipe(Effect.catch(() => Effect.succeed({ projectID: undefined, tier: undefined })))
 }
 
