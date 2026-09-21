@@ -450,15 +450,37 @@ function ProviderConnection(props: {
     timer.current = undefined
   })
 
-  const provider = createMemo(
-    () => providers.all().get(props.provider) ?? serverSync().data.provider.all.get(props.provider)!,
-  )
-  const fallback = createMemo<ConnectMethod[]>(() => [
-    {
-      type: "key" as const,
-      label: language.t("provider.connect.method.apiKey"),
-    },
-  ])
+  const provider = createMemo(() => {
+    const item = providers.all().get(props.provider) ?? serverSync().data.provider.all.get(props.provider)
+    if (item) return item
+    if (props.provider === "google-antigravity") {
+      return { id: "google-antigravity", name: "AGY" }
+    }
+    if (props.provider === "google-antigravity-cli") {
+      return { id: "google-antigravity-cli", name: "AGY CLI" }
+    }
+    if (props.provider === OMNIROUTE_PROVIDER_ID) {
+      return { id: OMNIROUTE_PROVIDER_ID, name: "Omniroute" }
+    }
+    return { id: props.provider, name: props.provider }
+  })
+  const fallback = createMemo<ConnectMethod[]>(() => {
+    if (props.provider === "google-antigravity" || props.provider === "google-antigravity-cli") {
+      return [
+        {
+          id: "oauth",
+          type: "oauth" as const,
+          label: "Google account",
+        },
+      ]
+    }
+    return [
+      {
+        type: "key" as const,
+        label: language.t("provider.connect.method.apiKey"),
+      },
+    ]
+  })
   const [integration] = createResource(
     () => ({ provider: props.provider, directory: directory() }),
     (input) =>

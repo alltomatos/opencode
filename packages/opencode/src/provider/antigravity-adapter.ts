@@ -1,3 +1,4 @@
+import crypto from "node:crypto"
 import { Database as CoreDatabase } from "@opencode-ai/core/database/database"
 import { IntegrationRotation } from "@opencode-ai/core/integration/rotation"
 import { Integration } from "@opencode-ai/core/integration"
@@ -15,17 +16,34 @@ const ANTIGRAVITY_BASE_URLS = [
   "https://daily-cloudcode-pa.sandbox.googleapis.com",
 ]
 
+const ANTIGRAVITY_IDE_VERSION = "2.11.0"
+
 const CLIENT_CONFIGS = {
   ide: {
-    id: "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
-    secret: "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",
-    userAgent: "antigravity/ide/2.1.1 darwin/arm64",
+    id: "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+    secret: "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",
+    userAgent: `antigravity/ide/${ANTIGRAVITY_IDE_VERSION} darwin/arm64`,
   },
   cli: {
     id: "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
     secret: "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",
     userAgent: "antigravity/cli/1.1.5 (aidev_client; os_type=darwin; arch=arm64; auth_method=consumer)",
   },
+}
+
+function uuidFromSeed(seed: string): string {
+  const bytes = crypto.createHash("sha256").update(seed).digest().subarray(0, 16)
+  bytes[6] = (bytes[6] & 0x0f) | 0x50
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = bytes.toString("hex")
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+function buildIdeRequestId(sessionId: string, model: string, count: number): string {
+  const conversationId = uuidFromSeed(`antigravity:conversation:${sessionId}`)
+  const trajectoryId = uuidFromSeed(`antigravity:trajectory:${sessionId}:${model}:agent`)
+  const step = Math.max(1, count * 2 - 1)
+  return `agent/${conversationId}/${Date.now()}/${trajectoryId}/${step}`
 }
 
 // Google reports remaining quota as a 0-1 fraction per bucket; we bench an
@@ -637,9 +655,13 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
         "User-Agent": client.userAgent,
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       }
+      const count = Array.isArray(reqBody.contents) ? reqBody.contents.length : 1
       const currentEnvelope = {
         project: pId ?? "aicode-consumers",
         model,
+        userAgent: "antigravity",
+        requestType: "agent",
+        requestId: buildIdeRequestId(pId ?? "aicode-consumers", model, count),
         request: reqBody,
       }
 

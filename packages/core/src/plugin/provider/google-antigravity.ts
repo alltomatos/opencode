@@ -58,8 +58,8 @@ function profiles(): Profile[] {
       providerName: "AGY",
       clientProfile: "ide",
       clientID:
-        process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com",
-      clientSecret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
+        process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+      clientSecret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
     },
     {
       integrationID: Integration.ID.make("google-antigravity-cli"),
@@ -118,13 +118,25 @@ function get<S extends Schema.Top>(http: HttpClient.HttpClient, url: string, tok
     .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)))
 }
 
+function getPlatformEnum(): number {
+  const os = process.platform
+  const arch = process.arch
+  if (os === "darwin") return arch === "arm64" ? 2 : 1
+  if (os === "linux") return arch === "arm64" ? 4 : 3
+  if (os === "win32") return 5
+  return 0
+}
+
 // Discovers (or provisions, for brand-new accounts) the Cloud Code project
 // backing this account. Required on every Code Assist call — the token
 // alone isn't enough. Best-effort: a failure here still leaves the account
 // usable, since onboarding can complete lazily on the first real request.
 function discoverProject(http: HttpClient.HttpClient, accessToken: string, clientProfile: ClientProfile = "cli") {
   return Effect.gen(function* () {
-    const metadata = clientProfile === "ide" ? { ideType: 9, platform: 5, pluginType: 2 } : { pluginType: "GEMINI" }
+    const metadata =
+      clientProfile === "ide"
+        ? { ideType: 9, platform: getPlatformEnum(), pluginType: 2 }
+        : { pluginType: "GEMINI" }
     const loaded = yield* post(
       http,
       loadCodeAssistUrl,
