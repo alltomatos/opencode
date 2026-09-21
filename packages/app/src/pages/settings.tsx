@@ -222,7 +222,7 @@ export function SettingsPage() {
           </TabsV2.Content>
           <TabsV2.Content value="combos" class="settings-v2-panel">
             <SettingsServerScope>
-              <SettingsCombosV2 />
+              <SettingsCombosV2 directory={directory} />
             </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="skills" class="settings-v2-panel">

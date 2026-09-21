@@ -131,3 +131,13 @@ it.instance(
     },
   },
 )
+
+it.live(
+  "generateDraft() fails gracefully when no provider is connected",
+  () =>
+    Effect.gen(function* () {
+      const svc = yield* Combo.Service
+      const exit = yield* svc.generateDraft({ description: "combo rapido" }).pipe(Effect.exit)
+      expect(Exit.isFailure(exit)).toBe(true)
+    }),
+)

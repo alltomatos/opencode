@@ -1,16 +1,18 @@
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Tag } from "@opencode-ai/ui/v2/badge-v2"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
-import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
-import { showToast } from "@/utils/toast"
+import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createIntegrationFetchApi } from "@/utils/integration-fetch"
+import { showToast } from "@/utils/toast"
+import { DialogAccountQuotaV2, type AccountQuotaModalData } from "./dialog-account-quota-v2"
 import type { IntegrationInfo } from "@opencode-ai/client/promise"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { createMemo, createResource, createSignal, type Accessor, type Component, For, Show } from "solid-js"
+import { createEffect, createMemo, createResource, createSignal, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -123,6 +125,65 @@ const ProviderAccountList: Component<{
   const [removing, setRemoving] = createSignal<Set<string>>(new Set())
   const [refreshing, setRefreshing] = createSignal<Set<string>>(new Set())
 
+  const [quotas, setQuotas] = createSignal<Record<string, AccountQuotaModalData>>({})
+  const [loadingQuota, setLoadingQuota] = createSignal<Set<string>>(new Set())
+
+  const fetchQuota = async (account: { id: string; label?: string }) => {
+    if (loadingQuota().has(account.id)) return
+    setLoadingQuota((prev) => new Set(prev).add(account.id))
+    try {
+      const res = await serverSdk().client.provider.quota({
+        providerID: props.integrationID,
+        credentialID: account.id,
+      })
+      if (res.data) {
+        const details: AccountQuotaModalData = {
+          accountLabel: account.label || account.id,
+          tier: res.data.tier as "pro" | "free" | "unknown",
+          overallPercentage: Number(res.data.overallPercentage) || 0,
+          buckets: (res.data.buckets || []).map((b) => ({
+            modelId: b.modelId,
+            remainingFraction: Number(b.remainingFraction) || 0,
+            remainingPercentage: Number(b.remainingPercentage) || 0,
+            resetTime: b.resetTime ?? null,
+          })),
+        }
+        setQuotas((prev) => ({ ...prev, [account.id]: details }))
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingQuota((prev) => {
+        const next = new Set(prev)
+        next.delete(account.id)
+        return next
+      })
+    }
+  }
+
+  // Fetch quota for accounts of google-antigravity-cli or google-antigravity
+  createEffect(() => {
+    if (props.integrationID === "google-antigravity-cli" || props.integrationID === "google-antigravity") {
+      for (const account of accounts()) {
+        if (!quotas()[account.id]) {
+          void fetchQuota(account)
+        }
+      }
+    }
+  })
+
+  const openQuotaDialog = (account: { id: string; label?: string }) => {
+    const data = quotas()[account.id]
+    if (data) {
+      dialog.push(() => <DialogAccountQuotaV2 data={data} />)
+    } else {
+      void fetchQuota(account).then(() => {
+        const updated = quotas()[account.id]
+        if (updated) dialog.push(() => <DialogAccountQuotaV2 data={updated} />)
+      })
+    }
+  }
+
   const [integration, { refetch }] = createResource(
     () => ({ integrationID: props.integrationID, directory: props.directory() }),
     (input) =>
@@ -187,44 +248,90 @@ const ProviderAccountList: Component<{
     <Show when={accounts().length > 0}>
       <div class="settings-v2-provider-accounts">
         <For each={accounts()}>
-          {(account) => (
-            <div class="settings-v2-provider-account-row">
-              <span class="settings-v2-provider-account-label truncate">{account.label}</span>
-              <div class="flex items-center gap-1.5">
-                <ButtonV2
-                  size="normal"
-                  variant="ghost-muted"
-                  disabled={refreshing().has(account.id)}
-                  onClick={() => void handleRefresh(account)}
-                >
-                  <Show when={refreshing().has(account.id)}>
-                    <Spinner class="size-3.5" />
+          {(account) => {
+            const quotaData = () => quotas()[account.id]
+            const isLoading = () => loadingQuota().has(account.id)
+            return (
+              <div class="settings-v2-provider-account-row py-1">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span class="settings-v2-provider-account-label font-mono text-12-regular text-v2-text-text-base truncate max-w-[240px]">
+                    {account.label}
+                  </span>
+                  <Show
+                    when={quotaData()}
+                    fallback={
+                      <Show when={isLoading()}>
+                        <div class="flex items-center gap-1 text-11-regular text-v2-text-text-faint">
+                          <Spinner class="size-3" />
+                        </div>
+                      </Show>
+                    }
+                  >
+                    {(data) => (
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        <Show
+                          when={data().tier === "pro"}
+                          fallback={<Tag variant="neutral">{language.t("settings.providers.quota.tier.free")}</Tag>}
+                        >
+                          <Tag variant="accent">{language.t("settings.providers.quota.tier.pro")}</Tag>
+                        </Show>
+                        <button
+                          type="button"
+                          class="group flex items-center gap-1 px-2 py-0.5 rounded text-11-medium bg-v2-background-bg-raised border border-v2-border-border-base hover:border-v2-border-border-strong hover:bg-v2-background-bg-layer-01 cursor-pointer transition-colors"
+                          title={language.t("settings.providers.quota.buttonTooltip")}
+                          onClick={() => openQuotaDialog(account)}
+                        >
+                          <span
+                            classList={{
+                              "text-v2-state-fg-success": data().overallPercentage > 50,
+                              "text-v2-state-fg-warning": data().overallPercentage <= 50 && data().overallPercentage > 15,
+                              "text-v2-state-fg-danger": data().overallPercentage <= 15,
+                            }}
+                          >
+                            {data().overallPercentage}%
+                          </span>
+                          <IconV2 name="chevron-right" class="size-3 text-v2-text-text-faint group-hover:text-v2-text-text-base transition-colors" />
+                        </button>
+                      </div>
+                    )}
                   </Show>
-                  {language.t("provider.action.refreshToken")}
-                </ButtonV2>
-                <ButtonV2
-                  size="normal"
-                  variant="ghost-muted"
-                  disabled={refreshing().has(account.id)}
-                  onClick={() => props.onRelogin?.(props.integrationID)}
-                >
-                  {language.t("provider.action.relogin")}
-                </ButtonV2>
-                <ButtonV2
-                  size="normal"
-                  variant="ghost-muted"
-                  class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
-                  disabled={removing().has(account.id)}
-                  onClick={() => void remove(account.id)}
-                >
-                  <Show when={removing().has(account.id)}>
-                    <Spinner class="size-4" />
-                  </Show>
-                  {language.t("common.disconnect")}
-                </ButtonV2>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <ButtonV2
+                    size="normal"
+                    variant="ghost-muted"
+                    disabled={refreshing().has(account.id)}
+                    onClick={() => void handleRefresh(account)}
+                  >
+                    <Show when={refreshing().has(account.id)}>
+                      <Spinner class="size-3.5" />
+                    </Show>
+                    {language.t("provider.action.refreshToken")}
+                  </ButtonV2>
+                  <ButtonV2
+                    size="normal"
+                    variant="ghost-muted"
+                    disabled={refreshing().has(account.id)}
+                    onClick={() => props.onRelogin?.(props.integrationID)}
+                  >
+                    {language.t("provider.action.relogin")}
+                  </ButtonV2>
+                  <ButtonV2
+                    size="normal"
+                    variant="ghost-muted"
+                    class="hover:text-v2-state-fg-danger focus-visible:text-v2-state-fg-danger"
+                    disabled={removing().has(account.id)}
+                    onClick={() => void remove(account.id)}
+                  >
+                    <Show when={removing().has(account.id)}>
+                      <Spinner class="size-4" />
+                    </Show>
+                    {language.t("common.disconnect")}
+                  </ButtonV2>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          }}
         </For>
       </div>
     </Show>

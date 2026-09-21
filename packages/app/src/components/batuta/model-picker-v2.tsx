@@ -1,6 +1,8 @@
-import { createMemo, createSignal, For, Show, type Component } from "solid-js"
+import { createMemo, createResource, createSignal, For, Show, type Component } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useProviders } from "@/hooks/use-providers"
+import { useServerSDK } from "@/context/server-sdk"
+import { createIntegrationFetchApi } from "@/utils/integration-fetch"
 
 // Combo values are encoded as "combo:<id>" so the picker's public contract
 // stays a single string everywhere it's already used (Batuta, Memória) —
@@ -43,22 +45,61 @@ const selectClass = `
 
 export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const language = useLanguage()
+  const serverSdk = useServerSDK()
   const providers = useProviders(() => props.directory)
+  const integrationApi = createMemo(() => createIntegrationFetchApi(serverSdk().server.http))
 
-  // Only providers actually connected (auth configured) with at least one
-  // model to pick — the full catalog (`providers.all()`) includes every
-  // provider opencode knows about, most of which aren't usable without
-  // setup, and would otherwise flood this dropdown with hundreds of dead
-  // options. A connected provider can still have zero synced models in this
-  // global (non-directory-scoped) catalog — Omniroute is one such case,
-  // since its catalog only populates once synced against a specific
-  // project — which would be a dead end if left selectable here.
-  const providerList = createMemo(() =>
-    providers
-      .connected()
-      .filter((provider) => Object.keys(provider.models).length > 0)
-      .sort((a, b) => a.name.localeCompare(b.name)),
+  const [integrationsList] = createResource(
+    () => ({ directory: props.directory }),
+    (input) =>
+      integrationApi()
+        .integration.list({
+          location: input.directory ? { directory: input.directory } : undefined,
+        })
+        .then((res) => res.data)
+        .catch(() => []),
   )
+
+  const providerList = createMemo(() => {
+    const extraIntegrations = integrationsList() ?? []
+    const integrationMap = new Map(extraIntegrations.map((i) => [i.id, i]))
+
+    const allCatalog = providers.all()
+    const seen = new Map<string, { id: string; name: string; models: Record<string, any> }>()
+
+    // Filter providers.connected() identically to SettingsProvidersV2:
+    // Only keep if it has active connections in integrations or valid configured credentials
+    for (const p of providers.connected()) {
+      if (p.id === "opencode" && !Object.values(p.models).find((m) => m.cost?.input)) continue
+      const integrationID = "integrationID" in p && typeof p.integrationID === "string" ? p.integrationID : undefined
+      const integration = integrationMap.get(p.id) ?? (integrationID ? integrationMap.get(integrationID) : undefined)
+      if (integration && integration.connections.length === 0) continue
+
+      seen.set(p.id, { id: p.id, name: p.name, models: { ...p.models } })
+    }
+
+    // Include OAuth integrations with active connections (e.g. AGY CLI, OpenCode OAuth, Omniroute)
+    for (const integration of extraIntegrations) {
+      if (integration.connections.length > 0) {
+        const catalogProvider = allCatalog.get(integration.id) ?? allCatalog.get(integration.id.replace("-cli", ""))
+        const models = catalogProvider?.models ?? {}
+        if (!seen.has(integration.id)) {
+          seen.set(integration.id, {
+            id: integration.id,
+            name: integration.name || catalogProvider?.name || integration.id,
+            models: { ...models },
+          })
+        } else {
+          const entry = seen.get(integration.id)!
+          Object.assign(entry.models, models)
+        }
+      }
+    }
+
+    return Array.from(seen.values())
+      .filter((provider) => Object.keys(provider.models).length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name))
+  })
   const isCombo = createMemo(() => props.value.startsWith(COMBO_PREFIX))
   const selectedComboID = createMemo(() => (isCombo() ? props.value.slice(COMBO_PREFIX.length) : ""))
   const selectedProviderID = createMemo(() => (isCombo() ? "" : splitModel(props.value).providerID))
@@ -83,7 +124,15 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
     if (!query) return all
     return all.filter((model) => model.name.toLowerCase().includes(query) || model.id.toLowerCase().includes(query))
   })
-  const modelList = createMemo(() => filteredModels().slice(0, MODEL_RENDER_CAP))
+  const modelList = createMemo(() => {
+    const list = filteredModels().slice(0, MODEL_RENDER_CAP)
+    const selected = selectedModelID()
+    if (selected && !list.some((m) => m.id === selected)) {
+      const found = allModels().find((m) => m.id === selected)
+      if (found) return [found, ...list]
+    }
+    return list
+  })
   const modelListTruncated = createMemo(() => filteredModels().length > MODEL_RENDER_CAP)
 
   return (

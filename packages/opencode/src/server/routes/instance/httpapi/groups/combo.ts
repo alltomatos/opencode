@@ -1,5 +1,5 @@
 import { ConfigComboV1 } from "@opencode-ai/core/v1/config/combo"
-import { ComboExhaustedError, ComboNotFoundError } from "@/combo"
+import { ComboExhaustedError, ComboGenerateFailedError, ComboNotFoundError, GeneratedDraft } from "@/combo"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
@@ -12,6 +12,10 @@ const root = "/combo"
 export const ListResponse = Schema.Array(ConfigComboV1.Combo)
 export const RemoveResponse = Schema.Struct({ success: Schema.Literal(true) })
 export const ResolveResponse = Schema.Struct({ providerID: Schema.String, modelID: Schema.String })
+export const GenerateDraftPayload = Schema.Struct({
+  description: Schema.String,
+  availableModels: Schema.optional(Schema.Array(Schema.String)),
+})
 
 export const ComboApi = HttpApi.make("combo")
   .add(
@@ -60,6 +64,19 @@ export const ComboApi = HttpApi.make("combo")
             summary: "Resolve a combo to a concrete model",
             description:
               "Applies the combo's failover/rate-limit rules and returns which provider/model to use right now — mainly useful for debugging a combo's behavior from the UI.",
+          }),
+        ),
+        HttpApiEndpoint.post("generate", `${root}/generate`, {
+          query: WorkspaceRoutingQuery,
+          payload: GenerateDraftPayload,
+          success: described(GeneratedDraft, "Generated combo recommendation draft"),
+          error: ComboGenerateFailedError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "combo.generate",
+            summary: "Generate a combo recommendation from a natural-language description",
+            description:
+              "One-shot generation: drafts name, ordered model list with priority, failover strategy and rate limits based on user description and available models.",
           }),
         ),
       )

@@ -31,6 +31,20 @@ export class ProviderAuthApiError extends Schema.ErrorClass<ProviderAuthApiError
   { httpApiStatus: 400 },
 ) {}
 
+export const QuotaBucketInfoSchema = Schema.Struct({
+  modelId: Schema.String,
+  remainingFraction: Schema.Number,
+  remainingPercentage: Schema.Number,
+  resetTime: Schema.NullOr(Schema.String),
+})
+
+export const UserQuotaDetailsSchema = Schema.Struct({
+  email: Schema.optional(Schema.String),
+  tier: Schema.Literals(["pro", "free", "unknown"]),
+  buckets: Schema.Array(QuotaBucketInfoSchema),
+  overallPercentage: Schema.Number,
+})
+
 export const ProviderApi = HttpApi.make("provider")
   .add(
     HttpApiGroup.make("provider")
@@ -53,6 +67,20 @@ export const ProviderApi = HttpApi.make("provider")
             identifier: "provider.auth",
             summary: "Get provider auth methods",
             description: "Retrieve available authentication methods for all AI providers.",
+          }),
+        ),
+        HttpApiEndpoint.get("quota", `${root}/:providerID/quota`, {
+          params: { providerID: Schema.String },
+          query: {
+            ...WorkspaceRoutingQuery.fields,
+            credentialID: Schema.String,
+          },
+          success: described(Schema.NullOr(UserQuotaDetailsSchema), "Account quota and tier details"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "provider.quota",
+            summary: "Get provider account quota and plan tier",
+            description: "Retrieve remaining percentage and tier details for an active provider connection.",
           }),
         ),
         HttpApiEndpoint.post("authorize", `${root}/:providerID/oauth/authorize`, {

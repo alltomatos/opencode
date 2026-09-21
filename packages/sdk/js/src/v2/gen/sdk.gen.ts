@@ -58,6 +58,8 @@ import type {
   Combo as Combo2,
   ComboAddErrors,
   ComboAddResponses,
+  ComboGenerateErrors,
+  ComboGenerateResponses,
   ComboListErrors,
   ComboListResponses,
   ComboRemoveErrors,
@@ -242,6 +244,8 @@ import type {
   ProviderOauthAuthorizeResponses,
   ProviderOauthCallbackErrors,
   ProviderOauthCallbackResponses,
+  ProviderQuotaErrors,
+  ProviderQuotaResponses,
   PtyConnectErrors,
   PtyConnectResponses,
   PtyConnectTokenErrors,
@@ -2184,6 +2188,45 @@ export class Combo extends HeyApiClient {
       url: "/combo/{id}/resolve",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Generate a combo recommendation from a natural-language description
+   *
+   * One-shot generation: drafts name, ordered model list with priority, failover strategy and rate limits based on user description and available models.
+   */
+  public generate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      description?: string
+      availableModels?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "description" },
+            { in: "body", key: "availableModels" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ComboGenerateResponses, ComboGenerateErrors, ThrowOnError>({
+      url: "/combo/generate",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -4740,6 +4783,40 @@ export class Provider extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<ProviderAuthResponses, ProviderAuthErrors, ThrowOnError>({
       url: "/provider/auth",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get provider account quota and plan tier
+   *
+   * Retrieve remaining percentage and tier details for an active provider connection.
+   */
+  public quota<ThrowOnError extends boolean = false>(
+    parameters: {
+      providerID: string
+      directory?: string
+      workspace?: string
+      credentialID: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "providerID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "credentialID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ProviderQuotaResponses, ProviderQuotaErrors, ThrowOnError>({
+      url: "/provider/{providerID}/quota",
       ...options,
       ...params,
     })

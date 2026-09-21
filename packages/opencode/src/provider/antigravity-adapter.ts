@@ -295,6 +295,171 @@ function benchConnectionOnFailure(connectionId: string, status: number, bodyText
   if (check.bench) IntegrationRotation.markUnavailable(toConnection(connectionId), check.durationMs)
 }
 
+export interface QuotaBucketInfo {
+  modelId: string
+  remainingFraction: number
+  remainingPercentage: number
+  resetTime: string | null
+}
+
+export interface UserQuotaDetails {
+  email?: string
+  tier: "pro" | "free" | "unknown"
+  buckets: QuotaBucketInfo[]
+  overallPercentage: number
+}
+
+export async function fetchUserQuotaDetails(
+  credentialID: string,
+  profile: "ide" | "cli" = "cli",
+): Promise<UserQuotaDetails | null> {
+  try {
+    const dbFile = CoreDatabase.path()
+    const db = await getDb(dbFile)
+    const row = db.prepare("SELECT value FROM credential WHERE id = ?").get(credentialID) as
+      | { value: string }
+      | undefined
+    if (!row) return null
+
+    const parsed = JSON.parse(row.value)
+    const now = Date.now()
+    let access = parsed.access as string
+    const projectID = parsed.metadata?.projectID || "aicode-consumers"
+
+    // Proactively refresh if needed
+    if (parsed.refresh && (!parsed.expires || parsed.expires - now < 300_000)) {
+      const client = CLIENT_CONFIGS[profile]
+      const params = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: parsed.refresh,
+        client_id: client.id,
+        client_secret: client.secret,
+      })
+      const res = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      })
+      if (res.ok) {
+        const refreshed = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number }
+        access = refreshed.access_token
+        parsed.access = access
+        if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token) {
+          parsed.refresh = refreshed.refresh_token
+        }
+        parsed.expires = Date.now() + refreshed.expires_in * 1000
+        db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
+          JSON.stringify(parsed),
+          Date.now(),
+          credentialID,
+        )
+      }
+    }
+
+    if (!access) return null
+
+    const client = CLIENT_CONFIGS[profile]
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": client.userAgent,
+      Authorization: `Bearer ${access}`,
+    }
+
+    let data: any
+    for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+      try {
+        let res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ project: projectID }),
+          signal: AbortSignal.timeout(8000),
+        })
+        if (!res.ok) {
+          res = await fetch(`${baseUrl}/v1internal:retrieveUserQuota`, {
+            method: "POST",
+            headers,
+            body: "{}",
+            signal: AbortSignal.timeout(8000),
+          })
+        }
+        if (!res.ok) continue
+        data = await res.json()
+        break
+      } catch {
+        continue
+      }
+    }
+
+    if (!data) {
+      return {
+        email: parsed.metadata?.email,
+        tier: "free",
+        buckets: [],
+        overallPercentage: 100,
+      }
+    }
+
+    const FREE_MODELS_DEFAULT = [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash-thinking",
+      "gemini-3-flash",
+      "gemini-3.1-flash-lite",
+    ]
+
+    const buckets: QuotaBucketInfo[] = []
+    let totalFraction = 0
+    let validCount = 0
+
+    if (Array.isArray(data.buckets) && data.buckets.length > 0) {
+      for (const bucket of data.buckets) {
+        const raw = bucket?.remainingFraction
+        const fraction = typeof raw === "number" ? Math.max(0, Math.min(1, raw)) : 1
+        const pct = Math.round(fraction * 100)
+        buckets.push({
+          modelId: bucket?.modelId || bucket?.id || "default",
+          remainingFraction: fraction,
+          remainingPercentage: pct,
+          resetTime: bucket?.resetTime || null,
+        })
+        if (typeof raw === "number") {
+          totalFraction += fraction
+          validCount++
+        }
+      }
+    } else {
+      // Free tier accounts that do not return explicit buckets array in retrieveUserQuota
+      for (const model of FREE_MODELS_DEFAULT) {
+        buckets.push({
+          modelId: model,
+          remainingFraction: 1,
+          remainingPercentage: 100,
+          resetTime: null,
+        })
+      }
+      validCount = FREE_MODELS_DEFAULT.length
+      totalFraction = FREE_MODELS_DEFAULT.length
+    }
+
+    const avgFraction = validCount > 0 ? totalFraction / validCount : 1
+    // Detect Pro tier: Pro accounts usually have more than 5 model buckets (including pro models like gemini-3.1-pro-high)
+    const isPro = data.userTier === "PRO" || data.tier === "pro" || Boolean(data.isProUser) || (Array.isArray(data.buckets) && data.buckets.some((b: any) => b?.modelId?.includes("pro") || b?.modelId?.includes("3.1-pro") || b?.modelId?.includes("3.7-flash")))
+
+    return {
+      email: parsed.metadata?.email,
+      tier: isPro ? "pro" : "free",
+      buckets,
+      overallPercentage: Math.round(avgFraction * 100),
+    }
+  } catch {
+    return {
+      tier: "free",
+      buckets: [],
+      overallPercentage: 100,
+    }
+  }
+}
+
 export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () => Record<string, any>) {
   const integrationID = profile === "cli" ? "google-antigravity-cli" : "google-antigravity"
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {

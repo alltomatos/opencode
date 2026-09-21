@@ -1751,11 +1751,11 @@ export type ProviderConfig = {
      */
     timeout?: number | false
     /**
-     * Timeout in milliseconds to wait for response headers. Provider integrations may set defaults. Set to false to disable timeout.
+     * Timeout in milliseconds to wait for response headers (default: 300000). Set to false to disable timeout.
      */
     headerTimeout?: number | false
     /**
-     * Timeout in milliseconds between streamed SSE chunks for this provider. If no chunk arrives within this window, the request is aborted. Set to false to disable timeout.
+     * Timeout in milliseconds between streamed SSE chunks for this provider (default: 300000). If no chunk arrives within this window, the request is aborted. Set to false to disable timeout.
      */
     chunkTimeout?: number | false
     [key: string]: unknown | string | boolean | number | false | number | false | number | false | undefined
@@ -2262,6 +2262,11 @@ export type ComboNotFoundError = {
 export type ComboExhaustedError = {
   _tag: "ComboExhaustedError"
   id: string
+}
+
+export type ComboGenerateFailedError = {
+  _tag: "ComboGenerateFailedError"
+  reason: string
 }
 
 export type AgentUiNotFoundError = {
@@ -2991,6 +2996,11 @@ export type UnauthorizedError = {
   message: string
 }
 
+export type SystemUpdateError = {
+  name: "SystemUpdateError"
+  message: string
+}
+
 export type SessionsResponse = {
   data: Array<SessionV2Info>
   cursor: {
@@ -3097,6 +3107,7 @@ export type ProviderNotFoundError = {
 }
 
 export type ScheduleValidationError = {
+  name: "ScheduleValidationError"
   message: string
 }
 
@@ -8369,6 +8380,48 @@ export type ComboResolveResponses = {
 
 export type ComboResolveResponse = ComboResolveResponses[keyof ComboResolveResponses]
 
+export type ComboGenerateData = {
+  body?: {
+    description: string
+    availableModels?: Array<string>
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/combo/generate"
+}
+
+export type ComboGenerateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * ComboGenerateFailedError
+   */
+  500: ComboGenerateFailedError
+}
+
+export type ComboGenerateError = ComboGenerateErrors[keyof ComboGenerateErrors]
+
+export type ComboGenerateResponses = {
+  /**
+   * Generated combo recommendation draft
+   */
+  200: {
+    name: string
+    models: Array<ComboModel>
+    failoverEnabled: boolean
+    failoverStrategy: "priority" | "round-robin"
+    requestsPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    tokensPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ComboGenerateResponse = ComboGenerateResponses[keyof ComboGenerateResponses]
+
 export type AgentuiListData = {
   body?: never
   path?: never
@@ -10995,6 +11048,47 @@ export type ProviderAuthResponses = {
 
 export type ProviderAuthResponse = ProviderAuthResponses[keyof ProviderAuthResponses]
 
+export type ProviderQuotaData = {
+  body?: never
+  path: {
+    providerID: string
+  }
+  query: {
+    directory?: string
+    workspace?: string
+    credentialID: string
+  }
+  url: "/provider/{providerID}/quota"
+}
+
+export type ProviderQuotaErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ProviderQuotaError = ProviderQuotaErrors[keyof ProviderQuotaErrors]
+
+export type ProviderQuotaResponses = {
+  /**
+   * Account quota and tier details
+   */
+  200: {
+    email?: string
+    tier: "pro" | "free" | "unknown"
+    buckets: Array<{
+      modelId: string
+      remainingFraction: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      remainingPercentage: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      resetTime: string
+    }>
+    overallPercentage: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ProviderQuotaResponse = ProviderQuotaResponses[keyof ProviderQuotaResponses]
+
 export type ProviderOauthAuthorizeData = {
   body?: {
     /**
@@ -13503,9 +13597,9 @@ export type V2SystemUpdateData = {
 
 export type V2SystemUpdateErrors = {
   /**
-   * BadRequest | InvalidRequestError
+   * SystemUpdateError | InvalidRequestError
    */
-  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  400: SystemUpdateError | InvalidRequestError
   /**
    * UnauthorizedError
    */

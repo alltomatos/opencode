@@ -5,6 +5,8 @@ import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { ConfigComboV1 } from "@opencode-ai/core/v1/config/combo"
 import { Config } from "@/config/config"
 import { Provider } from "../provider/provider"
+import { type LanguageModelV3 } from "@ai-sdk/provider"
+import { jsonSchema, streamText, tool } from "ai"
 import { Context, Effect, Layer, Schema } from "effect"
 
 // A combo groups several models under one selectable name, with failover
@@ -30,6 +32,35 @@ export class ComboExhaustedError extends Schema.TaggedErrorClass<ComboExhaustedE
   }
 }
 
+export class ComboGenerateFailedError extends Schema.TaggedErrorClass<ComboGenerateFailedError>()(
+  "ComboGenerateFailedError",
+  {
+    reason: Schema.String,
+  },
+) {
+  override get message() {
+    return `Falha ao gerar combo com IA: ${this.reason}`
+  }
+}
+
+export const GeneratedDraft = Schema.Struct({
+  name: Schema.String,
+  models: Schema.Array(ConfigComboV1.ComboModel),
+  failoverEnabled: Schema.Boolean,
+  failoverStrategy: Schema.Literals(["priority", "round-robin"]),
+  requestsPerMinute: Schema.optional(Schema.Number),
+  tokensPerMinute: Schema.optional(Schema.Number),
+})
+export type GeneratedDraft = Schema.Schema.Type<typeof GeneratedDraft>
+
+const DRAFT_MODEL_CANDIDATES = [
+  "openrouter/google/gemini-3.5-flash-lite",
+  "kc/anthropic/claude-haiku-4.5",
+  "kc/google/gemini-2.5-flash-lite",
+  "antigravity/gemini-3.1-flash-lite",
+  "agy/gemini-3.1-flash-lite",
+]
+
 export type ResolvedModel = { providerID: string; modelID: string }
 
 export interface Interface {
@@ -43,6 +74,10 @@ export interface Interface {
   // keep the rate-limit window accurate.
   readonly resolve: (id: string) => Effect.Effect<ResolvedModel, ComboNotFoundError | ComboExhaustedError>
   readonly report: (input: { id: string; model: string; ok: boolean; tokens?: number }) => Effect.Effect<void>
+  readonly generateDraft: (input: {
+    description: string
+    availableModels?: readonly string[]
+  }) => Effect.Effect<GeneratedDraft, ComboGenerateFailedError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Combo") {}
@@ -181,7 +216,176 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       if (input.tokens) w.tokens.push({ at: now, count: input.tokens })
     })
 
-    return Service.of({ list, get, add, remove, resolve, report })
+    const tryResolveDraftModel = (spec: string) =>
+      Effect.gen(function* () {
+        const separator = spec.indexOf("/")
+        if (separator < 0) return undefined
+        const providerID = spec.slice(0, separator)
+        if (providerID === "agentrouter") return undefined
+        const modelID = spec.slice(separator + 1)
+        const providerInfo = yield* provider.getProvider(providerID as any).pipe(Effect.orElseSucceed(() => undefined))
+        let modelInfo = providerInfo?.models[modelID]
+        if (!modelInfo) {
+          modelInfo = yield* provider
+            .getModel(providerID as any, modelID as any)
+            .pipe(Effect.orElseSucceed(() => undefined))
+        }
+        if (!modelInfo) return undefined
+        return yield* provider
+          .getLanguage(modelInfo)
+          .pipe(Effect.orElseSucceed(() => undefined))
+      })
+
+    const generateDraft = Effect.fn("Combo.generateDraft")(function* (input: {
+      description: string
+      availableModels?: readonly string[]
+    }) {
+      const candidates: string[] = []
+
+      // 1. Add explicitly connected models from the client UI
+      if (input.availableModels && input.availableModels.length > 0) {
+        for (const model of input.availableModels) {
+          if (!model.startsWith("opencode/") && !model.startsWith("agentrouter/")) {
+            candidates.push(model)
+          }
+        }
+      }
+
+      // 2. Add default candidates
+      for (const candidate of DRAFT_MODEL_CANDIDATES) {
+        if (!candidates.includes(candidate)) candidates.push(candidate)
+      }
+
+      // 3. Add all other connected models
+      const providers = yield* provider.list().pipe(Effect.orElseSucceed(() => ({})))
+      for (const [providerID, prov] of Object.entries(providers)) {
+        if (providerID === "agentrouter" || providerID === "opencode") continue
+        for (const modelID of Object.keys(prov.models ?? {})) {
+          const spec = `${providerID}/${modelID}`
+          if (!candidates.includes(spec)) candidates.push(spec)
+        }
+      }
+
+      let lastErrorReason: string | undefined
+      let generatedDraftResult: GeneratedDraft | undefined
+
+      for (const candidate of candidates) {
+        const language = yield* tryResolveDraftModel(candidate)
+        if (!language) continue
+
+        const saveDraft = tool({
+          description: "Salvar a recomendação especializada do combo de modelos com failover inteligente.",
+          inputSchema: jsonSchema({
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description:
+                  "Nome curto e claro para o combo (ex.: 'Codificação Primária', 'Gemini Resiliente', 'Economia Rápida').",
+              },
+              models: {
+                type: "array",
+                description:
+                  "Lista ordenada de modelos para compor o combo em formato 'providerID/modelID'. A ordem determina a prioridade de fallback.",
+                items: {
+                  type: "object",
+                  properties: {
+                    model: { type: "string", description: "Identificador 'providerID/modelID' do modelo." },
+                    priority: {
+                      type: "number",
+                      description: "Prioridade numérica (0 para o principal, 1 para o primeiro fallback, etc.).",
+                    },
+                  },
+                  required: ["model", "priority"],
+                },
+              },
+              failoverEnabled: {
+                type: "boolean",
+                description: "True para habilitar failover automático caso o modelo atinja erro ou limite de cota.",
+              },
+              failoverStrategy: {
+                type: "string",
+                enum: ["priority", "round-robin"],
+                description:
+                  "Estratégia de failover: 'priority' para tentar sempre o melhor primeiro e descer na cadeia, ou 'round-robin' para balancear requisições.",
+              },
+              requestsPerMinute: {
+                type: "number",
+                description: "Limite global de requisições por minuto no combo (opcional).",
+              },
+              tokensPerMinute: {
+                type: "number",
+                description: "Limite global de tokens por minuto no combo (opcional).",
+              },
+            },
+            required: ["name", "models", "failoverEnabled", "failoverStrategy"],
+          }),
+        })
+
+        const availableContext =
+          input.availableModels && input.availableModels.length > 0
+            ? `\nModelos conectados e disponíveis no sistema para escolha:\n${input.availableModels.join("\n")}\nIMPORTANTE: Prefira usar apenas modelos da lista acima que façam sentido para a necessidade do usuário.`
+            : ""
+
+        const execution = yield* Effect.tryPromise({
+          try: async () => {
+            const stream = streamText({
+              model: language,
+              system:
+                "Você é um arquiteto especialista em IA e roteamento resiliente de modelos (Combos).\n" +
+                "Seu objetivo é sugerir a melhor composição de modelos para a necessidade do usuário.\n" +
+                "Lembre-se:\n" +
+                "- Cada provedor conectado já tem rotação automática inteligente de contas com proteção contra 429 e corte preventivo a 95% de cota (5% de margem).\n" +
+                "- O combo orquestra a cadeia entre 1 ou múltiplos provedores/modelos (ex: Modelo forte para raciocínio -> Modelo rápido de fallback).\n" +
+                "- Priorize a ordem certa de modelos e estratégia apropriada ('priority' para hierarquia principal->fallback, 'round-robin' para distribuição de carga).\n" +
+                "- Crie combos ricos com 3 a 5 modelos de diferentes provedores ou categorias conectados (ex.: Top tier de raciocínio, modelo de velocidade intermediária e modelo ultra-rápido/econômico de emergência).\n" +
+                "- IMPORTANTE: Use EXATAMENTE os identificadores 'providerID/modelID' presentes na lista de modelos conectados abaixo.\n" +
+                "- Sempre chame a tool save_draft com a melhor configuração para a descrição fornecida." +
+                availableContext,
+              prompt: input.description,
+              tools: { save_draft: saveDraft },
+              toolChoice: "required",
+            })
+            const toolCalls = await stream.toolCalls
+            return toolCalls[0]
+          },
+          catch: (cause) => (cause instanceof Error ? cause.message : String(cause)),
+        }).pipe(Effect.exit)
+
+        if (execution._tag === "Success" && execution.value) {
+          const toolInput = execution.value.input as {
+            name: string
+            models: { model: string; priority: number }[]
+            failoverEnabled: boolean
+            failoverStrategy: "priority" | "round-robin"
+            requestsPerMinute?: number
+            tokensPerMinute?: number
+          }
+
+          generatedDraftResult = {
+            name: toolInput.name,
+            models: toolInput.models && toolInput.models.length > 0 ? toolInput.models : [{ model: "", priority: 0 }],
+            failoverEnabled: toolInput.failoverEnabled ?? true,
+            failoverStrategy: toolInput.failoverStrategy ?? "priority",
+            requestsPerMinute: toolInput.requestsPerMinute,
+            tokensPerMinute: toolInput.tokensPerMinute,
+          }
+          break
+        } else if (execution._tag === "Failure") {
+          lastErrorReason = String(execution.cause)
+        }
+      }
+
+      if (generatedDraftResult) return generatedDraftResult
+
+      return yield* new ComboGenerateFailedError({
+        reason:
+          lastErrorReason ??
+          "Nenhum provedor ou modelo conectado conseguiu gerar a recomendação. Conecte um provedor (ex.: Google Antigravity, OpenRouter, Omniroute) em Configurações.",
+      })
+    })
+
+    return Service.of({ list, get, add, remove, resolve, report, generateDraft })
   }),
 )
 

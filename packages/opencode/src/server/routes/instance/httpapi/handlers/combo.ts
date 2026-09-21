@@ -25,6 +25,20 @@ export const comboHandlers = HttpApiBuilder.group(InstanceHttpApi, "combo", (han
       return yield* combo.resolve(ctx.params.id)
     })
 
-    return handlers.handle("list", list).handle("add", add).handle("remove", remove).handle("resolve", resolve)
+    const generate = Effect.fn("ComboHttpApi.generate")(function* (ctx: {
+      payload: { description: string; availableModels?: readonly string[] }
+    }) {
+      return yield* combo.generateDraft({
+        description: ctx.payload.description,
+        availableModels: ctx.payload.availableModels,
+      })
+    })
+
+    return handlers
+      .handle("list", list)
+      .handle("add", add)
+      .handle("remove", remove)
+      .handle("resolve", resolve)
+      .handle("generate", generate)
   }),
 )

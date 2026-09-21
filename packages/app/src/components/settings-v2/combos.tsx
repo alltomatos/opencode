@@ -10,7 +10,7 @@ import { DialogComboV2 } from "./dialog-combo-v2"
 import { SettingsListV2 } from "./parts/list"
 import "./settings-v2.css"
 
-export const SettingsCombosV2: Component = () => {
+export const SettingsCombosV2: Component<{ directory?: () => string | undefined }> = (props) => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
   const dialog = useDialog()
@@ -21,13 +21,14 @@ export const SettingsCombosV2: Component = () => {
   })
 
   const openAdd = () => {
-    dialog.push(() => <DialogComboV2 mode="add" onSaved={() => void refetch()} />)
+    dialog.push(() => <DialogComboV2 mode="add" directory={props.directory?.()} onSaved={() => void refetch()} />)
   }
 
   const openEdit = (combo: NonNullable<ReturnType<typeof combos>>[number]) => {
     dialog.push(() => (
       <DialogComboV2
         mode="edit"
+        directory={props.directory?.()}
         combo={{
           id: combo.id,
           name: combo.name,

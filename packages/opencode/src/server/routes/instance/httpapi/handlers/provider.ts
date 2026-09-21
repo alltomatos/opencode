@@ -4,6 +4,7 @@ import { Config } from "@/config/config"
 import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { Provider } from "@/provider/provider"
 import { Auth } from "@/auth"
+import { fetchUserQuotaDetails } from "@/provider/antigravity-adapter"
 
 import { mapValues } from "remeda"
 import { Effect, Layer, Schema } from "effect"
@@ -183,9 +184,23 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       return true
     })
 
+    const quota = Effect.fn("ProviderHttpApi.quota")(function* (ctx: {
+      params: { providerID: string }
+      query: { credentialID: string }
+    }) {
+      if (ctx.params.providerID === "google-antigravity-cli" || ctx.params.providerID === "google-antigravity") {
+        const details = yield* Effect.tryPromise(() => fetchUserQuotaDetails(ctx.query.credentialID, "cli")).pipe(
+          Effect.orElseSucceed(() => null),
+        )
+        return details
+      }
+      return null
+    })
+
     return handlers
       .handle("list", list)
       .handle("auth", auth)
+      .handle("quota", quota)
       .handleRaw("authorize", authorizeRaw)
       .handle("callback", callback)
   }),

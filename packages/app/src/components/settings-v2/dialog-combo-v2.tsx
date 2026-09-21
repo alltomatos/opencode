@@ -3,13 +3,16 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@op
 import { DividerV2 } from "@opencode-ai/ui/v2/divider-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { TextareaV2 } from "@opencode-ai/ui/v2/textarea-v2"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createStore } from "solid-js/store"
-import { For, Show, type Component } from "solid-js"
+import { createSignal, For, Show, type Component } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { useProviders } from "@/hooks/use-providers"
 import { showToast } from "@/utils/toast"
 import { ModelPickerV2 } from "@/components/batuta/model-picker-v2"
 import "./settings-v2.css"
@@ -28,11 +31,18 @@ type ComboForm = {
 export const DialogComboV2: Component<{
   mode: "add" | "edit"
   combo?: ComboForm
+  directory?: string
   onSaved: () => void
 }> = (props) => {
   const dialog = useDialog()
   const language = useLanguage()
   const serverSDK = useServerSDK()
+  const providers = useProviders(() => props.directory)
+
+  const [aiOpen, setAiOpen] = createSignal(props.mode === "add")
+  const [aiDescription, setAiDescription] = createSignal("")
+  const [aiGenerating, setAiGenerating] = createSignal(false)
+  const [aiError, setAiError] = createSignal<string | undefined>()
 
   const [form, setForm] = createStore<ComboForm>(
     props.combo ?? {
@@ -48,6 +58,53 @@ export const DialogComboV2: Component<{
 
   const addModelRow = () => setForm("models", (models) => [...models, { model: "", priority: models.length }])
   const removeModelRow = (index: number) => setForm("models", (models) => models.filter((_, i) => i !== index))
+
+  const generateWithAI = async () => {
+    if (!aiDescription().trim() || aiGenerating()) return
+    setAiError(undefined)
+    setAiGenerating(true)
+    try {
+      const connectedList = providers.connected()
+      const availableModels: string[] = []
+      for (const prov of connectedList) {
+        for (const [modelKey, m] of Object.entries(prov.models ?? {})) {
+          availableModels.push(`${prov.id}/${m.id ?? modelKey}`)
+        }
+      }
+
+      const result = await serverSDK().client.combo.generate({
+        description: aiDescription(),
+        availableModels: availableModels.length > 0 ? availableModels : undefined,
+      })
+
+      const draft = result.data
+      if (!draft) throw new Error(language.t("common.requestFailed"))
+
+      setForm("name", draft.name)
+      setForm(
+        "models",
+        draft.models.map((m, idx) => ({
+          model: m.model,
+          priority: Number(m.priority ?? idx),
+        })),
+      )
+      setForm("failoverEnabled", draft.failoverEnabled)
+      setForm("failoverStrategy", draft.failoverStrategy as "priority" | "round-robin")
+      setForm("requestsPerMinute", draft.requestsPerMinute?.toString() ?? "")
+      setForm("tokensPerMinute", draft.tokensPerMinute?.toString() ?? "")
+
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("settings.combos.ai.toast.generated"),
+      })
+      setAiOpen(false)
+    } catch (cause) {
+      setAiError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setAiGenerating(false)
+    }
+  }
 
   const save = async () => {
     if (!form.name.trim() || form.models.some((m) => !m.model)) {
@@ -87,6 +144,38 @@ export const DialogComboV2: Component<{
       </DialogHeader>
       <DividerV2 />
       <DialogBody class="flex w-full min-w-0 flex-1 flex-col gap-4 px-4 pt-4 pb-2">
+        <div class="flex w-full min-w-0 flex-col gap-2 rounded-[8px] border border-v2-border-border-base bg-v2-background-bg-raised p-3">
+          <button
+            type="button"
+            class="flex items-center gap-2 text-13-medium text-v2-text-text-base cursor-pointer"
+            onClick={() => setAiOpen((open) => !open)}
+          >
+            <Icon name="brain" />
+            {language.t("settings.combos.ai.title")}
+            <IconV2 name={aiOpen() ? "chevron-up" : "chevron-down"} class="ml-auto" />
+          </button>
+          <Show when={aiOpen()}>
+            <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.combos.ai.hint")}</p>
+            <TextareaV2
+              class="!w-full self-stretch"
+              rows={3}
+              value={aiDescription()}
+              placeholder={language.t("settings.combos.ai.placeholder")}
+              onInput={(event) => setAiDescription(event.currentTarget.value)}
+            />
+            <Show when={aiError()}>
+              <span class="settings-v2-server-dialog-error">{aiError()}</span>
+            </Show>
+            <ButtonV2
+              variant="outline"
+              disabled={aiGenerating() || !aiDescription().trim()}
+              onClick={() => void generateWithAI()}
+            >
+              {aiGenerating() ? language.t("settings.combos.ai.generating") : language.t("settings.combos.ai.generate")}
+            </ButtonV2>
+          </Show>
+        </div>
+
         <div class="flex flex-col gap-1.5">
           <label class="settings-v2-server-dialog-label">{language.t("settings.combos.field.name")}</label>
           <TextInputV2 value={form.name} onInput={(event) => setForm("name", event.currentTarget.value)} />
@@ -97,7 +186,11 @@ export const DialogComboV2: Component<{
           <For each={form.models}>
             {(row, index) => (
               <div class="flex items-center gap-2">
-                <ModelPickerV2 value={row.model} onChange={(value) => setForm("models", index(), "model", value)} />
+                <ModelPickerV2
+                  directory={props.directory}
+                  value={row.model}
+                  onChange={(value) => setForm("models", index(), "model", value)}
+                />
                 <IconButtonV2
                   type="button"
                   variant="ghost-muted"
