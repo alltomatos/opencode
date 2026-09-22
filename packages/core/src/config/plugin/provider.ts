@@ -106,6 +106,27 @@ export const Plugin = define({
               })
             }
           }
+
+          const combos = Object.entries((file.info as any).combo ?? {})
+          if (combos.length > 0) {
+            const comboProviderID = ProviderV2.ID.make("combo")
+            catalog.provider.update(comboProviderID, (provider) => {
+              provider.name = "Combos"
+              provider.api = { type: "aisdk", package: "@ai-sdk/openai", url: "", settings: {} }
+            })
+            for (const [id, combo] of combos) {
+              const comboObj = combo as { name?: string }
+              catalog.model.update(comboProviderID, ModelV2.ID.make(id), (model) => {
+                model.name = comboObj.name ?? id
+                model.family = "combo"
+                model.capabilities = {
+                  tools: true,
+                  input: ["text", "image", "pdf"],
+                  output: ["text"],
+                }
+              })
+            }
+          }
         }
       }),
     )

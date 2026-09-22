@@ -50,11 +50,19 @@ export function useProviders(directory: Accessor<string | undefined>) {
         (v) => Array.from(v),
       ),
     connected: () => {
-      const connected = new Set(providers().connected)
+      const all = providers().all
+      const rawConnected = new Set(providers().connected)
       return pipe(
-        providers().all,
+        all,
         Iterable.map(([, p]) => p),
-        Iterable.filter((p) => connected.has(p.id)),
+        Iterable.filter((p) => {
+          if (!rawConnected.has(p.id)) return false
+          if (p.id === "combo") return true
+          if (p.id === "google-antigravity" || p.id === "google-antigravity-cli" || p.id === "omniroute") return true
+          if (p.id === "opencode" && !p.options?.apiKey && !Object.values(p.models).some((m) => m.cost?.input)) return false
+          if ((p.id === "openrouter" || p.id === "agentrouter") && !p.options?.apiKey && !p.key) return false
+          return true
+        }),
         (v) => Array.from(v),
       )
     },

@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.33",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Provedor Combos no Chat e Filtro de Provedores Conectados",
+              "description": "Injeção direta do provedor Combos e de seus modelos criados no modelo de seleção do prompt, além de filtragem estrita de provedores não configurados no chat de qualquer projeto."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.32",
       "highlights": [
         {

@@ -4,6 +4,7 @@ import { DateTime } from "luxon"
 import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } from "remeda"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useProviders } from "@/hooks/use-providers"
+import { useServerSDK } from "@/context/server-sdk"
 import { Persist, persisted } from "@/utils/persist"
 
 export type ModelKey = { providerID: string; modelID: string }
@@ -28,6 +29,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
   gate: false,
   init: (props: { directory?: Accessor<string | undefined> } = {}) => {
     const providers = useProviders(() => props.directory?.())
+    const serverSDK = useServerSDK()
 
     const [store, setStore, _, ready] = persisted(
       Persist.global("model", ["model.v1"]),
@@ -39,14 +41,65 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       }),
     )
 
-    const available = createMemo(() =>
-      providers.connected().flatMap((p) =>
+    const [combosResource] = createResource(async () => {
+      try {
+        const result = await serverSDK().client.combo.list()
+        return result.data ?? []
+      } catch {
+        return []
+      }
+    })
+
+    const comboModels = createMemo(() => {
+      const combos = combosResource() ?? []
+      if (combos.length === 0) return []
+      const comboProvider = {
+        id: "combo",
+        name: "Combos",
+        source: "custom",
+        env: [],
+        options: {},
+        models: {},
+      }
+      return combos.map((c) => ({
+        id: c.id,
+        name: c.name,
+        providerID: "combo",
+        provider: comboProvider as any,
+        api: {
+          id: c.id,
+          url: "",
+          npm: "combo",
+        },
+        family: "combo",
+        capabilities: {
+          temperature: true,
+          reasoning: true,
+          attachment: true,
+          toolcall: true,
+          input: { text: true, audio: false, image: true, video: false, pdf: true },
+          output: { text: true, audio: false, image: false, video: false, pdf: false },
+          interleaved: false,
+        },
+        cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+        limit: { context: 1_048_576 },
+        status: "active" as const,
+        options: {},
+        headers: {},
+        release_date: new Date().toISOString().slice(0, 10),
+        variants: {},
+      }))
+    })
+
+    const available = createMemo(() => [
+      ...comboModels(),
+      ...providers.connected().flatMap((p) =>
         Object.values(p.models).map((m) => ({
           ...m,
           provider: p,
         })),
       ),
-    )
+    ])
 
     const release = createMemo(
       () =>
@@ -115,6 +168,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
     }
 
     const visible = (model: ModelKey) => {
+      if (model.providerID === "combo") return true
       const key = modelKey(model)
       const state = visibility().get(key)
       if (state === "hide") return false
@@ -129,7 +183,10 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       update(model, state ? "show" : "hide")
     }
 
-    const category = (model: ModelKey) => store.categories[modelKey(model)]
+    const category = (model: ModelKey) => {
+      if (model.providerID === "combo") return "combo"
+      return store.categories[modelKey(model)]
+    }
 
     const setCategories = (providerID: string, entries: { id: string; category: string }[]) => {
       setStore(
