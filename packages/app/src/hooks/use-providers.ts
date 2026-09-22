@@ -59,8 +59,8 @@ export function useProviders(directory: Accessor<string | undefined>) {
           if (!rawConnected.has(p.id)) return false
           if (p.id === "combo") return true
           if (p.id === "google-antigravity" || p.id === "google-antigravity-cli" || p.id === "omniroute") return true
-          if (p.id === "opencode" && !p.options?.apiKey && !Object.values(p.models).some((m) => m.cost?.input)) return false
-          if ((p.id === "openrouter" || p.id === "agentrouter") && !p.options?.apiKey && !p.key) return false
+          const key = p.options?.apiKey || p.key || p.options?.accessToken
+          if (!key || key === "opencode-oauth-dummy-key" || key === "antigravity-oauth") return false
           return true
         }),
         (v) => Array.from(v),

@@ -17,6 +17,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
   const connected = createMemo(() => new Set(providers.connected().map((item) => item.id)))
 
   const valid = (model: ModelKey) => {
+    if (model.providerID === "combo") return true
     const provider = providers.all().get(model.providerID)
     return !!provider?.models[model.modelID] && connected().has(model.providerID)
   }
