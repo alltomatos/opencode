@@ -13,6 +13,14 @@ import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import "./settings-v2.css"
 
+const inferProvider = (host: string): "gmail" | "speedmail" | "outlook" | "generic-imap" => {
+  const h = host.toLowerCase()
+  if (h.includes("gmail") || h.includes("google")) return "gmail"
+  if (h.includes("speedmail")) return "speedmail"
+  if (h.includes("outlook") || h.includes("office365") || h.includes("live.com") || h.includes("hotmail")) return "outlook"
+  return "generic-imap"
+}
+
 export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) => {
   const dialog = useDialog()
   const serverSDK = useServerSDK()
@@ -68,10 +76,11 @@ export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) 
     }
     setForm("err", err)
     if (err.label || err.host || err.user || err.appPassword) return
+    const inferred = inferProvider(host)
     return {
       id: form.id.trim() || user.toLowerCase(),
       label,
-      provider: form.provider.trim() || "generic",
+      provider: form.provider.trim() || inferred,
       host,
       port: Math.max(1, Number(form.port) || 993),
       secure: form.secure,
@@ -258,14 +267,24 @@ export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) 
                   appearance="large"
                   class="!w-full self-stretch"
                   value={form.smtpPort}
-                  onInput={(e) => setForm("smtpPort", e.currentTarget.value.replace(/\D/g, ""))}
+                  onInput={(e) => {
+                    const portStr = e.currentTarget.value.replace(/\D/g, "")
+                    setForm("smtpPort", portStr)
+                    if (portStr === "465") setForm("smtpSecure", true)
+                    else if (portStr === "587") setForm("smtpSecure", false)
+                  }}
                 />
               </div>
             </div>
-            <label class="flex items-center gap-2 text-12-regular text-text-weak">
-              <SwitchV2 checked={form.smtpSecure} onChange={(checked) => setForm("smtpSecure", checked)} />
-              Conexão segura (TLS)
-            </label>
+            <div class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 text-12-regular text-text-weak">
+                <SwitchV2 checked={form.smtpSecure} onChange={(checked) => setForm("smtpSecure", checked)} />
+                Conexão segura (SSL implícito — porta 465)
+              </label>
+              <span class="settings-v2-server-dialog-hint">
+                Para porta 587 (STARTTLS), mantenha desmarcado.
+              </span>
+            </div>
           </Show>
         </div>
       </DialogBody>

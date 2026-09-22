@@ -28,7 +28,7 @@ export function registerMailReplyMessage(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ accountId, folder, uid, to, subject, bodyText, bodyHtml }) => {
+    async ({ accountId, folder, uid, to, cc, bcc, replyAll, subject, bodyText, bodyHtml }) => {
       if (bodyText === undefined && bodyHtml === undefined) {
         throw new Error("Informe ao menos um dos campos bodyText ou bodyHtml.");
       }
@@ -62,7 +62,52 @@ export function registerMailReplyMessage(server: McpServer): void {
         }
       });
 
-      const replyTo = to ?? original.from?.value?.[0]?.address;
+      let replyTo = to;
+      let replyCc = cc;
+
+      if (!replyTo) {
+        const sender = original.from?.value?.[0]?.address;
+
+        if (replyAll) {
+          const selfEmail = account.user.toLowerCase();
+          const uniqueTo = new Set<string>();
+
+          if (sender && sender.toLowerCase() !== selfEmail) {
+            uniqueTo.add(sender);
+          }
+
+          const extractAddresses = (field: any): string[] => {
+            if (!field) return [];
+            if (Array.isArray(field)) {
+              return field.flatMap((f: any) => f.value || []).map((v: any) => v.address).filter(Boolean);
+            }
+            return (field.value || []).map((v: any) => v.address).filter(Boolean);
+          };
+
+          extractAddresses(original.to).forEach(addr => {
+            if (addr.toLowerCase() !== selfEmail) uniqueTo.add(addr);
+          });
+
+          if (uniqueTo.size > 0) {
+            replyTo = Array.from(uniqueTo).join(", ");
+          } else if (sender) {
+            replyTo = sender; // fallback
+          }
+
+          if (!replyCc) {
+            const uniqueCc = new Set<string>();
+            extractAddresses(original.cc).forEach(addr => {
+              if (addr.toLowerCase() !== selfEmail) uniqueCc.add(addr);
+            });
+            if (uniqueCc.size > 0) {
+              replyCc = Array.from(uniqueCc).join(", ");
+            }
+          }
+        } else {
+          replyTo = sender;
+        }
+      }
+
       if (!replyTo) {
         throw new Error(
           `Não foi possível determinar o destinatário da resposta: informe "to" explicitamente ou verifique se a mensagem original tem remetente.`
@@ -88,6 +133,8 @@ export function registerMailReplyMessage(server: McpServer): void {
 
       await sendViaSmtp(account, {
         to: replyTo,
+        cc: replyCc,
+        bcc,
         subject: replySubject,
         text: finalText,
         html: bodyHtml,
@@ -99,7 +146,7 @@ export function registerMailReplyMessage(server: McpServer): void {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ sent: true, accountId, to: replyTo, subject: replySubject }, null, 2),
+            text: JSON.stringify({ sent: true, accountId, to: replyTo, cc: replyCc, bcc, subject: replySubject, replyAll }, null, 2),
           },
         ],
       };

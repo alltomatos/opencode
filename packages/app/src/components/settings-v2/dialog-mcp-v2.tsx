@@ -49,6 +49,11 @@ const LOGOS = {
       <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z" />
     </svg>
   ),
+  izapia: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 1.2 1.2-2.9-.2-.3A8 8 0 1 1 12 20Zm4.5-5.9c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8 1c-.1.1-.3.2-.5.1a6.5 6.5 0 0 1-3.1-2.7c-.2-.4.2-.4.6-1.1 0-.1 0-.3-.1-.4s-.6-1.4-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3a3 3 0 0 0-.9 2.2c0 1.3.9 2.6 1.1 2.8 1.4 2.3 3.4 3.4 5.3 3.4.7 0 1.7-.3 2.2-1 .3-.5.3-1 .2-1.1Z" />
+    </svg>
+  ),
   mcpmail: (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
       <path d="M3 5.5C3 4.7 3.7 4 4.5 4h15c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5h-15C3.7 20 3 19.3 3 18.5v-13Zm2 .6v.2l7 5.2 7-5.2v-.2H5Zm14 2.5-6.4 4.8a1 1 0 0 1-1.2 0L5 8.6V18h14V8.6Z" />
@@ -106,6 +111,15 @@ const KNOWN_SERVERS = [
     oauth: true,
   },
   {
+    id: "izapia",
+    name: "izapia",
+    kind: "local",
+    command: ["npx", "-y", "@alltomatos/izapia-mcp"],
+    environment: { IZAPIA_API_KEY: "" },
+    logo: LOGOS.izapia,
+    oauth: false,
+  },
+  {
     id: "mcpmail",
     name: "MailMCP",
     kind: "local",
@@ -159,24 +173,30 @@ function KeyValueEditor(props: { label: string; rows: KeyValueRow[]; onChange: (
   return (
     <div class="flex w-full min-w-0 flex-col gap-2">
       <label class="settings-v2-server-dialog-label">{props.label}</label>
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5 w-full min-w-0">
         <For each={props.rows}>
           {(row, index) => (
-            <div class="flex w-full min-w-0 items-center gap-1.5">
-              <TextInputV2
-                type="text"
-                class="!w-full min-w-0 flex-1"
-                value={row.key}
-                placeholder="KEY"
-                onInput={(e) => setRow(index(), "key", e.currentTarget.value)}
-              />
-              <TextInputV2
-                type="text"
-                class="!w-full min-w-0 flex-1"
-                value={row.value}
-                placeholder="value"
-                onInput={(e) => setRow(index(), "value", e.currentTarget.value)}
-              />
+            <div class="flex w-full min-w-0 items-center gap-2">
+              <div class="flex-1 min-w-0">
+                <TextInputV2
+                  type="text"
+                  appearance="large"
+                  class="!w-full"
+                  value={row.key}
+                  placeholder="KEY"
+                  onInput={(e) => setRow(index(), "key", e.currentTarget.value)}
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <TextInputV2
+                  type="text"
+                  appearance="large"
+                  class="!w-full"
+                  value={row.value}
+                  placeholder="value"
+                  onInput={(e) => setRow(index(), "value", e.currentTarget.value)}
+                />
+              </div>
               <ButtonV2 type="button" variant="ghost-muted" size="normal" class="shrink-0" onClick={() => removeRow(index())}>
                 <Icon name="close" size="small" />
               </ButtonV2>
@@ -298,12 +318,12 @@ export const DialogMcpAddV2: Component<{
   )
 
   return (
-    <Dialog fit class="settings-v2-server-dialog">
+    <Dialog fit class="settings-v2-mcp-dialog">
       <DialogHeader hideClose={true}>
         <DialogTitle>{title()}</DialogTitle>
       </DialogHeader>
       <DividerV2 />
-      <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2 overflow-y-auto max-h-[60vh]">
+      <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2 overflow-y-auto max-h-[min(72vh,680px)]">
         <div class="flex w-full min-w-0 flex-col gap-6">
           <Show when={!isEdit}>
             <div class="flex w-full min-w-0 flex-col gap-2">
@@ -320,6 +340,15 @@ export const DialogMcpAddV2: Component<{
                         if (server.id === "mcpmail") {
                           dialog.close()
                           dialog.push(() => <DialogMailAccountV2 onAdded={props.onAdded} />)
+                          return
+                        }
+                        if (server.kind === "local") {
+                          setForm("name", server.name)
+                          setForm("type", "local")
+                          setForm("command", server.command.join(" "))
+                          setForm("cwd", "")
+                          setForm("environment", toRows(server.environment))
+                          setForm("err", {})
                           return
                         }
                         setForm("name", server.name)
@@ -342,7 +371,7 @@ export const DialogMcpAddV2: Component<{
               <Show when={KNOWN_SERVERS.some((s) => s.name === form.name && s.oauth)}>
                 <span class="settings-v2-server-dialog-hint">{language.t("settings.mcp.add.known.oauthHint")}</span>
               </Show>
-              <Show when={KNOWN_SERVERS.some((s) => s.name === form.name && s.kind === "local")}>
+              <Show when={form.name === "MailMCP"}>
                 <span class="settings-v2-server-dialog-hint">{language.t("settings.mcp.add.known.localHint")}</span>
               </Show>
             </div>

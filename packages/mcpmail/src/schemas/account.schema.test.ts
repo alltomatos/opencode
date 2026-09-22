@@ -25,6 +25,17 @@ describe("AccountSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("aceita provider 'generic' e normaliza para 'generic-imap'", () => {
+    const result = AccountSchema.safeParse({
+      ...validAccount,
+      provider: "generic",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.provider).toBe("generic-imap");
+    }
+  });
+
   it("rejeita provider fora do enum", () => {
     const result = AccountSchema.safeParse({
       ...validAccount,

@@ -40,18 +40,24 @@ const ACCOUNTS_FIXTURE = [
   },
 ];
 
-function buildRawEmail(): string {
-  return [
+function buildRawEmail(opts: { cc?: string } = {}): string {
+  const lines = [
     "From: remetente@example.com",
-    "To: usuario@gmail.com",
+    "To: usuario@gmail.com, outro@example.com",
     "Subject: Assunto original",
     "Message-ID: <original-123@example.com>",
     "Date: Thu, 01 Jan 2026 00:00:00 +0000",
+  ];
+  if (opts.cc) {
+    lines.push(`Cc: ${opts.cc}`);
+  }
+  lines.push(
     "Content-Type: text/plain",
     "",
     "Corpo da mensagem original.",
-    "",
-  ].join("\r\n");
+    ""
+  );
+  return lines.join("\r\n");
 }
 
 function downloadObjectFor(raw: string) {
@@ -186,5 +192,35 @@ describe("mail_reply_message", () => {
 
     expect(result.isError).toBe(true);
     expect(mockSendViaSmtp).not.toHaveBeenCalled();
+  });
+
+  it("responde a todos se replyAll for true (ignora o proprio usuario)", async () => {
+    mockImapClient.download.mockResolvedValue(
+      downloadObjectFor(buildRawEmail({ cc: "copia1@example.com, copia2@example.com" }))
+    );
+
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "mail_reply_message",
+      arguments: {
+        accountId: "gmail-principal",
+        folder: "INBOX",
+        uid: 42,
+        bodyText: "Resposta para todos.",
+        replyAll: true,
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(mockSendViaSmtp).toHaveBeenCalledTimes(1);
+    const [, message] = mockSendViaSmtp.mock.calls[0];
+    
+    // remetente + outro (exceto usuario@gmail.com)
+    expect(message.to).toContain("remetente@example.com");
+    expect(message.to).toContain("outro@example.com");
+    expect(message.to).not.toContain("usuario@gmail.com");
+
+    expect(message.cc).toContain("copia1@example.com");
+    expect(message.cc).toContain("copia2@example.com");
   });
 });

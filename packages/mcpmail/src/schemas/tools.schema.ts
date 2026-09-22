@@ -243,7 +243,21 @@ export const MailReplyMessageInputSchema = z
       .string()
       .min(1)
       .optional()
-      .describe("Endereço(s) de destino da resposta; se omitido, responde ao remetente original."),
+      .describe("Endereço(s) de destino da resposta; se omitido, responde ao remetente original (ou a todos, se replyAll=true)."),
+    cc: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Endereço(s) em cópia, separados por vírgula se houver mais de um."),
+    bcc: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Endereço(s) em cópia oculta, separados por vírgula se houver mais de um."),
+    replyAll: z
+      .boolean()
+      .optional()
+      .describe("Se true, responde a todos os destinatários originais (To e Cc), exceto o próprio usuário."),
     subject: z
       .string()
       .min(1)

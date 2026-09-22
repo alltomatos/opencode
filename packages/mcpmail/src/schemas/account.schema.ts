@@ -11,7 +11,8 @@ export const AccountSchema = z
       .min(1)
       .describe("Nome amigável exibido para o usuário (ex: 'Gmail Pessoal')."),
     provider: z
-      .enum(["gmail", "speedmail", "outlook", "generic-imap"])
+      .enum(["gmail", "speedmail", "outlook", "generic-imap", "generic"])
+      .transform((val) => (val === "generic" ? "generic-imap" : val))
       .describe("Provedor de email, usado para aplicar particularidades de conexão."),
     host: z
       .string()
