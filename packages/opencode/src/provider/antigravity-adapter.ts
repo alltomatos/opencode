@@ -237,7 +237,7 @@ async function refreshAccountToken(
 const BACKGROUND_REFRESH_LEAD_MS = 30 * 60 * 1000
 let backgroundRefreshStarted = false
 
-function ensureBackgroundTokenRefresh() {
+export function ensureBackgroundTokenRefresh() {
   if (backgroundRefreshStarted) return
   backgroundRefreshStarted = true
 
