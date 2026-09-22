@@ -62,10 +62,21 @@ const sortProviders = (a: { id: string; name: string }, b: { id: string; name: s
   return a.name.localeCompare(b.name)
 }
 
+const isProviderConnected = (provider: { id: string; key?: string; options?: Record<string, any> }) => {
+  if (provider.id === "combo") return true
+  if (provider.id === "google-antigravity" || provider.id === "google-antigravity-cli") return true
+  if (provider.id === "omniroute") return true
+  if (provider.id === "opencode" || provider.id === "openrouter" || provider.id === "agentrouter") return false
+  const key = provider.options?.apiKey || provider.key || provider.options?.accessToken
+  if (!key || key === "opencode-oauth-dummy-key" || key === "antigravity-oauth") return false
+  return true
+}
+
 const createProviderList = (model: ModelState) =>
   createMemo(() => {
     const seen = new Map<string, { id: string; name: string }>()
     for (const item of model.list()) {
+      if (!isProviderConnected(item.provider)) continue
       if (!model.visible({ modelID: item.id, providerID: item.provider.id })) continue
       if (!seen.has(item.provider.id)) seen.set(item.provider.id, { id: item.provider.id, name: item.provider.name })
     }
@@ -340,6 +351,7 @@ function createModelSelectorController(input: {
   const allModels = createMemo(() =>
     model
       .list()
+      .filter((item) => isProviderConnected(item.provider))
       .filter((item) => model.visible({ modelID: item.id, providerID: item.provider.id }))
       .filter((item) => (input.provider() ? item.provider.id === input.provider() : true)),
   )

@@ -176,27 +176,21 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       const combo = yield* get(id)
       if (!withinRateLimit(combo)) return yield* new ComboExhaustedError({ id })
 
+      const models = orderedModels(combo)
+      if (models.length === 0) return yield* new ComboExhaustedError({ id })
+
       const skip = combo.failover.enabled ? lastFailed.get(id) : undefined
-      for (const entry of orderedModels(combo)) {
+      for (const entry of models) {
         if (entry.model === skip) continue
         const parsed = parseModel(entry.model)
-        if (!parsed) continue
-        const providerInfo = yield* provider.getProvider(parsed.providerID as any).pipe(Effect.orElseSucceed(() => undefined))
-        const modelInfo = providerInfo?.models[parsed.modelID]
-        if (!modelInfo) continue
-        const language = yield* provider
-          .getLanguage(modelInfo)
-          .pipe(Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)))
-        if (!language) continue
-        return parsed
+        if (parsed) return parsed
       }
-      // Nothing passed the check above (including the one we're skipping) —
-      // last resort, try it anyway rather than fail a combo with exactly one
-      // model just because it failed once.
       if (skip) {
         const parsed = parseModel(skip)
         if (parsed) return parsed
       }
+      const first = parseModel(models[0].model)
+      if (first) return first
       return yield* new ComboExhaustedError({ id })
     })
 
