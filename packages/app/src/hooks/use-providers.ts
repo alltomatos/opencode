@@ -55,14 +55,7 @@ export function useProviders(directory: Accessor<string | undefined>) {
       return pipe(
         all,
         Iterable.map(([, p]) => p),
-        Iterable.filter((p) => {
-          if (!rawConnected.has(p.id)) return false
-          if (p.id === "combo") return true
-          if (p.id === "google-antigravity" || p.id === "google-antigravity-cli" || p.id === "omniroute") return true
-          const key = p.options?.apiKey || p.key || p.options?.accessToken
-          if (!key || key === "opencode-oauth-dummy-key" || key === "antigravity-oauth") return false
-          return true
-        }),
+        Iterable.filter((p) => rawConnected.has(p.id)),
         (v) => Array.from(v),
       )
     },

@@ -172,12 +172,14 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       const connectedIDs = Object.keys(providers).filter((id) => {
         if (id === "combo") return combos.length > 0
         if (activeIntegrationIDs.has(id)) return true
-        if (credentials[id] && (credentials[id] as any).key !== "opencode-oauth-dummy-key") return true
+        if (credentials[id] && (credentials[id] as any).type !== "oauth") return true
+        if (credentials[id] && (credentials[id] as any).type === "oauth" && (credentials[id] as any).access) return true
         if (id in connected) {
           const item = (connected as any)[id]
           if (item?.key && item.key !== "opencode-oauth-dummy-key") return true
           if (item?.options?.apiKey || item?.options?.accessToken) return true
         }
+        if (availableCatalogIds.has(id as ProviderV2.ID)) return true
         return false
       })
 
