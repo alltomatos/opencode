@@ -25,37 +25,54 @@ function createIcoFromPng(pngBuffer: Buffer): Buffer {
 
 const icoBuf = createIcoFromPng(pngBuf)
 
-const targets = [
-  // Desktop channels
-  { path: "packages/desktop/icons/prod/icon.png", data: pngBuf },
-  { path: "packages/desktop/icons/prod/dock.png", data: pngBuf },
-  { path: "packages/desktop/icons/prod/icon.ico", data: icoBuf },
-  { path: "packages/desktop/icons/dev/icon.png", data: pngBuf },
-  { path: "packages/desktop/icons/dev/dock.png", data: pngBuf },
-  { path: "packages/desktop/icons/dev/icon.ico", data: icoBuf },
-  { path: "packages/desktop/icons/beta/icon.png", data: pngBuf },
-  { path: "packages/desktop/icons/beta/dock.png", data: pngBuf },
-  { path: "packages/desktop/icons/beta/icon.ico", data: icoBuf },
-  { path: "packages/desktop/resources/icons/icon.png", data: pngBuf },
-  { path: "packages/desktop/resources/icons/dock.png", data: pngBuf },
-  { path: "packages/desktop/resources/icons/icon.ico", data: icoBuf },
+const channels = ["prod", "dev", "beta"]
+const pngNames = [
+  "icon.png",
+  "dock.png",
+  "StoreLogo.png",
+  "Square89x89Logo.png",
+  "Square71x71Logo.png",
+  "Square44x44Logo.png",
+  "Square310x310Logo.png",
+  "Square30x30Logo.png",
+  "Square284x284Logo.png",
+  "Square150x150Logo.png",
+  "Square142x142Logo.png",
+  "Square107x107Logo.png",
+  "32x32.png",
+  "64x64.png",
+  "128x128.png",
+  "128x128@2x.png",
+  "256x256.png",
+  "512x512.png",
+]
 
-  // Web app public
-  { path: "packages/app/public/favicon.ico", data: icoBuf },
-  { path: "packages/app/public/favicon-v3.ico", data: icoBuf },
-  { path: "packages/app/public/favicon-96x96.png", data: pngBuf },
-  { path: "packages/app/public/favicon-96x96-v3.png", data: pngBuf },
-  { path: "packages/app/public/apple-touch-icon.png", data: pngBuf },
-  { path: "packages/app/public/apple-touch-icon-v3.png", data: pngBuf },
+const targets: { path: string; data: Buffer }[] = []
 
-  // UI assets favicon
+for (const ch of channels) {
+  targets.push({ path: `packages/desktop/icons/${ch}/icon.ico`, data: icoBuf })
+  for (const name of pngNames) {
+    targets.push({ path: `packages/desktop/icons/${ch}/${name}`, data: pngBuf })
+  }
+}
+
+// Resources icons
+targets.push({ path: "packages/desktop/resources/icons/icon.ico", data: icoBuf })
+for (const name of pngNames) {
+  targets.push({ path: `packages/desktop/resources/icons/${name}`, data: pngBuf })
+}
+
+// UI assets favicon (real binary files)
+targets.push(
   { path: "packages/ui/src/assets/favicon/favicon.ico", data: icoBuf },
   { path: "packages/ui/src/assets/favicon/favicon-v3.ico", data: icoBuf },
   { path: "packages/ui/src/assets/favicon/favicon-96x96.png", data: pngBuf },
   { path: "packages/ui/src/assets/favicon/favicon-96x96-v3.png", data: pngBuf },
   { path: "packages/ui/src/assets/favicon/apple-touch-icon.png", data: pngBuf },
   { path: "packages/ui/src/assets/favicon/apple-touch-icon-v3.png", data: pngBuf },
-]
+  { path: "packages/ui/src/assets/favicon/web-app-manifest-192x192.png", data: pngBuf },
+  { path: "packages/ui/src/assets/favicon/web-app-manifest-512x512.png", data: pngBuf },
+)
 
 for (const target of targets) {
   const fullPath = resolve(target.path)
