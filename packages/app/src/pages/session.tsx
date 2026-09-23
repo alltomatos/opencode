@@ -67,7 +67,7 @@ import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
 import { Persist, persisted } from "@/utils/persist"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { formatServerError } from "@/utils/server-errors"
-import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
+import { legacySessionHref, parseServerKey, requireServerKey, sessionHref } from "@/utils/session-route"
 import { useUsageExceededDialogs } from "./session/usage-exceeded-dialogs"
 import { createSessionOwnership } from "./session/session-ownership"
 import { createSessionLineage } from "./session/session-lineage"
@@ -1294,9 +1294,10 @@ export default function Page() {
             openParent: () => {
               const id = info()?.parentID
               if (!id) return
+              const parsedKey = parseServerKey(params.serverKey)
               navigate(
-                params.serverKey
-                  ? sessionHref(requireServerKey(params.serverKey), id)
+                parsedKey
+                  ? sessionHref(parsedKey, id)
                   : legacySessionHref(sdk().directory, id),
               )
             },

@@ -14,6 +14,7 @@ import {
   useCommand,
   useWslServers,
   useSshServers,
+  parseServerKey,
   useLanguage,
 } from "@opencode-ai/app"
 import type { UpdaterState } from "@opencode-ai/app/updater"
@@ -92,7 +93,16 @@ function getLastActiveUrl(windowID: string) {
   if (typeof localStorage !== "object") return "/"
   try {
     const value = localStorage.getItem(windowLastActiveUrlKey(windowID))
-    if (value?.startsWith("/") && !value.startsWith("//")) return value
+    if (value?.startsWith("/") && !value.startsWith("//")) {
+      const parts = value.split("?")[0].split("/").filter(Boolean)
+      if (parts[0] === "server" && parts[1]) {
+        if (!parseServerKey(parts[1])) {
+          localStorage.removeItem(windowLastActiveUrlKey(windowID))
+          return "/"
+        }
+      }
+      return value
+    }
   } catch {}
   return "/"
 }

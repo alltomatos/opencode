@@ -275,6 +275,20 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
       })
   }
 
+  function handleRestart() {
+    try {
+      if (typeof localStorage === "object") {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key?.includes("last-active-url")) {
+            localStorage.removeItem(key)
+          }
+        }
+      }
+    } catch {}
+    platform.restart?.()
+  }
+
   return (
     <div
       class="relative flex-1 h-screen w-screen min-h-0 flex flex-col items-center justify-center font-sans"
@@ -296,7 +310,7 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
           hideLabel
         />
         <div class="flex flex-row items-center justify-center gap-3 flex-wrap max-w-64">
-          <Button size="large" onClick={platform.restart}>
+          <Button size="large" onClick={handleRestart}>
             {language.t("error.page.action.restart")}
           </Button>
           <Show when={platform.platform === "desktop" && platform.exportDebugLogs}>

@@ -7,7 +7,7 @@ import { useSync } from "@/context/sync"
 import { useTabs } from "@/context/tabs"
 import { errorMessage } from "@/pages/layout/helpers"
 import { useSessionKey } from "@/pages/session/session-layout"
-import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
+import { legacySessionHref, parseServerKey, requireServerKey, sessionHref } from "@/utils/session-route"
 import { showToast } from "@/utils/toast"
 
 export function useSessionArchive() {
@@ -20,8 +20,9 @@ export function useSessionArchive() {
 
   const navigateAfterRemoval = (sessionID: string, parentID?: string, nextSessionID?: string) => {
     if (params.id !== sessionID) return
+    const parsedKey = parseServerKey(params.serverKey)
     const href = (id: string) =>
-      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(sdk().directory, id)
+      parsedKey ? sessionHref(parsedKey, id) : legacySessionHref(sdk().directory, id)
     if (parentID) {
       navigate(href(parentID))
       return
@@ -30,8 +31,8 @@ export function useSessionArchive() {
       navigate(href(nextSessionID))
       return
     }
-    if (params.serverKey) {
-      tabs.newDraft({ server: requireServerKey(params.serverKey), directory: sdk().directory })
+    if (parsedKey) {
+      tabs.newDraft({ server: parsedKey, directory: sdk().directory })
       return
     }
     navigate(`/${params.dir}/session`)

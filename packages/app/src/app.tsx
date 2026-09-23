@@ -63,7 +63,7 @@ import LegacyLayout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
-import { legacySessionHref, legacySessionServer, requireServerKey, sessionHref } from "./utils/session-route"
+import { legacySessionHref, legacySessionServer, parseServerKey, requireServerKey, sessionHref } from "./utils/session-route"
 import { createSessionLineage } from "@/pages/session/session-lineage"
 
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
@@ -122,28 +122,32 @@ function TargetServerRoute(props: ParentProps) {
   const params = useParams<{ serverKey: string; id: string }>()
   const global = useGlobal()
   const server = useServer()
+  const navigate = useNavigate()
+
+  const validKey = createMemo(() => parseServerKey(params.serverKey))
+
+  createEffect(() => {
+    const key = validKey()
+    if (!key) {
+      navigate("/", { replace: true })
+      return
+    }
+    server.setActive(key)
+  })
+
   const conn = createMemo(() => {
-    const key = requireServerKey(params.serverKey)
+    const key = validKey()
+    if (!key) return undefined
     return global.servers.list().find((item) => ServerConnection.key(item) === key)
   })
 
-  // Keep the global "active server" signal in sync with the routed server.
-  // Sibling routes that aren't nested under this one (e.g. /settings) have no
-  // :serverKey of their own and fall back to this signal — without syncing
-  // it here, navigating to one of them from a remote server's session loses
-  // that server's context entirely.
-  createEffect(() => {
-    server.setActive(requireServerKey(params.serverKey))
-  })
-
   return (
-    // Owns the server-identity remount. Session changes must NOT remount this
-    // subtree (SessionRouteErrorBoundary resets and createSessionLineage
-    // re-resolves reactively instead); both rely on this key for server changes.
-    <Show when={requireServerKey(params.serverKey)} keyed>
-      <ServerSDKProvider server={conn}>
-        <ServerSyncProvider server={conn}>{props.children}</ServerSyncProvider>
-      </ServerSDKProvider>
+    <Show when={validKey()} keyed>
+      {(key) => (
+        <ServerSDKProvider server={conn}>
+          <ServerSyncProvider server={conn}>{props.children}</ServerSyncProvider>
+        </ServerSDKProvider>
+      )}
     </Show>
   )
 }
@@ -156,9 +160,11 @@ const TargetSessionRoute = () => (
 
 function LegacyTargetSessionRoute() {
   const params = useParams<{ serverKey: string; id: string }>()
+  const server = useServer()
+  const validKey = () => parseServerKey(params.serverKey) ?? server.key
   return (
     <TargetServerRoute>
-      <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)}>
+      <SessionRouteErrorBoundary sessionID={params.id} serverKey={validKey()}>
         <LegacyTargetSessionRedirect />
       </SessionRouteErrorBoundary>
     </TargetServerRoute>

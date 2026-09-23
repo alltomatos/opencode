@@ -29,3 +29,4 @@ export {
 } from "./wsl/types"
 export { ServerConnection } from "./context/server"
 export { createDraftStore, type DraftStore } from "./utils/draft-store"
+export { parseServerKey, safeServerKey, requireServerKey, sessionHref, legacySessionHref } from "./utils/session-route"

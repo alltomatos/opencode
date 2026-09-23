@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/solid-query"
 import { showToast } from "@/utils/toast"
 import { downloadSessionExport, fetchSessionExport, sessionExportFilename } from "@/utils/session-export"
 import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
-import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
+import { legacySessionHref, parseServerKey, requireServerKey, sessionHref } from "@/utils/session-route"
 import type { useLanguage } from "@/context/language"
 import type { useSync } from "@/context/sync"
 import type { useSDK } from "@/context/sdk"
@@ -298,8 +298,9 @@ export function createSessionHeaderActions(deps: {
   const navigateParent = () => {
     const id = parentID()
     if (!id) return
+    const parsedKey = parseServerKey(params.serverKey)
     navigate(
-      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(sdk().directory, id),
+      parsedKey ? sessionHref(parsedKey, id) : legacySessionHref(sdk().directory, id),
     )
   }
 

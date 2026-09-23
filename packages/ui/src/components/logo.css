@@ -1,4 +1,11 @@
 [data-component="logo-mark"] {
   width: 16px;
-  aspect-ratio: 4/5;
+  aspect-ratio: 1/1;
+  object-fit: contain;
+}
+
+[data-component="logo-full"] {
+  height: 40px;
+  aspect-ratio: 1/1;
+  object-fit: contain;
 }

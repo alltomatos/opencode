@@ -14,7 +14,7 @@ import { ModelsProvider } from "@/context/models";
 import { useSettingsCommand } from "@/components/settings-dialog";
 import { useParams } from "@solidjs/router";
 import { useServerSync } from "@/context/server-sync";
-import { requireServerKey } from "@/utils/session-route";
+import { parseServerKey, requireServerKey } from "@/utils/session-route";
 import { createSessionLineage } from "./session/session-lineage";
 import { SDKProvider } from "@/context/sdk";
 import { DirectoryDataProvider } from "@/pages/directory-layout";
@@ -30,13 +30,15 @@ export function isCurrentSessionNotFoundError(error: unknown, sessionID: string 
 
 export const TargetSessionRouteContent = () => {
   const params = useParams<{ serverKey: string; id: string }>()
+  const server = useServer()
   const serverSync = useServerSync()
   const directory = createMemo(() => serverSync().session.lineage.peek(params.id)?.session.directory)
+  const serverKey = () => parseServerKey(params.serverKey) ?? server.key
   return (
     <TargetServerScopedProviders directory={directory} sessionID={() => params.id}>
       <TargetSessionSettingsCommand />
-      <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)} padded>
-        <ResolvedTargetSessionRoute sessionID={() => params.id} serverKey={requireServerKey(params.serverKey)} />
+      <SessionRouteErrorBoundary sessionID={params.id} serverKey={serverKey()} padded>
+        <ResolvedTargetSessionRoute sessionID={() => params.id} serverKey={serverKey()} />
       </SessionRouteErrorBoundary>
     </TargetServerScopedProviders>
   )
