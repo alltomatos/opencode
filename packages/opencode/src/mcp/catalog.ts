@@ -39,11 +39,43 @@ export function defs(client: Client, timeout?: number) {
   return listTools(client, timeout ?? DEFAULT_TIMEOUT).pipe(Effect.catch(() => Effect.void))
 }
 
+function sanitizeJsonSchema(schema: unknown): unknown {
+  if (!schema || typeof schema !== "object") return schema
+  if (Array.isArray(schema)) return schema.map(sanitizeJsonSchema)
+
+  const obj = { ...(schema as Record<string, unknown>) }
+  // Gemini/Google Antigravity rejects const/enum with boolean literal when type is not aligned
+  // or boolean in enum arrays. Clean const/enum boolean values to plain boolean types.
+  if ("const" in obj && typeof obj.const === "boolean") {
+    obj.type = "boolean"
+    delete obj.const
+  }
+  if (Array.isArray(obj.enum) && obj.enum.some((v) => typeof v === "boolean")) {
+    obj.type = "boolean"
+    delete obj.enum
+  }
+
+  if (obj.properties && typeof obj.properties === "object") {
+    const nextProps: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(obj.properties as Record<string, unknown>)) {
+      nextProps[k] = sanitizeJsonSchema(v)
+    }
+    obj.properties = nextProps
+  }
+
+  if (obj.items) {
+    obj.items = sanitizeJsonSchema(obj.items)
+  }
+
+  return obj
+}
+
 export function convertTool(mcpTool: MCPToolDef, client: Client, timeout?: number): Tool {
+  const sanitized = sanitizeJsonSchema(mcpTool.inputSchema) as JSONSchema7
   const inputSchema: JSONSchema7 = {
-    ...(mcpTool.inputSchema as JSONSchema7),
+    ...sanitized,
     type: "object",
-    properties: (mcpTool.inputSchema.properties ?? {}) as JSONSchema7["properties"],
+    properties: (sanitized?.properties ?? {}) as JSONSchema7["properties"],
     additionalProperties: false,
   }
 

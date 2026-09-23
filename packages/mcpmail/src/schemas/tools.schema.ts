@@ -215,7 +215,10 @@ export const MailDeleteMessageInputSchema = z
       .positive()
       .describe("UID (identificador único IMAP) da mensagem a ser deletada."),
     confirm: z
-      .literal(true)
+      .boolean()
+      .refine((val) => val === true, {
+        message: "O campo 'confirm' deve ser true para autorizar a exclusão.",
+      })
       .describe(
         "Confirmação explícita e obrigatória: deve ser exatamente `true` para a exclusão (irreversível) ser aceita. Sem este campo, a chamada é rejeitada antes de qualquer ação."
       ),
