@@ -2671,6 +2671,20 @@ export type MailAccountSummary = {
   }
 }
 
+export type MailTestResult = {
+  ok: boolean
+  imap: {
+    ok: boolean
+    message: string
+    log?: string
+  }
+  smtp?: {
+    ok: boolean
+    message: string
+    log?: string
+  }
+}
+
 export type McpStatusConnected = {
   status: "connected"
 }
@@ -9999,6 +10013,48 @@ export type MailAccountsAddResponses = {
 }
 
 export type MailAccountsAddResponse = MailAccountsAddResponses[keyof MailAccountsAddResponses]
+
+export type MailAccountsTestData = {
+  body?: {
+    id: string
+    label: string
+    provider: string
+    host: string
+    port: number
+    secure: boolean
+    user: string
+    appPassword: string
+    smtp?: {
+      host: string
+      port: number
+      secure: boolean
+    }
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mail/accounts/test"
+}
+
+export type MailAccountsTestErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type MailAccountsTestError = MailAccountsTestErrors[keyof MailAccountsTestErrors]
+
+export type MailAccountsTestResponses = {
+  /**
+   * Test connection result for IMAP and SMTP
+   */
+  200: MailTestResult
+}
+
+export type MailAccountsTestResponse = MailAccountsTestResponses[keyof MailAccountsTestResponses]
 
 export type MailAccountsRemoveData = {
   body?: never

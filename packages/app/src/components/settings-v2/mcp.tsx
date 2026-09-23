@@ -16,6 +16,7 @@ import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { DialogMcpAddV2, type McpExistingServer } from "./dialog-mcp-v2"
+import { DialogMailAccountV2 } from "./dialog-mail-account-v2"
 import "./settings-v2.css"
 
 const statusLabels = {
@@ -175,6 +176,17 @@ export const SettingsMcpV2: Component = () => {
       return name
     },
     onSuccess: (name) => {
+      setExpanded((prev) => {
+        const next = new Set(prev)
+        next.delete(name)
+        return next
+      })
+      serverSync().set("config", "mcp", (prev) => {
+        if (!prev) return prev
+        const next = { ...prev }
+        delete next[name]
+        return next
+      })
       void refetch()
       showToast({
         variant: "success",
@@ -193,6 +205,10 @@ export const SettingsMcpV2: Component = () => {
   }
 
   const openEdit = (name: string) => {
+    if (name === "mcpmail") {
+      dialog.push(() => <DialogMailAccountV2 onAdded={() => void refetch()} />)
+      return
+    }
     const config = configs()[name]
     if (!config || !("type" in config)) return
     const existing: McpExistingServer = {

@@ -7,7 +7,7 @@ import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useMutation } from "@tanstack/solid-query"
-import { createResource, For, Show, type Component } from "solid-js"
+import { createResource, createSignal, For, Show, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
@@ -24,6 +24,8 @@ const inferProvider = (host: string): "gmail" | "speedmail" | "outlook" | "gener
 export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) => {
   const dialog = useDialog()
   const serverSDK = useServerSDK()
+  const [showDebug, setShowDebug] = createSignal(false)
+  const [debugLog, setDebugLog] = createSignal<string>("")
 
   const [accounts, { refetch }] = createResource(async () => {
     const result = await serverSDK().client.mailAccounts.list()
@@ -92,6 +94,42 @@ export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) 
     }
   }
 
+  const testMutation = useMutation(() => ({
+    mutationFn: async (input: NonNullable<ReturnType<typeof validate>>) => {
+      const res = await serverSDK().client.mailAccounts.test(input)
+      return res.data
+    },
+    onSuccess: (data) => {
+      if (!data) return
+      let logs = `[${new Date().toLocaleTimeString()}] Resultado do Teste:\n`
+      logs += `IMAP (${data.imap.ok ? "SUCESSO" : "ERRO"}): ${data.imap.message}\n`
+      if (data.imap.log) logs += `  Detalhes: ${data.imap.log}\n`
+      if (data.smtp) {
+        logs += `SMTP (${data.smtp.ok ? "SUCESSO" : "ERRO"}): ${data.smtp.message}\n`
+        if (data.smtp.log) logs += `  Detalhes: ${data.smtp.log}\n`
+      }
+      setDebugLog(logs)
+
+      if (data.ok) {
+        let msg = "IMAP: Conectado com sucesso."
+        if (data.smtp) {
+          msg += " | SMTP: Conectado com sucesso."
+        }
+        showToast({ variant: "success", icon: "circle-check", title: "Conexão estabelecida com sucesso!", description: msg })
+      } else {
+        const errors: string[] = []
+        if (!data.imap.ok) errors.push(`IMAP: ${data.imap.message}`)
+        if (data.smtp && !data.smtp.ok) errors.push(`SMTP: ${data.smtp.message}`)
+        showToast({ title: "Falha no teste de conexão", description: errors.join(" — ") })
+      }
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : String(err)
+      setDebugLog(`[${new Date().toLocaleTimeString()}] Erro na requisição de teste:\n${message}`)
+      showToast({ title: "Erro ao testar conexão", description: message })
+    },
+  }))
+
   const addMutation = useMutation(() => ({
     mutationFn: async (input: NonNullable<ReturnType<typeof validate>>) => {
       await serverSDK().client.mailAccounts.add(input)
@@ -120,10 +158,17 @@ export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) 
   }))
 
   const submit = () => {
-    if (addMutation.isPending) return
+    if (addMutation.isPending || testMutation.isPending) return
     const result = validate()
     if (!result) return
     addMutation.mutate(result)
+  }
+
+  const handleTest = () => {
+    if (addMutation.isPending || testMutation.isPending) return
+    const result = validate()
+    if (!result) return
+    testMutation.mutate(result)
   }
 
   return (
@@ -286,15 +331,39 @@ export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) 
               </span>
             </div>
           </Show>
+
+          <div class="flex flex-col gap-2 pt-2 border-t border-v2-border-subtle">
+            <label class="flex items-center justify-between text-12-regular text-text-weak cursor-pointer select-none">
+              <span class="font-medium text-text-base">Modo Debug (Logs de conexão)</span>
+              <SwitchV2 checked={showDebug()} onChange={(checked) => setShowDebug(checked)} />
+            </label>
+
+            <Show when={showDebug()}>
+              <div class="flex flex-col gap-1 mt-1">
+                <div class="rounded bg-v2-background-bg-layer-02 p-2.5 font-mono text-11-regular text-text-weak whitespace-pre-wrap break-all max-h-[160px] overflow-y-auto border border-v2-border-subtle">
+                  {debugLog() || "Nenhum teste executado ainda. Clique em 'Testar conexão' para visualizar os detalhes."}
+                </div>
+              </div>
+            </Show>
+          </div>
         </div>
       </DialogBody>
       <DialogFooter>
-        <ButtonV2 variant="neutral" disabled={addMutation.isPending} onClick={() => dialog.close()}>
+        <ButtonV2 variant="neutral" disabled={addMutation.isPending || testMutation.isPending} onClick={() => dialog.close()}>
           Fechar
         </ButtonV2>
-        <ButtonV2 variant="contrast" disabled={addMutation.isPending} onClick={submit}>
-          {addMutation.isPending ? "Salvando…" : "Adicionar conta"}
-        </ButtonV2>
+        <div class="flex items-center gap-2">
+          <ButtonV2
+            variant="neutral"
+            disabled={addMutation.isPending || testMutation.isPending}
+            onClick={handleTest}
+          >
+            {testMutation.isPending ? "Testando…" : "Testar conexão"}
+          </ButtonV2>
+          <ButtonV2 variant="contrast" disabled={addMutation.isPending || testMutation.isPending} onClick={submit}>
+            {addMutation.isPending ? "Salvando…" : "Adicionar conta"}
+          </ButtonV2>
+        </div>
       </DialogFooter>
     </Dialog>
   )

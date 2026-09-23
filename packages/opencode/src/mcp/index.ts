@@ -1,4 +1,5 @@
 import path from "node:path"
+import fs from "node:fs"
 import { pathToFileURL } from "node:url"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
@@ -23,6 +24,7 @@ import { NamedError } from "@opencode-ai/core/util/error"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { withTimeout } from "@/util/timeout"
 import { FSUtil } from "@opencode-ai/core/fs-util"
+import { Global } from "@opencode-ai/core/global"
 import { McpOAuthPendingProvider, McpOAuthProvider, OAUTH_CALLBACK_PATH } from "./oauth-provider"
 import { McpOAuthCallback } from "./oauth-callback"
 import { McpAuth } from "./auth"
@@ -399,6 +401,12 @@ const layer = Layer.effect(
         },
       })
 
+      if (transport.stderr) {
+        transport.stderr.on("data", (chunk: Buffer) => {
+          Effect.runFork(Effect.logWarning("MCP stderr", { key, data: chunk.toString("utf8").trim() }))
+        })
+      }
+
       const connectTimeout = mcp.timeout ?? DEFAULT_TIMEOUT
       return yield* connectTransport(transport, connectTimeout).pipe(
         Effect.map((client): { client: MCPClient | undefined; status: Status } => ({
@@ -425,7 +433,8 @@ const layer = Layer.effect(
 
         if (!mcpClient) {
           if (status.status !== "connected" && status.status !== "disabled") {
-            yield* Effect.logWarning("server unavailable", { key, type: mcp.type, status: status.status })
+            const errDetails = "error" in status ? status.error : undefined
+            yield* Effect.logWarning("server unavailable", { key, type: mcp.type, status: status.status, error: errDetails, command: mcp.type === "local" ? mcp.command : undefined })
           }
           return { status } satisfies CreateResult
         }
@@ -595,6 +604,99 @@ const layer = Layer.effect(
           }
         }
 
+        // mcpmail accounts are managed dynamically in mcpmail-accounts.json.
+        // If mcpmail is not in config and there are accounts configured, connect it automatically.
+        if (!("mcpmail" in config)) {
+          const mailAccountsFile = path.join(Global.Path.data, "mcpmail-accounts.json")
+          let hasAccounts = false
+          try {
+            if (fs.existsSync(mailAccountsFile)) {
+              const parsed = JSON.parse(fs.readFileSync(mailAccountsFile, "utf-8"))
+              hasAccounts = Array.isArray(parsed) && parsed.length > 0
+            }
+          } catch {}
+          if (hasAccounts) {
+            const resourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath
+            const resourceEntry = typeof resourcesPath === "string" ? path.join(resourcesPath, "mcpmail", "index.js") : ""
+            const localDesktopResource = path.join(process.cwd(), "packages", "desktop", "resources", "mcpmail", "index.js")
+            const workspaceSrc = path.join(process.cwd(), "packages", "mcpmail", "src", "index.ts")
+
+            const isWindows = process.platform === "win32"
+            let nodeBin = "node"
+            if (isWindows) {
+              const candidatePaths = [
+                "C:\\nvm4w\\nodejs\\node.exe",
+                "C:\\Program Files\\nodejs\\node.exe",
+                "C:\\Program Files (x86)\\nodejs\\node.exe",
+              ]
+              for (const p of candidatePaths) {
+                if (fs.existsSync(p)) {
+                  nodeBin = p
+                  break
+                }
+              }
+            } else {
+              const candidatePaths = [
+                "/usr/local/bin/node",
+                "/opt/homebrew/bin/node",
+                "/usr/bin/node",
+              ]
+              for (const p of candidatePaths) {
+                if (fs.existsSync(p)) {
+                  nodeBin = p
+                  break
+                }
+              }
+            }
+
+            let entry = ""
+            if (resourceEntry && fs.existsSync(resourceEntry)) {
+              entry = resourceEntry
+            } else {
+              const candidateLocations = [
+                path.join(Global.Path.data, "resources", "mcpmail", "index.js"),
+                "D:\\dev\\opencode\\packages\\desktop\\resources\\mcpmail\\index.js",
+                path.join(process.cwd(), "packages", "desktop", "resources", "mcpmail", "index.js"),
+                path.join(process.cwd(), "resources", "mcpmail", "index.js"),
+                path.join(process.cwd(), "packages", "mcpmail", "src", "index.ts"),
+                "D:\\dev\\opencode\\packages\\mcpmail\\src\\index.ts",
+              ]
+              for (const loc of candidateLocations) {
+                if (fs.existsSync(loc)) {
+                  entry = loc
+                  break
+                }
+              }
+            }
+
+            let command: string[]
+            let environment: Record<string, string> | undefined = {
+              MAIL_MCP_ACCOUNTS_PATH: mailAccountsFile,
+            }
+
+            if (entry.endsWith(".ts")) {
+              command = typeof Bun !== "undefined" ? [process.execPath, entry] : ["bun", entry]
+            } else {
+              command = [nodeBin, entry || "D:\\dev\\opencode\\packages\\desktop\\resources\\mcpmail\\index.js"]
+            }
+
+            const mailConfig: ConfigMCPV1.Info = {
+              type: "local",
+              command,
+              environment,
+            }
+            s.config["mcpmail"] = mailConfig
+            const result = yield* create("mcpmail", mailConfig)
+            s.status["mcpmail"] = result.status
+            if (result.mcpClient) {
+              s.clients["mcpmail"] = result.mcpClient
+              s.defs["mcpmail"] = result.defs!
+              if (result.instructions) s.instructions["mcpmail"] = result.instructions
+              watch(s, "mcpmail", result.mcpClient, bridge, mailConfig.timeout)
+            }
+          }
+        }
+
         yield* Effect.addFinalizer(() =>
           Effect.gen(function* () {
             const clients = Object.values(s.clients)
@@ -711,7 +813,10 @@ const layer = Layer.effect(
       // Persist to the global config file, mirroring what `opencode mcp add`
       // does from the CLI — without this, a server added from the UI/API
       // only lives in memory and disappears on the next restart.
-      yield* cfgSvc.updateGlobal({ mcp: { [name]: mcp } } as ConfigV1.Info)
+      // Do NOT persist dynamic managed servers like mcpmail to opencode.jsonc
+      if (name !== "mcpmail") {
+        yield* cfgSvc.updateGlobal({ mcp: { [name]: mcp } } as ConfigV1.Info)
+      }
       yield* createAndStore(name, mcp)
       return { status: s.status }
     })
@@ -930,6 +1035,62 @@ const layer = Layer.effect(
 
       const s = yield* InstanceState.get(state)
       if (s.config[mcpName]) return s.config[mcpName]
+
+      if (mcpName === "mcpmail") {
+        const mailAccountsFile = path.join(Global.Path.data, "mcpmail-accounts.json")
+        let hasAccounts = false
+        try {
+          if (fs.existsSync(mailAccountsFile)) {
+            const parsed = JSON.parse(fs.readFileSync(mailAccountsFile, "utf-8"))
+            hasAccounts = Array.isArray(parsed) && parsed.length > 0
+          }
+        } catch {}
+        if (hasAccounts) {
+          const isWindows = process.platform === "win32"
+          let nodeBin = "node"
+          if (isWindows) {
+            const candidatePaths = [
+              "C:\\nvm4w\\nodejs\\node.exe",
+              "C:\\Program Files\\nodejs\\node.exe",
+              "C:\\Program Files (x86)\\nodejs\\node.exe",
+            ]
+            for (const p of candidatePaths) {
+              if (fs.existsSync(p)) {
+                nodeBin = p
+                break
+              }
+            }
+          }
+          const resourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath
+          const resourceEntry = typeof resourcesPath === "string" ? path.join(resourcesPath, "mcpmail", "index.js") : ""
+          let entry = ""
+          if (resourceEntry && fs.existsSync(resourceEntry)) {
+            entry = resourceEntry
+          } else {
+            const candidateLocations = [
+              path.join(Global.Path.data, "resources", "mcpmail", "index.js"),
+              "D:\\dev\\opencode\\packages\\desktop\\resources\\mcpmail\\index.js",
+              path.join(process.cwd(), "packages", "desktop", "resources", "mcpmail", "index.js"),
+              path.join(process.cwd(), "resources", "mcpmail", "index.js"),
+              path.join(process.cwd(), "packages", "mcpmail", "src", "index.ts"),
+              "D:\\dev\\opencode\\packages\\mcpmail\\src\\index.ts",
+            ]
+            for (const loc of candidateLocations) {
+              if (fs.existsSync(loc)) {
+                entry = loc
+                break
+              }
+            }
+          }
+          const mailConfig: ConfigMCPV1.Info = {
+            type: "local",
+            command: [nodeBin, entry || "D:\\dev\\opencode\\packages\\desktop\\resources\\mcpmail\\index.js"],
+            environment: { MAIL_MCP_ACCOUNTS_PATH: mailAccountsFile },
+          }
+          s.config["mcpmail"] = mailConfig
+          return mailConfig
+        }
+      }
 
       return undefined
     })

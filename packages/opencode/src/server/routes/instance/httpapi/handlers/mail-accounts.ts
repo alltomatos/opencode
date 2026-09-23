@@ -18,10 +18,14 @@ export const mailAccountsHandlers = HttpApiBuilder.group(InstanceHttpApi, "mailA
       return yield* mailAccounts.upsert(new MailAccounts.Account(ctx.payload)).pipe(asBadRequest)
     })
 
+    const test = Effect.fn("MailAccountsHttpApi.test")(function* (ctx: { payload: typeof UpsertPayload.Type }) {
+      return yield* mailAccounts.testConnection(new MailAccounts.Account(ctx.payload)).pipe(asBadRequest)
+    })
+
     const remove = Effect.fn("MailAccountsHttpApi.remove")(function* (ctx: { params: { id: string } }) {
       return yield* mailAccounts.remove(ctx.params.id).pipe(asBadRequest)
     })
 
-    return handlers.handle("list", list).handle("add", add).handle("remove", remove)
+    return handlers.handle("list", list).handle("test", test).handle("add", add).handle("remove", remove)
   }),
 )

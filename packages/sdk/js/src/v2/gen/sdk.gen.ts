@@ -165,6 +165,8 @@ import type {
   MailAccountsListResponses,
   MailAccountsRemoveErrors,
   MailAccountsRemoveResponses,
+  MailAccountsTestErrors,
+  MailAccountsTestResponses,
   McpAddErrors,
   McpAddResponses,
   McpAuthAuthenticateErrors,
@@ -3578,6 +3580,63 @@ export class MailAccounts extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<MailAccountsAddResponses, MailAccountsAddErrors, ThrowOnError>({
       url: "/mail/accounts",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Test mail account connection
+   *
+   * Test IMAP and optional SMTP credentials and connectivity before saving.
+   */
+  public test<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      label?: string
+      provider?: string
+      host?: string
+      port?: number
+      secure?: boolean
+      user?: string
+      appPassword?: string
+      smtp?: {
+        host: string
+        port: number
+        secure: boolean
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "label" },
+            { in: "body", key: "provider" },
+            { in: "body", key: "host" },
+            { in: "body", key: "port" },
+            { in: "body", key: "secure" },
+            { in: "body", key: "user" },
+            { in: "body", key: "appPassword" },
+            { in: "body", key: "smtp" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MailAccountsTestResponses, MailAccountsTestErrors, ThrowOnError>({
+      url: "/mail/accounts/test",
       ...options,
       ...params,
       headers: {

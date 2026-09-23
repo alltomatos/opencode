@@ -26,9 +26,11 @@ export const UpsertPayload = Schema.Struct({
 })
 
 export const AccountList = Schema.Array(MailAccounts.AccountSummary)
+export const TestResultPayload = MailAccounts.TestResult
 
 export const MailAccountsPaths = {
   collection: "/mail/accounts",
+  test: "/mail/accounts/test",
   item: "/mail/accounts/:id",
 } as const
 
@@ -44,6 +46,18 @@ export const MailAccountsApi = HttpApi.make("mail-accounts").add(
           identifier: "mailAccounts.list",
           summary: "List mail accounts",
           description: "List configured mcpmail accounts (App Password never included in the response).",
+        }),
+      ),
+      HttpApiEndpoint.post("test", MailAccountsPaths.test, {
+        query: WorkspaceRoutingQuery,
+        payload: UpsertPayload,
+        success: described(TestResultPayload, "Test connection result for IMAP and SMTP"),
+        error: HttpApiError.BadRequest,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "mailAccounts.test",
+          summary: "Test mail account connection",
+          description: "Test IMAP and optional SMTP credentials and connectivity before saving.",
         }),
       ),
       HttpApiEndpoint.post("add", MailAccountsPaths.collection, {
