@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.36",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Fallback Seguro de Rotas e Identidade Visual da Marca",
+              "description": "Auto-recuperação e fallback seguro contra rotas corrompidas ou inválidas na inicialização do app, além de sincronização completa dos ícones de desktop, favicons e logotipo da marca."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.33",
       "highlights": [
         {
