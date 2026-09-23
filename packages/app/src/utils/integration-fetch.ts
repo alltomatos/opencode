@@ -15,6 +15,12 @@ import type {
   IntegrationInfo,
   IntegrationOauthConnectOutput,
 } from "@opencode-ai/client/promise"
+
+export type {
+  IntegrationAttemptStatus,
+  IntegrationInfo,
+  IntegrationOauthConnectOutput,
+}
 import type { ServerConnection } from "@/context/server"
 import { authTokenFromCredentials } from "@/utils/server"
 

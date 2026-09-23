@@ -1,9 +1,12 @@
 import { Popover as Kobalte } from "@kobalte/core/popover"
-import { Component, ComponentProps, createEffect, createMemo, For, JSX, Show } from "solid-js"
+import { Component, ComponentProps, createEffect, createMemo, createResource, For, JSX, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocal } from "@/context/local"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { popularProviders } from "@/hooks/use-providers"
+import { useProviders, popularProviders } from "@/hooks/use-providers"
+import { useSDK } from "@/context/sdk"
+import { createIntegrationFetchApi, type IntegrationInfo } from "@/utils/integration-fetch"
+import { useServerSDK } from "@/context/server-sdk"
 import { Button } from "@opencode-ai/ui/button"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
@@ -80,8 +83,53 @@ export function ModelProviderSelectorV2(props: {
 }) {
   const model = props.model ?? useLocal().model
   const language = useLanguage()
-  const providers = createProviderList(model)
-  const currentProvider = () => providers().find((provider) => provider.id === props.current)
+  const sdk = useSDK()
+  const serverSdk = useServerSDK()
+  const providers = useProviders(() => sdk().directory)
+  const integrationApi = createMemo(() => createIntegrationFetchApi(serverSdk().server.http))
+
+  const [integrationsList] = createResource(
+    () => ({ directory: sdk().directory }),
+    (input: { directory?: string }) =>
+      integrationApi()
+        .integration.list({
+          location: input.directory ? { directory: input.directory } : undefined,
+        })
+        .then((res) => res.data)
+        .catch(() => [] as IntegrationInfo[]),
+  )
+
+  const providerList = createMemo(() => {
+    const extraIntegrations = integrationsList() ?? []
+    const integrationMap = new Map(extraIntegrations.map((i: IntegrationInfo) => [i.id, i]))
+
+    const connectedProviders = providers.connected().filter((p) => {
+      if (p.id === "opencode" && !Object.values(p.models).find((m) => m.cost?.input)) return false
+      const integrationID = "integrationID" in p && typeof p.integrationID === "string" ? p.integrationID : undefined
+      const integration = integrationMap.get(p.id) ?? (integrationID ? integrationMap.get(integrationID) : undefined)
+      if (integration) {
+        return integration.connections.length > 0
+      }
+      return true
+    })
+
+    const connectedSet = new Set(connectedProviders.map((p) => p.id))
+    for (const integration of extraIntegrations) {
+      if (integration.connections.length > 0) {
+        connectedSet.add(integration.id)
+      }
+    }
+
+    const seen = new Map<string, { id: string; name: string }>()
+    for (const item of model.list()) {
+      if (!connectedSet.has(item.provider.id)) continue
+      if (!model.visible({ modelID: item.id, providerID: item.provider.id })) continue
+      if (!seen.has(item.provider.id)) seen.set(item.provider.id, { id: item.provider.id, name: item.provider.name })
+    }
+    return Array.from(seen.values()).sort(sortProviders)
+  })
+
+  const currentProvider = () => providerList().find((provider) => provider.id === props.current)
 
   return (
     <TooltipV2 placement="top" value={language.t("dialog.model.selectProvider.title")}>
@@ -102,7 +150,7 @@ export function ModelProviderSelectorV2(props: {
         <MenuV2.Portal>
           <MenuV2.Content>
             <MenuV2.RadioGroup value={props.current} onChange={props.onSelect}>
-              <For each={providers()}>
+              <For each={providerList()}>
                 {(provider) => (
                   <MenuV2.RadioItem value={provider.id} closeOnSelect>
                     <ProviderIcon id={provider.id} class="size-4 shrink-0 opacity-60" />
