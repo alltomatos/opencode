@@ -191,6 +191,8 @@ import type {
   McpStatusResponses,
   MemoryAddEntryErrors,
   MemoryAddEntryResponses,
+  MemoryBackfillErrors,
+  MemoryBackfillResponses,
   MemoryConfig,
   MemoryForgetProjectErrors,
   MemoryForgetProjectResponses,
@@ -273,6 +275,7 @@ import type {
   QuestionReplyResponses,
   QuestionV2Reply,
   ScheduleCreateInput,
+  ScheduleTestInput,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -455,6 +458,8 @@ import type {
   V2ScheduleRemoveResponses,
   V2ScheduleRunErrors,
   V2ScheduleRunResponses,
+  V2ScheduleTestErrors,
+  V2ScheduleTestResponses,
   V2SessionActiveErrors,
   V2SessionActiveResponses,
   V2SessionCompactErrors,
@@ -6457,6 +6462,53 @@ export class Memory extends HeyApiClient {
       },
     })
   }
+
+  /**
+   * Backfill memory from past sessions
+   *
+   * Scans past sessions and synthesizes missing memory files using the active fallback model.
+   */
+  public backfill<ThrowOnError extends boolean = false>(
+    parameters?: {
+      query_directory?: string
+      workspace?: string
+      body_directory?: string
+      sessionID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            {
+              in: "query",
+              key: "query_directory",
+              map: "directory",
+            },
+            { in: "query", key: "workspace" },
+            {
+              in: "body",
+              key: "body_directory",
+              map: "directory",
+            },
+            { in: "body", key: "sessionID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryBackfillResponses, MemoryBackfillErrors, ThrowOnError>({
+      url: "/memory/backfill",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
 }
 
 export class Control extends HeyApiClient {
@@ -8569,6 +8621,44 @@ export class Schedule extends HeyApiClient {
       url: "/api/schedule/{scheduleID}/run",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Test a routine action dry-run
+   *
+   * Execute a routine's action immediately to validate whether it works before saving.
+   */
+  public test<ThrowOnError extends boolean = false>(
+    parameters: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      scheduleTestInput: ScheduleTestInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location" },
+            { key: "scheduleTestInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2ScheduleTestResponses, V2ScheduleTestErrors, ThrowOnError>({
+      url: "/api/schedule/test",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

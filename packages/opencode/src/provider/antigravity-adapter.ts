@@ -20,13 +20,13 @@ const ANTIGRAVITY_IDE_VERSION = "2.11.0"
 
 const CLIENT_CONFIGS = {
   ide: {
-    id: "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
-    secret: "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",
+    id: process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+    secret: process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
     userAgent: `antigravity/ide/${ANTIGRAVITY_IDE_VERSION} darwin/arm64`,
   },
   cli: {
-    id: "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
-    secret: "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",
+    id: process.env.AGY_OAUTH_CLIENT_ID ?? process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+    secret: process.env.AGY_OAUTH_CLIENT_SECRET ?? process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? "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",
     userAgent: "antigravity/cli/1.1.5 (aidev_client; os_type=darwin; arch=arm64; auth_method=consumer)",
   },
 }
@@ -269,15 +269,13 @@ export function ensureBackgroundTokenRefresh() {
     }
   }
 
-  // Initial delayed tick after 10s, then repeat every 5 minutes
-  setTimeout(() => {
-    void tick()
-    const timer = setInterval(() => void tick(), 5 * 60 * 1000)
-    if (typeof timer.unref === "function") timer.unref()
-  }, 10_000)
+  // Run immediate tick on boot, then repeat every 5 minutes
+  void tick()
+  const timer = setInterval(() => void tick(), 5 * 60 * 1000)
+  if (typeof timer.unref === "function") timer.unref()
 }
 
-async function getLiveToken(
+export async function getLiveToken(
   integrationID: string,
   profile: "ide" | "cli",
 ): Promise<{ token: string; projectID: string; connectionId?: string; exhausted?: boolean }> {
@@ -450,31 +448,9 @@ export async function fetchUserQuotaDetails(
 
     // Proactively refresh if needed
     if (parsed.refresh && (!parsed.expires || parsed.expires - now < 300_000)) {
-      const client = CLIENT_CONFIGS[profile]
-      const params = new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: parsed.refresh,
-        client_id: client.id,
-        client_secret: client.secret,
-      })
-      const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      })
-      if (res.ok) {
-        const refreshed = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number }
-        access = refreshed.access_token
-        parsed.access = access
-        if (typeof refreshed.refresh_token === "string" && refreshed.refresh_token) {
-          parsed.refresh = refreshed.refresh_token
-        }
-        parsed.expires = Date.now() + refreshed.expires_in * 1000
-        db.prepare("UPDATE credential SET value = ?, time_updated = ? WHERE id = ?").run(
-          JSON.stringify(parsed),
-          Date.now(),
-          credentialID,
-        )
+      const refreshed = await refreshAccountToken(credentialID, profile)
+      if (refreshed.token) {
+        access = refreshed.token
       }
     }
 
@@ -647,27 +623,32 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
     }
 
     const opts = getOptions?.() ?? {}
-    let token = opts["accessToken"] ?? opts["apiKey"]
-    let projectID = opts["projectID"]
+    let token: string | undefined
+    let projectID: string | undefined = opts["projectID"]
     let usedConnectionId: string | undefined
 
-    if (!token || token === "antigravity-oauth" || !projectID) {
-      const live = await getLiveToken(integrationID, profile)
-      if (live.exhausted) {
-        return new Response(
-          JSON.stringify({
-            error: {
-              code: 429,
-              status: "RESOURCE_EXHAUSTED",
-              message: "Todas as contas AGY atingiram o limite de cota; aguarde o reset.",
-            },
-          }),
-          { status: 429, headers: { "Content-Type": "application/json" } },
-        )
-      }
-      if (live.token) token = live.token
-      if (!projectID) projectID = live.projectID
+    const live = await getLiveToken(integrationID, profile)
+    if (live.exhausted) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 429,
+            status: "RESOURCE_EXHAUSTED",
+            message: "Todas as contas AGY atingiram o limite de cota; aguarde o reset.",
+          },
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      )
+    }
+    if (live.token) {
+      token = live.token
+      projectID = live.projectID || projectID
       usedConnectionId = live.connectionId
+    } else {
+      const fallbackToken = opts["accessToken"] ?? opts["apiKey"]
+      if (fallbackToken && fallbackToken !== "antigravity-oauth") {
+        token = fallbackToken
+      }
     }
 
     const modelMatch = urlStr.match(/\/models\/([^:]+):/)
@@ -703,8 +684,8 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
     }
 
     const executeGenerate = async (
-      authToken: string,
-      pId: string,
+      authToken?: string,
+      pId?: string,
     ): Promise<Response | undefined> => {
       const currentHeaders: Record<string, string> = {
         "Content-Type": "application/json",
@@ -752,22 +733,30 @@ export function createAntigravityFetch(profile: "ide" | "cli", getOptions?: () =
         bodyText.includes("UNAUTHENTICATED") ||
         bodyText.includes("Verify your account") ||
         bodyText.includes("invalid_grant") ||
-        bodyText.includes("ACCESS_TOKEN_EXPIRED")
+        bodyText.includes("ACCESS_TOKEN_EXPIRED") ||
+        bodyText.includes("Expected OAuth 2 access token") ||
+        bodyText.includes("invalid authentication credentials")
 
-      if (isAuthIssue && usedConnectionId) {
-        // 1. Try immediate token refresh
-        const refreshed = await refreshAccountToken(usedConnectionId, profile)
-        if (refreshed.token) {
-          token = refreshed.token
-          projectID = refreshed.projectID || projectID
-          upstream = await executeGenerate(token, projectID)
-        } else {
-          // 2. Refresh failed or account requires verification -> bench account & try failover to next account
-          IntegrationRotation.markUnavailable(toConnection(usedConnectionId), 15 * 60_000)
+      if (isAuthIssue) {
+        if (usedConnectionId) {
+          // 1. Try immediate token refresh
+          const refreshed = await refreshAccountToken(usedConnectionId, profile)
+          if (refreshed.token) {
+            token = refreshed.token
+            projectID = refreshed.projectID || projectID
+            upstream = await executeGenerate(token, projectID)
+          }
+        }
+
+        // 2. If still failing or refresh failed, bench current connection & try failover to next account
+        if (!upstream || !upstream.ok) {
+          if (usedConnectionId) {
+            IntegrationRotation.markUnavailable(toConnection(usedConnectionId), 15 * 60_000)
+          }
           const nextLive = await getLiveToken(integrationID, profile)
           if (nextLive.token && nextLive.connectionId !== usedConnectionId) {
             token = nextLive.token
-            projectID = nextLive.projectID
+            projectID = nextLive.projectID || projectID
             usedConnectionId = nextLive.connectionId
             upstream = await executeGenerate(token, projectID)
           }

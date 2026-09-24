@@ -159,7 +159,7 @@ export const DialogSettings: Component<{
           <SettingsSkillsV2 directory={directory} />
         </TabsV2.Content>
         <TabsV2.Content value="memory" class="settings-v2-panel">
-          <SettingsMemoryV2 />
+          <SettingsMemoryV2 directory={directory} />
         </TabsV2.Content>
         <TabsV2.Content value="mcp" class="settings-v2-panel">
           <SettingsMcpV2 />

@@ -414,6 +414,8 @@ const Endpoint10_0 = (raw: RawClient["server.schedule"]) => (input?: Endpoint10_
 type Endpoint10_1Request = Parameters<RawClient["server.schedule"]["schedule.create"]>[0]
 type Endpoint10_1Input = {
   readonly location?: Endpoint10_1Request["query"]["location"]
+  readonly name?: Endpoint10_1Request["payload"]["name"]
+  readonly description?: Endpoint10_1Request["payload"]["description"]
   readonly trigger: Endpoint10_1Request["payload"]["trigger"]
   readonly action: Endpoint10_1Request["payload"]["action"]
   readonly workspace?: Endpoint10_1Request["payload"]["workspace"]
@@ -423,6 +425,8 @@ const Endpoint10_1 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_1
   raw["schedule.create"]({
     query: { location: input["location"] },
     payload: {
+      name: input["name"],
+      description: input["description"],
       trigger: input["trigger"],
       action: input["action"],
       workspace: input["workspace"],
@@ -440,12 +444,24 @@ const Endpoint10_2 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_2
     Effect.mapError(mapClientError),
   )
 
-type Endpoint10_3Request = Parameters<RawClient["server.schedule"]["schedule.remove"]>[0]
+type Endpoint10_3Request = Parameters<RawClient["server.schedule"]["schedule.test"]>[0]
 type Endpoint10_3Input = {
-  readonly scheduleID: Endpoint10_3Request["params"]["scheduleID"]
   readonly location?: Endpoint10_3Request["query"]["location"]
+  readonly action: Endpoint10_3Request["payload"]["action"]
+  readonly workspace?: Endpoint10_3Request["payload"]["workspace"]
 }
 const Endpoint10_3 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_3Input) =>
+  raw["schedule.test"]({
+    query: { location: input["location"] },
+    payload: { action: input["action"], workspace: input["workspace"] },
+  }).pipe(Effect.mapError(mapClientError))
+
+type Endpoint10_4Request = Parameters<RawClient["server.schedule"]["schedule.remove"]>[0]
+type Endpoint10_4Input = {
+  readonly scheduleID: Endpoint10_4Request["params"]["scheduleID"]
+  readonly location?: Endpoint10_4Request["query"]["location"]
+}
+const Endpoint10_4 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_4Input) =>
   raw["schedule.remove"]({ params: { scheduleID: input["scheduleID"] }, query: { location: input["location"] } }).pipe(
     Effect.mapError(mapClientError),
   )
@@ -454,7 +470,8 @@ const adaptGroup10 = (raw: RawClient["server.schedule"]) => ({
   list: Endpoint10_0(raw),
   create: Endpoint10_1(raw),
   run: Endpoint10_2(raw),
-  remove: Endpoint10_3(raw),
+  test: Endpoint10_3(raw),
+  remove: Endpoint10_4(raw),
 })
 
 type Endpoint11_0Request = Parameters<RawClient["server.permission"]["permission.request.list"]>[0]

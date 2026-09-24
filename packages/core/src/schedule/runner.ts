@@ -10,6 +10,34 @@ export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Sch
   id: Schedule.ID,
 }) {}
 
+export interface SkillCallResult {
+  readonly success: boolean
+  readonly error?: string
+  readonly sessionId?: string
+}
+
+export interface SkillCallerInterface {
+  readonly runSkill: (
+    action: Schedule.SkillAction,
+    workspace: string | undefined,
+  ) => Effect.Effect<SkillCallResult>
+}
+
+export class SkillCaller extends Context.Service<SkillCaller, SkillCallerInterface>()("@opencode/v2/Schedule/SkillCaller") {}
+
+const skillCallerUnsupportedLayer = Layer.succeed(
+  SkillCaller,
+  SkillCaller.of({
+    runSkill: () =>
+      Effect.succeed({
+        success: false,
+        error: "Skill/AI actions require the OpenCode runtime session, not available in this standalone server process.",
+      }),
+  }),
+)
+
+export const skillCallerNode = makeGlobalNode({ service: SkillCaller, layer: skillCallerUnsupportedLayer, deps: [] })
+
 export interface McpCallResult {
   readonly success: boolean
   readonly error?: string
@@ -122,7 +150,11 @@ function runAction(action: Schedule.Action, workspace: string | undefined) {
       ? action.timeoutMs
       : DEFAULT_TIMEOUT_MS
 
-  if (action.kind === "shell") return Effect.promise(() => executeCommand(action.command, workspace, timeoutMs))
+  if (action.kind === "shell") {
+    return Effect.promise(() => executeCommand(action.command, workspace, timeoutMs)).pipe(
+      Effect.map((res) => ({ exitCode: res.exitCode, error: res.error, sessionId: undefined })),
+    )
+  }
   if (action.kind === "mcp_tool") {
     return Effect.gen(function* () {
       const caller = yield* McpCaller
@@ -132,14 +164,40 @@ function runAction(action: Schedule.Action, workspace: string | undefined) {
           orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
         }),
       )
-      return { exitCode: result.success ? 0 : 1, error: result.error }
+      return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: undefined }
+    })
+  }
+  if (action.kind === "skill") {
+    return Effect.gen(function* () {
+      const caller = yield* SkillCaller
+      const result: SkillCallResult = yield* caller.runSkill(action, workspace).pipe(
+        Effect.timeoutOrElse({
+          duration: Duration.millis(timeoutMs),
+          orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+        }),
+      )
+      return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: result.sessionId }
     })
   }
   return Effect.succeed({
     exitCode: 1,
-    error: `Action kind "${action.kind}" is not yet supported by the schedule runner.`,
+    error: `Action kind "${(action as any).kind}" is not yet supported by the schedule runner.`,
+    sessionId: undefined,
   })
 }
+
+/** Executes an action directly as a dry-run test/validation without needing a saved Schedule ID */
+export const testAction = Effect.fn("v2.Schedule.testAction")(function* (
+  action: Schedule.Action,
+  workspace?: string,
+) {
+  const result = yield* runAction(action, workspace)
+  return {
+    success: result.exitCode === 0,
+    error: result.error,
+    sessionId: result.sessionId,
+  }
+})
 
 /** Runs one schedule's action immediately, regardless of trigger/enabled state, and records the result. */
 export const runOne = Effect.fn("v2.Schedule.runOne")(function* (id: Schedule.ID) {
@@ -152,6 +210,7 @@ export const runOne = Effect.fn("v2.Schedule.runOne")(function* (id: Schedule.ID
     lastRunAt: Date.now(),
     lastStatus: result.exitCode === 0 ? "success" : "error",
     lastError: result.error,
+    lastSessionId: result.sessionId,
   })
   return updated!
 })
@@ -177,6 +236,7 @@ const tick = Effect.fn("v2.Schedule.tick")(function* () {
       lastRunAt: nowMs,
       lastStatus: result.exitCode === 0 ? "success" : "error",
       lastError: result.error,
+      lastSessionId: result.sessionId,
     })
 
     if (result.exitCode === 0) yield* Effect.logInfo(`[Schedule] Task ${schedule.id} completed successfully`)
@@ -195,5 +255,5 @@ const tickLayer = Layer.effectDiscard(
 export const tickNode = makeGlobalNode({
   name: "schedule-tick",
   layer: Layer.merge(Schedule.layer, tickLayer.pipe(Layer.provide(Schedule.layer))),
-  deps: [Database.node, mcpCallerNode],
+  deps: [Database.node, mcpCallerNode, skillCallerNode],
 })

@@ -1,4 +1,4 @@
-import { createMemo, createResource, Show, type Component } from "solid-js"
+import { createEffect, createMemo, createResource, Show, type Accessor, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useMutation } from "@tanstack/solid-query"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
@@ -15,10 +15,12 @@ import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
 
-export const SettingsMemoryV2: Component = () => {
+export const SettingsMemoryV2: Component<{
+  directory?: Accessor<string | undefined>
+}> = (props) => {
   const language = useLanguage()
   const serverSDK = useServerSDK()
-  const providers = useProviders(() => undefined)
+  const providers = useProviders(() => props.directory?.())
 
   const [config, { refetch }] = createResource(async () => {
     const result = await serverSDK().client.memory.getConfig()
@@ -29,12 +31,10 @@ export const SettingsMemoryV2: Component = () => {
     memoryModel: "",
   })
 
-  createMemo(() => {
+  createEffect(() => {
     const data = config()
     if (!data) return
-    setForm({
-      memoryModel: data.memoryModel ?? "",
-    })
+    setForm("memoryModel", data.memoryModel ?? "")
   })
 
   const saveMutation = useMutation(() => ({
@@ -46,8 +46,11 @@ export const SettingsMemoryV2: Component = () => {
       await serverSDK().client.memory.setConfig({ memoryConfig: payload })
       return payload
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       void refetch()
+      if (saved.memoryModel !== undefined) {
+        setForm("memoryModel", saved.memoryModel ?? "")
+      }
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.memory.toast.saved") })
     },
     onError: (err) => {
@@ -128,7 +131,11 @@ export const SettingsMemoryV2: Component = () => {
               description={language.t("settings.memory.field.memoryModel.description")}
             >
               <div class="w-full sm:w-[280px]">
-                <ModelPickerV2 value={form.memoryModel} onChange={(value) => setForm("memoryModel", value)} />
+                <ModelPickerV2
+                  value={form.memoryModel}
+                  onChange={(value) => setForm("memoryModel", value)}
+                  directory={props.directory?.()}
+                />
               </div>
             </SettingsRowV2>
           </SettingsListV2>

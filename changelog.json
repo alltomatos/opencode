@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "tag": "v1.21.38",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Estabilidade e Auto-Refresh nos Provedores AGY e AGY CLI",
+              "description": "Implementada resolução dinâmica de tokens vivos, refresh proativo contínuo em background, recuperação robusta contra erros 401/403 com failover automático e preservação estrita do refresh token do Google."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "v1.21.37",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Sistema de Memória Lateral com Subabas e Backfill Automático",
+              "description": "Aba nativa de memória integrada ao painel lateral ao lado do Contexto, com subabas de Sessão/Projeto e Global, busca em tempo real, badges visuais semânticos para decisões e fatos, motor de síntese com fallback inteligente multi-provedor (AGY/OpenRouter/Zen/Heurístico) e ação de backfill retroativo de sessões passadas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.36",
       "highlights": [
         {

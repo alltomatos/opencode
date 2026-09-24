@@ -14,10 +14,15 @@ import { SessionContextUsage } from "@/components/session-context-usage"
 import { isBrowserPanelAvailable, isBrowserPanelOpen, toggleBrowserPanel } from "@/components/browser-panel"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
+import { useLayout } from "@/context/layout"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { useSessionArchive } from "@/pages/session/session-archive"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
+import { useSDK } from "@/context/sdk"
+import { useSync } from "@/context/sync"
+import { decode64 } from "@/utils/base64"
+import { getFilename } from "@opencode-ai/core/util/path"
 import { DialogDeleteSession } from "./dialog-delete-session"
 import { DialogBackgroundTasks } from "@/components/session/dialog-background-tasks"
 import type { createSessionHeaderActions } from "./timeline-session-actions"
@@ -35,11 +40,21 @@ export function TimelineHeader(props: {
   actions: SessionHeaderActions
 }) {
   const language = useLanguage()
+  const layout = useLayout()
   const settings = useSettings()
   const dialog = useDialog()
   const sessionArchive = useSessionArchive()
   const platform = usePlatform()
-  const { view } = useSessionLayout()
+  const sdk = useSDK()
+  const sync = useSync()
+  const { params, tabs, view } = useSessionLayout()
+
+  const openMemoryDialog = () => {
+    view().reviewPanel.open(view().reviewPanel.opened() ? "other" : "memory-button")
+    if (layout.fileTree.opened() && layout.fileTree.tab() !== "all") layout.fileTree.setTab("all")
+    void tabs().open("memory")
+    tabs().setActive("memory")
+  }
   const {
     title,
     setTitle,
@@ -185,6 +200,14 @@ export function TimelineHeader(props: {
                   onClick={toggleBrowserPanel}
                 />
               </Show>
+              <IconButtonV2
+                type="button"
+                variant="ghost-muted"
+                size="large"
+                aria-label={language.t("session.header.memory.tooltip")}
+                icon={<Icon name="brain" />}
+                onClick={openMemoryDialog}
+              />
               <SessionContextUsage placement="bottom" buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"} />
               <Show when={!props.parentID()}>
                 <Show
@@ -251,6 +274,10 @@ export function TimelineHeader(props: {
                               <DropdownMenu.ItemLabel>{language.t("session.share.action.share")}</DropdownMenu.ItemLabel>
                             </DropdownMenu.Item>
                           </Show>
+                          <DropdownMenu.Item onSelect={openMemoryDialog}>
+                            <Icon name="brain" size="small" />
+                            <DropdownMenu.ItemLabel>{language.t("dialog.memory.title")}</DropdownMenu.ItemLabel>
+                          </DropdownMenu.Item>
                           <DropdownMenu.Item onSelect={() => exportSession(id)}>
                             <Icon name="download" size="small" />
                             <DropdownMenu.ItemLabel>{language.t("common.export")}</DropdownMenu.ItemLabel>
@@ -331,6 +358,10 @@ export function TimelineHeader(props: {
                             {language.t("session.share.action.share")}...
                           </MenuV2.Item>
                         </Show>
+                        <MenuV2.Item onSelect={openMemoryDialog}>
+                          <Icon name="brain" size="small" />
+                          {language.t("dialog.memory.title")}
+                        </MenuV2.Item>
                         <MenuV2.Item onSelect={() => exportSession(id)}>
                           <IconV2 name="outline-square-arrow" size="small" />
                           {language.t("common.export")}...

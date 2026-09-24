@@ -132,6 +132,7 @@ export function SessionSidePanel(props: {
     fileBrowser: () => !!props.fileBrowserState,
   })
   const contextOpen = tabState.contextOpen
+  const memoryOpen = tabState.memoryOpen
   const openFileOpen = tabState.openFileOpen
   const panelTabs = tabState.panelTabs
   const openedTabs = tabState.openedTabs
@@ -175,7 +176,7 @@ export function SessionSidePanel(props: {
   })
   const fileBrowserVisible = createMemo(() => {
     const active = activeTab()
-    return active !== "review" && active !== "context" && active !== "empty"
+    return active !== "review" && active !== "context" && active !== "memory" && active !== "empty"
   })
 
   createEffect(() => {
@@ -254,6 +255,7 @@ export function SessionSidePanel(props: {
                         activeTab={activeTab}
                         activateTab={activateTab}
                         contextOpen={contextOpen}
+                        memoryOpen={memoryOpen}
                         panelTabs={panelTabs}
                         openedTabs={openedTabs}
                         temporaryTab={temporaryTab}
@@ -275,6 +277,7 @@ export function SessionSidePanel(props: {
                         activeTab={activeTab}
                         activateTab={activateTab}
                         contextOpen={contextOpen}
+                        memoryOpen={memoryOpen}
                         panelTabs={panelTabs}
                         temporaryTab={temporaryTab}
                         reviewTab={reviewTab}

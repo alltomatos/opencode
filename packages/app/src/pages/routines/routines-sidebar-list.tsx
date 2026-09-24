@@ -14,7 +14,8 @@ export const RoutinesSidebarList: Component = () => {
   const navigate = useNavigate()
 
   const [schedules] = createResource(async () => {
-    const result = await serverSDK().client.v2.schedule.list()
+    const scheduleClient = (serverSDK().client as any).schedule ?? (serverSDK().client as any).v2?.schedule
+    const result = await scheduleClient.list()
     return result.data ?? []
   })
 
@@ -43,21 +44,40 @@ export const RoutinesSidebarList: Component = () => {
               fallback={<div class="px-1.5 py-2 text-v2-text-text-faint">Nenhuma rotina ainda.</div>}
             >
               <For each={schedules()}>
-                {(schedule) => (
-                  <button
-                    type="button"
-                    class={`
-                      flex h-7 min-w-0 w-full shrink-0 cursor-default items-center gap-2 rounded-[6px]
-                      bg-transparent px-1.5 text-left text-v2-text-text-muted [font-weight:440]
-                      transition-[background-color,color] duration-[120ms] ease-in-out
-                      hover:bg-v2-background-bg-layer-01 hover:text-v2-text-text-base
-                    `}
-                    onClick={() => navigate("/rotinas")}
-                  >
-                    <Icon name="task" size="small" class="shrink-0 text-v2-icon-icon-muted" />
-                    <span class={NAV_LABEL}>{triggerSummary(schedule.trigger)}</span>
-                  </button>
-                )}
+                {(schedule) => {
+                  const displayName = () =>
+                    schedule.name?.trim() || triggerSummary(schedule.trigger)
+                  const hasError = () => schedule.lastStatus === "error"
+
+                  const handleClick = () => {
+                    if (schedule.lastSessionId) {
+                      navigate(`/session/${schedule.lastSessionId}`)
+                    } else {
+                      navigate("/rotinas")
+                    }
+                  }
+
+                  return (
+                    <button
+                      type="button"
+                      class={`
+                        flex h-7 min-w-0 w-full shrink-0 cursor-pointer items-center gap-2 rounded-[6px]
+                        bg-transparent px-1.5 text-left text-v2-text-text-muted [font-weight:440]
+                        transition-[background-color,color] duration-[120ms] ease-in-out
+                        hover:bg-v2-background-bg-layer-01 hover:text-v2-text-text-base
+                      `}
+                      onClick={handleClick}
+                      title={schedule.description || displayName()}
+                    >
+                      <Icon
+                        name="task"
+                        size="small"
+                        class={`shrink-0 ${hasError() ? "text-v2-state-fg-danger" : "text-v2-icon-icon-muted"}`}
+                      />
+                      <span class={NAV_LABEL}>{displayName()}</span>
+                    </button>
+                  )
+                }}
               </For>
             </Show>
           </Show>

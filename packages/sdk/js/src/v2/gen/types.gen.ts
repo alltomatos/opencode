@@ -5402,12 +5402,18 @@ export type ScheduleSkillAction = {
   kind: "skill"
   instructions: string
   mcpTools?: Array<ScheduleSkillMcpTool>
+  workspaces?: Array<string>
+  model?: string
+  permission?: "auto" | "bypass" | "default"
+  timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction
 
 export type ScheduleInfo = {
   id: string
+  name?: string
+  description?: string
   trigger: ScheduleTrigger
   action: ScheduleAction
   workspace?: string
@@ -5415,13 +5421,27 @@ export type ScheduleInfo = {
   lastRunAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   lastStatus?: "success" | "error"
   lastError?: string
+  lastSessionId?: string
 }
 
 export type ScheduleCreateInput = {
+  name?: string
+  description?: string
   trigger: ScheduleTrigger
   action: ScheduleAction
   workspace?: string
   enabled?: boolean
+}
+
+export type ScheduleTestInput = {
+  action: ScheduleAction
+  workspace?: string
+}
+
+export type ScheduleTestResult = {
+  success: boolean
+  error?: string
+  sessionId?: string
 }
 
 export type PermissionV2Request = {
@@ -12737,6 +12757,43 @@ export type MemoryPromoteResponses = {
 
 export type MemoryPromoteResponse = MemoryPromoteResponses[keyof MemoryPromoteResponses]
 
+export type MemoryBackfillData = {
+  body?: {
+    directory?: string
+    sessionID?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/backfill"
+}
+
+export type MemoryBackfillErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type MemoryBackfillError = MemoryBackfillErrors[keyof MemoryBackfillErrors]
+
+export type MemoryBackfillResponses = {
+  /**
+   * Memory backfill execution result
+   */
+  200: {
+    totalSessions: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    processedSessions: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    summarizedSessions: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    projectsCount: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    errors: Array<string>
+  }
+}
+
+export type MemoryBackfillResponse = MemoryBackfillResponses[keyof MemoryBackfillResponses]
+
 export type TuiAppendPromptData = {
   body?: {
     text: string
@@ -15068,6 +15125,40 @@ export type V2ScheduleRunResponses = {
 }
 
 export type V2ScheduleRunResponse = V2ScheduleRunResponses[keyof V2ScheduleRunResponses]
+
+export type V2ScheduleTestData = {
+  body: ScheduleTestInput
+  path?: never
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/test"
+}
+
+export type V2ScheduleTestErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleTestError = V2ScheduleTestErrors[keyof V2ScheduleTestErrors]
+
+export type V2ScheduleTestResponses = {
+  /**
+   * Schedule.TestResult
+   */
+  200: ScheduleTestResult
+}
+
+export type V2ScheduleTestResponse = V2ScheduleTestResponses[keyof V2ScheduleTestResponses]
 
 export type V2ScheduleRemoveData = {
   body?: never

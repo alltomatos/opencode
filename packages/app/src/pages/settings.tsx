@@ -232,7 +232,7 @@ export function SettingsPage() {
           </TabsV2.Content>
           <TabsV2.Content value="memory" class="settings-v2-panel">
             <SettingsServerScope>
-              <SettingsMemoryV2 />
+              <SettingsMemoryV2 directory={directory} />
             </SettingsServerScope>
           </TabsV2.Content>
           <TabsV2.Content value="mcp" class="settings-v2-panel">

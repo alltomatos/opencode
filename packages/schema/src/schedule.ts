@@ -54,18 +54,15 @@ export const SkillMcpTool = Schema.Struct({
   tool: Schema.String,
 }).annotate({ identifier: "Schedule.SkillMcpTool" })
 
-/**
- * Unlike `name`-based skills, a Routine's "skill" is its own inline instruction --
- * not a reference into the global/project skill catalog. It runs as a fresh
- * agent session prompted with `instructions`, scoped only to this Routine.
- * `mcpTools` optionally grants that session access to specific connected MCP
- * tools -- the "where from" a routine's instructions are allowed to draw on.
- */
 export interface SkillAction extends Schema.Schema.Type<typeof SkillAction> {}
 export const SkillAction = Schema.Struct({
   kind: Schema.Literal("skill"),
   instructions: Schema.String,
   mcpTools: optional(Schema.Array(SkillMcpTool)),
+  workspaces: optional(Schema.Array(Schema.String)),
+  model: optional(Schema.String),
+  permission: optional(Schema.Literals(["auto", "bypass", "default"])),
+  timeoutMs: optional(Schema.Number),
 }).annotate({ identifier: "Schedule.SkillAction" })
 
 export const Action = Schema.Union([ShellAction, McpToolAction, SkillAction])
@@ -76,6 +73,8 @@ export type Action = Schema.Schema.Type<typeof Action>
 export interface Info extends Schema.Schema.Type<typeof Info> {}
 export const Info = Schema.Struct({
   id: ID,
+  name: optional(Schema.String),
+  description: optional(Schema.String),
   trigger: Trigger,
   action: Action,
   workspace: optional(Schema.String),
@@ -83,12 +82,28 @@ export const Info = Schema.Struct({
   lastRunAt: optional(Schema.Number),
   lastStatus: optional(Schema.Literals(["success", "error"])),
   lastError: optional(Schema.String),
+  lastSessionId: optional(Schema.String),
 }).annotate({ identifier: "Schedule.Info" })
 
 export interface CreateInput extends Schema.Schema.Type<typeof CreateInput> {}
 export const CreateInput = Schema.Struct({
+  name: optional(Schema.String),
+  description: optional(Schema.String),
   trigger: Trigger,
   action: Action,
   workspace: optional(Schema.String),
   enabled: optional(Schema.Boolean),
 }).annotate({ identifier: "Schedule.CreateInput" })
+
+export interface TestInput extends Schema.Schema.Type<typeof TestInput> {}
+export const TestInput = Schema.Struct({
+  action: Action,
+  workspace: optional(Schema.String),
+}).annotate({ identifier: "Schedule.TestInput" })
+
+export interface TestResult extends Schema.Schema.Type<typeof TestResult> {}
+export const TestResult = Schema.Struct({
+  success: Schema.Boolean,
+  error: optional(Schema.String),
+  sessionId: optional(Schema.String),
+}).annotate({ identifier: "Schedule.TestResult" })

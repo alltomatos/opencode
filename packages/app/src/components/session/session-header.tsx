@@ -152,7 +152,7 @@ export function SessionHeader() {
   const settings = useSettings()
   const sync = useSync()
   const terminal = useTerminal()
-  const { params, view } = useSessionLayout()
+  const { params, tabs, view } = useSessionLayout()
 
   const projectDirectory = createMemo(() => decode64(params.dir) ?? "")
   const project = createMemo(() => {
@@ -171,6 +171,13 @@ export function SessionHeader() {
   const search = settings.visibility.search
   const status = settings.visibility.status
   const isDesktop = createMediaQuery("(min-width: 768px)")
+
+  const openMemory = () => {
+    view().reviewPanel.open(view().reviewPanel.opened() ? "other" : "memory-button")
+    if (layout.fileTree.opened() && layout.fileTree.tab() !== "all") layout.fileTree.setTab("all")
+    void tabs().open("memory")
+    tabs().setActive("memory")
+  }
 
   const [exists, setExists] = createStore<Partial<Record<OpenApp, boolean>>>({
     finder: true,
@@ -248,6 +255,7 @@ export function SessionHeader() {
     reviewVisible: isDesktop(),
     reviewOpened: view().reviewPanel.opened(),
     onReviewToggle: () => view().reviewPanel.toggle(),
+    onMemoryOpen: openMemory,
   }))
 
   const selectApp = (app: OpenApp) => {
@@ -446,6 +454,16 @@ export function SessionHeader() {
                     </div>
                   </Show>
                   <div class="flex items-center gap-1">
+                    <Tooltip placement="bottom" value={language.t("session.header.memory.tooltip")}>
+                      <Button
+                        variant="ghost"
+                        class="titlebar-icon w-8 h-6 p-0 box-border shrink-0"
+                        onClick={openMemory}
+                        aria-label={language.t("session.header.memory.tooltip")}
+                      >
+                        <Icon size="small" name="brain" />
+                      </Button>
+                    </Tooltip>
                     <Show when={status()}>
                       <Tooltip placement="bottom" value={language.t("status.popover.trigger")}>
                         <StatusPopover />
@@ -530,6 +548,7 @@ type SessionHeaderV2ActionsState = {
   reviewVisible: boolean
   reviewOpened: boolean
   onReviewToggle: () => void
+  onMemoryOpen: () => void
 }
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
@@ -537,6 +556,21 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
 
   return (
     <div class="flex items-center gap-2">
+      <TooltipV2
+        class="shrink-0"
+        placement="bottom"
+        value={language.t("session.header.memory.tooltip")}
+      >
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          onClick={props.state.onMemoryOpen}
+          aria-label={language.t("session.header.memory.tooltip")}
+          icon={<IconV2 name="brain" />}
+        />
+      </TooltipV2>
       <Show when={props.state.statusVisible}>
         <Tooltip placement="bottom" value={props.state.statusLabel}>
           <StatusPopoverV2 />

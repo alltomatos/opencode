@@ -127,6 +127,8 @@ export default {
       yield* tx.run(`
         CREATE TABLE \`schedule\` (
           \`id\` text PRIMARY KEY,
+          \`name\` text,
+          \`description\` text,
           \`trigger\` text NOT NULL,
           \`action\` text NOT NULL,
           \`workspace\` text,
@@ -134,6 +136,7 @@ export default {
           \`last_run_at\` integer,
           \`last_status\` text,
           \`last_error\` text,
+          \`last_session_id\` text,
           \`time_created\` integer NOT NULL,
           \`time_updated\` integer NOT NULL
         );

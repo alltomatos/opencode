@@ -47,6 +47,18 @@ const selectClass = `
   disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-v2-background-bg-base
 `
 
+const ANTIGRAVITY_FALLBACK_MODELS: Record<string, any> = {
+  "gemini-3.7-flash-high": { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)" },
+  "gemini-3.7-flash-medium": { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)" },
+  "gemini-3.7-flash-low": { id: "gemini-3.7-flash-low", name: "Gemini 3.7 Flash (Low)" },
+  "gemini-pro-agent": { id: "gemini-pro-agent", name: "Gemini 3.1 Pro (High)" },
+  "gemini-3.1-pro-low": { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)" },
+  "gemini-3.1-flash-lite": { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite" },
+  "claude-sonnet-4-6": { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6 (Thinking)" },
+  "claude-opus-4-6-thinking": { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 (Thinking)" },
+  "gpt-oss-120b-medium": { id: "gpt-oss-120b-medium", name: "GPT-OSS 120B (Medium)" },
+}
+
 export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
@@ -64,6 +76,18 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
         .catch(() => []),
   )
 
+  const [combosResource] = createResource(async () => {
+    if (props.combos) return props.combos
+    try {
+      const res = await serverSdk().client.combo.list()
+      return (res.data ?? []).map((c) => ({ id: c.id, name: c.name }))
+    } catch {
+      return []
+    }
+  })
+
+  const availableCombos = createMemo(() => props.combos ?? combosResource() ?? [])
+
   const providerList = createMemo(() => {
     const extraIntegrations = integrationsList() ?? []
     const integrationMap = new Map(extraIntegrations.map((i) => [i.id, i]))
@@ -79,25 +103,63 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
       const integration = integrationMap.get(p.id) ?? (integrationID ? integrationMap.get(integrationID) : undefined)
       if (integration && integration.connections.length === 0) continue
 
-      seen.set(p.id, { id: p.id, name: p.name, models: { ...p.models } })
+      let models = { ...p.models }
+      if (Object.keys(models).length === 0) {
+        if (p.id === "google-antigravity" || p.id === "google-antigravity-cli") {
+          models = { ...ANTIGRAVITY_FALLBACK_MODELS }
+        }
+      }
+
+      seen.set(p.id, { id: p.id, name: p.name, models })
     }
 
-    // Include OAuth integrations with active connections (e.g. AGY CLI, OpenCode OAuth, Omniroute)
+    // Include OAuth integrations with active connections (e.g. AGY, AGY CLI, OpenCode OAuth, Omniroute)
     for (const integration of extraIntegrations) {
       if (integration.connections.length > 0) {
-        const catalogProvider = allCatalog.get(integration.id) ?? allCatalog.get(integration.id.replace("-cli", ""))
-        const models = catalogProvider?.models ?? {}
-        if (!seen.has(integration.id)) {
-          seen.set(integration.id, {
-            id: integration.id,
-            name: integration.name || catalogProvider?.name || integration.id,
-            models: { ...models },
+        const catalogProvider =
+          allCatalog.get(integration.id) ??
+          allCatalog.get(integration.id.replace("-cli", "")) ??
+          (integration.id === "omniroute" ? allCatalog.get("omnrt") : undefined)
+
+        let models = { ...(catalogProvider?.models ?? {}) }
+        if (Object.keys(models).length === 0) {
+          if (integration.id === "google-antigravity" || integration.id === "google-antigravity-cli") {
+            models = { ...ANTIGRAVITY_FALLBACK_MODELS }
+          }
+        }
+
+        const providerName =
+          integration.id === "google-antigravity"
+            ? "AGY"
+            : integration.id === "google-antigravity-cli"
+              ? "AGY CLI"
+              : integration.id === "omniroute"
+                ? "Omniroute"
+                : integration.name || catalogProvider?.name || integration.id
+
+        const providerID = integration.id === "omniroute" ? "omnrt" : integration.id
+
+        if (!seen.has(providerID)) {
+          seen.set(providerID, {
+            id: providerID,
+            name: providerName,
+            models,
           })
         } else {
-          const entry = seen.get(integration.id)!
+          const entry = seen.get(providerID)!
           Object.assign(entry.models, models)
         }
       }
+    }
+
+    // Include omnrt provider explicitly if present in allCatalog or connected in providers
+    const omnrt = allCatalog.get("omnrt") ?? allCatalog.get("omniroute")
+    if (omnrt && Object.keys(omnrt.models).length > 0 && !seen.has("omnrt")) {
+      seen.set("omnrt", {
+        id: "omnrt",
+        name: omnrt.name || "Omniroute",
+        models: { ...omnrt.models },
+      })
     }
 
     return Array.from(seen.values())
@@ -108,7 +170,20 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
   const selectedComboID = createMemo(() => (isCombo() ? props.value.slice(COMBO_PREFIX.length) : ""))
   const selectedProviderID = createMemo(() => (isCombo() ? "" : splitModel(props.value).providerID))
   const selectedModelID = createMemo(() => splitModel(props.value).modelID)
-  const selectedProvider = createMemo(() => providerList().find((provider) => provider.id === selectedProviderID()))
+  const selectedProvider = createMemo(() => {
+    const id = selectedProviderID()
+    if (!id) return undefined
+    const found = providerList().find((provider) => provider.id === id)
+    if (found) return found
+    if (id === "google-antigravity" || id === "google-antigravity-cli") {
+      return {
+        id,
+        name: id === "google-antigravity" ? "AGY" : "AGY CLI",
+        models: { ...ANTIGRAVITY_FALLBACK_MODELS },
+      }
+    }
+    return { id, name: id, models: {} }
+  })
   const allModels = createMemo(() => {
     const provider = selectedProvider()
     if (!provider) return []
@@ -157,6 +232,7 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
     if (selected && !list.some((m) => m.id === selected)) {
       const found = allModels().find((m) => m.id === selected)
       if (found) return [found, ...list]
+      return [{ id: selected, name: selected }, ...list]
     }
     return list
   })
@@ -181,15 +257,18 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
         }}
       >
         <option value="">{language.t("batuta.model.provider.placeholder")}</option>
-        <Show when={props.combos && props.combos.length > 0}>
+        <Show when={availableCombos().length > 0}>
           <optgroup label={language.t("settings.combos.title")}>
-            <For each={props.combos}>
+            <For each={availableCombos()}>
               {(combo) => <option value={`${COMBO_PREFIX}${combo.id}`}>{combo.name}</option>}
             </For>
           </optgroup>
         </Show>
         <optgroup label={language.t("batuta.model.provider.placeholder")}>
           <For each={providerList()}>{(provider) => <option value={provider.id}>{provider.name}</option>}</For>
+          <Show when={selectedProviderID() && !providerList().some((p) => p.id === selectedProviderID())}>
+            <option value={selectedProviderID()}>{selectedProvider()?.name || selectedProviderID()}</option>
+          </Show>
         </optgroup>
       </select>
       <Show when={!isCombo()}>

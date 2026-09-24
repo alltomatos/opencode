@@ -90,7 +90,7 @@ export type ReviewDiffStyle = "unified" | "split"
 
 export type ProjectSidebarTab = "code" | "batuta" | "agentui" | "schedule"
 export type ReviewChangeMode = "git" | "branch" | "turn"
-export type ReviewPanelSource = "context-button" | "other"
+export type ReviewPanelSource = "context-button" | "memory-button" | "other"
 
 export type LayoutRoute =
   | { type: "home" }

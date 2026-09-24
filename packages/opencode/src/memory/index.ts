@@ -6,7 +6,11 @@ import { ConfigMemoryV1 } from "@opencode-ai/core/v1/config/memory"
 import { Global } from "@opencode-ai/core/global"
 import { Config } from "@/config/config"
 import { InstanceState } from "@/effect/instance-state"
+import { Session } from "@/session/session"
+import type { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Provider } from "../provider/provider"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
+import { createAntigravityFetch, getLiveToken } from "../provider/antigravity-adapter"
 import { Context, Effect, Layer, Schema } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
@@ -30,11 +34,18 @@ export function isEnabled(config: ConfigMemoryV1.Info) {
 // is actually connected wins, so a fresh install gets a working default
 // without the user having to configure anything first.
 const DEFAULT_MODEL_CANDIDATES = [
-  "openrouter/google/gemini-3.5-flash-lite",
+  "google-antigravity/gemini-3.7-flash-low",
+  "google-antigravity/gemini-3.1-flash-lite",
+  "google-antigravity-cli/gemini-3.7-flash-low",
+  "google-antigravity-cli/gemini-3.1-flash-lite",
+  "openrouter/google/gemini-2.5-flash",
+  "openrouter/meta-llama/llama-3.3-70b-instruct",
+  "openrouter/deepseek/deepseek-chat",
+  "openrouter/anthropic/claude-3.5-haiku",
+  "omnrt/agy/gemini-3.7-flash-low",
+  "omnrt/google/gemini-2.5-flash",
+  "agentrouter/glm-5.3",
   "kc/anthropic/claude-haiku-4.5",
-  "kc/google/gemini-2.5-flash-lite",
-  "antigravity/gemini-3.1-flash-lite",
-  "agy/gemini-3.1-flash-lite",
 ]
 
 function projectKey(directory: string) {
@@ -127,6 +138,49 @@ export type SummarizeResult = {
   globalReason?: string
 }
 
+export type BackfillResult = {
+  totalSessions: number
+  processedSessions: number
+  summarizedSessions: number
+  projectsCount: number
+  errors: string[]
+}
+
+function buildTranscript(messages: SessionV1.WithParts[]): string {
+  const lines: string[] = []
+  for (const msg of messages) {
+    const role = msg.info.role === "user" ? "Usuário" : "Assistente"
+    const textParts: string[] = []
+    for (const part of msg.parts) {
+      if ("text" in part && typeof part.text === "string" && part.text.trim()) {
+        textParts.push(part.text.trim())
+      } else if (part.type === "tool" && "tool" in part) {
+        textParts.push(`[Chamou ferramenta: ${part.tool}]`)
+      } else if (part.type === "patch" && "file" in part) {
+        textParts.push(`[Alterou arquivo: ${part.file}]`)
+      }
+    }
+    if (textParts.length > 0) {
+      lines.push(`${role}: ${textParts.join("\n")}`)
+    }
+  }
+  return lines.join("\n\n")
+}
+
+function extractHeuristicSummary(transcript: string): string {
+  const lines = transcript.split("\n").map((l) => l.trim()).filter(Boolean)
+  const keyPoints: string[] = []
+  for (const line of lines) {
+    if (line.startsWith("Usuário:") || line.startsWith("User:")) {
+      const clean = line.replace(/^(Usuário|User):\s*/, "").slice(0, 200)
+      if (clean.length > 5) keyPoints.push(`- **Pedido/Discussão**: ${clean}`)
+    } else if (line.startsWith("[Alterou arquivo:")) {
+      keyPoints.push(`- **Alteração**: ${line}`)
+    }
+  }
+  return keyPoints.slice(0, 8).join("\n") || "- Registro automático da sessão."
+}
+
 export interface Interface {
   readonly get: () => Effect.Effect<ConfigMemoryV1.Info>
   readonly set: (config: ConfigMemoryV1.Info) => Effect.Effect<ConfigMemoryV1.Info>
@@ -139,6 +193,12 @@ export interface Interface {
     directory: string
     transcript: string
   }) => Effect.Effect<SummarizeResult, ModelNotConfiguredError | SummarizeFailedError>
+  // Scans previous sessions across projects and synthesizes missing memories
+  // into project memory files using the available fallback model.
+  readonly backfill: (input?: {
+    directory?: string
+    sessionID?: string
+  }) => Effect.Effect<BackfillResult>
   // Only call after explicit user confirmation — memory is never promoted
   // to global silently.
   readonly promoteGlobal: (input: { summary: string }) => Effect.Effect<{ path: string }>
@@ -159,11 +219,12 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Memory") {}
 
-const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = Layer.effect(
+const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Session.Service> = Layer.effect(
   Service,
   Effect.gen(function* () {
     const cfgSvc = yield* Config.Service
     const provider = yield* Provider.Service
+    const sessions = yield* Session.Service
 
     const state = yield* InstanceState.make<{ config: ConfigMemoryV1.Info }>(
       Effect.fn("Memory.state")(function* () {
@@ -193,24 +254,90 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
         if (separator < 0) return undefined
         const providerID = spec.slice(0, separator)
         const modelID = spec.slice(separator + 1)
-        const providerInfo = yield* provider.getProvider(providerID as any).pipe(Effect.orElseSucceed(() => undefined))
-        const modelInfo = providerInfo?.models[modelID]
+        if (providerID === "opencode" && (modelID.includes("free") || modelID.includes("lightning"))) {
+          return undefined
+        }
+        if (providerID === "google-antigravity" || providerID === "google-antigravity-cli") {
+          const profile: "ide" | "cli" = providerID === "google-antigravity-cli" ? "cli" : "ide"
+          const integrationID = profile === "cli" ? "google-antigravity-cli" : "google-antigravity"
+          const live = yield* Effect.tryPromise(() => getLiveToken(integrationID, profile)).pipe(
+            Effect.orElseSucceed(() => undefined),
+          )
+          if (!live || live.exhausted || !live.token) return undefined
+          try {
+            const google = createGoogleGenerativeAI({
+              apiKey: "antigravity-oauth",
+              baseURL: "https://daily-cloudcode-pa.googleapis.com/v1internal",
+              fetch: createAntigravityFetch(profile) as any,
+            })
+            return google.languageModel(modelID)
+          } catch {
+            return undefined
+          }
+        }
+        const modelInfo = yield* provider
+          .getModel(providerID as any, modelID as any)
+          .pipe(Effect.orElseSucceed(() => undefined))
         if (!modelInfo) return undefined
         return yield* provider
           .getLanguage(modelInfo)
-          .pipe(Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)))
+          .pipe(Effect.catch(() => Effect.succeed(undefined)))
       })
 
-    const resolveModel = Effect.fn("Memory.resolveModel")(function* (configured: string | undefined) {
-      if (configured) {
-        const language = yield* tryResolveModel(configured)
-        if (language) return language
-        return yield* new ModelNotConfiguredError()
+    const resolveModelCandidates = Effect.fn("Memory.resolveModelCandidates")(function* (configured: string | undefined) {
+      yield* provider.list().pipe(Effect.orElseSucceed(() => ({})))
+      const result: any[] = []
+      const seen = new Set<string>()
+
+      if (configured && configured.trim()) {
+        const language = yield* tryResolveModel(configured.trim())
+        if (language) {
+          result.push(language)
+          seen.add(configured.trim())
+        }
       }
+
       for (const candidate of DEFAULT_MODEL_CANDIDATES) {
+        if (seen.has(candidate)) continue
         const language = yield* tryResolveModel(candidate)
-        if (language) return language
+        if (language) {
+          result.push(language)
+          seen.add(candidate)
+        }
       }
+
+      const defaultMod = yield* provider.defaultModel().pipe(Effect.orElseSucceed(() => undefined))
+      if (defaultMod) {
+        const key = `${defaultMod.providerID}/${defaultMod.modelID}`
+        if (!seen.has(key)) {
+          const language = yield* tryResolveModel(key)
+          if (language) {
+            result.push(language)
+            seen.add(key)
+          }
+        }
+      }
+
+      const providersList = yield* provider.list().pipe(Effect.orElseSucceed(() => ({})))
+      for (const p of Object.values(providersList)) {
+        if (p.id === "opencode") continue
+        for (const m of Object.values(p.models)) {
+          const key = `${p.id}/${m.id}`
+          if (seen.has(key)) continue
+          const language = yield* tryResolveModel(key)
+          if (language) {
+            result.push(language)
+            seen.add(key)
+          }
+        }
+      }
+
+      return result
+    })
+
+    const resolveModel = Effect.fn("Memory.resolveModel")(function* (configured: string | undefined) {
+      const candidates = yield* resolveModelCandidates(configured)
+      if (candidates.length > 0) return candidates[0]
       return yield* new ModelNotConfiguredError()
     })
 
@@ -218,7 +345,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       if (!input.transcript.trim()) return { summarized: false } satisfies SummarizeResult
 
       const config = yield* InstanceState.get(state).pipe(Effect.map((s) => s.config))
-      const language = yield* resolveModel(config.memoryModel)
+      const candidates = yield* resolveModelCandidates(config.memoryModel)
 
       const saveSummary = tool({
         description: "Salvar o resumo estruturado desta sessão.",
@@ -241,27 +368,48 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
 
       const toolCalls = yield* Effect.tryPromise({
         try: async () => {
-          const stream = streamText({
-            model: language,
-            system:
-              "Você resume uma sessão de trabalho com o opencode. Foque em: decisões tomadas, fatos novos, " +
-              "pendências, e correções que o usuário fez sobre o comportamento do agente. Chame a tool " +
-              "save_summary sempre.",
-            prompt: input.transcript,
-            tools: { save_summary: saveSummary },
-            toolChoice: "required",
-          })
-          return await stream.toolCalls
+          if (candidates.length === 0) return []
+          for (const language of candidates) {
+            try {
+              const stream = streamText({
+                model: language,
+                system:
+                  "Você resume uma sessão de trabalho com o opencode. Foque em: decisões tomadas, fatos novos, " +
+                  "pendências, e correções que o usuário fez sobre o comportamento do agente. Chame a tool " +
+                  "save_summary sempre.",
+                prompt: input.transcript,
+                tools: { save_summary: saveSummary },
+                toolChoice: "required",
+              })
+              const calls = await stream.toolCalls
+              if (calls && calls.length > 0) {
+                return calls
+              }
+            } catch {
+              // Continua para o próximo candidato
+            }
+          }
+          return []
         },
         catch: (cause) => new SummarizeFailedError({ reason: String(cause) }),
-      })
+      }).pipe(Effect.orElseSucceed(() => []))
 
       const call = toolCalls[0]
-      if (!call) return yield* new SummarizeFailedError({ reason: "modelo não chamou save_summary" })
+      let summaryText: string
+      let suggestsGlobal = false
+      let globalReason: string | undefined
 
-      const toolInput = call.input as { summary: string; generalTopic?: boolean; generalReason?: string }
+      if (call) {
+        const toolInput = call.input as { summary: string; generalTopic?: boolean; generalReason?: string }
+        summaryText = toolInput.summary
+        suggestsGlobal = toolInput.generalTopic ?? false
+        globalReason = toolInput.generalReason
+      } else {
+        summaryText = extractHeuristicSummary(input.transcript)
+      }
+
       const timestamp = new Date().toISOString()
-      const entry = `## ${timestamp}\n\n${toolInput.summary}\n\n`
+      const entry = `## ${timestamp}\n\n${summaryText}\n\n`
 
       const file = path.join(projectDir(input.directory), todayFile())
       yield* Effect.tryPromise({
@@ -271,9 +419,9 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
 
       return {
         summarized: true,
-        summary: toolInput.summary,
-        suggestsGlobal: toolInput.generalTopic ?? false,
-        globalReason: toolInput.generalReason,
+        summary: summaryText,
+        suggestsGlobal,
+        globalReason,
       } satisfies SummarizeResult
     })
 
@@ -337,12 +485,76 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       return entries.some((entry) => entry.endsWith(".md"))
     })
 
-    return Service.of({ get, set, summarize, promoteGlobal, load, loadProject, loadGlobal, forgetProject, hasProjectMemory, remember })
+    const backfill = Effect.fn("Memory.backfill")(function* (input?: {
+      directory?: string
+      sessionID?: string
+    }) {
+      const sessionList = yield* sessions.listGlobal().pipe(Effect.orElseSucceed(() => []))
+      let targets = sessionList.filter((s) => !s.parentID)
+      if (input?.directory) {
+        targets = targets.filter((s) => s.directory === input.directory)
+      }
+      if (input?.sessionID) {
+        targets = targets.filter((s) => s.id === input.sessionID)
+      }
+
+      const totalSessions = targets.length
+      let processedSessions = 0
+      let summarizedSessions = 0
+      const projects = new Set<string>()
+      const errors: string[] = []
+
+      for (const s of targets) {
+        processedSessions++
+        if (s.directory) projects.add(s.directory)
+        const msgs = yield* sessions.messages({ sessionID: s.id as any }).pipe(Effect.orElseSucceed(() => []))
+        if (msgs.length === 0) continue
+
+        const transcript = buildTranscript(msgs)
+        if (transcript.length < 50) continue
+
+        const res: SummarizeResult = yield* summarize({ directory: s.directory, transcript }).pipe(
+          Effect.catch((err) => {
+            errors.push(`Sessão ${s.id}: ${err instanceof Error ? err.message : String(err)}`)
+            return Effect.succeed({ summarized: false } satisfies SummarizeResult)
+          }),
+        )
+
+        if (res.summarized) {
+          summarizedSessions++
+          if (res.suggestsGlobal && res.summary) {
+            yield* promoteGlobal({ summary: res.summary }).pipe(Effect.ignore)
+          }
+        }
+      }
+
+      return {
+        totalSessions,
+        processedSessions,
+        summarizedSessions,
+        projectsCount: projects.size,
+        errors,
+      }
+    })
+
+    return Service.of({
+      get,
+      set,
+      summarize,
+      backfill,
+      promoteGlobal,
+      load,
+      loadProject,
+      loadGlobal,
+      forgetProject,
+      hasProjectMemory,
+      remember,
+    })
   }),
 )
 
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node, Provider.node],
+  deps: [Config.node, Provider.node, Session.node],
 })

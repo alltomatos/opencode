@@ -3,7 +3,7 @@ import type { ConfigMemoryV1 } from "@opencode-ai/core/v1/config/memory"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
-import type { AddMemoryPayload, ForgetProjectQuery, ProjectEntriesQuery, PromoteMemoryPayload } from "../groups/memory"
+import type { AddMemoryPayload, BackfillMemoryPayload, ForgetProjectQuery, ProjectEntriesQuery, PromoteMemoryPayload } from "../groups/memory"
 
 export const memoryHandlers = HttpApiBuilder.group(InstanceHttpApi, "memory", (handlers) =>
   Effect.gen(function* () {
@@ -55,6 +55,15 @@ export const memoryHandlers = HttpApiBuilder.group(InstanceHttpApi, "memory", (h
       return yield* memory.promoteGlobal({ summary: ctx.payload.summary })
     })
 
+    const backfill = Effect.fn("MemoryHttpApi.backfill")(function* (ctx: {
+      payload: typeof BackfillMemoryPayload.Type
+    }) {
+      return yield* memory.backfill({
+        directory: ctx.payload.directory,
+        sessionID: ctx.payload.sessionID,
+      })
+    })
+
     return handlers
       .handle("getConfig", getConfig)
       .handle("setConfig", setConfig)
@@ -64,5 +73,6 @@ export const memoryHandlers = HttpApiBuilder.group(InstanceHttpApi, "memory", (h
       .handle("getGlobalEntries", getGlobalEntries)
       .handle("addEntry", addEntry)
       .handle("promote", promote)
+      .handle("backfill", backfill)
   }),
 )

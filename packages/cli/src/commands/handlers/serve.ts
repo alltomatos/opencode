@@ -43,7 +43,13 @@ function bind(hostname: string, port: number, password: string) {
       Layer.provideMerge(NodeHttpServer.layer(() => createServer(), { port, host: hostname })),
       Layer.provide(
         AppNodeBuilder.build(
-          LayerNode.group([Credential.node, PermissionSaved.node, ScheduleRunner.mcpCallerNode, ScheduleRunner.tickNode]),
+          LayerNode.group([
+            Credential.node,
+            PermissionSaved.node,
+            ScheduleRunner.mcpCallerNode,
+            ScheduleRunner.skillCallerNode,
+            ScheduleRunner.tickNode,
+          ]),
         ),
       ),
     ),

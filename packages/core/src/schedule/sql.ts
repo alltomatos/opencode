@@ -4,6 +4,8 @@ import type { Schedule } from "../schedule"
 
 export const ScheduleTable = sqliteTable("schedule", {
   id: text().$type<Schedule.ID>().primaryKey(),
+  name: text(),
+  description: text(),
   trigger: text({ mode: "json" }).$type<Schedule.Trigger>().notNull(),
   action: text({ mode: "json" }).$type<Schedule.Action>().notNull(),
   workspace: text(),
@@ -11,5 +13,6 @@ export const ScheduleTable = sqliteTable("schedule", {
   last_run_at: integer(),
   last_status: text().$type<"success" | "error">(),
   last_error: text(),
+  last_session_id: text(),
   ...Timestamps,
 })

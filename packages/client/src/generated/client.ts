@@ -73,6 +73,8 @@ import type {
   ServerScheduleCreateOutput,
   ServerScheduleRunInput,
   ServerScheduleRunOutput,
+  ServerScheduleTestInput,
+  ServerScheduleTestOutput,
   ServerScheduleRemoveInput,
   ServerScheduleRemoveOutput,
   PermissionsListRequestsInput,
@@ -722,6 +724,8 @@ export function make(options: ClientOptions) {
             path: `/api/schedule`,
             query: { location: input["location"] },
             body: {
+              name: input["name"],
+              description: input["description"],
               trigger: input["trigger"],
               action: input["action"],
               workspace: input["workspace"],
@@ -739,6 +743,19 @@ export function make(options: ClientOptions) {
             method: "POST",
             path: `/api/schedule/${encodeURIComponent(input.scheduleID)}/run`,
             query: { location: input["location"] },
+            successStatus: 200,
+            declaredStatuses: [400, 401],
+            empty: false,
+          },
+          requestOptions,
+        ),
+      test: (input: ServerScheduleTestInput, requestOptions?: RequestOptions) =>
+        request<ServerScheduleTestOutput>(
+          {
+            method: "POST",
+            path: `/api/schedule/test`,
+            query: { location: input["location"] },
+            body: { action: input["action"], workspace: input["workspace"] },
             successStatus: 200,
             declaredStatuses: [400, 401],
             empty: false,

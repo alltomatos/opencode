@@ -16,8 +16,19 @@ export type Trigger = Schedule.Trigger
 export const Action = Schedule.Action
 export type Action = Schedule.Action
 
+export const SkillAction = Schedule.SkillAction
+export type SkillAction = Schedule.SkillAction
+
+export const McpToolAction = Schedule.McpToolAction
+export type McpToolAction = Schedule.McpToolAction
+
+export const ShellAction = Schedule.ShellAction
+export type ShellAction = Schedule.ShellAction
+
 export class Info extends Schema.Class<Info>("v2.Schedule.Info")({
   id: ID,
+  name: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.String),
   trigger: Trigger,
   action: Action,
   workspace: Schema.optional(Schema.String),
@@ -25,9 +36,12 @@ export class Info extends Schema.Class<Info>("v2.Schedule.Info")({
   lastRunAt: Schema.optional(Schema.Number),
   lastStatus: Schema.optional(Schema.Literals(["success", "error"])),
   lastError: Schema.optional(Schema.String),
+  lastSessionId: Schema.optional(Schema.String),
 }) {}
 
 export interface CreateInput {
+  readonly name?: string
+  readonly description?: string
   readonly trigger: Trigger
   readonly action: Action
   readonly workspace?: string
@@ -35,10 +49,13 @@ export interface CreateInput {
 }
 
 export interface UpdateInput {
+  readonly name?: string
+  readonly description?: string
   readonly enabled?: boolean
   readonly lastRunAt?: number
   readonly lastStatus?: "success" | "error"
   readonly lastError?: string
+  readonly lastSessionId?: string
 }
 
 export class InvalidCronError extends Schema.TaggedErrorClass<InvalidCronError>()("Schedule.InvalidCronError", {
@@ -154,6 +171,8 @@ export const layer = Layer.effect(
     const stored = (row: typeof ScheduleTable.$inferSelect) =>
       new Info({
         id: row.id,
+        name: row.name ?? undefined,
+        description: row.description ?? undefined,
         trigger: row.trigger,
         action: row.action,
         workspace: row.workspace ?? undefined,
@@ -161,6 +180,7 @@ export const layer = Layer.effect(
         lastRunAt: row.last_run_at ?? undefined,
         lastStatus: row.last_status ?? undefined,
         lastError: row.last_error ?? undefined,
+        lastSessionId: row.last_session_id ?? undefined,
       })
 
     return Service.of({
@@ -198,6 +218,8 @@ export const layer = Layer.effect(
 
         const info = new Info({
           id: ID.create(),
+          name: input.name,
+          description: input.description,
           trigger,
           action,
           workspace: input.workspace,
@@ -207,6 +229,8 @@ export const layer = Layer.effect(
           .insert(ScheduleTable)
           .values({
             id: info.id,
+            name: info.name,
+            description: info.description,
             trigger: info.trigger,
             action: info.action,
             workspace: info.workspace,
@@ -220,10 +244,13 @@ export const layer = Layer.effect(
         yield* db
           .update(ScheduleTable)
           .set({
+            name: updates.name,
+            description: updates.description,
             enabled: updates.enabled,
             last_run_at: updates.lastRunAt,
             last_status: updates.lastStatus,
             last_error: updates.lastError,
+            last_session_id: updates.lastSessionId,
           })
           .where(eq(ScheduleTable.id, id))
           .run()

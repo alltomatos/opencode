@@ -19,6 +19,8 @@ export const ScheduleHandler = HttpApiBuilder.group(Api, "server.schedule", (han
         const schedules = yield* Schedule.Service
         return yield* schedules
           .create({
+            name: ctx.payload.name,
+            description: ctx.payload.description,
             trigger: ctx.payload.trigger,
             action: ctx.payload.action,
             workspace: ctx.payload.workspace,
@@ -32,6 +34,16 @@ export const ScheduleHandler = HttpApiBuilder.group(Api, "server.schedule", (han
       Effect.fn(function* (ctx) {
         return yield* ScheduleRunner.runOne(ctx.params.scheduleID).pipe(
           Effect.catch((error) => new ScheduleValidationError({ name: "ScheduleValidationError", message: `Schedule "${error.id}" not found` })),
+        )
+      }),
+    )
+    .handle(
+      "schedule.test",
+      Effect.fn(function* (ctx) {
+        return yield* ScheduleRunner.testAction(ctx.payload.action, ctx.payload.workspace).pipe(
+          Effect.catch((error: any) =>
+            new ScheduleValidationError({ name: "ScheduleValidationError", message: error?.message ?? String(error) }),
+          ),
         )
       }),
     )

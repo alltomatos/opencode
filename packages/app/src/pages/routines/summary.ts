@@ -15,7 +15,27 @@ export function triggerSummary(trigger: { kind: string; expr?: string; ms?: numb
       parts[3] === "*" &&
       parts[4] === "*"
     ) {
-      return `Todo dia às ${pad(Number(parts[1]))}:${pad(Number(parts[0]))}`
+      const minutes = parts[0].split(",")
+      const hours = parts[1].split(",")
+      if (hours.length === 1 && minutes.length === 1) {
+        return `Todo dia às ${pad(Number(hours[0]))}:${pad(Number(minutes[0]))}`
+      }
+      return `Todo dia (${hours.map((h) => `${pad(Number(h))}:00`).join(", ")})`
+    }
+    if (
+      parts.length === 5 &&
+      parts[0] !== "*" &&
+      parts[1] !== "*" &&
+      parts[2] === "*" &&
+      parts[3] === "*" &&
+      parts[4] === "1-5"
+    ) {
+      const minutes = parts[0].split(",")
+      const hours = parts[1].split(",")
+      if (hours.length === 1 && minutes.length === 1) {
+        return `Dias úteis às ${pad(Number(hours[0]))}:${pad(Number(minutes[0]))}`
+      }
+      return `Dias úteis (${hours.map((h) => `${pad(Number(h))}:00`).join(", ")})`
     }
     return `cron: ${trigger.expr}`
   }
@@ -34,9 +54,13 @@ export function actionSummary(action: {
   tool?: string
   instructions?: string
   mcpTools?: readonly McpToolRef[]
+  model?: string
+  permission?: string
 }): string {
   if (action.kind === "shell") return action.command ?? ""
   if (action.kind === "mcp_tool") return `${action.server}/${action.tool}`
-  const tools = action.mcpTools?.length ? ` · usa ${action.mcpTools.map((t) => t.tool).join(", ")}` : ""
+  const tools = action.mcpTools?.length
+    ? ` · ferramentas: ${Array.from(new Set(action.mcpTools.map((t) => t.server))).join(", ")}`
+    : ""
   return `${action.instructions ?? ""}${tools}`
 }

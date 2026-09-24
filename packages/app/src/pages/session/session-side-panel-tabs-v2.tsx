@@ -12,7 +12,7 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 
-import { SessionContextTab, SortableTabV2 } from "@/components/session"
+import { SessionContextTab, SessionMemoryTab, SortableTabV2 } from "@/components/session"
 import { OpenInAppV2 } from "@/components/session/open-in-app-v2"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { useCommand } from "@/context/command"
@@ -31,6 +31,7 @@ export function SessionSidePanelTabsV2(props: {
   activeTab: () => string
   activateTab: (value: string) => void
   contextOpen: () => boolean
+  memoryOpen: () => boolean
   panelTabs: () => string[]
   temporaryTab: () => string | undefined
   reviewTab: () => boolean
@@ -173,6 +174,40 @@ export function SessionSidePanelTabsV2(props: {
                 </div>
               </Tabs.Trigger>
             </Show>
+            <Show when={props.memoryOpen()}>
+              <Tabs.Trigger
+                value="memory"
+                closeButton={
+                  <TooltipV2
+                    value={
+                      <>
+                        {language.t("common.closeTab")}
+                        <Show when={closeTabKeybind().length > 0}>
+                          <KeybindV2 keys={closeTabKeybind()} variant="neutral" />
+                        </Show>
+                      </>
+                    }
+                    placement="bottom"
+                    gutter={10}
+                  >
+                    <IconButton
+                      icon="close-small"
+                      variant="ghost"
+                      class="h-5 w-5"
+                      onClick={() => props.onTabClose("memory")}
+                      aria-label={language.t("common.closeTab")}
+                    />
+                  </TooltipV2>
+                }
+                hideCloseButton
+                onMiddleClick={() => props.onTabClose("memory")}
+              >
+                <div class="flex items-center gap-1.5">
+                  <Icon name="brain" size="small" />
+                  <div>{language.t("session.tab.memory")}</div>
+                </div>
+              </Tabs.Trigger>
+            </Show>
             <For each={props.panelTabs()}>
               {(tab) => (
                 <Show
@@ -288,6 +323,14 @@ export function SessionSidePanelTabsV2(props: {
           <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
             <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
               <SessionContextTab />
+            </div>
+          </Tabs.Content>
+        </Show>
+
+        <Show when={props.activeTab() === "memory"}>
+          <Tabs.Content value="memory" class="flex flex-col h-full overflow-hidden contain-strict">
+            <div class="relative flex-1 min-h-0 overflow-hidden">
+              <SessionMemoryTab />
             </div>
           </Tabs.Content>
         </Show>

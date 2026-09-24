@@ -347,7 +347,7 @@ function oauth(http: HttpClient.HttpClient, profile: Profile) {
         return {
           ...credential,
           access: token.access_token,
-          refresh: token.refresh_token ?? credential.refresh,
+          refresh: token.refresh_token && token.refresh_token.trim() ? token.refresh_token.trim() : credential.refresh,
           expires: Date.now() + token.expires_in * 1000,
         }
       }),

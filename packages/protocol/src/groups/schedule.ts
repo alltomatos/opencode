@@ -59,6 +59,22 @@ export const ScheduleGroup = HttpApiGroup.make("server.schedule")
       ),
   )
   .add(
+    HttpApiEndpoint.post("schedule.test", "/api/schedule/test", {
+      query: LocationQuery,
+      payload: Schedule.TestInput,
+      success: Schedule.TestResult,
+      error: ScheduleValidationError,
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "v2.schedule.test",
+          summary: "Test a routine action dry-run",
+          description: "Execute a routine's action immediately to validate whether it works before saving.",
+        }),
+      ),
+  )
+  .add(
     HttpApiEndpoint.delete("schedule.remove", "/api/schedule/:scheduleID", {
       params: { scheduleID: Schedule.ID },
       query: LocationQuery,

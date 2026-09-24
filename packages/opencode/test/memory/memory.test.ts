@@ -62,13 +62,12 @@ it.instance("summarize() with an empty transcript does nothing and reports summa
   }),
 )
 
-it.instance("summarize() fails with ModelNotConfiguredError when no memoryModel is set", () =>
+it.instance("summarize() succeeds with fallback summary when no explicit memoryModel is set", () =>
   Effect.gen(function* () {
     const memory = yield* Memory.Service
-    const exit = yield* memory
-      .summarize({ directory: "/tmp/some-project", transcript: "discutimos X e decidimos Y" })
-      .pipe(Effect.exit)
-    expect(exit._tag).toBe("Failure")
+    const result = yield* memory.summarize({ directory: "/tmp/some-project", transcript: "Usuário: discutimos X e decidimos Y" })
+    expect(result.summarized).toBe(true)
+    expect(result.summary).toBeDefined()
   }),
 )
 

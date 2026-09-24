@@ -32,6 +32,19 @@ export const PromoteMemoryPayload = Schema.Struct({
   summary: Schema.String,
 })
 
+export const BackfillMemoryPayload = Schema.Struct({
+  directory: Schema.optional(Schema.String),
+  sessionID: Schema.optional(Schema.String),
+})
+
+export const BackfillMemoryResult = Schema.Struct({
+  totalSessions: Schema.Number,
+  processedSessions: Schema.Number,
+  summarizedSessions: Schema.Number,
+  projectsCount: Schema.Number,
+  errors: Schema.Array(Schema.String),
+})
+
 export const MemoryFileResult = Schema.Struct({
   path: Schema.String,
 })
@@ -43,6 +56,7 @@ export const MemoryPaths = {
   globalEntries: "/memory/global",
   addEntry: "/memory/entry",
   promote: "/memory/promote",
+  backfill: "/memory/backfill",
 } as const
 
 export const MemoryApi = HttpApi.make("memory")
@@ -131,6 +145,17 @@ export const MemoryApi = HttpApi.make("memory")
             identifier: "memory.promote",
             summary: "Promote memory to global",
             description: "Promotes a summary/decision to global memory and regenerates the global memory skill file.",
+          }),
+        ),
+        HttpApiEndpoint.post("backfill", MemoryPaths.backfill, {
+          query: WorkspaceRoutingQuery,
+          payload: BackfillMemoryPayload,
+          success: described(BackfillMemoryResult, "Memory backfill execution result"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "memory.backfill",
+            summary: "Backfill memory from past sessions",
+            description: "Scans past sessions and synthesizes missing memory files using the active fallback model.",
           }),
         ),
       )
