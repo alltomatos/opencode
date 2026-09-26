@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.39",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Resolução de Modelo Padrão na Memória e Envio de Anexos no MCPMail",
+              "description": "O sistema de memória agora adota automaticamente o modelo padrão do sistema/chat (incluindo combos e modelos conectados) quando não configurado explicitamente, além de suporte a escopos (projeto/global) e busca filtrada. O MCPMail recebeu suporte completo a envio, resposta e encaminhamento com anexos (locais ou base64)."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.38",
       "highlights": [
         {
