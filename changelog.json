@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.40",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Renomeação de Servidores e Reflexo Instantâneo no Sidebar",
+              "description": "Adicionada a opção 'Renomear' no menu de servidores (incluindo conexões SSH, HTTP e Tailscale) nas Configurações e no menu contextual do Sidebar de Projetos, com persistência e atualização reativa imediata. Todos os modais de adicionar servidor agora contam com campo padronizado para nome de exibição."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.39",
       "highlights": [
         {
