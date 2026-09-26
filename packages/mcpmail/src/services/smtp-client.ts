@@ -1,5 +1,16 @@
+import { existsSync, statSync } from "node:fs";
 import { createTransport } from "nodemailer";
 import type { Account } from "../schemas/account.schema.js";
+
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB
+
+export interface OutgoingAttachment {
+  filename: string;
+  path?: string;
+  contentBase64?: string;
+  contentType?: string;
+  content?: Buffer;
+}
 
 export interface OutgoingMessage {
   to: string;
@@ -10,6 +21,59 @@ export interface OutgoingMessage {
   html?: string;
   inReplyTo?: string;
   references?: string;
+  attachments?: OutgoingAttachment[];
+}
+
+export function prepareNodemailerAttachments(attachments?: OutgoingAttachment[]) {
+  if (!attachments || attachments.length === 0) return undefined;
+
+  return attachments.map((att) => {
+    if (att.content) {
+      if (att.content.byteLength > MAX_ATTACHMENT_BYTES) {
+        throw new Error(
+          `Anexo "${att.filename}" (${att.content.byteLength} bytes) excede o limite máximo permitido de ${MAX_ATTACHMENT_BYTES} bytes.`
+        );
+      }
+      return {
+        filename: att.filename,
+        content: att.content,
+        contentType: att.contentType,
+      };
+    }
+
+    if (att.contentBase64) {
+      const buffer = Buffer.from(att.contentBase64, "base64");
+      if (buffer.byteLength > MAX_ATTACHMENT_BYTES) {
+        throw new Error(
+          `Anexo "${att.filename}" (${buffer.byteLength} bytes) excede o limite máximo permitido de ${MAX_ATTACHMENT_BYTES} bytes.`
+        );
+      }
+      return {
+        filename: att.filename,
+        content: buffer,
+        contentType: att.contentType,
+      };
+    }
+
+    if (att.path) {
+      if (!existsSync(att.path)) {
+        throw new Error(`Arquivo do anexo "${att.filename}" não encontrado no caminho: ${att.path}`);
+      }
+      const stat = statSync(att.path);
+      if (stat.size > MAX_ATTACHMENT_BYTES) {
+        throw new Error(
+          `Arquivo do anexo "${att.filename}" (${stat.size} bytes) excede o limite máximo permitido de ${MAX_ATTACHMENT_BYTES} bytes.`
+        );
+      }
+      return {
+        filename: att.filename,
+        path: att.path,
+        contentType: att.contentType,
+      };
+    }
+
+    throw new Error(`Anexo "${att.filename}" inválido: informe "path" ou "contentBase64".`);
+  });
 }
 
 /**
@@ -34,6 +98,8 @@ export async function sendViaSmtp(account: Account, message: OutgoingMessage): P
     },
   });
 
+  const attachments = prepareNodemailerAttachments(message.attachments);
+
   try {
     await transporter.sendMail({
       from: account.user,
@@ -45,6 +111,7 @@ export async function sendViaSmtp(account: Account, message: OutgoingMessage): P
       html: message.html,
       inReplyTo: message.inReplyTo,
       references: message.references,
+      attachments,
     });
   } catch (err) {
     throw new Error(

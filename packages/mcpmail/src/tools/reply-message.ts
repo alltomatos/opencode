@@ -28,7 +28,7 @@ export function registerMailReplyMessage(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ accountId, folder, uid, to, cc, bcc, replyAll, subject, bodyText, bodyHtml }) => {
+    async ({ accountId, folder, uid, to, cc, bcc, replyAll, subject, bodyText, bodyHtml, attachments }) => {
       if (bodyText === undefined && bodyHtml === undefined) {
         throw new Error("Informe ao menos um dos campos bodyText ou bodyHtml.");
       }
@@ -140,13 +140,28 @@ export function registerMailReplyMessage(server: McpServer): void {
         html: bodyHtml,
         inReplyTo: original.messageId,
         references: referencesList.length > 0 ? referencesList.join(" ") : undefined,
+        attachments,
       });
 
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ sent: true, accountId, to: replyTo, cc: replyCc, bcc, subject: replySubject, replyAll }, null, 2),
+            text: JSON.stringify(
+              {
+                sent: true,
+                accountId,
+                to: replyTo,
+                cc: replyCc,
+                bcc,
+                subject: replySubject,
+                replyAll,
+                attachmentsCount: attachments?.length ?? 0,
+                attachments: attachments?.map((a) => a.filename) ?? [],
+              },
+              null,
+              2
+            ),
           },
         ],
       };

@@ -17,7 +17,7 @@ export function registerMailSendMessage(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ accountId, to, cc, bcc, subject, bodyText, bodyHtml }) => {
+    async ({ accountId, to, cc, bcc, subject, bodyText, bodyHtml, attachments }) => {
       if (bodyText === undefined && bodyHtml === undefined) {
         throw new Error("Informe ao menos um dos campos bodyText ou bodyHtml.");
       }
@@ -40,13 +40,25 @@ export function registerMailSendMessage(server: McpServer): void {
         subject,
         text: bodyText,
         html: bodyHtml,
+        attachments,
       });
 
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ sent: true, accountId, to, subject }, null, 2),
+            text: JSON.stringify(
+              {
+                sent: true,
+                accountId,
+                to,
+                subject,
+                attachmentsCount: attachments?.length ?? 0,
+                attachments: attachments?.map((a) => a.filename) ?? [],
+              },
+              null,
+              2
+            ),
           },
         ],
       };

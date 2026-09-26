@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MailSearchMessagesInputSchema } from "./tools.schema.js";
+import {
+  MailAttachmentInputSchema,
+  MailSearchMessagesInputSchema,
+  MailSendMessageInputSchema,
+} from "./tools.schema.js";
 
 describe("MailSearchMessagesInputSchema", () => {
   it("aplica defaults quando campos opcionais são omitidos", () => {
@@ -35,5 +39,49 @@ describe("MailSearchMessagesInputSchema", () => {
       hackField: true,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("MailAttachmentInputSchema", () => {
+  it("valida anexo com contentBase64", () => {
+    const result = MailAttachmentInputSchema.safeParse({
+      filename: "teste.pdf",
+      contentBase64: "YWJj",
+      contentType: "application/pdf",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("valida anexo com path", () => {
+    const result = MailAttachmentInputSchema.safeParse({
+      filename: "teste.txt",
+      path: "/tmp/teste.txt",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejeita campos extras em attachments", () => {
+    const result = MailAttachmentInputSchema.safeParse({
+      filename: "teste.txt",
+      path: "/tmp/teste.txt",
+      extra: 123,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("MailSendMessageInputSchema", () => {
+  it("aceita envio com lista de anexos", () => {
+    const result = MailSendMessageInputSchema.safeParse({
+      accountId: "acc1",
+      to: "destino@example.com",
+      subject: "Teste",
+      bodyText: "Corpo",
+      attachments: [
+        { filename: "doc.pdf", path: "C:/docs/doc.pdf" },
+        { filename: "foto.png", contentBase64: "aW1n" },
+      ],
+    });
+    expect(result.success).toBe(true);
   });
 });

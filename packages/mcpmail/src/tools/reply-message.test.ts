@@ -223,4 +223,41 @@ describe("mail_reply_message", () => {
     expect(message.cc).toContain("copia1@example.com");
     expect(message.cc).toContain("copia2@example.com");
   });
+
+  it("responde incluindo anexos", async () => {
+    mockImapClient.download.mockResolvedValue(downloadObjectFor(buildRawEmail()));
+
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "mail_reply_message",
+      arguments: {
+        accountId: "gmail-principal",
+        folder: "INBOX",
+        uid: 42,
+        bodyText: "Segue resposta com anexo",
+        attachments: [
+          {
+            filename: "comprovante.pdf",
+            contentBase64: "cGRmZGF0YQ==",
+            contentType: "application/pdf",
+          },
+        ],
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(mockSendViaSmtp).toHaveBeenCalledTimes(1);
+    const [, message] = mockSendViaSmtp.mock.calls[0];
+    expect(message.attachments).toEqual([
+      {
+        filename: "comprovante.pdf",
+        contentBase64: "cGRmZGF0YQ==",
+        contentType: "application/pdf",
+      },
+    ]);
+
+    const payload = JSON.parse((result.content as Array<{ type: string; text: string }>)[0].text);
+    expect(payload.attachmentsCount).toBe(1);
+    expect(payload.attachments).toEqual(["comprovante.pdf"]);
+  });
 });

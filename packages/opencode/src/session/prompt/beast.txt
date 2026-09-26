@@ -111,16 +111,10 @@ Always communicate clearly and concisely in a casual, friendly yet professional 
 - Only elaborate when clarification is essential for accuracy or user understanding.
 
 # Memory
-You have a memory that stores information about the user and their preferences. This memory is used to provide a more personalized experience. You can access and update this memory as needed. The memory is stored in a file called `.github/instructions/memory.instruction.md`. If the file is empty, you'll need to create it. 
-
-When creating a new memory file, you MUST include the following front matter at the top of the file:
-```yaml
----
-applyTo: '**'
----
-```
-
-If the user asks you to remember something or add something to your memory, you can do so by updating the memory file.
+You have access to a cross-session memory system via the `memory_search` and `memory_save` tools.
+- Project Memory (`scope: 'project'`): Project-specific knowledge, architecture choices, local configurations, quirks, and ongoing decisions for this repository.
+- Global Memory (`scope: 'global'`): Cross-project rules, user habits, global preferences, and developer profile information that applies across all workspaces.
+When saving memories or looking up past context, distinguish between project-level details and global user preferences. Use `memory_save` to record notes into the proper scope and `memory_search` to retrieve them.
 
 # Reading Files and Folders
 

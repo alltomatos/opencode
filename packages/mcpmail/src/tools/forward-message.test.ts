@@ -157,4 +157,90 @@ describe("mail_forward_message", () => {
     expect(text).toContain("999");
     expect(text).toContain("não encontrada");
   });
+
+  it("encaminha adicionando novos anexos", async () => {
+    mockImapClient.download.mockResolvedValue(downloadObjectFor(buildRawEmail()));
+
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "mail_forward_message",
+      arguments: {
+        accountId: "gmail-principal",
+        folder: "INBOX",
+        uid: 42,
+        to: "encaminhado@example.com",
+        attachments: [
+          {
+            filename: "extra.txt",
+            contentBase64: Buffer.from("texto extra").toString("base64"),
+          },
+        ],
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(mockSendViaSmtp).toHaveBeenCalledTimes(1);
+    const [, message] = mockSendViaSmtp.mock.calls[0];
+    expect(message.attachments).toEqual([
+      {
+        filename: "extra.txt",
+        contentBase64: Buffer.from("texto extra").toString("base64"),
+      },
+    ]);
+
+    const payload = JSON.parse((result.content as Array<{ type: string; text: string }>)[0].text);
+    expect(payload.attachmentsCount).toBe(1);
+    expect(payload.attachments).toEqual(["extra.txt"]);
+  });
+
+  it("encaminha incluindo anexos originais quando includeOriginalAttachments=true", async () => {
+    const boundary = "==boundary123==";
+    const rawWithAtt = [
+      "From: remetente@example.com",
+      "To: usuario@gmail.com",
+      "Subject: Assunto com anexo",
+      "MIME-Version: 1.0",
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      "Corpo original.",
+      "",
+      `--${boundary}`,
+      'Content-Type: application/pdf; name="original.pdf"',
+      'Content-Disposition: attachment; filename="original.pdf"',
+      "Content-Transfer-Encoding: base64",
+      "",
+      Buffer.from("dummy-pdf-content").toString("base64"),
+      "",
+      `--${boundary}--`,
+      "",
+    ].join("\r\n");
+
+    mockImapClient.download.mockResolvedValue(downloadObjectFor(rawWithAtt));
+
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "mail_forward_message",
+      arguments: {
+        accountId: "gmail-principal",
+        folder: "INBOX",
+        uid: 42,
+        to: "encaminhado@example.com",
+        includeOriginalAttachments: true,
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(mockSendViaSmtp).toHaveBeenCalledTimes(1);
+    const [, message] = mockSendViaSmtp.mock.calls[0];
+    expect(message.attachments).toHaveLength(1);
+    expect(message.attachments[0].filename).toBe("original.pdf");
+    expect(message.attachments[0].content).toBeInstanceOf(Buffer);
+
+    const payload = JSON.parse((result.content as Array<{ type: string; text: string }>)[0].text);
+    expect(payload.attachmentsCount).toBe(1);
+    expect(payload.attachments).toEqual(["original.pdf"]);
+  });
 });

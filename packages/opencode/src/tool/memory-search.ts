@@ -6,7 +6,14 @@ import { Memory } from "../memory"
 export const Parameters = Schema.Struct({
   query: Schema.optional(Schema.String).annotate({
     description:
-      "What you're trying to recall (optional, not currently used to filter — the tool returns the most recent memory entries regardless, but stating your query still helps you reason about what you find).",
+      "What you're trying to recall (optional search keyword/phrase or topic to filter relevant memory entries).",
+  }),
+  scope: Schema.optional(Schema.Literals(["all", "project", "global"])).annotate({
+    description:
+      "The scope of memory to search:\n" +
+      "- 'all' (default): Returns memories from both global (cross-project) and the current project.\n" +
+      "- 'project': Returns memories specific to the current project.\n" +
+      "- 'global': Returns general/cross-project memories and user preferences.",
   }),
 })
 
@@ -21,22 +28,56 @@ export const MemorySearchTool = Tool.define(
 
     return {
       description:
-        "Search past memory — decisions, facts, and corrections recorded globally and for this project in " +
-        "previous sessions. Call this when the user references something from before, or you're unsure about a " +
-        "past decision, preference, or correction that might already be recorded.",
+        "Search past memory — retrieve decisions, facts, conventions, and user preferences. Can search across all memories, only the current project's memory, or global cross-project memory.",
       parameters: Parameters,
-      execute: (_params: Schema.Schema.Type<typeof Parameters>, _ctx: Tool.Context) =>
+      execute: (params: Schema.Schema.Type<typeof Parameters>, _ctx: Tool.Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
-          const { context } = yield* memory.load({ directory: instance.directory })
-          if (!context.trim()) {
+          const scope = params.scope ?? "all"
+
+          let resultText = ""
+          if (scope === "project") {
+            const { content } = yield* memory.loadProject(instance.directory)
+            resultText = content ? `### Memória do Projeto\n\n${content}` : ""
+          } else if (scope === "global") {
+            const { content } = yield* memory.loadGlobal()
+            resultText = content ? `### Memória Global\n\n${content}` : ""
+          } else {
+            const globalRes = yield* memory.loadGlobal()
+            const projectRes = yield* memory.loadProject(instance.directory)
+            const parts: string[] = []
+            if (globalRes.content.trim()) {
+              parts.push(`### Memória Global (todas as sessões/projetos)\n\n${globalRes.content.trim()}`)
+            }
+            if (projectRes.content.trim()) {
+              parts.push(`### Memória do Projeto (${instance.directory})\n\n${projectRes.content.trim()}`)
+            }
+            resultText = parts.join("\n\n---\n\n")
+          }
+
+          if (!resultText.trim()) {
             return {
               title: "Memória vazia",
-              output: "Nenhuma memória registrada ainda (nem global, nem deste projeto).",
+              output: `Nenhuma memória registrada para o escopo selecionado (${scope}).`,
               metadata: {},
             }
           }
-          return { title: "Memória carregada", output: context, metadata: {} }
+
+          // Se forneceu query de busca, aplica um filtro básico ou destaca trechos relevantes se aplicável
+          if (params.query && params.query.trim()) {
+            const q = params.query.trim().toLowerCase()
+            const blocks = resultText.split(/\n(?=## )/)
+            const matched = blocks.filter((b) => b.toLowerCase().includes(q))
+            if (matched.length > 0) {
+              resultText = `Filtro por "${params.query}":\n\n` + matched.join("\n\n")
+            }
+          }
+
+          return {
+            title: "Memória consultada",
+            output: resultText,
+            metadata: {},
+          }
         }),
     }
   }),

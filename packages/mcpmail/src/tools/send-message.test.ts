@@ -147,4 +147,39 @@ describe("mail_send_message", () => {
     expect(text).toContain("bodyText");
     expect(mockSendViaSmtp).not.toHaveBeenCalled();
   });
+
+  it("envia o email com anexos (contentBase64 e path)", async () => {
+    const client = await connectedClient();
+    const result = await client.callTool({
+      name: "mail_send_message",
+      arguments: {
+        accountId: "gmail-principal",
+        to: "destino@example.com",
+        subject: "Com anexo",
+        bodyText: "Segue anexo",
+        attachments: [
+          {
+            filename: "teste.txt",
+            contentBase64: Buffer.from("conteudo de teste").toString("base64"),
+            contentType: "text/plain",
+          },
+          {
+            filename: "arquivo.pdf",
+            path: "C:/docs/arquivo.pdf",
+          },
+        ],
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(mockSendViaSmtp).toHaveBeenCalledTimes(1);
+    const [, message] = mockSendViaSmtp.mock.calls[0];
+    expect(message.attachments).toHaveLength(2);
+    expect(message.attachments[0].filename).toBe("teste.txt");
+    expect(message.attachments[1].path).toBe("C:/docs/arquivo.pdf");
+
+    const payload = JSON.parse((result.content as Array<{ type: string; text: string }>)[0].text);
+    expect(payload.attachmentsCount).toBe(2);
+    expect(payload.attachments).toEqual(["teste.txt", "arquivo.pdf"]);
+  });
 });

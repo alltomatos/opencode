@@ -56,6 +56,40 @@ describe("tool.registry memory tools", () => {
     }),
   )
 
+  it.instance("memory_save accepts project and global scopes, and memory_search searches with scope and query", () =>
+    Effect.gen(function* () {
+      const registry = yield* ToolRegistry.Service
+      const tools = yield* registry.all()
+      const saveTool = tools.find((t) => t.id === "memory_save")
+      const searchTool = tools.find((t) => t.id === "memory_search")
+
+      expect(saveTool).toBeDefined()
+      expect(searchTool).toBeDefined()
+
+      // Save project note
+      const saveProjectRes = yield* saveTool!.execute({ note: "Regra do projeto X", scope: "project" }, {} as any)
+      expect(saveProjectRes.title).toContain("projeto")
+
+      // Save global note
+      const saveGlobalRes = yield* saveTool!.execute({ note: "Preferência global do usuário Y", scope: "global" }, {} as any)
+      expect(saveGlobalRes.title).toContain("global")
+
+      // Search project scope
+      const searchProjRes = yield* searchTool!.execute({ scope: "project" }, {} as any)
+      expect(searchProjRes.output).toContain("Regra do projeto X")
+      expect(searchProjRes.output).not.toContain("Preferência global do usuário Y")
+
+      // Search global scope
+      const searchGlobRes = yield* searchTool!.execute({ scope: "global" }, {} as any)
+      expect(searchGlobRes.output).toContain("Preferência global do usuário Y")
+      expect(searchGlobRes.output).not.toContain("Regra do projeto X")
+
+      // Search all with query
+      const searchAllRes = yield* searchTool!.execute({ scope: "all", query: "Regra" }, {} as any)
+      expect(searchAllRes.output).toContain("Regra do projeto X")
+    }),
+  )
+
   withMemoryDisabled.instance("hides memory_search and memory_save when memory is disabled", () =>
     Effect.gen(function* () {
       const registry = yield* ToolRegistry.Service

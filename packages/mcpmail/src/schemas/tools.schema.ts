@@ -111,6 +111,34 @@ export const MailGetAttachmentInputSchema = z
 
 export type MailGetAttachmentInput = z.infer<typeof MailGetAttachmentInputSchema>;
 
+export const MailAttachmentInputSchema = z
+  .object({
+    filename: z
+      .string()
+      .min(1)
+      .describe("Nome do arquivo do anexo com extensão (ex: 'relatorio.pdf', 'foto.png')."),
+    path: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Caminho absoluto ou relativo do arquivo no disco local. Deve ser informado se 'contentBase64' for omitido."
+      ),
+    contentBase64: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Conteúdo do arquivo codificado em base64. Deve ser informado se 'path' for omitido."),
+    contentType: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Tipo MIME do anexo (ex: 'application/pdf', 'image/png'). Opcional."),
+  })
+  .strict();
+
+export type MailAttachmentInput = z.infer<typeof MailAttachmentInputSchema>;
+
 export const MailSendMessageInputSchema = z
   .object({
     accountId: z
@@ -142,6 +170,10 @@ export const MailSendMessageInputSchema = z
       .min(1)
       .optional()
       .describe("Corpo do email em HTML. Pelo menos um entre bodyText/bodyHtml é obrigatório."),
+    attachments: z
+      .array(MailAttachmentInputSchema)
+      .optional()
+      .describe("Lista de anexos a serem enviados (com path local ou contentBase64)."),
   })
   .strict();
 
@@ -276,6 +308,10 @@ export const MailReplyMessageInputSchema = z
       .min(1)
       .optional()
       .describe("Corpo da resposta em HTML. Pelo menos um entre bodyText/bodyHtml é obrigatório."),
+    attachments: z
+      .array(MailAttachmentInputSchema)
+      .optional()
+      .describe("Lista de anexos a serem enviados (com path local ou contentBase64)."),
   })
   .strict();
 
@@ -320,6 +356,14 @@ export const MailForwardMessageInputSchema = z
       .min(1)
       .optional()
       .describe("Comentário adicional em texto plano, incluído antes da mensagem original citada."),
+    attachments: z
+      .array(MailAttachmentInputSchema)
+      .optional()
+      .describe("Lista de novos anexos a serem adicionados ao encaminhamento."),
+    includeOriginalAttachments: z
+      .boolean()
+      .optional()
+      .describe("Se true, inclui automaticamente os anexos da mensagem original no encaminhamento (padrão: false)."),
   })
   .strict();
 

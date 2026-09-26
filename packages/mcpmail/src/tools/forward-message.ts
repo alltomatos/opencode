@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { loadAccountsConfig } from "../config.js";
 import { withImapConnection } from "../services/imap-client.js";
 import { downloadAndParseMessage, MessageNotFoundError } from "../services/message-reader.js";
-import { sendViaSmtp } from "../services/smtp-client.js";
+import { sendViaSmtp, type OutgoingAttachment } from "../services/smtp-client.js";
 import { MailForwardMessageInputSchema } from "../schemas/tools.schema.js";
 
 function buildForwardedBody(comment: string | undefined, original: {
@@ -40,7 +40,18 @@ export function registerMailForwardMessage(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ accountId, folder, uid, to, cc, bcc, subject, bodyText }) => {
+    async ({
+      accountId,
+      folder,
+      uid,
+      to,
+      cc,
+      bcc,
+      subject,
+      bodyText,
+      attachments,
+      includeOriginalAttachments,
+    }) => {
       const accounts = loadAccountsConfig();
       const account = accounts.find((a) => a.id === accountId);
 
@@ -82,19 +93,47 @@ export function registerMailForwardMessage(server: McpServer): void {
         text: original.text,
       });
 
+      const outgoingAttachments: OutgoingAttachment[] = [];
+
+      if (includeOriginalAttachments && original.attachments && original.attachments.length > 0) {
+        for (const origAtt of original.attachments) {
+          outgoingAttachments.push({
+            filename: origAtt.filename ?? "anexo",
+            content: origAtt.content,
+            contentType: origAtt.contentType,
+          });
+        }
+      }
+
+      if (attachments && attachments.length > 0) {
+        outgoingAttachments.push(...attachments);
+      }
+
       await sendViaSmtp(account, {
         to,
         cc,
         bcc,
         subject: forwardSubject,
         text,
+        attachments: outgoingAttachments.length > 0 ? outgoingAttachments : undefined,
       });
 
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ sent: true, accountId, to, subject: forwardSubject }, null, 2),
+            text: JSON.stringify(
+              {
+                sent: true,
+                accountId,
+                to,
+                subject: forwardSubject,
+                attachmentsCount: outgoingAttachments.length,
+                attachments: outgoingAttachments.map((a) => a.filename),
+              },
+              null,
+              2
+            ),
           },
         ],
       };

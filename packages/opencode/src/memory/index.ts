@@ -8,6 +8,7 @@ import { Config } from "@/config/config"
 import { InstanceState } from "@/effect/instance-state"
 import { Session } from "@/session/session"
 import type { SessionV1 } from "@opencode-ai/core/v1/session"
+import { Combo } from "../combo"
 import { Provider } from "../provider/provider"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { createAntigravityFetch, getLiveToken } from "../provider/antigravity-adapter"
@@ -219,12 +220,13 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Memory") {}
 
-const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Session.Service> = Layer.effect(
+const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Session.Service | Combo.Service> = Layer.effect(
   Service,
   Effect.gen(function* () {
     const cfgSvc = yield* Config.Service
     const provider = yield* Provider.Service
     const sessions = yield* Session.Service
+    const combos = yield* Combo.Service
 
     const state = yield* InstanceState.make<{ config: ConfigMemoryV1.Info }>(
       Effect.fn("Memory.state")(function* () {
@@ -245,15 +247,26 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       return s.config
     })
 
-    // Resolves a "providerID/modelID" string to an actual, connected model —
+    // Resolves a "providerID/modelID" string or "combo:<id>" to an actual, connected model —
     // used both for the user's explicit choice and for auto-picking a
-    // default from DEFAULT_MODEL_CANDIDATES.
+    // default from DEFAULT_MODEL_CANDIDATES or system default.
     const tryResolveModel = (spec: string) =>
       Effect.gen(function* () {
-        const separator = spec.indexOf("/")
-        if (separator < 0) return undefined
-        const providerID = spec.slice(0, separator)
-        const modelID = spec.slice(separator + 1)
+        let providerID: string
+        let modelID: string
+
+        if (spec.startsWith("combo:")) {
+          const comboResolved = yield* combos.resolve(spec.slice("combo:".length)).pipe(Effect.orElseSucceed(() => undefined))
+          if (!comboResolved) return undefined
+          providerID = comboResolved.providerID
+          modelID = comboResolved.modelID
+        } else {
+          const separator = spec.indexOf("/")
+          if (separator < 0) return undefined
+          providerID = spec.slice(0, separator)
+          modelID = spec.slice(separator + 1)
+        }
+
         if (providerID === "opencode" && (modelID.includes("free") || modelID.includes("lightning"))) {
           return undefined
         }
@@ -289,6 +302,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       const result: any[] = []
       const seen = new Set<string>()
 
+      // 1. If explicitly configured by user, try it first
       if (configured && configured.trim()) {
         const language = yield* tryResolveModel(configured.trim())
         if (language) {
@@ -297,15 +311,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
         }
       }
 
-      for (const candidate of DEFAULT_MODEL_CANDIDATES) {
-        if (seen.has(candidate)) continue
-        const language = yield* tryResolveModel(candidate)
-        if (language) {
-          result.push(language)
-          seen.add(candidate)
-        }
-      }
-
+      // 2. Try the chat / system default model (e.g. opencode/big-pickle, gpt-5, claude-sonnet-4)
       const defaultMod = yield* provider.defaultModel().pipe(Effect.orElseSucceed(() => undefined))
       if (defaultMod) {
         const key = `${defaultMod.providerID}/${defaultMod.modelID}`
@@ -318,6 +324,17 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
         }
       }
 
+      // 3. Fallback candidates known for fast & reliable tool calling
+      for (const candidate of DEFAULT_MODEL_CANDIDATES) {
+        if (seen.has(candidate)) continue
+        const language = yield* tryResolveModel(candidate)
+        if (language) {
+          result.push(language)
+          seen.add(candidate)
+        }
+      }
+
+      // 4. Any other connected models across providers
       const providersList = yield* provider.list().pipe(Effect.orElseSucceed(() => ({})))
       for (const p of Object.values(providersList)) {
         if (p.id === "opencode") continue
@@ -556,5 +573,5 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
 export const node = LayerNode.make({
   service: Service,
   layer,
-  deps: [Config.node, Provider.node, Session.node],
+  deps: [Config.node, Provider.node, Session.node, Combo.node],
 })
