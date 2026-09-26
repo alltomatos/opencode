@@ -65,7 +65,7 @@ export const layer = Layer.effect(
     const combos = yield* Combo.Service
 
     return ScheduleRunner.SkillCaller.of({
-      runSkill: (action, workspace) =>
+      runSkill: (action, workspace, existingSessionId) =>
         Effect.gen(function* () {
           const directory = workspace || process.cwd()
           const ctx = yield* instanceStore.load({ directory })
@@ -111,34 +111,53 @@ export const layer = Layer.effect(
                 action.workspaces.map((w, idx) => `- Pasta ${idx + 1}: ${w}`).join("\n")
             }
 
-            yield* Effect.logInfo("ScheduleSkillCaller starting routine session", {
-              directory,
-              model: modelParam,
-              instructionPreview: action.instructions.slice(0, 80),
-            })
+            // Check if existing session ID is provided and still valid
+            let sessionIdToUse: SessionID | undefined = undefined
+            if (existingSessionId) {
+              const parsedId = SessionID.make(existingSessionId)
+              const existingSession = yield* sessions
+                .get(parsedId)
+                .pipe(Effect.orElseSucceed(() => undefined))
+              if (existingSession && !existingSession.time.archived) {
+                sessionIdToUse = existingSession.id
+                yield* Effect.logInfo("ScheduleSkillCaller reusing existing routine session", {
+                  sessionId: sessionIdToUse,
+                  directory,
+                })
+              }
+            }
 
-            const session = yield* sessions
-              .create({
-                title: `Rotina: ${action.instructions.slice(0, 40)}`,
+            if (!sessionIdToUse) {
+              yield* Effect.logInfo("ScheduleSkillCaller creating new routine session", {
                 directory,
-                permission: permissionRules,
-                model: modelParam ? { id: modelParam.modelID, providerID: modelParam.providerID } : undefined,
+                model: modelParam,
+                instructionPreview: action.instructions.slice(0, 80),
               })
-              .pipe(
-                Effect.tapError((err) => Effect.logError("ScheduleSkillCaller session creation failed", { err })),
-              )
 
-            yield* Effect.logInfo("ScheduleSkillCaller session created", { sessionId: session.id })
+              const session = yield* sessions
+                .create({
+                  title: `Rotina: ${action.instructions.slice(0, 40)}`,
+                  directory,
+                  permission: permissionRules,
+                  model: modelParam ? { id: modelParam.modelID, providerID: modelParam.providerID } : undefined,
+                })
+                .pipe(
+                  Effect.tapError((err) => Effect.logError("ScheduleSkillCaller session creation failed", { err })),
+                )
+
+              sessionIdToUse = session.id
+              yield* Effect.logInfo("ScheduleSkillCaller session created", { sessionId: sessionIdToUse })
+            }
 
             const result = yield* promptSvc
               .prompt({
-                sessionID: session.id,
+                sessionID: sessionIdToUse,
                 model: modelParam,
                 parts: [{ type: "text", text: effectivePrompt }],
               })
               .pipe(
                 Effect.tapError((cause) =>
-                  Effect.logError("ScheduleSkillCaller prompt execution failed", { sessionId: session.id, cause }),
+                  Effect.logError("ScheduleSkillCaller prompt execution failed", { sessionId: sessionIdToUse, cause }),
                 ),
                 Effect.catch((cause) => {
                   const msg = cause instanceof Error ? cause.message : String(cause)
@@ -147,10 +166,10 @@ export const layer = Layer.effect(
               )
 
             if (result && "error" in result && result.error) {
-              return { success: false, error: String(result.error), sessionId: session.id }
+              return { success: false, error: String(result.error), sessionId: sessionIdToUse }
             }
 
-            return { success: true, sessionId: session.id }
+            return { success: true, sessionId: sessionIdToUse }
           }).pipe(
             Effect.provideService(InstanceRef, ctx),
           )

@@ -20,6 +20,7 @@ export interface SkillCallerInterface {
   readonly runSkill: (
     action: Schedule.SkillAction,
     workspace: string | undefined,
+    sessionId?: string,
   ) => Effect.Effect<SkillCallResult>
 }
 
@@ -144,7 +145,7 @@ function executeCommand(
  * rather than silently no-op'd, until that lands. mcp_tool is handled via
  * the swappable McpCaller dependency above.
  */
-function runAction(action: Schedule.Action, workspace: string | undefined) {
+function runAction(action: Schedule.Action, workspace: string | undefined, sessionId?: string) {
   const timeoutMs =
     "timeoutMs" in action && typeof action.timeoutMs === "number" && action.timeoutMs > 0
       ? action.timeoutMs
@@ -170,7 +171,7 @@ function runAction(action: Schedule.Action, workspace: string | undefined) {
   if (action.kind === "skill") {
     return Effect.gen(function* () {
       const caller = yield* SkillCaller
-      const result: SkillCallResult = yield* caller.runSkill(action, workspace).pipe(
+      const result: SkillCallResult = yield* caller.runSkill(action, workspace, sessionId).pipe(
         Effect.timeoutOrElse({
           duration: Duration.millis(timeoutMs),
           orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
@@ -205,12 +206,12 @@ export const runOne = Effect.fn("v2.Schedule.runOne")(function* (id: Schedule.ID
   const schedule = yield* schedules.get(id)
   if (!schedule) return yield* Effect.fail(new NotFoundError({ id }))
 
-  const result = yield* runAction(schedule.action, schedule.workspace)
+  const result = yield* runAction(schedule.action, schedule.workspace, schedule.lastSessionId)
   const updated = yield* schedules.update(schedule.id, {
     lastRunAt: Date.now(),
     lastStatus: result.exitCode === 0 ? "success" : "error",
     lastError: result.error,
-    lastSessionId: result.sessionId,
+    lastSessionId: result.sessionId ?? schedule.lastSessionId,
   })
   return updated!
 })
@@ -231,12 +232,12 @@ const tick = Effect.fn("v2.Schedule.tick")(function* () {
       if (!Schedule.matchesCron(schedule.trigger.expr, now)) continue
     }
 
-    const result = yield* runAction(schedule.action, schedule.workspace)
+    const result = yield* runAction(schedule.action, schedule.workspace, schedule.lastSessionId)
     yield* schedules.update(schedule.id, {
       lastRunAt: nowMs,
       lastStatus: result.exitCode === 0 ? "success" : "error",
       lastError: result.error,
-      lastSessionId: result.sessionId,
+      lastSessionId: result.sessionId ?? schedule.lastSessionId,
     })
 
     if (result.exitCode === 0) yield* Effect.logInfo(`[Schedule] Task ${schedule.id} completed successfully`)
