@@ -5444,6 +5444,15 @@ export type ScheduleTestResult = {
   sessionId?: string
 }
 
+export type ScheduleUpdateInput = {
+  name?: string
+  description?: string
+  trigger?: ScheduleTrigger
+  action?: ScheduleAction
+  workspace?: string
+  enabled?: boolean
+}
+
 export type PermissionV2Request = {
   id: string
   sessionID: string
@@ -15195,6 +15204,42 @@ export type V2ScheduleRemoveResponses = {
 }
 
 export type V2ScheduleRemoveResponse = V2ScheduleRemoveResponses[keyof V2ScheduleRemoveResponses]
+
+export type V2ScheduleUpdateData = {
+  body: ScheduleUpdateInput
+  path: {
+    scheduleID: string
+  }
+  query?: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+  }
+  url: "/api/schedule/{scheduleID}"
+}
+
+export type V2ScheduleUpdateErrors = {
+  /**
+   * ScheduleValidationError | InvalidRequestError
+   */
+  400: ScheduleValidationError | InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2ScheduleUpdateError = V2ScheduleUpdateErrors[keyof V2ScheduleUpdateErrors]
+
+export type V2ScheduleUpdateResponses = {
+  /**
+   * Schedule.Info
+   */
+  200: ScheduleInfo
+}
+
+export type V2ScheduleUpdateResponse = V2ScheduleUpdateResponses[keyof V2ScheduleUpdateResponses]
 
 export type V2PermissionRequestListData = {
   body?: never

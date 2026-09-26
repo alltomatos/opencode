@@ -174,10 +174,13 @@ export function createCommandPaletteModel(props: { filesOnly?: () => boolean; on
         serverCtx.projects.open(directory)
         serverCtx.projects.touch(directory)
       }
-      const tab = appTabs.addSessionTab({
-        server: item.server,
-        sessionId: item.sessionID,
-      })
+      const tab = appTabs.addSessionTab(
+        {
+          server: item.server,
+          sessionId: item.sessionID,
+        },
+        { title: item.title, directory },
+      )
       appTabs.select(tab)
       return
     }

@@ -95,6 +95,16 @@ export const CreateInput = Schema.Struct({
   enabled: optional(Schema.Boolean),
 }).annotate({ identifier: "Schedule.CreateInput" })
 
+export interface UpdateInput extends Schema.Schema.Type<typeof UpdateInput> {}
+export const UpdateInput = Schema.Struct({
+  name: optional(Schema.String),
+  description: optional(Schema.String),
+  trigger: optional(Trigger),
+  action: optional(Action),
+  workspace: optional(Schema.String),
+  enabled: optional(Schema.Boolean),
+}).annotate({ identifier: "Schedule.UpdateInput" })
+
 export interface TestInput extends Schema.Schema.Type<typeof TestInput> {}
 export const TestInput = Schema.Struct({
   action: Action,

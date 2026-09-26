@@ -75,6 +75,23 @@ export const ScheduleGroup = HttpApiGroup.make("server.schedule")
       ),
   )
   .add(
+    HttpApiEndpoint.post("schedule.update", "/api/schedule/:scheduleID", {
+      params: { scheduleID: Schedule.ID },
+      query: LocationQuery,
+      payload: Schedule.UpdateInput,
+      success: Schedule.Info,
+      error: ScheduleValidationError,
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "v2.schedule.update",
+          summary: "Update scheduled routine",
+          description: "Update an existing scheduled routine.",
+        }),
+      ),
+  )
+  .add(
     HttpApiEndpoint.delete("schedule.remove", "/api/schedule/:scheduleID", {
       params: { scheduleID: Schedule.ID },
       query: LocationQuery,

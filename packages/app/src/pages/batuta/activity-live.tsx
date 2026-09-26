@@ -23,6 +23,7 @@ import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { useServer } from "@/context/server"
 import { useServerSDK } from "@/context/server-sdk"
+import { GlobalLoading } from "@/components/global-loading"
 import { sessionHref } from "@/utils/session-route"
 import { detectGpuSupport } from "@/utils/gpu"
 import { showToast } from "@/utils/toast"
@@ -487,9 +488,13 @@ export function BatutaActivityLivePage() {
       <Show
         when={activity()}
         fallback={
-          <div class="flex flex-1 items-center justify-center text-sm text-v2-text-text-muted">
-            {language.t("batuta.panel.empty")}
-          </div>
+          activities.loading ? (
+            <GlobalLoading size="normal" class="flex-1" />
+          ) : (
+            <div class="flex flex-1 items-center justify-center text-sm text-v2-text-text-muted">
+              {language.t("batuta.panel.empty")}
+            </div>
+          )
         }
       >
         {(current) => (

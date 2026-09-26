@@ -122,13 +122,14 @@ function SessionTabEntry(props: {
   createEffect(() => {
     const ctx = props.serverCtx()
     const value = session()
-    if (!ctx || !value || prefetched) return
+    const dir = value?.directory ?? persisted()?.directory
+    if (!ctx || !dir || prefetched) return
     prefetched = true
     createRoot((dispose) => {
       try {
         void ctx.sync
-          .ensureDirSyncContext(value.directory)
-          .session.sync(value.id)
+          .ensureDirSyncContext(dir)
+          .session.sync(props.tab.sessionId)
           .catch(() => {})
           .finally(dispose)
       } catch {

@@ -19,6 +19,7 @@ import { useTabs } from "@/context/tabs"
 import { useServerSync } from "@/context/server-sync"
 import { createHomeController } from "@/pages/home/home-controller"
 import { showToast } from "@/utils/toast"
+import { GlobalLoading } from "@/components/global-loading"
 import { ModelPickerV2 } from "@/components/batuta/model-picker-v2"
 import { DialogAgentUISandbox } from "@/components/settings-v2/dialog-agentui-sandbox"
 import {
@@ -515,7 +516,7 @@ export function AgentUIFormPage() {
         />
       </div>
 
-      <Show when={ready()} fallback={<div class="flex-1" />}>
+      <Show when={ready()} fallback={<GlobalLoading size="normal" class="flex-1" />}>
         <div class="flex min-h-0 flex-1">
           <ScrollView class="min-h-0 flex-1">
             <div class="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-3 py-8 lg:px-6">

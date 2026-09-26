@@ -70,65 +70,90 @@ export const layer = Layer.effect(
           const directory = workspace || process.cwd()
           const ctx = yield* instanceStore.load({ directory })
 
-          let modelParam: any = undefined
-          if (action.model) {
-            if (action.model.startsWith("combo:")) {
-              const comboModel = yield* combos.resolve(action.model.slice("combo:".length)).pipe(
-                Effect.orElseSucceed(() => undefined),
-              )
-              if (comboModel) modelParam = comboModel
-            } else {
-              const separator = action.model.indexOf("/")
-              if (separator > 0) {
+          return yield* Effect.gen(function* () {
+            let modelParam: { providerID: ProviderV2.ID; modelID: ModelV2.ID } | undefined = undefined
+            if (action.model) {
+              const spec = action.model
+              if (spec.startsWith("combo:")) {
+                const comboId = spec.slice("combo:".length)
                 modelParam = {
-                  providerID: ProviderV2.ID.make(action.model.slice(0, separator)),
-                  modelID: ModelV2.ID.make(action.model.slice(separator + 1)),
+                  providerID: ProviderV2.ID.make("combo"),
+                  modelID: ModelV2.ID.make(comboId),
+                }
+              } else {
+                const comboFound = yield* combos.get(spec).pipe(Effect.orElseSucceed(() => undefined))
+                if (comboFound) {
+                  modelParam = {
+                    providerID: ProviderV2.ID.make("combo"),
+                    modelID: ModelV2.ID.make(spec),
+                  }
+                } else {
+                  const separator = spec.indexOf("/")
+                  if (separator > 0) {
+                    const providerID = spec.slice(0, separator)
+                    const modelID = spec.slice(separator + 1)
+                    if (providerID && modelID) {
+                      modelParam = {
+                        providerID: ProviderV2.ID.make(providerID),
+                        modelID: ModelV2.ID.make(modelID),
+                      }
+                    }
+                  }
                 }
               }
             }
-          }
 
-          const permissionRules = buildPermissions(action.mcpTools, action.permission)
+            const permissionRules = buildPermissions(action.mcpTools, action.permission)
 
-          let effectivePrompt = action.instructions
-          if (action.workspaces && action.workspaces.length > 0) {
-            effectivePrompt += `\n\nPastas / Repositórios de trabalho adicionais configurados:\n` +
-              action.workspaces.map((w, idx) => `- Pasta ${idx + 1}: ${w}`).join("\n")
-          }
+            let effectivePrompt = action.instructions
+            if (action.workspaces && action.workspaces.length > 0) {
+              effectivePrompt += `\n\nPastas / Repositórios de trabalho adicionais configurados:\n` +
+                action.workspaces.map((w, idx) => `- Pasta ${idx + 1}: ${w}`).join("\n")
+            }
 
-          const session = yield* sessions
-            .create({
-              title: `Rotina: ${action.instructions.slice(0, 40)}`,
+            yield* Effect.logInfo("ScheduleSkillCaller starting routine session", {
               directory,
-              permission: permissionRules,
               model: modelParam,
+              instructionPreview: action.instructions.slice(0, 80),
             })
-            .pipe(Effect.provideService(InstanceRef, ctx))
 
-          const result = yield* promptSvc
-            .prompt({
-              sessionID: session.id,
-              model: modelParam,
-              parts: [{ type: "text", text: effectivePrompt }],
-            })
-            .pipe(
-              Effect.provideService(InstanceRef, ctx),
-              Effect.catch((cause) =>
-                Effect.gen(function* () {
-                  yield* Effect.logError("routine prompt failed", { sessionId: session.id, cause })
-                  return yield* Effect.fail(cause)
+            const session = yield* sessions
+              .create({
+                title: `Rotina: ${action.instructions.slice(0, 40)}`,
+                directory,
+                permission: permissionRules,
+                model: modelParam ? { id: modelParam.modelID, providerID: modelParam.providerID } : undefined,
+              })
+              .pipe(
+                Effect.tapError((err) => Effect.logError("ScheduleSkillCaller session creation failed", { err })),
+              )
+
+            yield* Effect.logInfo("ScheduleSkillCaller session created", { sessionId: session.id })
+
+            const result = yield* promptSvc
+              .prompt({
+                sessionID: session.id,
+                model: modelParam,
+                parts: [{ type: "text", text: effectivePrompt }],
+              })
+              .pipe(
+                Effect.tapError((cause) =>
+                  Effect.logError("ScheduleSkillCaller prompt execution failed", { sessionId: session.id, cause }),
+                ),
+                Effect.catch((cause) => {
+                  const msg = cause instanceof Error ? cause.message : String(cause)
+                  return Effect.succeed({ error: msg } as any)
                 }),
-              ),
-            )
-            .pipe(
-              Effect.option,
-            )
+              )
 
-          if (result._tag === "None") {
-            return { success: false, error: "Falha na execução da sessão de rotina.", sessionId: session.id }
-          }
+            if (result && "error" in result && result.error) {
+              return { success: false, error: String(result.error), sessionId: session.id }
+            }
 
-          return { success: true, sessionId: session.id }
+            return { success: true, sessionId: session.id }
+          }).pipe(
+            Effect.provideService(InstanceRef, ctx),
+          )
         }),
     })
   }),

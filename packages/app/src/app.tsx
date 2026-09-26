@@ -59,6 +59,7 @@ import { SDKProvider, useSDK } from "@/context/sdk"
 import { WslServersProvider } from "@/wsl/context"
 import { SshServersProvider } from "@/ssh-tunnel/context"
 import DirectoryLayout, { DirectoryDataProvider } from "@/pages/directory-layout"
+import { GlobalLoading } from "@/components/global-loading"
 import LegacyLayout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import { ErrorPage } from "./pages/error"
@@ -93,7 +94,7 @@ const SessionRoute = () => {
   if (params.id && settings.general.newLayoutDesigns()) {
     const sessionID = params.id
     return (
-      <Show when={tabs.ready()}>
+      <Show when={tabs.ready()} fallback={<GlobalLoading panel />}>
         {(_) => {
           const persisted = tabs.store.filter((item) => item.type === "session")
           return <Navigate href={sessionHref(legacySessionServer(persisted, sessionID, server.key), sessionID)} />
@@ -142,7 +143,7 @@ function TargetServerRoute(props: ParentProps) {
   })
 
   return (
-    <Show when={validKey()} keyed>
+    <Show when={validKey()} keyed fallback={<GlobalLoading panel />}>
       {(key) => (
         <ServerSDKProvider server={conn}>
           <ServerSyncProvider server={conn}>{props.children}</ServerSyncProvider>
@@ -221,7 +222,7 @@ function DraftRoute() {
   }
 
   return (
-    <Show when={tabs.ready()}>
+    <Show when={tabs.ready()} fallback={<GlobalLoading panel />}>
       <Show
         when={tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)}
         keyed
@@ -696,6 +697,7 @@ function Routes(props: { serverScoped?: JSX.Element }) {
         <Route path="/batuta/:id/live" component={BatutaActivityLivePage} />
         <Route path="/rotinas" component={RoutinesPage} />
         <Route path="/rotinas/new" component={RoutineFormPage} />
+        <Route path="/rotinas/:id/edit" component={RoutineFormPage} />
         <Route path="/agentui" component={AgentUIPage} />
         <Route path="/agentui/new" component={AgentUIFormPage} />
         <Route path="/agentui/:id/edit" component={AgentUIFormPage} />
@@ -716,7 +718,7 @@ function NewLayoutLegacySessionRedirect() {
   const params = useParams<{ id: string }>()
 
   return (
-    <Show when={tabs.ready()}>
+    <Show when={tabs.ready()} fallback={<GlobalLoading panel />}>
       <Navigate
         href={sessionHref(
           legacySessionServer(
@@ -740,7 +742,7 @@ function LegacyNewSessionRoute() {
     return entry.directory
   }
   return (
-    <Show when={tabs.ready()}>
+    <Show when={tabs.ready()} fallback={<GlobalLoading panel />}>
       <Show
         when={tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)}
         keyed

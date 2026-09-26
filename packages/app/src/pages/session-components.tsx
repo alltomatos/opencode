@@ -1,7 +1,8 @@
 import { ParentProps, Show, ErrorBoundary, createEffect, createMemo } from "solid-js";
+import { GlobalLoading } from "@/components/global-loading";
 import { useLanguage } from "@/context/language";
 import { useServer, ServerConnection, serverName } from "@/context/server";
-import { useTabs } from "@/context/tabs";
+import { useTabs, tabKey } from "@/context/tabs";
 import { useSettings } from "@/context/settings";
 import { useNotification } from "@/context/notification";
 import { ErrorPage } from "@/pages/error";
@@ -31,9 +32,19 @@ export function isCurrentSessionNotFoundError(error: unknown, sessionID: string 
 export const TargetSessionRouteContent = () => {
   const params = useParams<{ serverKey: string; id: string }>()
   const server = useServer()
+  const tabs = useTabs()
   const serverSync = useServerSync()
-  const directory = createMemo(() => serverSync().session.lineage.peek(params.id)?.session.directory)
   const serverKey = () => parseServerKey(params.serverKey) ?? server.key
+  const directory = createMemo(() => {
+    const fromLineage = serverSync().session.lineage.peek(params.id)?.session.directory
+    if (fromLineage) return fromLineage
+    const key = serverKey()
+    if (key && params.id) {
+      const info = tabs.info[tabKey({ type: "session", server: key, sessionId: params.id })]
+      if (info?.directory) return info.directory
+    }
+    return undefined
+  })
   return (
     <TargetServerScopedProviders directory={directory} sessionID={() => params.id}>
       <TargetSessionSettingsCommand />
@@ -117,13 +128,23 @@ export const SessionErrorFallback = (props: { error: unknown; sessionID?: string
 
 function ResolvedTargetSessionRoute(props: { sessionID: () => string; serverKey: ServerConnection.Key }) {
   const serverSync = useServerSync()
+  const tabs = useTabs()
   // Read through the lineage (not a raw peek) so a session that resolves as
   // deleted while viewed throws inside this boundary instead of the route
   // silently rendering nothing (see session-lineage.ts).
   const lineage = createSessionLineage(props.sessionID, () => serverSync().session.lineage)
-  const directory = createMemo(() => lineage()?.session.directory)
+  const directory = createMemo(() => {
+    const fromLineage = lineage()?.session.directory
+    if (fromLineage) return fromLineage
+    const sessionID = props.sessionID()
+    if (props.serverKey && sessionID) {
+      const info = tabs.info[tabKey({ type: "session", server: props.serverKey, sessionId: sessionID })]
+      if (info?.directory) return info.directory
+    }
+    return undefined
+  })
   return (
-    <Show when={directory()}>
+    <Show when={directory()} fallback={<GlobalLoading panel />}>
       {(directory) => (
         <SDKProvider directory={directory}>
           <DirectoryDataProvider directory={directory} server={() => props.serverKey}>

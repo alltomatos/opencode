@@ -16,6 +16,7 @@ import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
+import { GlobalLoading } from "@/components/global-loading"
 import { SettingsListV2 } from "@/components/settings-v2/parts/list"
 import { SettingsRowV2 } from "@/components/settings-v2/parts/row"
 import "./batuta.css"
@@ -163,17 +164,7 @@ export function BatutaPage() {
 
           <Show
             when={!activities.loading}
-            fallback={
-              <div class="flex items-center gap-2 py-6 text-sm text-v2-text-text-muted">
-                <span
-                  class={`
-                    size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-v2-border-border-base
-                    border-t-v2-icon-icon-base
-                  `}
-                />
-                {language.t("common.loading")}
-              </div>
-            }
+            fallback={<GlobalLoading size="small" class="py-12" />}
           >
             <Show
               when={(activities() ?? []).length > 0}

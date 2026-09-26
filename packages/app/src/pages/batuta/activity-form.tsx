@@ -20,6 +20,7 @@ import { useGlobal } from "@/context/global"
 import { useDirectoryPicker } from "@/components/directory-picker"
 import { showToast } from "@/utils/toast"
 import { pathKey } from "@/utils/path-key"
+import { GlobalLoading } from "@/components/global-loading"
 import { ModelPickerV2 } from "@/components/batuta/model-picker-v2"
 import {
   createPromptProjectController,
@@ -290,7 +291,7 @@ export function BatutaActivityFormPage() {
           onClick={() => navigate("/batuta")}
         />
       </div>
-      <Show when={ready()} fallback={<div class="flex-1" />}>
+      <Show when={ready()} fallback={<GlobalLoading size="normal" class="flex-1" />}>
         <ScrollView class="h-full">
           <div class="mx-auto flex w-full max-w-[560px] flex-col gap-6 px-3 py-8 lg:px-6">
             <div class="flex w-full min-w-0 flex-col gap-2">

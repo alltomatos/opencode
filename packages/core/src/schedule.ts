@@ -51,6 +51,9 @@ export interface CreateInput {
 export interface UpdateInput {
   readonly name?: string
   readonly description?: string
+  readonly trigger?: Trigger
+  readonly action?: Action
+  readonly workspace?: string
   readonly enabled?: boolean
   readonly lastRunAt?: number
   readonly lastStatus?: "success" | "error"
@@ -246,6 +249,9 @@ export const layer = Layer.effect(
           .set({
             name: updates.name,
             description: updates.description,
+            trigger: updates.trigger,
+            action: updates.action,
+            workspace: updates.workspace,
             enabled: updates.enabled,
             last_run_at: updates.lastRunAt,
             last_status: updates.lastStatus,

@@ -179,18 +179,20 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
     }
 
     const actions = {
-      addSessionTab: (tab: Omit<SessionTab, "type">) => {
+      addSessionTab: (tab: Omit<SessionTab, "type">, extraInfo?: { title?: string; directory?: string }) => {
         const next = { type: "session" as const, ...tab }
+        if (extraInfo?.directory || extraInfo?.title) {
+          const key = tabKey(next)
+          setInfo(key, (prev) => ({ ...prev, ...extraInfo }))
+        }
         const existing = store.find((item) => tabKey(item) === tabKey(next))
         if (existing) return existing
-        void startTransition(() => {
-          setStore(
-            produce((tabs) => {
-              if (tabs.some((item) => tabKey(item) === tabKey(next))) return
-              tabs.push(next)
-            }),
-          )
-        })
+        setStore(
+          produce((tabs) => {
+            if (tabs.some((item) => tabKey(item) === tabKey(next))) return
+            tabs.push(next)
+          }),
+        )
         return next
       },
       reorder(keys: string[]) {

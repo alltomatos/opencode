@@ -276,6 +276,7 @@ import type {
   QuestionV2Reply,
   ScheduleCreateInput,
   ScheduleTestInput,
+  ScheduleUpdateInput,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -460,6 +461,8 @@ import type {
   V2ScheduleRunResponses,
   V2ScheduleTestErrors,
   V2ScheduleTestResponses,
+  V2ScheduleUpdateErrors,
+  V2ScheduleUpdateResponses,
   V2SessionActiveErrors,
   V2SessionActiveResponses,
   V2SessionCompactErrors,
@@ -8692,6 +8695,46 @@ export class Schedule extends HeyApiClient {
       url: "/api/schedule/{scheduleID}",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Update scheduled routine
+   *
+   * Update an existing scheduled routine.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters: {
+      scheduleID: string
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      scheduleUpdateInput: ScheduleUpdateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "scheduleID" },
+            { in: "query", key: "location" },
+            { key: "scheduleUpdateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<V2ScheduleUpdateResponses, V2ScheduleUpdateErrors, ThrowOnError>({
+      url: "/api/schedule/{scheduleID}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }

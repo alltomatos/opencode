@@ -9,6 +9,7 @@ import type { AgentuiAuditResponses } from "@opencode-ai/sdk/v2/types"
 type AgentUiAuditEntry = Omit<AgentuiAuditResponses[200][number], "timestamp"> & { timestamp: number }
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { GlobalLoading } from "@/components/global-loading"
 import "@/components/settings-v2/settings-v2.css"
 
 type Contact = {
@@ -107,6 +108,9 @@ export const AgentUIAuditPage: Component = () => {
             when={selectedContact()}
             fallback={
               <div class="flex w-full flex-col gap-3 px-4 py-6">
+                <Show when={audit.loading && contacts().length === 0}>
+                  <GlobalLoading size="small" class="py-12" />
+                </Show>
                 <Show when={!audit.loading && contacts().length === 0}>
                   <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.audit.empty")}</p>
                 </Show>

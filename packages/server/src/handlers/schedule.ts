@@ -33,7 +33,12 @@ export const ScheduleHandler = HttpApiBuilder.group(Api, "server.schedule", (han
       "schedule.run",
       Effect.fn(function* (ctx) {
         return yield* ScheduleRunner.runOne(ctx.params.scheduleID).pipe(
-          Effect.catch((error) => new ScheduleValidationError({ name: "ScheduleValidationError", message: `Schedule "${error.id}" not found` })),
+          Effect.catchCause((cause) =>
+            new ScheduleValidationError({
+              name: "ScheduleValidationError",
+              message: `Falha ao rodar rotina: ${cause.toString()}`,
+            }),
+          ),
         )
       }),
     )
@@ -41,12 +46,46 @@ export const ScheduleHandler = HttpApiBuilder.group(Api, "server.schedule", (han
       "schedule.test",
       Effect.fn(function* (ctx) {
         return yield* ScheduleRunner.testAction(ctx.payload.action, ctx.payload.workspace).pipe(
-          Effect.catch((error: any) =>
-            new ScheduleValidationError({ name: "ScheduleValidationError", message: error?.message ?? String(error) }),
-          ),
+          Effect.catchCause((cause) => {
+            const pretty = Effect.logError("schedule.test failed", { cause })
+            return pretty.pipe(
+              Effect.andThen(
+                new ScheduleValidationError({
+                  name: "ScheduleValidationError",
+                  message: `Falha na execução: ${cause.toString()}`,
+                }),
+              ),
+            )
+          }),
         )
       }),
     )
+      .handle(
+        "schedule.update",
+        Effect.fn(function* (ctx) {
+          const schedules = yield* Schedule.Service
+          const updated = yield* schedules
+            .update(ctx.params.scheduleID, {
+              name: ctx.payload.name,
+              description: ctx.payload.description,
+              trigger: ctx.payload.trigger,
+              action: ctx.payload.action,
+              workspace: ctx.payload.workspace,
+              enabled: ctx.payload.enabled,
+            })
+            .pipe(
+              Effect.catch((error: any) =>
+                new ScheduleValidationError({ name: "ScheduleValidationError", message: error?.message ?? String(error) }),
+              ),
+            )
+          if (!updated) {
+            return yield* Effect.fail(
+              new ScheduleValidationError({ name: "ScheduleValidationError", message: "Rotina não encontrada" }),
+            )
+          }
+          return updated
+        }),
+      )
     .handle(
       "schedule.remove",
       Effect.fn(function* (ctx) {

@@ -11,10 +11,14 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@op
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import type { ScheduleInfo } from "@opencode-ai/sdk/v2"
 import { useServerSDK } from "@/context/server-sdk"
+import { sessionHref } from "@/utils/session-route"
+import { useServer } from "@/context/server"
 import { showToast } from "@/utils/toast"
+import { GlobalLoading } from "@/components/global-loading"
 import { triggerSummary, actionSummary } from "./routines/summary"
 
 export const RoutinesPage: Component = () => {
+  const server = useServer()
   const serverSDK = useServerSDK()
   const navigate = useNavigate()
   const dialog = useDialog()
@@ -111,17 +115,7 @@ export const RoutinesPage: Component = () => {
 
           <Show
             when={!schedules.loading}
-            fallback={
-              <div class="flex items-center gap-2 py-8 text-sm text-v2-text-text-muted">
-                <span
-                  class={`
-                    size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-v2-border-border-base
-                    border-t-v2-icon-icon-base
-                  `}
-                />
-                Carregando rotinas…
-              </div>
-            }
+            fallback={<GlobalLoading size="small" class="py-12" />}
           >
             <Show
               when={(schedules() ?? []).length > 0}
@@ -199,11 +193,19 @@ export const RoutinesPage: Component = () => {
                           </div>
 
                           <div class="flex items-center gap-1.5 shrink-0">
+                            <ButtonV2
+                              variant="neutral"
+                              size="normal"
+                              onClick={() => navigate(`/rotinas/${schedule.id}/edit`)}
+                            >
+                              <Icon name="sliders" size="small" />
+                              Editar
+                            </ButtonV2>
                             <Show when={hasSession()}>
                               <ButtonV2
                                 variant="neutral"
                                 size="normal"
-                                onClick={() => navigate(`/session/${schedule.lastSessionId}`)}
+                                onClick={() => navigate(sessionHref(server.key, schedule.lastSessionId!))}
                               >
                                 <Icon name="bubble-5" size="small" />
                                 Ver Chat / Execução

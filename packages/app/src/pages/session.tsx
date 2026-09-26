@@ -57,6 +57,7 @@ import {
 } from "@/pages/session/composer"
 import { createOpenReviewFile, createSessionTabs } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/timeline/message-timeline"
+import { GlobalLoading } from "@/components/global-loading"
 import { createTimelineModel } from "@/pages/session/timeline/model"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
@@ -1204,8 +1205,11 @@ export default function Page() {
             <Show
               when={messagesReady() ? params.id : undefined}
               fallback={
-                <div class="h-full flex-1 flex flex-col items-center justify-center text-text-weak">
-                  <div class="animate-pulse">{language.t("session.messages.loading")}</div>
+                <div class="h-full flex-1 flex flex-col items-center justify-center">
+                  <GlobalLoading
+                    label={language.t("session.messages.loading")}
+                    description={language.intl()?.startsWith("pt") || language.intl() === "br" ? "Aguarde..." : undefined}
+                  />
                 </div>
               }
               keyed

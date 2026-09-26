@@ -2,14 +2,18 @@ import { createResource, For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { sessionHref } from "@/utils/session-route"
+import { useServer } from "@/context/server"
 import { useServerSDK } from "@/context/server-sdk"
 import { triggerSummary } from "./summary"
 
 const NAV_LABEL = "min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
 
 export const RoutinesSidebarList: Component = () => {
+  const server = useServer()
   const serverSDK = useServerSDK()
   const navigate = useNavigate()
 
@@ -37,7 +41,12 @@ export const RoutinesSidebarList: Component = () => {
         <div class="flex min-w-0 flex-col gap-1 pr-3">
           <Show
             when={!schedules.loading}
-            fallback={<div class="px-1.5 py-2 text-v2-text-text-faint">Carregando…</div>}
+            fallback={
+              <div class="flex items-center gap-2 px-1.5 py-2 text-12-regular text-v2-text-text-muted">
+                <Spinner class="size-3.5 shrink-0" />
+                <span>Carregando, aguarde...</span>
+              </div>
+            }
           >
             <Show
               when={(schedules() ?? []).length > 0}
@@ -51,7 +60,7 @@ export const RoutinesSidebarList: Component = () => {
 
                   const handleClick = () => {
                     if (schedule.lastSessionId) {
-                      navigate(`/session/${schedule.lastSessionId}`)
+                      navigate(sessionHref(server.key, schedule.lastSessionId))
                     } else {
                       navigate("/rotinas")
                     }

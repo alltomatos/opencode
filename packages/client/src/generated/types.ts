@@ -2755,6 +2755,243 @@ export type ServerScheduleTestOutput = {
   readonly sessionId?: string
 }
 
+export type ServerScheduleUpdateInput = {
+  readonly scheduleID: { readonly scheduleID: string }["scheduleID"]
+  readonly location?: {
+    readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
+  }["location"]
+  readonly name?: {
+    readonly name?: string
+    readonly description?: string
+    readonly trigger?:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action?:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+          readonly workspaces?: ReadonlyArray<string>
+          readonly model?: string
+          readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["name"]
+  readonly description?: {
+    readonly name?: string
+    readonly description?: string
+    readonly trigger?:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action?:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+          readonly workspaces?: ReadonlyArray<string>
+          readonly model?: string
+          readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["description"]
+  readonly trigger?: {
+    readonly name?: string
+    readonly description?: string
+    readonly trigger?:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action?:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+          readonly workspaces?: ReadonlyArray<string>
+          readonly model?: string
+          readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["trigger"]
+  readonly action?: {
+    readonly name?: string
+    readonly description?: string
+    readonly trigger?:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action?:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+          readonly workspaces?: ReadonlyArray<string>
+          readonly model?: string
+          readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["action"]
+  readonly workspace?: {
+    readonly name?: string
+    readonly description?: string
+    readonly trigger?:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action?:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+          readonly workspaces?: ReadonlyArray<string>
+          readonly model?: string
+          readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["workspace"]
+  readonly enabled?: {
+    readonly name?: string
+    readonly description?: string
+    readonly trigger?:
+      | { readonly kind: "cron"; readonly expr: string }
+      | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+      | { readonly kind: "manual" }
+    readonly action?:
+      | {
+          readonly kind: "shell"
+          readonly command: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "mcp_tool"
+          readonly server: string
+          readonly tool: string
+          readonly args?: { readonly [x: string]: JsonValue }
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "skill"
+          readonly instructions: string
+          readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+          readonly workspaces?: ReadonlyArray<string>
+          readonly model?: string
+          readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+    readonly workspace?: string
+    readonly enabled?: boolean
+  }["enabled"]
+}
+
+export type ServerScheduleUpdateOutput = {
+  readonly id: string
+  readonly name?: string
+  readonly description?: string
+  readonly trigger:
+    | { readonly kind: "cron"; readonly expr: string }
+    | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
+    | { readonly kind: "manual" }
+  readonly action:
+    | {
+        readonly kind: "shell"
+        readonly command: string
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "mcp_tool"
+        readonly server: string
+        readonly tool: string
+        readonly args?: { readonly [x: string]: JsonValue }
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "skill"
+        readonly instructions: string
+        readonly mcpTools?: ReadonlyArray<{ readonly server: string; readonly tool: string }>
+        readonly workspaces?: ReadonlyArray<string>
+        readonly model?: string
+        readonly permission?: "auto" | "bypass" | "default"
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+  readonly workspace?: string
+  readonly enabled?: boolean
+  readonly lastRunAt?: number | "Infinity" | "-Infinity" | "NaN"
+  readonly lastStatus?: "success" | "error"
+  readonly lastError?: string
+  readonly lastSessionId?: string
+}
+
 export type ServerScheduleRemoveInput = {
   readonly scheduleID: { readonly scheduleID: string }["scheduleID"]
   readonly location?: {

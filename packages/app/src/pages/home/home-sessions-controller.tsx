@@ -154,10 +154,11 @@ export function createHomeSessionsController(home: HomeController) {
               const directory = entry.project?.worktree ?? entry.directory
               ctx.projects.open(directory)
               ctx.projects.touch(directory)
-              void startTransition(() => {
-                const tab = tabs.addSessionTab({ server, sessionId: sessionID })
-                tabs.select(tab)
-              })
+              const tab = tabs.addSessionTab(
+                { server, sessionId: sessionID },
+                { title: entry.title, directory },
+              )
+              tabs.select(tab)
             }}
           />
         ))
@@ -195,16 +196,15 @@ export function createHomeSessionsController(home: HomeController) {
         const directory = project?.worktree ?? session.directory
         const ctx = home.server.focusedContext()
         if (!ctx) return
+        const serverKey = ServerConnection.key(conn)
         ctx.projects.open(directory)
         if (options?.background) {
-          tabs.addSessionTab({ server: ServerConnection.key(conn), sessionId: session.id })
+          tabs.addSessionTab({ server: serverKey, sessionId: session.id }, { title: session.title, directory })
           return
         }
         ctx.projects.touch(directory)
-        void startTransition(() => {
-          const tab = tabs.addSessionTab({ server: ServerConnection.key(conn), sessionId: session.id })
-          tabs.select(tab)
-        })
+        const tab = tabs.addSessionTab({ server: serverKey, sessionId: session.id }, { title: session.title, directory })
+        tabs.select(tab)
       },
       archive: async (session: Session) => {
         const conn = home.server.focused()

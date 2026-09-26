@@ -1,6 +1,7 @@
 import { createEffect, createMemo, Show, Suspense, type ParentProps } from "solid-js"
 import { createStore } from "solid-js/store"
 import { DebugBar } from "@/components/debug-bar"
+import { GlobalLoading } from "@/components/global-loading"
 import { TabsInfoPopup } from "@/components/help-button"
 import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
 import { UpdateAvailableToast } from "@/components/update-available-toast"
@@ -48,7 +49,7 @@ export default function NewLayout(props: ParentProps) {
       <div class="flex-1 min-h-0 min-w-0 flex flex-row items-stretch">
         <AppProjectSidebar />
         <main class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start contain-strict">
-          <Suspense>{props.children}</Suspense>
+          <Suspense fallback={<GlobalLoading panel />}>{props.children}</Suspense>
         </main>
       </div>
       {import.meta.env.DEV && state.debugTools && <DebugBar inline />}

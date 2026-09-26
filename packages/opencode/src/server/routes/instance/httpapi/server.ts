@@ -120,6 +120,7 @@ import { memoryHandlers } from "./handlers/memory"
 import { tuiHandlers } from "./handlers/tui"
 import { whatsappHandlers } from "./handlers/whatsapp"
 import { tunnelHandlers } from "./handlers/tunnel"
+import { scheduleHandlers } from "./handlers/schedule"
 import { handlers } from "@opencode-ai/server/handlers"
 import { buildLocationServiceMap, LocationServiceMap } from "@opencode-ai/core/location-services"
 import { layer as locationLayer } from "@opencode-ai/server/location"
@@ -206,6 +207,7 @@ const instanceRoutes = instanceApiRoutes.pipe(
 )
 const serverRoutes = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(handlers),
+  Layer.provide(scheduleHandlers),
   Layer.provide(PluginPtyEnvironment.layer),
   Layer.provide([serverHttpApiAuthLayer, v2SchemaErrorLayer]),
 )
@@ -306,6 +308,8 @@ const app = LayerNode.group([
   PtyTicket.node,
   Credential.node,
   ScheduleRunner.tickNode,
+  ScheduleSkillCaller.node,
+  ScheduleMcpCaller.node,
 ])
 
 export function createRoutes(

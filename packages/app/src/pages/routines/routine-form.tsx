@@ -1,10 +1,11 @@
 import { createEffect, createMemo, createResource, createSignal, For, Show, type Component } from "solid-js"
-import { useNavigate } from "@solidjs/router"
+import { useNavigate, useParams } from "@solidjs/router"
 import { useMutation } from "@tanstack/solid-query"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
@@ -13,7 +14,12 @@ import { Switch as SwitchV2 } from "@opencode-ai/ui/v2/switch-v2"
 import { useServerSDK } from "@/context/server-sdk"
 import { useDirectoryPicker } from "@/components/directory-picker"
 import { ModelPickerV2 } from "@/components/batuta/model-picker-v2"
+import { sessionHref } from "@/utils/session-route"
+import { useServer } from "@/context/server"
 import { showToast } from "@/utils/toast"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { DialogMcpAddV2 } from "@/components/settings-v2/dialog-mcp-v2"
+import { GlobalLoading } from "@/components/global-loading"
 import type { McpToolRef } from "./summary"
 
 type WhenKind = "daily" | "weekdays" | "interval" | "cron" | "manual"
@@ -63,9 +69,13 @@ const TEMPLATES: RoutineTemplate[] = [
 ]
 
 export const RoutineFormPage: Component = () => {
+  const server = useServer()
   const serverSDK = useServerSDK()
   const navigate = useNavigate()
+  const dialog = useDialog()
+  const params = useParams<{ id?: string }>()
   const pickDirectory = useDirectoryPicker()
+  const isEditing = () => Boolean(params.id)
 
   // Nome e Descrição da Rotina
   const [name, setName] = createSignal("")
@@ -85,6 +95,84 @@ export const RoutineFormPage: Component = () => {
     setDailyTimes((prev) => [...prev, time].sort())
   }
   const removeDailyTime = (time: string) => setDailyTimes((prev) => prev.filter((t) => t !== time))
+
+  // Carregar dados se for edição
+  const [initialLoading, setInitialLoading] = createSignal(isEditing())
+  createEffect(async () => {
+    if (!params.id) {
+      setInitialLoading(false)
+      return
+    }
+    try {
+      const scheduleClient = (serverSDK().client as any).schedule ?? (serverSDK().client as any).v2?.schedule
+      const listRes = await scheduleClient.list()
+      const found = (listRes.data ?? []).find((s: any) => s.id === params.id)
+      if (!found) {
+        setInitialLoading(false)
+        return
+      }
+
+      setName(found.name ?? "")
+      setDescription(found.description ?? "")
+
+      if (found.trigger) {
+        if (found.trigger.kind === "cron") {
+          const parts = String(found.trigger.expr ?? "").split(" ")
+          if (parts[4] === "1-5") setWhenKind("weekdays")
+          else if (parts.length === 5 && parts[0] !== "*" && parts[1] !== "*") setWhenKind("daily")
+          else setWhenKind("cron")
+          setCustomCron(found.trigger.expr)
+          const hours = (parts[1] || "").split(",")
+          const mins = (parts[0] || "").split(",")
+          if (hours.length > 0 && hours[0] !== "*") {
+            const times: string[] = []
+            for (const h of hours) {
+              for (const m of mins) {
+                times.push(`${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`)
+              }
+            }
+            if (times.length > 0) setDailyTimes(times)
+          }
+        } else if (found.trigger.kind === "interval") {
+          setWhenKind("interval")
+          const totalMin = Math.round(Number(found.trigger.ms || 0) / 60000)
+          if (totalMin % 60 === 0 && totalMin > 0) {
+            setIntervalUnit("hours")
+            setIntervalValue(String(totalMin / 60))
+          } else {
+            setIntervalUnit("minutes")
+            setIntervalValue(String(totalMin))
+          }
+        } else if (found.trigger.kind === "manual") {
+          setWhenKind("manual")
+        }
+      }
+
+      if (found.action) {
+        if (found.action.kind === "shell") {
+          setAdvanced(true)
+          setCommand(found.action.command ?? "")
+        } else if (found.action.kind === "skill") {
+          setAdvanced(false)
+          setInstructions(found.action.instructions ?? "")
+          if (found.action.model) setModel(found.action.model)
+          if (found.action.permission) setPermissionMode(found.action.permission)
+          if (found.action.mcpTools && Array.isArray(found.action.mcpTools)) {
+            setMcpTools([...found.action.mcpTools])
+          }
+          if (found.action.workspaces && Array.isArray(found.action.workspaces)) {
+            setWorkspaces([...found.action.workspaces])
+          } else if (found.workspace) {
+            setWorkspaces([found.workspace])
+          }
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setInitialLoading(false)
+    }
+  })
 
   // Como
   const [advanced, setAdvanced] = createSignal(false)
@@ -123,12 +211,16 @@ export const RoutineFormPage: Component = () => {
     sessionId?: string
   } | null>(null)
 
-  const [mcpStatus] = createResource(async () => {
+  const [mcpStatus, { refetch: refetchMcpStatus }] = createResource(async () => {
     const result = await serverSDK().client.mcp.status()
     return Object.entries(result.data ?? {})
       .filter(([, value]) => value.status === "connected")
       .map(([name]) => name)
   })
+
+  const openAddMcpModal = () => {
+    dialog.show(() => <DialogMcpAddV2 onAdded={() => void refetchMcpStatus()} />)
+  }
 
   // Auto-select first connected server if none selected
   createEffect(() => {
@@ -279,15 +371,28 @@ export const RoutineFormPage: Component = () => {
       }
 
       const scheduleClient = (serverSDK().client as any).schedule ?? (serverSDK().client as any).v2?.schedule
-      await scheduleClient.create({
-        scheduleCreateInput: {
-          name: name().trim() || undefined,
-          description: description().trim() || undefined,
-          trigger,
-          action,
-          workspace: primaryWorkspace,
-        },
-      })
+      if (isEditing()) {
+        await scheduleClient.update({
+          scheduleID: params.id,
+          scheduleUpdateInput: {
+            name: name().trim() || undefined,
+            description: description().trim() || undefined,
+            trigger,
+            action,
+            workspace: primaryWorkspace,
+          },
+        })
+      } else {
+        await scheduleClient.create({
+          scheduleCreateInput: {
+            name: name().trim() || undefined,
+            description: description().trim() || undefined,
+            trigger,
+            action,
+            workspace: primaryWorkspace,
+          },
+        })
+      }
     },
     onSuccess: () => navigate("/rotinas"),
     onError: (err) => {
@@ -303,7 +408,8 @@ export const RoutineFormPage: Component = () => {
         bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)]
       `}
     >
-      <ScrollView class="h-full">
+      <Show when={!initialLoading()} fallback={<GlobalLoading size="normal" class="flex-1" />}>
+        <ScrollView class="h-full">
         <div class="mx-auto flex w-full max-w-[780px] flex-col gap-6 px-3 py-8 lg:px-6">
           {/* Header */}
           <div class="flex items-center gap-3">
@@ -314,9 +420,13 @@ export const RoutineFormPage: Component = () => {
               icon={<IconV2 name="close" size="small" />}
             />
             <div class="flex flex-col">
-              <h1 class="text-lg font-medium text-v2-text-text-base">Nova rotina</h1>
+              <h1 class="text-lg font-medium text-v2-text-text-base">
+                {isEditing() ? "Editar rotina" : "Nova rotina"}
+              </h1>
               <span class="text-12-regular text-text-weak">
-                Configure automações autônomas com suporte a múltiplos repositórios, ferramentas MCP e modelos.
+                {isEditing()
+                  ? "Atualize as configurações, agendamentos e instruções desta rotina."
+                  : "Configure automações autônomas com suporte a múltiplos repositórios, ferramentas MCP e modelos."}
               </span>
             </div>
           </div>
@@ -633,34 +743,46 @@ export const RoutineFormPage: Component = () => {
                 </div>
 
                 {/* Abas dos MCP Servers Conectados */}
-                <div class="flex flex-wrap items-center gap-1.5 bg-v2-background-bg-layer-01 p-1.5 rounded-md border border-v2-border-border-base">
-                  <For each={mcpStatus() ?? []}>
-                    {(serverName) => {
-                      const count = () => mcpTools().filter((t) => t.server === serverName).length
-                      const isSelected = () => selectedServer() === serverName
-                      return (
-                        <button
-                          type="button"
-                          class={`
-                            flex items-center gap-1.5 px-3 py-1.5 rounded-md text-12-medium transition-colors cursor-pointer border
-                            ${
-                              isSelected()
-                                ? "bg-v2-background-bg-base text-v2-text-text-base border-v2-border-border-strong font-semibold shadow-sm"
-                                : "text-text-weak border-transparent hover:text-v2-text-text-base hover:bg-v2-background-bg-layer-02"
-                            }
-                          `}
-                          onClick={() => setSelectedServer(serverName)}
-                        >
-                          <span>{serverName}</span>
-                          <Show when={count() > 0}>
-                            <span class="px-1.5 py-0.5 rounded-full bg-v2-state-bg-selected text-text-base text-11-medium font-bold">
-                              {count()}
-                            </span>
-                          </Show>
-                        </button>
-                      )
-                    }}
-                  </For>
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-v2-background-bg-layer-01 p-1.5 rounded-md border border-v2-border-border-base">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <For each={mcpStatus() ?? []}>
+                      {(serverName) => {
+                        const count = () => mcpTools().filter((t) => t.server === serverName).length
+                        const isSelected = () => selectedServer() === serverName
+                        return (
+                          <button
+                            type="button"
+                            class={`
+                              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-12-medium transition-colors cursor-pointer border
+                              ${
+                                isSelected()
+                                  ? "bg-v2-background-bg-base text-v2-text-text-base border-v2-border-border-strong font-semibold shadow-sm"
+                                  : "text-text-weak border-transparent hover:text-v2-text-text-base hover:bg-v2-background-bg-layer-02"
+                              }
+                            `}
+                            onClick={() => setSelectedServer(serverName)}
+                          >
+                            <span>{serverName}</span>
+                            <Show when={count() > 0}>
+                              <span class="px-1.5 py-0.5 rounded-full bg-v2-state-bg-selected text-text-base text-11-medium font-bold">
+                                {count()}
+                              </span>
+                            </Show>
+                          </button>
+                        )
+                      }}
+                    </For>
+                  </div>
+                  <ButtonV2
+                    type="button"
+                    variant="neutral"
+                    size="small"
+                    class="h-7 text-12-medium"
+                    onClick={openAddMcpModal}
+                  >
+                    <IconV2 name="plus" size="small" />
+                    Adicionar conector MCP
+                  </ButtonV2>
                 </div>
 
                 {/* Grade de Ferramentas do MCP Selecionado */}
@@ -693,7 +815,12 @@ export const RoutineFormPage: Component = () => {
 
                       <Show
                         when={!mcpCatalog.loading}
-                        fallback={<span class="text-12-regular text-text-weak py-2">Carregando catálogo de ferramentas…</span>}
+                        fallback={
+                          <div class="flex items-center gap-2 py-3 text-12-regular text-text-weak">
+                            <Spinner class="size-3.5 shrink-0" />
+                            <span>Carregando catálogo de ferramentas, aguarde...</span>
+                          </div>
+                        }
                       >
                         <Show
                           when={(mcpCatalog() ?? []).length > 0}
@@ -798,7 +925,7 @@ export const RoutineFormPage: Component = () => {
                     <ButtonV2
                       variant="neutral"
                       size="small"
-                      onClick={() => navigate(`/session/${result().sessionId}`)}
+                      onClick={() => navigate(sessionHref(server.key, result().sessionId!))}
                     >
                       <Icon name="bubble-5" size="small" />
                       Inspecionar conversa do teste
@@ -834,12 +961,13 @@ export const RoutineFormPage: Component = () => {
                 disabled={!canSave() || createMutation.isPending || testMutation.isPending}
                 onClick={() => createMutation.mutate()}
               >
-                {createMutation.isPending ? "Salvando…" : "Criar rotina"}
+                {createMutation.isPending ? "Salvando…" : isEditing() ? "Salvar alterações" : "Criar rotina"}
               </ButtonV2>
             </div>
           </div>
         </div>
       </ScrollView>
+      </Show>
     </div>
   )
 }

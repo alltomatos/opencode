@@ -456,12 +456,37 @@ const Endpoint10_3 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_3
     payload: { action: input["action"], workspace: input["workspace"] },
   }).pipe(Effect.mapError(mapClientError))
 
-type Endpoint10_4Request = Parameters<RawClient["server.schedule"]["schedule.remove"]>[0]
+type Endpoint10_4Request = Parameters<RawClient["server.schedule"]["schedule.update"]>[0]
 type Endpoint10_4Input = {
   readonly scheduleID: Endpoint10_4Request["params"]["scheduleID"]
   readonly location?: Endpoint10_4Request["query"]["location"]
+  readonly name?: Endpoint10_4Request["payload"]["name"]
+  readonly description?: Endpoint10_4Request["payload"]["description"]
+  readonly trigger?: Endpoint10_4Request["payload"]["trigger"]
+  readonly action?: Endpoint10_4Request["payload"]["action"]
+  readonly workspace?: Endpoint10_4Request["payload"]["workspace"]
+  readonly enabled?: Endpoint10_4Request["payload"]["enabled"]
 }
 const Endpoint10_4 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_4Input) =>
+  raw["schedule.update"]({
+    params: { scheduleID: input["scheduleID"] },
+    query: { location: input["location"] },
+    payload: {
+      name: input["name"],
+      description: input["description"],
+      trigger: input["trigger"],
+      action: input["action"],
+      workspace: input["workspace"],
+      enabled: input["enabled"],
+    },
+  }).pipe(Effect.mapError(mapClientError))
+
+type Endpoint10_5Request = Parameters<RawClient["server.schedule"]["schedule.remove"]>[0]
+type Endpoint10_5Input = {
+  readonly scheduleID: Endpoint10_5Request["params"]["scheduleID"]
+  readonly location?: Endpoint10_5Request["query"]["location"]
+}
+const Endpoint10_5 = (raw: RawClient["server.schedule"]) => (input: Endpoint10_5Input) =>
   raw["schedule.remove"]({ params: { scheduleID: input["scheduleID"] }, query: { location: input["location"] } }).pipe(
     Effect.mapError(mapClientError),
   )
@@ -471,7 +496,8 @@ const adaptGroup10 = (raw: RawClient["server.schedule"]) => ({
   create: Endpoint10_1(raw),
   run: Endpoint10_2(raw),
   test: Endpoint10_3(raw),
-  remove: Endpoint10_4(raw),
+  update: Endpoint10_4(raw),
+  remove: Endpoint10_5(raw),
 })
 
 type Endpoint11_0Request = Parameters<RawClient["server.permission"]["permission.request.list"]>[0]

@@ -5,6 +5,7 @@ import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
+import { GlobalLoading } from "@/components/global-loading"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { ServerConnection, useServer } from "@/context/server"
@@ -59,8 +60,12 @@ export const StatsPage: Component = () => {
     const focusedConn = home.server.focused() ?? server.list.find((s) => ServerConnection.key(s) === server.key)
     if (!focusedConn) return
     const key = ServerConnection.key(focusedConn)
-    tabs.addSessionTab({ server: key, sessionId: sessionID })
-    navigate(sessionHref(key, sessionID))
+    const match = sessions().find((s) => s.id === sessionID)
+    const tab = tabs.addSessionTab(
+      { server: key, sessionId: sessionID },
+      match ? { title: match.title, directory: match.directory } : undefined,
+    )
+    tabs.select(tab)
   }
 
   // Token distribution calculations
@@ -131,8 +136,9 @@ export const StatsPage: Component = () => {
             </div>
           </div>
 
-          {/* Project Filter if multiple projects exist */}
-          <Show when={stats().breakdownByProject.length > 1}>
+          <Show when={!sessionsData.loading || sessionsData() !== undefined} fallback={<GlobalLoading size="normal" class="py-20" />}>
+            {/* Project Filter if multiple projects exist */}
+            <Show when={stats().breakdownByProject.length > 1}>
             <div class="flex flex-wrap items-center gap-1.5 text-12-regular">
               <span class="text-v2-text-text-faint">{language.t("stats.filter.project")}:</span>
               <button
@@ -478,6 +484,7 @@ export const StatsPage: Component = () => {
               </table>
             </div>
           </div>
+          </Show>
         </div>
       </ScrollView>
     </div>

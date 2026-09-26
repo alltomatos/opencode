@@ -2,6 +2,7 @@ import { createResource, For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
@@ -39,7 +40,12 @@ export const BatutaSidebarList: Component = () => {
         <div class="flex min-w-0 flex-col gap-1 pr-3">
           <Show
             when={!activities.loading}
-            fallback={<div class="px-1.5 py-2 text-v2-text-text-faint">{language.t("common.loading")}</div>}
+            fallback={
+              <div class="flex items-center gap-2 px-1.5 py-2 text-12-regular text-v2-text-text-muted">
+                <Spinner class="size-3.5 shrink-0" />
+                <span>{language.intl()?.startsWith("pt") || language.intl() === "br" ? "Carregando, aguarde..." : `${language.t("common.loading")}${language.t("common.loading.ellipsis")}`}</span>
+              </div>
+            }
           >
             <Show
               when={(activities() ?? []).length > 0}
