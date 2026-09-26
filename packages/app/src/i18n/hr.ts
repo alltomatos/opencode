@@ -439,6 +439,9 @@ export const dict = {
   "dialog.server.default.clear": "Jasan",
   "dialog.server.action.remove": "Ukloni poslužitelj",
   "dialog.server.menu.edit": "Uredi",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Postavi kao zadano",
   "dialog.server.menu.defaultRemove": "Ukloni zadano",
   "dialog.server.menu.delete": "Izbriši",

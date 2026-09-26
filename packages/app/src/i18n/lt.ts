@@ -440,6 +440,9 @@ export const dict = {
   "dialog.server.default.clear": "Aišku",
   "dialog.server.action.remove": "Pašalinti serverį",
   "dialog.server.menu.edit": "Redaguoti",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Nustatyti kaip numatytąjį",
   "dialog.server.menu.defaultRemove": "Pašalinti numatytąjį",
   "dialog.server.menu.delete": "Ištrinti",

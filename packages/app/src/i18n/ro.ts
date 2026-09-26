@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "Șterge",
   "dialog.server.action.remove": "Elimină serverul",
   "dialog.server.menu.edit": "Editează",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Setează ca implicit",
   "dialog.server.menu.defaultRemove": "Elimină implicitul",
   "dialog.server.menu.delete": "Șterge",

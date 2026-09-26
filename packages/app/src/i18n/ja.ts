@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "クリア",
   "dialog.server.action.remove": "サーバーを削除",
   "dialog.server.menu.edit": "編集",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "デフォルトに設定",
   "dialog.server.menu.defaultRemove": "デフォルト設定を解除",
   "dialog.server.menu.delete": "削除",

@@ -436,6 +436,9 @@
   "dialog.server.default.clear": "Rensa",
   "dialog.server.action.remove": "Ta bort servern",
   "dialog.server.menu.edit": "Redigera",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Ställ in som standard",
   "dialog.server.menu.defaultRemove": "Ta bort standard",
   "dialog.server.menu.delete": "Radera",

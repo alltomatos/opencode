@@ -463,6 +463,9 @@
   "dialog.server.action.remove": "Удалить сервер",
 
   "dialog.server.menu.edit": "Редактировать",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Сделать по умолчанию",
   "dialog.server.menu.defaultRemove": "Отменить выбор по умолчанию",
   "dialog.server.menu.delete": "Удалить",

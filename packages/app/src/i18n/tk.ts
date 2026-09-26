@@ -435,6 +435,9 @@
   "dialog.server.default.clear": "Arassala",
   "dialog.server.action.remove": "Serweri aýyryň",
   "dialog.server.menu.edit": "Redaktirläň",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Dymmaklyk hökmünde düzüň",
   "dialog.server.menu.defaultRemove": "Dymmaklygy aýyryň",
   "dialog.server.menu.delete": "Poz",

@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "Počisti",
   "dialog.server.action.remove": "Odstrani strežnik",
   "dialog.server.menu.edit": "Uredi",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Nastavi kot privzeto",
   "dialog.server.menu.defaultRemove": "Odstrani privzeto",
   "dialog.server.menu.delete": "Izbriši",

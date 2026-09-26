@@ -455,6 +455,9 @@ export const dict = {
   "dialog.server.action.remove": "Fjern server",
 
   "dialog.server.menu.edit": "Rediger",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Sett som standard",
   "dialog.server.menu.defaultRemove": "Fjern standard",
   "dialog.server.menu.delete": "Slett",

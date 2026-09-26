@@ -437,6 +437,9 @@
   "dialog.server.default.clear": "Մաքրել",
   "dialog.server.action.remove": "Հեռացնել սերվերը",
   "dialog.server.menu.edit": "Խմբագրել",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Սահմանել որպես լռելյայն",
   "dialog.server.menu.defaultRemove": "Հեռացնել լռելյայն",
   "dialog.server.menu.delete": "Ջնջել",

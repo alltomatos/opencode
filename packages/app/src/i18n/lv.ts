@@ -435,6 +435,9 @@
   "dialog.server.default.clear": "Notīrīt",
   "dialog.server.action.remove": "Noņemt serveri",
   "dialog.server.menu.edit": "Rediģēt",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Iestatīt kā noklusējumu",
   "dialog.server.menu.defaultRemove": "Noņemt noklusējumu",
   "dialog.server.menu.delete": "Dzēst",

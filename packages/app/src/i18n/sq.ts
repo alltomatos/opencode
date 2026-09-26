@@ -436,6 +436,9 @@
   "dialog.server.default.clear": "Pastro",
   "dialog.server.action.remove": "Hiq serverin",
   "dialog.server.menu.edit": "Redakto",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Cakto si parazgjedhje",
   "dialog.server.menu.defaultRemove": "Hiq parazgjedhjen",
   "dialog.server.menu.delete": "Fshi",

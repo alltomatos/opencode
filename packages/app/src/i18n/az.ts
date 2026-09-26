@@ -438,6 +438,9 @@
   "dialog.server.default.clear": "Təmizlə",
   "dialog.server.action.remove": "Serveri sil",
   "dialog.server.menu.edit": "Redaktə et",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Standart olaraq təyin et",
   "dialog.server.menu.defaultRemove": "Standartı sil",
   "dialog.server.menu.delete": "Sil",

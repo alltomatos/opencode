@@ -438,6 +438,9 @@
   "dialog.server.default.clear": "Тодорхой",
   "dialog.server.action.remove": "Серверийг устгах",
   "dialog.server.menu.edit": "Засварлах",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Өгөгдмөл болгож тохируулах",
   "dialog.server.menu.defaultRemove": "Өгөгдмөлийг арилгах",
   "dialog.server.menu.delete": "Устгах",

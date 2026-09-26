@@ -469,6 +469,9 @@ export const dict = {
   "dialog.server.action.remove": "Sunucuyu kaldır",
 
   "dialog.server.menu.edit": "Düzenle",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Varsayılan olarak ayarla",
   "dialog.server.menu.defaultRemove": "Varsayılanı kaldır",
   "dialog.server.menu.delete": "Sil",

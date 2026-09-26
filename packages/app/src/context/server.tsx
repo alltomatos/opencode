@@ -148,9 +148,14 @@ export function createServerProjects<T extends ServerProjectState>(input: {
 export function resolveServerList(input: {
   props?: Array<ServerConnection.Any>
   stored: StoredServer[]
+  customNames?: Record<string, string>
 }): Array<ServerConnection.Any> {
   const deduped = new Map<ServerConnection.Key, ServerConnection.Any>(
-    input.props?.map((v) => [ServerConnection.key(v), v]) ?? [],
+    input.props?.map((v) => {
+      const key = ServerConnection.key(v)
+      const custom = input.customNames?.[key]
+      return [key, custom ? { ...v, displayName: custom } : v]
+    }) ?? [],
   )
 
   for (const value of input.stored) {
@@ -164,15 +169,18 @@ export function resolveServerList(input: {
           ? value
           : { type: "http", http: value }
     const key = ServerConnection.key(conn)
+    const custom = input.customNames?.[key]
+    const withCustom = custom ? { ...conn, displayName: custom } : conn
 
     const existing = deduped.get(key)
     if (existing)
       deduped.set(key, {
         ...existing,
-        ...conn,
-        http: { ...existing.http, ...conn.http },
+        ...withCustom,
+        displayName: custom ?? withCustom.displayName ?? existing.displayName,
+        http: { ...existing.http, ...withCustom.http },
       })
-    else deduped.set(key, conn)
+    else deduped.set(key, withCustom)
   }
 
   return [...deduped.values()]
@@ -270,6 +278,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       },
       createStore({
         list: [] as StoredServer[],
+        customNames: {} as Record<string, string>,
         projects: {} as Record<string, StoredProject[]>,
         lastProject: {} as Record<string, string>,
         recentlyClosed: {} as Record<string, string[]>,
@@ -279,7 +288,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     const url = (x: StoredServer) => (typeof x === "string" ? x : "type" in x ? x.http.url : x.url)
 
     const allServers = createMemo((): Array<ServerConnection.Any> => {
-      return resolveServerList({ stored: store.list, props: props.servers })
+      return resolveServerList({ stored: store.list, props: props.servers, customNames: store.customNames })
     })
 
     const [state, setState] = createStore({
@@ -311,8 +320,31 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       const list = store.list.filter((x) => url(x) !== key)
       batch(() => {
         setStore("list", list)
+        if (store.customNames?.[key]) setStore("customNames", key, undefined!)
         if (state.active === key) setState("active", next)
       })
+    }
+
+    function rename(key: ServerConnection.Key, newName: string | undefined) {
+      const trimmed = newName?.trim() || undefined
+      batch(() => {
+        if (trimmed) {
+          setStore("customNames", key, trimmed)
+        } else {
+          setStore("customNames", key, undefined!)
+        }
+        const existing = store.list.findIndex((x) => url(x) === key)
+        if (existing !== -1) {
+          const item = store.list[existing]
+          if (typeof item !== "string") {
+            setStore("list", existing, { ...item, displayName: trimmed })
+          }
+        }
+      })
+    }
+
+    function getDisplayName(key: ServerConnection.Key | string) {
+      return store.customNames?.[key as ServerConnection.Key]
     }
 
     const isReady = Object.assign(
@@ -353,6 +385,8 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       setActive,
       add,
       remove,
+      rename,
+      getDisplayName,
       scope,
       projects: {
         ...projects,

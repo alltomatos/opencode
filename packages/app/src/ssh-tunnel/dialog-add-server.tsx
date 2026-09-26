@@ -207,7 +207,7 @@ export function DialogAddSshTunnelServer() {
 
           <div class="grid w-full min-w-0 grid-cols-2 gap-2.5">
             <div class="flex min-w-0 flex-col gap-1.5">
-              <label class="settings-v2-server-dialog-label">{language.t("sshTunnel.add.label")}</label>
+              <label class="settings-v2-server-dialog-label">{language.t("dialog.server.add.name")}</label>
               <TextInputV2
                 type="text"
                 appearance="large"

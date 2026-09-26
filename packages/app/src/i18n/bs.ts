@@ -465,6 +465,9 @@
   "dialog.server.action.remove": "Ukloni server",
 
   "dialog.server.menu.edit": "Uredi",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Postavi kao podrazumijevano",
   "dialog.server.menu.defaultRemove": "Ukloni podrazumijevano",
   "dialog.server.menu.delete": "Izbriši",

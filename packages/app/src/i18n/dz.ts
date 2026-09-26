@@ -440,6 +440,9 @@
   "dialog.server.default.clear": "གསལ་ཏོག་ཏོ",
   "dialog.server.action.remove": "སར་བར་རྩ་བསྐྲད་གཏང་།",
   "dialog.server.menu.edit": "ཞུན༌དག",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "སྔོན་སྒྲིག་སྦེ་གཞི་སྒྲིག་འབད།",
   "dialog.server.menu.defaultRemove": "སྔོན་སྒྲིག་རྩ་བསྐྲད་གཏང་།",
   "dialog.server.menu.delete": "བཏོན༌གཏང༌བ",

@@ -435,6 +435,9 @@
   "dialog.server.default.clear": "Kosongkan",
   "dialog.server.action.remove": "Buang pelayan",
   "dialog.server.menu.edit": "Sunting",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Tetapkan sebagai lalai",
   "dialog.server.menu.defaultRemove": "Buang lalai",
   "dialog.server.menu.delete": "Padam",

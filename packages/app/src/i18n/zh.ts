@@ -480,6 +480,9 @@ export const dict = {
   "dialog.server.default.clear": "清除",
   "dialog.server.action.remove": "移除服务器",
   "dialog.server.menu.edit": "编辑",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "设为默认",
   "dialog.server.menu.defaultRemove": "取消默认",
   "dialog.server.menu.delete": "删除",

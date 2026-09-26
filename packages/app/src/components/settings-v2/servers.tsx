@@ -13,6 +13,7 @@ import { ServerConnection, serverName } from "@/context/server"
 import { useServerManagementController } from "../dialog-select-server"
 import { DialogServerV2 } from "./dialog-server-v2"
 import { DialogServerQrCode } from "./dialog-server-qr-code"
+import { DialogRenameServer } from "./dialog-server-rename"
 import { SettingsListV2 } from "./parts/list"
 import { AddServerMenu, isWslServer, useFilteredWslServers, WslServerSettings } from "@/wsl/settings"
 import { isSshTunnelServer, useFilteredSshServers, SshServerSettings } from "@/ssh-tunnel/settings"
@@ -55,6 +56,10 @@ export const SettingsServersV2: Component = () => {
 
   const openQr = (server: ServerConnection.Http | ServerConnection.Sidecar) => {
     dialog.push(() => <DialogServerQrCode server={server} />)
+  }
+
+  const openRename = (server: ServerConnection.Any) => {
+    dialog.push(() => <DialogRenameServer server={server} />)
   }
 
   return (
@@ -143,6 +148,7 @@ export const SettingsServersV2: Component = () => {
                         controller={controller}
                         health={health()}
                         onEdit={openEdit}
+                        onRename={openRename}
                         onShowQr={openQr}
                       />
                     </div>

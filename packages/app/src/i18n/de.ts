@@ -342,6 +342,9 @@ export const dict = {
   "dialog.server.default.clear": "Löschen",
   "dialog.server.action.remove": "Server entfernen",
   "dialog.server.menu.edit": "Bearbeiten",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Als Standard festlegen",
   "dialog.server.menu.defaultRemove": "Standard entfernen",
   "dialog.server.menu.delete": "Löschen",

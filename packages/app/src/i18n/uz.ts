@@ -437,6 +437,9 @@
   "dialog.server.default.clear": "Tozalash",
   "dialog.server.action.remove": "Serverni olib tashlang",
   "dialog.server.menu.edit": "Tahrirlash",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Standart sifatida o'rnating",
   "dialog.server.menu.defaultRemove": "Standartni olib tashlang",
   "dialog.server.menu.delete": "Oʻchirish",

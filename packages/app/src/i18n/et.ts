@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "Selge",
   "dialog.server.action.remove": "Eemalda server",
   "dialog.server.menu.edit": "Muuda",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Määra vaikeväärtuseks",
   "dialog.server.menu.defaultRemove": "Eemalda vaikeseade",
   "dialog.server.menu.delete": "Kustuta",

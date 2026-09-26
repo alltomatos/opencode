@@ -437,6 +437,9 @@
   "dialog.server.default.clear": "Διαγραφή",
   "dialog.server.action.remove": "Κατάργηση διακομιστή",
   "dialog.server.menu.edit": "Επεξεργασία",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Ορισμός ως προεπιλογή",
   "dialog.server.menu.defaultRemove": "Κατάργηση προεπιλογής",
   "dialog.server.menu.delete": "Διαγραφή",

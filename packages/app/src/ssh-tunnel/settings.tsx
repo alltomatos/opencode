@@ -9,10 +9,11 @@ import fuzzysort from "fuzzysort"
 import { type Accessor, For, Show, createMemo } from "solid-js"
 import type { useServerManagementController } from "@/components/dialog-select-server"
 import { DialogServerQrCode } from "@/components/settings-v2/dialog-server-qr-code"
+import { DialogRenameServer } from "@/components/settings-v2/dialog-server-rename"
 import { ServerHealthIndicator } from "@/components/server/server-row"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
-import { ServerConnection } from "@/context/server"
+import { ServerConnection, useServer } from "@/context/server"
 import { showToast } from "@/utils/toast"
 import { DialogSshConnectionProgress } from "./dialog-ssh-progress"
 import { useSshServers } from "./context"
@@ -40,6 +41,7 @@ export function SshServerSettings(props: {
   const dialog = useDialog()
   const platform = usePlatform()
   const language = useLanguage()
+  const server = useServer()
   const api = platform.sshServers
 
   const request = useMutation(() => ({
@@ -79,19 +81,36 @@ export function SshServerSettings(props: {
     dialog.show(() => <DialogServerQrCode server={conn} />)
   }
 
+  const openRename = (item: { config: { id: string; host: string; remotePort: number; serverUsername?: string; serverPassword?: string; label?: string } }) => {
+    const key = ServerConnection.Key.make(`ssh:${item.config.host}`)
+    const conn: ServerConnection.Ssh = {
+      type: "ssh",
+      host: item.config.host,
+      sshServerId: item.config.id,
+      displayName: server.getDisplayName(key) ?? item.config.label ?? item.config.host,
+      http: {
+        url: `http://${item.config.host}:${item.config.remotePort}`,
+        username: item.config.serverUsername || "opencode",
+        password: item.config.serverPassword || "",
+      },
+    }
+    dialog.show(() => <DialogRenameServer server={conn} />)
+  }
+
   return (
     <Show when={api}>
       <For each={props.servers()}>
         {(item) => {
           const key = ServerConnection.Key.make(`ssh:${item.config.host}`)
           const retryable = item.runtime.kind === "failed" || item.runtime.kind === "stopped"
+          const name = () => server.getDisplayName(key) ?? item.config.label ?? item.config.host
           return (
             <div class="settings-v2-servers-row">
               <div class="settings-v2-servers-lead">
                 <ServerHealthIndicator health={props.controller.status()[key]} />
                 <div class="settings-v2-servers-copy">
                   <span class="flex min-w-0 items-center gap-1">
-                    <span class="settings-v2-servers-name">{item.config.label ?? item.config.host}</span>
+                    <span class="settings-v2-servers-name">{name()}</span>
                     <span class="shrink-0 rounded-[3px] border border-v2-border-border-base px-1 py-0.5 text-[9px] leading-none text-v2-text-text-muted">
                       {language.t("sshTunnel.server.label")}
                     </span>
@@ -119,6 +138,10 @@ export function SshServerSettings(props: {
                     <MenuV2.Content>
                       <MenuV2.Group>
                         <MenuV2.GroupLabel>{language.t("sshTunnel.server.menu.label")}</MenuV2.GroupLabel>
+                        <MenuV2.Item onSelect={() => openRename(item)}>
+                          <IconV2 name="edit" size="small" />
+                          {language.t("dialog.server.menu.rename")}
+                        </MenuV2.Item>
                         <MenuV2.Item onSelect={() => openQrCode(item)}>
                           <IconV2 name="share" size="small" />
                           {language.t("sshTunnel.server.qrCode")}

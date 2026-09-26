@@ -65,6 +65,7 @@ export type SshServersPlatform = {
   subscribe(cb: (event: SshServersEvent) => void): () => void
   listKeys(): Promise<SshKeyInfo[]>
   addServer(config: Omit<SshServerConfig, "id">): Promise<SshServerConfig>
+  renameServer?(id: string, label?: string): Promise<void>
   removeServer(id: string): Promise<void>
   startServer(id: string): Promise<void>
   updateServer?(id: string): Promise<void>

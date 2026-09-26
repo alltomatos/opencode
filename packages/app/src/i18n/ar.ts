@@ -435,6 +435,9 @@
   "dialog.server.default.clear": "مسح",
   "dialog.server.action.remove": "إزالة الخادم",
   "dialog.server.menu.edit": "تعديل",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "تعيين كافتراضي",
   "dialog.server.menu.defaultRemove": "إزالة الافتراضي",
   "dialog.server.menu.delete": "حذف",

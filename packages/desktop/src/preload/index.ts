@@ -50,6 +50,7 @@ const api: ElectronAPI = {
     },
     listKeys: () => ipcRenderer.invoke("ssh-servers-list-keys"),
     addServer: (config) => ipcRenderer.invoke("ssh-servers-add", config),
+    renameServer: (id, label) => ipcRenderer.invoke("ssh-servers-rename", id, label),
     removeServer: (id) => ipcRenderer.invoke("ssh-servers-remove", id),
     startServer: (id) => ipcRenderer.invoke("ssh-servers-start", id),
     updateServer: (id) => ipcRenderer.invoke("ssh-servers-update", id),

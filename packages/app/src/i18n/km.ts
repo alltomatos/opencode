@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "ច្បាស់",
   "dialog.server.action.remove": "លុបម៉ាស៊ីនមេ",
   "dialog.server.menu.edit": "កែសម្រួល",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "កំណត់ជាលំនាំដើម",
   "dialog.server.menu.defaultRemove": "លុបលំនាំដើមចេញ",
   "dialog.server.menu.delete": "លុប",

@@ -435,6 +435,9 @@
   "dialog.server.default.clear": "পরিষ্কার",
   "dialog.server.action.remove": "সার্ভার সরান",
   "dialog.server.menu.edit": "সম্পাদনা করুন",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "ডিফল্ট হিসেবে সেট করুন",
   "dialog.server.menu.defaultRemove": "ডিফল্ট সরান",
   "dialog.server.menu.delete": "মুছে দিন",

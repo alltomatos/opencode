@@ -435,6 +435,9 @@
   "dialog.server.default.clear": "გასუფთავება",
   "dialog.server.action.remove": "სერვერის წაშლა",
   "dialog.server.menu.edit": "რედაქტირება",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "დაყენება ნაგულისხმევად",
   "dialog.server.menu.defaultRemove": "ნაგულისხმევის ამოღება",
   "dialog.server.menu.delete": "წაშლა",

@@ -342,6 +342,9 @@
   "dialog.server.default.clear": "Tyhjennä",
   "dialog.server.action.remove": "Poista palvelin",
   "dialog.server.menu.edit": "Muokkaa",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Aseta oletukseksi",
   "dialog.server.menu.defaultRemove": "Poista oletuspalvelin",
   "dialog.server.menu.delete": "Poista",

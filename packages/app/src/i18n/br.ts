@@ -467,6 +467,9 @@ export const dict = {
   "dialog.server.default.clear": "Limpar",
   "dialog.server.action.remove": "Remover servidor",
   "dialog.server.menu.edit": "Editar",
+  "dialog.server.menu.rename": "Renomear",
+  "dialog.server.rename.title": "Renomear servidor",
+  "dialog.server.rename.placeholder": "Nome do servidor",
   "dialog.server.menu.qr": "Ver QR code",
   "dialog.server.qr.title": "QR code — {{name}}",
   "dialog.server.qr.description":

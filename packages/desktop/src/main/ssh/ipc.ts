@@ -46,6 +46,9 @@ export function registerSshIpcHandlers(controller: SshServersController) {
     requireString("serverUsername", config?.serverUsername)
     return controller.addServer(config)
   })
+  ipcMain.handle("ssh-servers-rename", (_event: IpcMainInvokeEvent, id: string, label?: string) =>
+    controller.renameServer(requireString("server id", id), typeof label === "string" ? label : undefined),
+  )
   ipcMain.handle("ssh-servers-remove", (_event: IpcMainInvokeEvent, id: string) =>
     controller.removeServer(requireString("server id", id)),
   )

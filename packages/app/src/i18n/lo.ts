@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "ຈະແຈ້ງ",
   "dialog.server.action.remove": "ເອົາເຊີບເວີອອກ",
   "dialog.server.menu.edit": "ແກ້ໄຂ",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "ຕັ້ງເປັນຄ່າເລີ່ມຕົ້ນ",
   "dialog.server.menu.defaultRemove": "ເອົາຄ່າເລີ່ມຕົ້ນ",
   "dialog.server.menu.delete": "ລຶບ",

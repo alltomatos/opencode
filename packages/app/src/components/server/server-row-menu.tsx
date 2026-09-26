@@ -13,6 +13,7 @@ export const ServerRowMenu: Component<{
   controller: ReturnType<typeof useServerManagementController>
   health?: ServerHealth
   onEdit: (server: ServerConnection.Http) => void
+  onRename?: (server: ServerConnection.Any) => void
   onShowQr?: (server: ServerConnection.Http | ServerConnection.Sidecar) => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -27,6 +28,7 @@ export const ServerRowMenu: Component<{
       isDefault={props.controller.defaultKey() === key}
       health={props.health}
       onEdit={props.onEdit}
+      onRename={props.onRename}
       onShowQr={props.onShowQr}
       onSetDefault={() => props.controller.setDefault(key)}
       onRemoveDefault={() => props.controller.setDefault(null)}
@@ -42,6 +44,7 @@ export function serverMenuLabels(language: ReturnType<typeof useLanguage>) {
     more: language.t("common.moreOptions"),
     server: language.t("settings.section.server"),
     edit: language.t("dialog.server.menu.edit"),
+    rename: language.t("dialog.server.menu.rename"),
     qr: language.t("dialog.server.menu.qr"),
     default: language.t("dialog.server.menu.default"),
     defaultRemove: language.t("dialog.server.menu.defaultRemove"),
@@ -56,6 +59,7 @@ export const ServerRowMenuView: Component<{
   isDefault: boolean
   health?: ServerHealth
   onEdit: (server: ServerConnection.Http) => void
+  onRename?: (server: ServerConnection.Any) => void
   onShowQr?: (server: ServerConnection.Http | ServerConnection.Sidecar) => void
   onSetDefault: () => void
   onRemoveDefault: () => void
@@ -88,6 +92,15 @@ export const ServerRowMenuView: Component<{
         <MenuV2.Content>
           <MenuV2.Group>
             <MenuV2.GroupLabel>{props.labels.server}</MenuV2.GroupLabel>
+            <Show when={props.onRename}>
+              <MenuV2.Item
+                disabled={builtin()}
+                onSelect={() => props.onRename?.(props.server)}
+              >
+                <IconV2 name="edit" size="small" />
+                {props.labels.rename}
+              </MenuV2.Item>
+            </Show>
             <MenuV2.Item
               disabled={builtin() || !httpServer()}
               onSelect={() => {

@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "Vymazať",
   "dialog.server.action.remove": "Odstrániť server",
   "dialog.server.menu.edit": "Upraviť",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Nastaviť ako predvolený",
   "dialog.server.menu.defaultRemove": "Odstrániť predvolený",
   "dialog.server.menu.delete": "Odstrániť",

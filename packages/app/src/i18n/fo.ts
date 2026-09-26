@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "Klára",
   "dialog.server.action.remove": "Strika ambætara",
   "dialog.server.menu.edit": "Rætta",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Set sum forsett",
   "dialog.server.menu.defaultRemove": "Strika forsett",
   "dialog.server.menu.delete": "Strika",

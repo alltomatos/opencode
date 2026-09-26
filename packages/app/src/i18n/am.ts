@@ -430,6 +430,9 @@
   "dialog.server.default.clear": "ግልጽ",
   "dialog.server.action.remove": "አገልጋይ አስወግድ",
   "dialog.server.menu.edit": "አርትዕ",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "ነባሪ አዘጋጅ",
   "dialog.server.menu.defaultRemove": "ነባሪውን አስወግድ",
   "dialog.server.menu.delete": "ሰርዝ",

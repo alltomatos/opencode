@@ -462,6 +462,9 @@
   "dialog.server.action.remove": "เอาเซิร์ฟเวอร์ออก",
 
   "dialog.server.menu.edit": "แก้ไข",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "ตั้งเป็นค่าเริ่มต้น",
   "dialog.server.menu.defaultRemove": "เอาค่าเริ่มต้นออก",
   "dialog.server.menu.delete": "ลบ",

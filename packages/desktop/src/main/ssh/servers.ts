@@ -206,6 +206,16 @@ export function createSshServersController(spawnTunnel: SpawnTunnel, options?: S
       void startServer(full.id)
       return full
     },
+    async renameServer(id: string, label?: string) {
+      const nextLabel = label?.trim() || undefined
+      const persisted = readServers().map((item) => (item.id === id ? { ...item, label: nextLabel } : item))
+      writeServers(persisted)
+      setState({
+        servers: state.servers.map((item) =>
+          item.config.id === id ? { ...item, config: { ...item.config, label: nextLabel } } : item,
+        ),
+      })
+    },
     async removeServer(id: string) {
       invalidateStartAttempt(id)
       stopTunnelInternal(id)

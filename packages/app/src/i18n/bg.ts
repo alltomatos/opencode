@@ -438,6 +438,9 @@
   "dialog.server.default.clear": "ясно",
   "dialog.server.action.remove": "Премахване на сървъра",
   "dialog.server.menu.edit": "Редактиране",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Задайте по подразбиране",
   "dialog.server.menu.defaultRemove": "Премахване на подразбиране",
   "dialog.server.menu.delete": "Изтриване",

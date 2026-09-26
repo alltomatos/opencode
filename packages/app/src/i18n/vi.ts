@@ -442,6 +442,9 @@
   "dialog.server.default.clear": "Xóa",
   "dialog.server.action.remove": "Xóa máy chủ",
   "dialog.server.menu.edit": "Chỉnh sửa",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Đặt làm mặc định",
   "dialog.server.menu.defaultRemove": "Xóa mặc định",
   "dialog.server.menu.delete": "Xóa",

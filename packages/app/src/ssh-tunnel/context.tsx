@@ -4,7 +4,7 @@ import { createEffect, onCleanup } from "solid-js"
 import type { SshServersState } from "./types"
 import { usePlatform } from "../context/platform"
 
-const sshServersQueryKey = ["platform", "sshServers"] as const
+export const sshServersQueryKey = ["platform", "sshServers"] as const
 
 export const { use: useSshServers, provider: SshServersProvider } = createSimpleContext({
   name: "SshServers",

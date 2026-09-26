@@ -471,6 +471,9 @@
   "dialog.server.action.remove": "Hapus server",
 
   "dialog.server.menu.edit": "Sunting",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Tetapkan sebagai bawaan",
   "dialog.server.menu.defaultRemove": "Hapus bawaan",
   "dialog.server.menu.delete": "Hapus",

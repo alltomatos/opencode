@@ -437,6 +437,9 @@
   "dialog.server.default.clear": "Тоза",
   "dialog.server.action.remove": "Серверро нест кунед",
   "dialog.server.menu.edit": "Таҳрир",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Ҳамчун пешфарз таъин кунед",
   "dialog.server.menu.defaultRemove": "Пешфарзро хориҷ кунед",
   "dialog.server.menu.delete": "Нобуд кунед",

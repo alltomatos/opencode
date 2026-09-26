@@ -439,6 +439,9 @@ export const dict = {
   "dialog.server.default.clear": "Törlés",
   "dialog.server.action.remove": "Szerver eltávolítása",
   "dialog.server.menu.edit": "Szerkesztés",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Beállítás alapértelmezettként",
   "dialog.server.menu.defaultRemove": "Alapértelmezés eltávolítása",
   "dialog.server.menu.delete": "Törlés",

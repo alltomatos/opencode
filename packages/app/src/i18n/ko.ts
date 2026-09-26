@@ -323,6 +323,9 @@
   "dialog.server.default.clear": "지우기",
   "dialog.server.action.remove": "서버 제거",
   "dialog.server.menu.edit": "편집",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "기본값으로 설정",
   "dialog.server.menu.defaultRemove": "기본값 제거",
   "dialog.server.menu.delete": "삭제",

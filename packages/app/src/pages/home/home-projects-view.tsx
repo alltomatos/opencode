@@ -12,7 +12,7 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { getProjectAvatarVariant, type HomeProjectSelection, type LocalProject } from "@/context/layout"
-import { ServerConnection } from "@/context/server"
+import { ServerConnection, serverName } from "@/context/server"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { displayName, getProjectAvatarSource } from "@/pages/layout/helpers"
@@ -60,6 +60,7 @@ export type HomeProjectsViewProps = {
   onFocusServer: (server: ServerConnection.Any) => void
   onToggleCollapsed: (server: ServerConnection.Any) => void
   onEditServer: (server: ServerConnection.Http) => void
+  onRenameServer?: (server: ServerConnection.Any) => void
   onSetDefaultServer: (server: ServerConnection.Any | undefined) => void
   onRemoveServer: (server: ServerConnection.Any) => void
   onMoveProject: (server: ServerConnection.Any, worktree: string, index: number) => void
@@ -213,6 +214,7 @@ function HomeServerRow(props: {
   onFocusServer: HomeProjectsViewProps["onFocusServer"]
   onToggleCollapsed: HomeProjectsViewProps["onToggleCollapsed"]
   onEditServer: HomeProjectsViewProps["onEditServer"]
+  onRenameServer?: HomeProjectsViewProps["onRenameServer"]
   onSetDefaultServer: HomeProjectsViewProps["onSetDefaultServer"]
   onRemoveServer: HomeProjectsViewProps["onRemoveServer"]
   onSetContextMenuOpen: HomeProjectsContextMenuProps["onSetContextMenuOpen"]
@@ -272,7 +274,7 @@ function HomeServerRow(props: {
           <ServerHealthIndicator health={props.health} />
         </div>
         <span class="flex min-w-0 items-center gap-1">
-          <span class={HOME_PROJECT_NAV_LABEL}>{props.server.displayName ?? new URL(props.server.http.url).host}</span>
+          <span class={HOME_PROJECT_NAV_LABEL}>{serverName(props.server)}</span>
           <span
             class={`
               shrink-0 rounded-[3px] border border-v2-border-border-base px-1 py-0.5
@@ -308,6 +310,7 @@ function HomeServerRow(props: {
           canDefault={props.canDefaultServer()}
           isDefault={props.defaultServerKey() === ServerConnection.key(props.server)}
           onEdit={props.onEditServer}
+          onRename={props.onRenameServer}
           onSetDefault={() => props.onSetDefaultServer(props.server)}
           onRemoveDefault={() => props.onSetDefaultServer(undefined)}
           onRemove={() => props.onRemoveServer(props.server)}

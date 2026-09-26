@@ -437,6 +437,9 @@
   "dialog.server.default.clear": "Clar",
   "dialog.server.action.remove": "Elimina el servidor",
   "dialog.server.menu.edit": "Edita",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Estableix com a predeterminat",
   "dialog.server.menu.defaultRemove": "Elimina el valor predeterminat",
   "dialog.server.menu.delete": "Suprimeix",

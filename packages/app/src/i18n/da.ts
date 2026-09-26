@@ -362,6 +362,9 @@
   "dialog.server.action.remove": "Fjern server",
 
   "dialog.server.menu.edit": "Rediger",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Sæt som standard",
   "dialog.server.menu.defaultRemove": "Fjern som standard",
   "dialog.server.menu.delete": "Slet",

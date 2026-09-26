@@ -439,6 +439,9 @@ export const dict = {
   "dialog.server.default.clear": "Hreinsa",
   "dialog.server.action.remove": "Fjarlægðu netþjón",
   "dialog.server.menu.edit": "Breyta",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "Stillt sem sjálfgefið",
   "dialog.server.menu.defaultRemove": "Fjarlægja sjálfgefið",
   "dialog.server.menu.delete": "Eyða",

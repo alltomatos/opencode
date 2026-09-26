@@ -461,6 +461,9 @@ export const dict = {
   "dialog.server.action.remove": "移除伺服器",
 
   "dialog.server.menu.edit": "編輯",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "設為預設",
   "dialog.server.menu.defaultRemove": "取消預設",
   "dialog.server.menu.delete": "刪除",

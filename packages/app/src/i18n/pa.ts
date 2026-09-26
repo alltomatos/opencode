@@ -442,6 +442,9 @@
   "dialog.server.default.clear": "صاف",
   "dialog.server.action.remove": "سرور ہٹا دیو",
   "dialog.server.menu.edit": "ترمیم کرو",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "ڈیفالٹ دے طور تے سیٹ کرو",
   "dialog.server.menu.defaultRemove": "ڈیفالٹ ہٹاؤ",
   "dialog.server.menu.delete": "مکاؤ",

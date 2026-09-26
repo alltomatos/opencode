@@ -198,3 +198,20 @@ test("startServer populates progress state with sequential steps and logs", asyn
   expect(progress?.steps.tunnel.status).toBe("done")
   expect(progress?.logs.length).toBeGreaterThanOrEqual(2)
 })
+
+test("renameServer updates persisted label and state", async () => {
+  const { controller, getPersisted } = makeTestController(async (config) => ({
+    listener: { stop: () => {}, onExit: () => {} },
+    url: "http://127.0.0.1:1234",
+    username: config.serverUsername,
+    password: config.serverPassword,
+  }))
+
+  const config = await controller.addServer(baseConfig({ label: "original" }))
+  expect(config.label).toBe("original")
+
+  await controller.renameServer(config.id, "renamed")
+  expect(getPersisted()[0]?.label).toBe("renamed")
+  expect(controller.getState().servers.find((x) => x.config.id === config.id)?.config.label).toBe("renamed")
+})
+

@@ -439,6 +439,9 @@
   "dialog.server.default.clear": "ရှင်းလင်းသည်။",
   "dialog.server.action.remove": "ဆာဗာကို ဖယ်ရှားပါ။",
   "dialog.server.menu.edit": "တည်းဖြတ်ရန်",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "မူရင်းအဖြစ် သတ်မှတ်ပါ။",
   "dialog.server.menu.defaultRemove": "မူရင်းကို ဖယ်ရှားပါ။",
   "dialog.server.menu.delete": "ဖျက်ပါ",

@@ -434,6 +434,9 @@
   "dialog.server.default.clear": "පැහැදිලියි",
   "dialog.server.action.remove": "සේවාදායකය ඉවත් කරන්න",
   "dialog.server.menu.edit": "සංස්කරණය කරන්න",
+  "dialog.server.menu.rename": "Rename", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.title": "Rename server", // TODO: translate (auto-filled from en)
+  "dialog.server.rename.placeholder": "Server name", // TODO: translate (auto-filled from en)
   "dialog.server.menu.default": "පෙරනිමිය ලෙස සකසන්න",
   "dialog.server.menu.defaultRemove": "පෙරනිමිය ඉවත් කරන්න",
   "dialog.server.menu.delete": "මකන්න",
