@@ -139,6 +139,15 @@ export const AppProjectSidebar: Component = () => {
             </ProjectRailTabButton>
           </div>
           <div class="flex w-full flex-col items-center gap-1.5 px-1">
+            <TooltipV2 placement="right" value={language.t("sidebar.media")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                icon={<IconV2 name="photo" size="small" />}
+                aria-label={language.t("sidebar.media")}
+                onClick={() => navigate("/media")}
+              />
+            </TooltipV2>
             <TooltipV2 placement="right" value={language.t("sidebar.stats")}>
               <IconButtonV2
                 variant="ghost-muted"
@@ -211,6 +220,7 @@ export const AppProjectSidebar: Component = () => {
           onOpenSettings={projectsController.utility.settings}
           onOpenHelp={projectsController.utility.help}
           onOpenStats={() => navigate("/stats")}
+          onOpenMedia={() => navigate("/media")}
           language={language}
         />
       </div>
