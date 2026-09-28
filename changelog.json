@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.43",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção de Interrupção Imediata no Envio de Mensagens e Melhorias no Visualizador de Rotinas",
+              "description": "Corrigido gatilho indevido no input de prompt que interrompia prematuramente os modelos ao submeter mensagens. Adicionado suporte a visualização em Grade ou Lista na listagem de rotinas com memorização de preferência e identificadores visuais dos modelos."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.40",
       "highlights": [
         {
