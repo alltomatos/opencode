@@ -51,11 +51,11 @@ export const AppProjectSidebar: Component = () => {
   const selectTab = (tab: ProjectSidebarTab) => {
     layout.projectSidebar.setTab(tab)
     if (tab === "batuta" && location.pathname !== "/batuta") navigate("/batuta")
-    if (tab === "agentui" && location.pathname !== "/agentui") navigate("/agentui")
-    if (tab === "schedule" && location.pathname !== "/rotinas") navigate("/rotinas")
+    if (tab === "agentui" && !location.pathname.startsWith("/agentui")) navigate("/agentui")
+    if (tab === "schedule" && !location.pathname.startsWith("/rotinas")) navigate("/rotinas")
     if (
       tab === "code" &&
-      (location.pathname === "/batuta" || location.pathname === "/agentui" || location.pathname === "/rotinas")
+      (location.pathname === "/batuta" || location.pathname.startsWith("/agentui") || location.pathname.startsWith("/rotinas"))
     )
       navigate("/")
   }
