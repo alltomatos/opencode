@@ -327,6 +327,8 @@ function QueryProvider(props: ParentProps) {
         refetchOnReconnect: false,
         refetchOnMount: false,
         refetchOnWindowFocus: false,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 60 * 60 * 1000,
       },
     },
   })

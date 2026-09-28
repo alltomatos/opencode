@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, Show } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { useMutation } from "@tanstack/solid-query"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
@@ -14,11 +14,11 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import type { BatutaActivity } from "@opencode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
-import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { GlobalLoading } from "@/components/global-loading"
 import { SettingsListV2 } from "@/components/settings-v2/parts/list"
 import { SettingsRowV2 } from "@/components/settings-v2/parts/row"
+import { useBatutaQuery } from "./batuta/batuta-cache"
 import "./batuta.css"
 
 const RUNNING_SESSIONS_KEY = "batuta.runningSessions.v1"
@@ -50,9 +50,9 @@ function ModelTag(props: { value: string }) {
 export function BatutaPage() {
   const language = useLanguage()
   const settings = useSettings()
-  const serverSDK = useServerSDK()
   const dialog = useDialog()
   const navigate = useNavigate()
+  const batuta = useBatutaQuery()
   const [runningSessions, setRunningSessionsSignal] = createSignal<Record<string, string>>(loadRunningSessions())
   const setRunningSessions = (updater: (prev: Record<string, string>) => Record<string, string>) => {
     setRunningSessionsSignal((prev) => {
@@ -62,17 +62,12 @@ export function BatutaPage() {
     })
   }
 
-  const [activities, { refetch }] = createResource(async () => {
-    const result = await serverSDK().client.batuta.list()
-    return result.data ?? []
-  })
-
   const removeMutation = useMutation(() => ({
     mutationFn: async (id: string) => {
-      await serverSDK().client.batuta.remove({ id })
+      await batuta.batutaClient().remove({ id })
       return id
     },
-    onSuccess: () => void refetch(),
+    onSuccess: () => batuta.invalidate(),
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
       showToast({ title: language.t("common.requestFailed"), description: message })
@@ -81,7 +76,7 @@ export function BatutaPage() {
 
   const startMutation = useMutation(() => ({
     mutationFn: async (activity: BatutaActivity) => {
-      const result = await serverSDK().client.batuta.start({ id: activity.id, directory: activity.directory })
+      const result = await batuta.batutaClient().start({ id: activity.id, directory: activity.directory })
       return { id: activity.id, sessionID: result.data?.sessionID }
     },
     onSuccess: ({ id, sessionID }) => {
@@ -163,11 +158,11 @@ export function BatutaPage() {
           </div>
 
           <Show
-            when={!activities.loading}
+            when={!batuta.loading()}
             fallback={<GlobalLoading size="small" class="py-12" />}
           >
             <Show
-              when={(activities() ?? []).length > 0}
+              when={batuta.activities().length > 0}
               fallback={
                 <div
                   class={`
@@ -187,7 +182,7 @@ export function BatutaPage() {
               }
             >
               <SettingsListV2>
-                <For each={activities()}>
+                <For each={batuta.activities()}>
                   {(activity) => {
                     const pending = () => startMutation.isPending && startMutation.variables?.id === activity.id
                     return (

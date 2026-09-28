@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createResource, createSignal, For, Show, type Component } from "solid-js"
 import { useNavigate, useParams } from "@solidjs/router"
-import { useMutation } from "@tanstack/solid-query"
+import { useMutation, useQueryClient } from "@tanstack/solid-query"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
@@ -21,6 +21,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DialogMcpAddV2 } from "@/components/settings-v2/dialog-mcp-v2"
 import { GlobalLoading } from "@/components/global-loading"
 import type { McpToolRef } from "./summary"
+import { ROUTINES_QUERY_KEY } from "./routines-cache"
 
 type WhenKind = "daily" | "weekdays" | "interval" | "cron" | "manual"
 type IntervalUnit = "minutes" | "hours"
@@ -73,6 +74,7 @@ export const RoutineFormPage: Component = () => {
   const serverSDK = useServerSDK()
   const navigate = useNavigate()
   const dialog = useDialog()
+  const queryClient = useQueryClient()
   const params = useParams<{ id?: string }>()
   const pickDirectory = useDirectoryPicker()
   const isEditing = () => Boolean(params.id)
@@ -394,7 +396,10 @@ export const RoutineFormPage: Component = () => {
         })
       }
     },
-    onSuccess: () => navigate("/rotinas"),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [ROUTINES_QUERY_KEY, server.key] })
+      navigate("/rotinas")
+    },
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
       showToast({ title: "Não foi possível salvar a rotina", description: message })

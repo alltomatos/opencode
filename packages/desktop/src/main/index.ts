@@ -252,6 +252,9 @@ const main = Effect.gen(function* () {
   ensureLoopbackNoProxy()
   useEnvProxy()
   app.commandLine.appendSwitch("proxy-bypass-list", "<-loopback>")
+  const existingJsFlags = app.commandLine.getSwitchValue("js-flags")
+  const memoryFlag = "--max-old-space-size=8192"
+  app.commandLine.appendSwitch("js-flags", existingJsFlags ? `${existingJsFlags} ${memoryFlag}` : memoryFlag)
   const features = app.commandLine.getSwitchValue("enable-features")
   app.commandLine.appendSwitch("enable-features", features ? `${jsCallStackFeature},${features}` : jsCallStackFeature)
   const debugMode = getDebugModeEnabled()

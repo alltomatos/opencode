@@ -1,4 +1,4 @@
-import { createResource, For, Show, type Component } from "solid-js"
+import { For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -7,21 +7,15 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { sessionHref } from "@/utils/session-route"
 import { useServer } from "@/context/server"
-import { useServerSDK } from "@/context/server-sdk"
 import { triggerSummary } from "./summary"
+import { useRoutinesQuery } from "./routines-cache"
 
 const NAV_LABEL = "min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
 
 export const RoutinesSidebarList: Component = () => {
   const server = useServer()
-  const serverSDK = useServerSDK()
   const navigate = useNavigate()
-
-  const [schedules] = createResource(async () => {
-    const scheduleClient = (serverSDK().client as any).schedule ?? (serverSDK().client as any).v2?.schedule
-    const result = await scheduleClient.list()
-    return result.data ?? []
-  })
+  const routines = useRoutinesQuery()
 
   return (
     <aside class="mt-2 flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
@@ -40,7 +34,7 @@ export const RoutinesSidebarList: Component = () => {
       <ScrollView class="min-h-0 min-w-0 shrink">
         <div class="flex min-w-0 flex-col gap-1 pr-3">
           <Show
-            when={!schedules.loading}
+            when={!routines.loading()}
             fallback={
               <div class="flex items-center gap-2 px-1.5 py-2 text-12-regular text-v2-text-text-muted">
                 <Spinner class="size-3.5 shrink-0" />
@@ -49,10 +43,10 @@ export const RoutinesSidebarList: Component = () => {
             }
           >
             <Show
-              when={(schedules() ?? []).length > 0}
+              when={routines.schedules().length > 0}
               fallback={<div class="px-1.5 py-2 text-v2-text-text-faint">Nenhuma rotina ainda.</div>}
             >
-              <For each={schedules()}>
+              <For each={routines.schedules()}>
                 {(schedule) => {
                   const displayName = () =>
                     schedule.name?.trim() || triggerSummary(schedule.trigger)

@@ -687,6 +687,8 @@ export function PromptInputV2SubmitButton(props: {
   onSubmit: () => void
   onStop: () => void
 }) {
+  let isClickLocked = false
+
   return (
     <TooltipV2
       placement="top"
@@ -713,6 +715,11 @@ export function PromptInputV2SubmitButton(props: {
             props.onStop()
             return
           }
+          if (props.disabled || isClickLocked) return
+          isClickLocked = true
+          setTimeout(() => {
+            isClickLocked = false
+          }, 600)
           props.onSubmit()
         }}
       />

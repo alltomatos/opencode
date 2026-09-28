@@ -1,4 +1,4 @@
-import { createResource, For, Show, type Component } from "solid-js"
+import { For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { useMutation } from "@tanstack/solid-query"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
@@ -10,29 +10,22 @@ import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode-ai/ui/v2/dialog-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import type { ScheduleInfo } from "@opencode-ai/sdk/v2"
-import { useServerSDK } from "@/context/server-sdk"
 import { sessionHref } from "@/utils/session-route"
 import { useServer } from "@/context/server"
 import { showToast } from "@/utils/toast"
 import { GlobalLoading } from "@/components/global-loading"
 import { triggerSummary, actionSummary } from "./routines/summary"
+import { useRoutinesQuery } from "./routines/routines-cache"
 
 export const RoutinesPage: Component = () => {
   const server = useServer()
-  const serverSDK = useServerSDK()
   const navigate = useNavigate()
   const dialog = useDialog()
-
-  const scheduleClient = () => (serverSDK().client as any).schedule ?? (serverSDK().client as any).v2?.schedule
-
-  const [schedules, { refetch }] = createResource(async () => {
-    const result = await scheduleClient().list()
-    return result.data ?? []
-  })
+  const routines = useRoutinesQuery()
 
   const runMutation = useMutation(() => ({
-    mutationFn: async (id: string) => scheduleClient().run({ scheduleID: id }),
-    onSuccess: () => void refetch(),
+    mutationFn: async (id: string) => routines.scheduleClient()?.run({ scheduleID: id }),
+    onSuccess: () => routines.invalidate(),
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
       showToast({ title: "Não foi possível rodar a rotina", description: message })
@@ -40,8 +33,8 @@ export const RoutinesPage: Component = () => {
   }))
 
   const removeMutation = useMutation(() => ({
-    mutationFn: async (id: string) => scheduleClient().remove({ scheduleID: id }),
-    onSuccess: () => void refetch(),
+    mutationFn: async (id: string) => routines.scheduleClient()?.remove({ scheduleID: id }),
+    onSuccess: () => routines.invalidate(),
     onError: (err) => {
       const message = err instanceof Error ? err.message : String(err)
       showToast({ title: "Não foi possível remover a rotina", description: message })
@@ -109,16 +102,16 @@ export const RoutinesPage: Component = () => {
           <div class="flex items-center justify-between border-b border-v2-border-border-base pb-2">
             <h2 class="text-13-medium text-v2-text-text-base font-semibold">Suas rotinas ativas</h2>
             <span class="text-11-regular text-text-weak">
-              {(schedules() ?? []).length} {schedules()?.length === 1 ? "rotina cadastrada" : "rotinas cadastradas"}
+              {routines.schedules().length} {routines.schedules().length === 1 ? "rotina cadastrada" : "rotinas cadastradas"}
             </span>
           </div>
 
           <Show
-            when={!schedules.loading}
+            when={!routines.loading()}
             fallback={<GlobalLoading size="small" class="py-12" />}
           >
             <Show
-              when={(schedules() ?? []).length > 0}
+              when={routines.schedules().length > 0}
               fallback={
                 <div
                   class={`
@@ -143,7 +136,7 @@ export const RoutinesPage: Component = () => {
               }
             >
               <div class="grid grid-cols-1 gap-3">
-                <For each={schedules()}>
+                <For each={routines.schedules()}>
                   {(schedule) => {
                     const running = () => runMutation.isPending && runMutation.variables === schedule.id
                     const displayName = () =>

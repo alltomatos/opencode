@@ -1,4 +1,4 @@
-import { createResource, For, Show, type Component } from "solid-js"
+import { For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
@@ -6,19 +6,14 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
-import { useServerSDK } from "@/context/server-sdk"
+import { useBatutaQuery } from "./batuta-cache"
 
 const HOME_PROJECT_NAV_LABEL = "min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
 
 export const BatutaSidebarList: Component = () => {
   const language = useLanguage()
-  const serverSDK = useServerSDK()
   const navigate = useNavigate()
-
-  const [activities] = createResource(async () => {
-    const result = await serverSDK().client.batuta.list()
-    return result.data ?? []
-  })
+  const batuta = useBatutaQuery()
 
   const openCreate = () => navigate("/batuta/new")
 
@@ -39,7 +34,7 @@ export const BatutaSidebarList: Component = () => {
       <ScrollView class="min-h-0 min-w-0 shrink">
         <div class="flex min-w-0 flex-col gap-1 pr-3">
           <Show
-            when={!activities.loading}
+            when={!batuta.loading()}
             fallback={
               <div class="flex items-center gap-2 px-1.5 py-2 text-12-regular text-v2-text-text-muted">
                 <Spinner class="size-3.5 shrink-0" />
@@ -48,10 +43,10 @@ export const BatutaSidebarList: Component = () => {
             }
           >
             <Show
-              when={(activities() ?? []).length > 0}
+              when={batuta.activities().length > 0}
               fallback={<div class="px-1.5 py-2 text-v2-text-text-faint">{language.t("batuta.list.empty")}</div>}
             >
-              <For each={activities()}>
+              <For each={batuta.activities()}>
                 {(activity) => (
                   <button
                     type="button"
