@@ -29,7 +29,7 @@
     },
     "packages/app": {
       "name": "@opencode-ai/app",
-      "version": "1.21.40",
+      "version": "1.21.42",
       "dependencies": {
         "@corvu/drawer": "catalog:",
         "@dnd-kit/abstract": "0.5.0",
@@ -388,7 +388,7 @@
     },
     "packages/desktop": {
       "name": "@opencode-ai/desktop",
-      "version": "1.21.41",
+      "version": "1.21.42",
       "dependencies": {
         "@zip.js/zip.js": "2.7.62",
         "drizzle-orm": "catalog:",
@@ -586,7 +586,7 @@
     },
     "packages/opencode": {
       "name": "opencode",
-      "version": "1.21.36",
+      "version": "1.21.42",
       "bin": {
         "opencode": "./bin/opencode",
       },
