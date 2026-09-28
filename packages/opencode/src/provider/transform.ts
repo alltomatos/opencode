@@ -518,8 +518,11 @@ export function message(msgs: ModelMessage[], model: Provider.Model, options: Re
   return msgs
 }
 
+const GEMINI_2_5_RE = /gemini-2[.-]5(?:[.-]|$)/i
+const GEMINI_LEGACY_RE = /gemini-(?:(?:flash|pro)-)?[12](?:[.-]|$)/i
+
 const GEMINI_MODELS_WITH_SAMPLING_DEFAULTS = [
-  /gemini-2[.-]5(?:[.-]|$)/,
+  GEMINI_2_5_RE,
   /gemini-3-(?:flash|pro)(?:[.-]|$)/,
   /gemini-3[.-]1(?:[.-]|$)/,
   /gemini-3[.-]5-flash(?!-lite)(?:[.-]|$)/,
@@ -685,9 +688,19 @@ function anthropicOmitsThinking(apiId: string) {
   return anthropicUsesModernAdaptiveThinking(apiId)
 }
 
+function isLegacyGemini(apiId: string) {
+  return GEMINI_LEGACY_RE.test(apiId)
+}
+
+function isGemini25(apiId: string) {
+  return GEMINI_2_5_RE.test(apiId)
+}
+
 function googleThinkingLevelEfforts(apiId: string) {
   const id = apiId.toLowerCase()
-  if (!id.includes("gemini-3")) return ["low", "high"]
+  // Gemma 4 only toggles thinking: "minimal" disables it and "high" enables it.
+  if (id.includes("gemma")) return ["minimal", "high"]
+  if (isLegacyGemini(id)) return ["low", "high"]
   if (id.includes("flash-image")) return ["minimal", "high"]
   if (id.includes("pro-image")) return ["high"]
   if (id.includes("flash")) return ["minimal", "low", "medium", "high"]
@@ -696,7 +709,7 @@ function googleThinkingLevelEfforts(apiId: string) {
 
 function googleThinkingBudgetMax(apiId: string) {
   const id = apiId.toLowerCase()
-  if (id.includes("2.5") && id.includes("pro") && !id.includes("flash")) return 32_768
+  if (isGemini25(id) && id.includes("pro") && !id.includes("flash")) return 32_768
   return 24_576
 }
 
@@ -708,7 +721,7 @@ function wrapInSapModelParams(variants: Record<string, Record<string, any>>): Re
 
 function googleThinkingVariants(model: Provider.Model): Record<string, Record<string, any>> {
   const id = model.api.id.toLowerCase()
-  if (id.includes("2.5")) {
+  if (isGemini25(id)) {
     return {
       high: { thinkingConfig: { includeThoughts: true, thinkingBudget: 16000 } },
       max: {
@@ -862,7 +875,7 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
         }
       }
       if (model.api.id.includes("google")) {
-        if (model.api.id.includes("2.5")) {
+        if (isGemini25(model.api.id)) {
           return {
             high: {
               thinkingConfig: {
@@ -1139,7 +1152,7 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
           max: { thinking: { type: "enabled", budget_tokens: 31999 } },
         })
       }
-      if (id.includes("gemini") && id.includes("2.5")) {
+      if (isGemini25(id) || isGemini25(model.api.id)) {
         return wrapInSapModelParams(googleThinkingVariants(model))
       }
       if (id.includes("gpt") || /\bo[1-9]/.test(id)) {
@@ -1187,7 +1200,7 @@ export function options(input: {
     result["usage"] = {
       include: true,
     }
-    if (input.model.api.id.includes("gemini-3")) {
+    if (input.model.api.id.toLowerCase().includes("gemini") && !isLegacyGemini(input.model.api.id)) {
       result["reasoning"] = { effort: "high" }
     }
   }
@@ -1219,7 +1232,7 @@ export function options(input: {
       result["thinkingConfig"] = {
         includeThoughts: true,
       }
-      if (input.model.api.id.includes("gemini-3")) {
+      if (!isLegacyGemini(input.model.api.id)) {
         result["thinkingConfig"]["thinkingLevel"] = "high"
       }
     }
