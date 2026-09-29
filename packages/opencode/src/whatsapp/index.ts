@@ -62,7 +62,7 @@ export type IzapiaGroup = Schema.Schema.Type<typeof IzapiaGroup>
 // izapia is multi-tenant / multi-session: its API base is fixed across all
 // accounts (unlike self-hosted WAHA/Evolution which need a user-provided
 // baseUrl).
-const IZAPIA_BASE_URL = "https://app.izapia.com"
+const IZAPIA_BASE_URL = "https://api.izapia.com"
 
 function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding, sidOverride?: string): WaAdapter {
   const cfg = channel.config
@@ -84,7 +84,11 @@ function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding, sidOverri
     case "wppconnect":
       return wppconnect({ baseUrl: cfg.baseUrl ?? "", session: sidOverride ?? cfg.session ?? "", token: cfg.token ?? cfg.secretKey ?? "" })
     case "izapia":
-      return izapia({ baseUrl: cfg.baseUrl || IZAPIA_BASE_URL, apiKey: cfg.apiKey ?? "", sid: sidOverride ?? cfg.sid ?? "" })
+      return izapia({
+        baseUrl: cfg.baseUrl || IZAPIA_BASE_URL,
+        apiKey: cfg.apiKey ?? "",
+        sid: sidOverride || channel.sessionIds?.[0] || cfg.sid || "",
+      })
   }
 }
 
