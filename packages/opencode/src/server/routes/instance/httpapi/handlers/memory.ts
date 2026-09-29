@@ -61,6 +61,7 @@ export const memoryHandlers = HttpApiBuilder.group(InstanceHttpApi, "memory", (h
       return yield* memory.backfill({
         directory: ctx.payload.directory,
         sessionID: ctx.payload.sessionID,
+        force: ctx.payload.force,
       })
     })
 

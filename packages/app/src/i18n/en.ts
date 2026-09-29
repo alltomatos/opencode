@@ -1453,6 +1453,17 @@ export const dict = {
   "settings.memory.field.enabled.title": "Enable memory",
   "settings.memory.field.enabled.description":
     "Lets the agent search and save cross-session notes on its own, per project and globally. Enabled by default.",
+  "settings.memory.field.autoSync.title": "Automatic sync routine",
+  "settings.memory.field.autoSync.description":
+    "Periodically synthesizes new session memories in the background using the configured memory model.",
+  "settings.memory.field.syncInterval.title": "Routine interval",
+  "settings.memory.field.syncInterval.description":
+    "How frequently the automatic memory sync routine runs in the background.",
+  "settings.memory.interval.1h": "Every 1 hour",
+  "settings.memory.interval.2h": "Every 2 hours",
+  "settings.memory.interval.6h": "Every 6 hours (recommended)",
+  "settings.memory.interval.12h": "Every 12 hours",
+  "settings.memory.interval.24h": "Every 24 hours (daily)",
   "settings.memory.field.memoryModel.title": "Memory model",
   "settings.memory.field.memoryModel.description":
     "Model used to summarize and answer memory lookups. Leave empty to use the automatic default.",

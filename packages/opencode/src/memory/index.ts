@@ -12,7 +12,7 @@ import { Combo } from "../combo"
 import { Provider } from "../provider/provider"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { createAntigravityFetch, getLiveToken } from "../provider/antigravity-adapter"
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Duration, Effect, Layer, Schedule, Schema, Cause } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
@@ -27,6 +27,14 @@ import path from "node:path"
 // explicit `false` (the user turned it off in Settings) disables it.
 export function isEnabled(config: ConfigMemoryV1.Info) {
   return config.enabled !== false
+}
+
+export function isAutoSyncEnabled(config: ConfigMemoryV1.Info) {
+  return config.autoSync !== false
+}
+
+export function getSyncIntervalHours(config: ConfigMemoryV1.Info) {
+  return typeof config.syncIntervalHours === "number" && config.syncIntervalHours > 0 ? config.syncIntervalHours : 6
 }
 
 // Curated against the Omniroute catalog (same list used by the Breniac
@@ -79,6 +87,52 @@ function globalDir() {
 
 function projectDir(directory: string) {
   return path.join(Global.Path.data, "memory", "projects", projectKey(directory))
+}
+
+function processedSessionsFile() {
+  return path.join(Global.Path.data, "memory", "processed_sessions.json")
+}
+
+function syncStateFile() {
+  return path.join(Global.Path.data, "memory", "sync_state.json")
+}
+
+type SyncState = {
+  lastSyncAt?: string
+}
+
+async function loadSyncState(): Promise<SyncState> {
+  const file = syncStateFile()
+  try {
+    const raw = await readFile(file, "utf8")
+    return JSON.parse(raw) as SyncState
+  } catch {
+    return {}
+  }
+}
+
+async function saveSyncState(state: SyncState): Promise<void> {
+  const file = syncStateFile()
+  await mkdir(path.dirname(file), { recursive: true })
+  await writeFile(file, JSON.stringify(state), "utf8")
+}
+
+async function loadProcessedSessionIDs(): Promise<Set<string>> {
+  const file = processedSessionsFile()
+  try {
+    const raw = await readFile(file, "utf8")
+    const list = JSON.parse(raw)
+    if (Array.isArray(list)) return new Set(list)
+  } catch {
+    // ignore
+  }
+  return new Set<string>()
+}
+
+async function saveProcessedSessionIDs(set: Set<string>): Promise<void> {
+  const file = processedSessionsFile()
+  await mkdir(path.dirname(file), { recursive: true })
+  await writeFile(file, JSON.stringify([...set]), "utf8")
 }
 
 // Where the global-memory skill lives so it's picked up by the same discovery
@@ -139,6 +193,12 @@ export type SummarizeResult = {
   globalReason?: string
 }
 
+export type BackfillInput = {
+  directory?: string
+  sessionID?: string
+  force?: boolean
+}
+
 export type BackfillResult = {
   totalSessions: number
   processedSessions: number
@@ -196,10 +256,7 @@ export interface Interface {
   }) => Effect.Effect<SummarizeResult, ModelNotConfiguredError | SummarizeFailedError>
   // Scans previous sessions across projects and synthesizes missing memories
   // into project memory files using the available fallback model.
-  readonly backfill: (input?: {
-    directory?: string
-    sessionID?: string
-  }) => Effect.Effect<BackfillResult>
+  readonly backfill: (input?: BackfillInput) => Effect.Effect<BackfillResult>
   // Only call after explicit user confirmation — memory is never promoted
   // to global silently.
   readonly promoteGlobal: (input: { summary: string }) => Effect.Effect<{ path: string }>
@@ -502,10 +559,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       return entries.some((entry) => entry.endsWith(".md"))
     })
 
-    const backfill = Effect.fn("Memory.backfill")(function* (input?: {
-      directory?: string
-      sessionID?: string
-    }) {
+    const backfill = Effect.fn("Memory.backfill")(function* (input?: BackfillInput) {
       const sessionList = yield* sessions.listGlobal().pipe(Effect.orElseSucceed(() => []))
       let targets = sessionList.filter((s) => !s.parentID)
       if (input?.directory) {
@@ -513,6 +567,14 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       }
       if (input?.sessionID) {
         targets = targets.filter((s) => s.id === input.sessionID)
+      }
+
+      const processedIDs = yield* Effect.tryPromise(() => loadProcessedSessionIDs()).pipe(
+        Effect.orElseSucceed(() => new Set<string>()),
+      )
+
+      if (!input?.force && !input?.sessionID) {
+        targets = targets.filter((s) => !processedIDs.has(s.id))
       }
 
       const totalSessions = targets.length
@@ -525,10 +587,16 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
         processedSessions++
         if (s.directory) projects.add(s.directory)
         const msgs = yield* sessions.messages({ sessionID: s.id as any }).pipe(Effect.orElseSucceed(() => []))
-        if (msgs.length === 0) continue
+        if (msgs.length === 0) {
+          processedIDs.add(s.id)
+          continue
+        }
 
         const transcript = buildTranscript(msgs)
-        if (transcript.length < 50) continue
+        if (transcript.length < 50) {
+          processedIDs.add(s.id)
+          continue
+        }
 
         const res: SummarizeResult = yield* summarize({ directory: s.directory, transcript }).pipe(
           Effect.catch((err) => {
@@ -539,11 +607,14 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
 
         if (res.summarized) {
           summarizedSessions++
+          processedIDs.add(s.id)
           if (res.suggestsGlobal && res.summary) {
             yield* promoteGlobal({ summary: res.summary }).pipe(Effect.ignore)
           }
         }
       }
+
+      yield* Effect.tryPromise(() => saveProcessedSessionIDs(processedIDs)).pipe(Effect.ignore)
 
       return {
         totalSessions,
@@ -553,6 +624,31 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
         errors,
       }
     })
+
+    const runAutoPeriodicSync = Effect.fn("Memory.runAutoPeriodicSync")(function* () {
+      const cfg = yield* cfgSvc.get()
+      const memoryConfig = cfg.memory ?? {}
+      if (!isEnabled(memoryConfig) || !isAutoSyncEnabled(memoryConfig)) return
+
+      const intervalHours = getSyncIntervalHours(memoryConfig)
+      const intervalMs = intervalHours * 60 * 60 * 1000
+
+      const state = yield* Effect.tryPromise(() => loadSyncState()).pipe(Effect.orElseSucceed(() => ({} as SyncState)))
+      const lastSyncTime = state.lastSyncAt ? new Date(state.lastSyncAt).getTime() : 0
+      const now = Date.now()
+
+      if (now - lastSyncTime < intervalMs) return
+
+      yield* backfill().pipe(Effect.ignore)
+      yield* Effect.tryPromise(() => saveSyncState({ lastSyncAt: new Date(now).toISOString() })).pipe(Effect.ignore)
+    })
+
+    yield* runAutoPeriodicSync().pipe(
+      Effect.catchCause((cause) => Effect.logError("Memory auto periodic sync failed", { cause: Cause.pretty(cause) })),
+      Effect.repeat(Schedule.spaced(Duration.minutes(15))),
+      Effect.delay(Duration.minutes(1)),
+      Effect.forkScoped,
+    )
 
     return Service.of({
       get,

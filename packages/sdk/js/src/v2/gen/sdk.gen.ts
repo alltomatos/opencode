@@ -6477,6 +6477,7 @@ export class Memory extends HeyApiClient {
       workspace?: string
       body_directory?: string
       sessionID?: string
+      force?: boolean
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -6497,6 +6498,7 @@ export class Memory extends HeyApiClient {
               map: "directory",
             },
             { in: "body", key: "sessionID" },
+            { in: "body", key: "force" },
           ],
         },
       ],

@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "tag": "v1.21.46",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Rotina Automática de Sincronização de Memória e Configurações de Intervalo",
+              "description": "Implementada rotina periódica em segundo plano para sintetização automática de memórias de novas sessões com deduplicação inteligente. Adicionadas opções de ativação e seleção de intervalo (1h, 2h, 6h, 12h, 24h) nas Configurações de Memória."
+            },
+            {
+              "title": "Exibição Clara de Skills Acionadas no Chat",
+              "description": "Atualizada a exibição de chamadas da ferramenta de skill na timeline de mensagens para indicar claramente o acionamento (ex: 'Skill acionada: Opencode-Fork-Expert')."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.45",
       "highlights": [
         {

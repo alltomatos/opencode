@@ -43,7 +43,7 @@ export const SkillTool = Tool.define(
           })
 
           return {
-            title: `Loaded skill: ${info.name}`,
+            title: `Skill acionada: ${info.name}`,
             output: [
               `<skill_content name="${info.name}">`,
               `# Skill: ${info.name}`,

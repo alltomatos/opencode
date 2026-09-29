@@ -2,6 +2,7 @@ import { createEffect, createMemo, createResource, Show, type Accessor, type Com
 import { createStore } from "solid-js/store"
 import { useMutation } from "@tanstack/solid-query"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
@@ -14,6 +15,14 @@ import { DialogMemoryRecommendedModels } from "./dialog-memory-recommended-model
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
+
+const intervalOptions = [
+  { value: 1, labelKey: "settings.memory.interval.1h" as const },
+  { value: 2, labelKey: "settings.memory.interval.2h" as const },
+  { value: 6, labelKey: "settings.memory.interval.6h" as const },
+  { value: 12, labelKey: "settings.memory.interval.12h" as const },
+  { value: 24, labelKey: "settings.memory.interval.24h" as const },
+]
 
 export const SettingsMemoryV2: Component<{
   directory?: Accessor<string | undefined>
@@ -29,18 +38,22 @@ export const SettingsMemoryV2: Component<{
 
   const [form, setForm] = createStore({
     memoryModel: "",
+    syncIntervalHours: 6,
   })
 
   createEffect(() => {
     const data = config()
     if (!data) return
     setForm("memoryModel", data.memoryModel ?? "")
+    setForm("syncIntervalHours", typeof data.syncIntervalHours === "number" ? data.syncIntervalHours : 6)
   })
 
   const saveMutation = useMutation(() => ({
     mutationFn: async () => {
       const payload = {
         enabled: config()?.enabled,
+        autoSync: config()?.autoSync,
+        syncIntervalHours: form.syncIntervalHours,
         memoryModel: form.memoryModel || undefined,
       }
       await serverSDK().client.memory.setConfig({ memoryConfig: payload })
@@ -51,6 +64,9 @@ export const SettingsMemoryV2: Component<{
       if (saved.memoryModel !== undefined) {
         setForm("memoryModel", saved.memoryModel ?? "")
       }
+      if (saved.syncIntervalHours !== undefined) {
+        setForm("syncIntervalHours", saved.syncIntervalHours ?? 6)
+      }
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.memory.toast.saved") })
     },
     onError: (err) => {
@@ -59,16 +75,40 @@ export const SettingsMemoryV2: Component<{
     },
   }))
 
-  // "Ativar memória" salva na hora, sem depender do botão Salvar do resto do
-  // formulário — mesmo padrão usado no Breniac (commit 2b7749885d), pra não
-  // se perder num fluxo de save em lote se o usuário mudar de aba antes.
   const enabledMutation = useMutation(() => ({
     mutationFn: async (enabled: boolean) => {
       const current = config() ?? {}
       await serverSDK().client.memory.setConfig({
-        memoryConfig: { enabled, memoryModel: current.memoryModel },
+        memoryConfig: {
+          enabled,
+          memoryModel: current.memoryModel,
+          autoSync: current.autoSync,
+          syncIntervalHours: form.syncIntervalHours,
+        },
       })
       return enabled
+    },
+    onSuccess: () => {
+      void refetch()
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    },
+  }))
+
+  const autoSyncMutation = useMutation(() => ({
+    mutationFn: async (autoSync: boolean) => {
+      const current = config() ?? {}
+      await serverSDK().client.memory.setConfig({
+        memoryConfig: {
+          enabled: current.enabled,
+          memoryModel: current.memoryModel,
+          autoSync,
+          syncIntervalHours: form.syncIntervalHours,
+        },
+      })
+      return autoSync
     },
     onSuccess: () => {
       void refetch()
@@ -125,6 +165,39 @@ export const SettingsMemoryV2: Component<{
                   onChange={(checked) => enabledMutation.mutate(checked)}
                 />
               </div>
+            </SettingsRowV2>
+            <SettingsRowV2
+              title={language.t("settings.memory.field.autoSync.title")}
+              description={language.t("settings.memory.field.autoSync.description")}
+            >
+              <div data-action="settings-memory-autosync">
+                <Switch
+                  checked={config()?.autoSync ?? true}
+                  disabled={autoSyncMutation.isPending}
+                  onChange={(checked) => autoSyncMutation.mutate(checked)}
+                />
+              </div>
+            </SettingsRowV2>
+            <SettingsRowV2
+              title={language.t("settings.memory.field.syncInterval.title")}
+              description={language.t("settings.memory.field.syncInterval.description")}
+            >
+              <SelectV2
+                appearance="inline"
+                data-action="settings-memory-interval"
+                options={intervalOptions}
+                current={intervalOptions.find((opt) => opt.value === form.syncIntervalHours) ?? intervalOptions[2]}
+                placement="bottom-end"
+                gutter={6}
+                value={(option) => String(option.value)}
+                label={(option) => language.t(option.labelKey)}
+                onSelect={(option) => {
+                  if (option) {
+                    setForm("syncIntervalHours", option.value)
+                    void saveMutation.mutate()
+                  }
+                }}
+              />
             </SettingsRowV2>
             <SettingsRowV2
               title={language.t("settings.memory.field.memoryModel.title")}

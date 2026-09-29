@@ -9,5 +9,11 @@ export const Info = Schema.Struct({
   memoryModel: Schema.optional(Schema.String).annotate({
     description: "Model used to summarize a session into the memory files, in 'providerID/modelID' form",
   }),
+  autoSync: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether automatic periodic memory sync routine is enabled (defaults to true)",
+  }),
+  syncIntervalHours: Schema.optional(Schema.Number).annotate({
+    description: "Interval in hours between automatic memory syncs (default: 6)",
+  }),
 }).annotate({ identifier: "MemoryConfig" })
 export type Info = Schema.Schema.Type<typeof Info>

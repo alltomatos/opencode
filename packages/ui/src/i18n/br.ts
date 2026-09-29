@@ -170,6 +170,8 @@ export const dict = {
   "ui.tool.questions.numbered": "Perguntas {{number}}",
   "ui.tool.agent": "Agente {{type}}",
   "ui.tool.agent.default": "Agente",
+  "ui.tool.skill": "Skill",
+  "ui.tool.skill.triggered": "Skill acionada: {{name}}",
 
   "ui.common.file.one": "arquivo",
   "ui.common.file.other": "arquivos",
@@ -220,8 +222,6 @@ export const dict = {
   "ui.fileSearch.previousMatch": "Ocorrência anterior",
   "ui.fileSearch.nextMatch": "Próxima ocorrência",
   "ui.fileSearch.close": "Fechar busca",
-  "ui.tool.task": "Tarefa",
-  "ui.tool.skill": "Habilidade",
   "ui.basicTool.called": "Chamou `{{tool}}`",
   "ui.toolErrorCard.failed": "Falhou",
   "ui.toolErrorCard.copyError": "Copiar erro",

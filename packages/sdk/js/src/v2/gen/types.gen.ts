@@ -2069,6 +2069,11 @@ export type AgentUiConfig = {
 export type MemoryConfig = {
   enabled?: boolean
   memoryModel?: string
+  autoSync?: boolean
+  /**
+   * Interval in hours between automatic memory syncs (default: 6)
+   */
+  syncIntervalHours?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 /**
@@ -12778,6 +12783,7 @@ export type MemoryBackfillData = {
   body?: {
     directory?: string
     sessionID?: string
+    force?: boolean
   }
   path?: never
   query?: {

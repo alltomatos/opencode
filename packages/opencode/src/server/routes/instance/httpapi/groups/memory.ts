@@ -35,6 +35,7 @@ export const PromoteMemoryPayload = Schema.Struct({
 export const BackfillMemoryPayload = Schema.Struct({
   directory: Schema.optional(Schema.String),
   sessionID: Schema.optional(Schema.String),
+  force: Schema.optional(Schema.Boolean),
 })
 
 export const BackfillMemoryResult = Schema.Struct({

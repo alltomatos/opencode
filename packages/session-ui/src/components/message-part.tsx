@@ -561,7 +561,7 @@ export function getToolInfo(
     case "skill":
       return {
         icon: "brain",
-        title: input.name || i18n.t("ui.tool.skill"),
+        title: input.name ? i18n.t("ui.tool.skill.triggered", { name: input.name }) : i18n.t("ui.tool.skill"),
       }
     default:
       return {
@@ -2638,7 +2638,11 @@ ToolRegistry.register({
   name: "skill",
   render(props) {
     const i18n = useI18n()
-    const title = createMemo(() => props.input.name || i18n.t("ui.tool.skill"))
+    const title = createMemo(() =>
+      props.input.name
+        ? i18n.t("ui.tool.skill.triggered", { name: props.input.name })
+        : i18n.t("ui.tool.skill"),
+    )
     const running = createMemo(() => props.status === "pending" || props.status === "running")
 
     const titleContent = () => <TextShimmer text={title()} active={running()} />

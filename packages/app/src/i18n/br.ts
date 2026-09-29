@@ -1382,6 +1382,17 @@ export const dict = {
   "settings.memory.field.enabled.title": "Ativar memória",
   "settings.memory.field.enabled.description":
     "Permite que o agente busque e salve anotações entre sessões por conta própria, por projeto e globalmente. Vem ativado por padrão.",
+  "settings.memory.field.autoSync.title": "Rotina de sincronização automática",
+  "settings.memory.field.autoSync.description":
+    "Sintetiza periodicamente as memórias de novas sessões em segundo plano usando o modelo de memória configurado.",
+  "settings.memory.field.syncInterval.title": "Intervalo da rotina",
+  "settings.memory.field.syncInterval.description":
+    "Frequência com que a rotina automática de memória é executada em segundo plano.",
+  "settings.memory.interval.1h": "A cada 1 hora",
+  "settings.memory.interval.2h": "A cada 2 horas",
+  "settings.memory.interval.6h": "A cada 6 horas (recomendado)",
+  "settings.memory.interval.12h": "A cada 12 horas",
+  "settings.memory.interval.24h": "A cada 24 horas (diário)",
   "settings.memory.field.memoryModel.title": "Modelo de memória",
   "settings.memory.field.memoryModel.description":
     "Modelo usado para resumir e responder buscas de memória. Deixe vazio para usar o padrão automático.",
