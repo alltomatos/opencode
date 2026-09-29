@@ -1108,8 +1108,8 @@ const layer = Layer.effect(
         Effect.map((agent): PollSource | undefined => {
           if (!ConfigAgentUIV1.isEnabled(agent)) return undefined
           const channel = agent.channels.find((c) => c.type === "telegram")
-          if (!channel?.token || !channel.directory) return undefined
-          return { token: channel.token, directory: channel.directory, pinnedAgent: agent }
+          if (!channel?.token) return undefined
+          return { token: channel.token, directory: channel.directory || process.cwd(), pinnedAgent: agent }
         }),
         Effect.orElseSucceed(() => undefined),
       )
@@ -1122,7 +1122,7 @@ const layer = Layer.effect(
           .filter((agent) => {
             if (!ConfigAgentUIV1.isEnabled(agent)) return false
             const channel = agent.channels.find((c) => c.type === "telegram")
-            return Boolean(channel?.token && channel.directory)
+            return Boolean(channel?.token)
           })
           .map((agent) => agent.id),
       )

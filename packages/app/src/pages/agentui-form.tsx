@@ -321,15 +321,11 @@ export function AgentUIFormPage() {
       return
     }
     const ownBotToken = form.telegram ? form.telegramToken.trim() : ""
-    if (ownBotToken && !directory()) {
-      setError(language.t("settings.agentui.error.telegramNeedsProject"))
-      return
-    }
     const whatsappFields = WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]
     const whatsappMissingField = form.whatsapp && whatsappFields.some((f) => f.required && !form.whatsappConfig[f.key]?.trim())
     const whatsappMissingSession =
       form.whatsapp && form.whatsappProvider === "izapia" && form.whatsappSessionIds.length === 0
-    if (form.whatsapp && (!directory() || whatsappMissingField || whatsappMissingSession)) {
+    if (form.whatsapp && (whatsappMissingField || whatsappMissingSession)) {
       setError(language.t("settings.agentui.error.whatsappIncomplete"))
       return
     }
@@ -351,7 +347,7 @@ export function AgentUIFormPage() {
           webhookSecret: string
         }
     > = []
-    if (form.telegram) channels.push({ type: "telegram", token: ownBotToken || undefined, directory: ownBotToken ? directory() : undefined })
+    if (form.telegram) channels.push({ type: "telegram", token: ownBotToken || undefined, directory: directory() || undefined })
     const whatsappWebhookSecret = form.whatsappWebhookSecret || crypto.randomUUID()
     if (form.whatsapp) {
       channels.push({
@@ -360,7 +356,7 @@ export function AgentUIFormPage() {
         config: form.whatsappConfig,
         sessionIds: form.whatsappProvider === "izapia" ? form.whatsappSessionIds : undefined,
         allowedGroups: form.whatsappProvider === "izapia" ? form.whatsappAllowedGroups : undefined,
-        directory: directory(),
+        directory: directory() || undefined,
         webhookSecret: whatsappWebhookSecret,
       })
     }
@@ -481,7 +477,7 @@ export function AgentUIFormPage() {
     const secret = form.whatsappWebhookSecret
     if (!secret) return undefined
     const base = (publicTunnelUrl() ?? serverSDK().url).replace(/\/$/, "")
-    return `${base}/whatsapp/webhook/${form.id}/${secret}?directory=${encodeURIComponent(directory() ?? "")}`
+    return `${base}/whatsapp/webhook/${form.id}/${secret}`
   })
 
   return (

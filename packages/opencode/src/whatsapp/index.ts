@@ -307,10 +307,9 @@ const layer = Layer.effect(
       }
       // Silently drop (not an error — the provider must still get a 200 or
       // it will keep retrying/backing off) rather than dispatch to a
-      // disabled agent or one missing the directory it needs to run a
-      // session against.
-      if (!ConfigAgentUIV1.isEnabled(agent) || !channel.directory) return { ok: true as const }
-      const directory = channel.directory
+      // disabled agent.
+      if (!ConfigAgentUIV1.isEnabled(agent)) return { ok: true as const }
+      const directory = channel.directory || process.cwd()
 
       // Parsing itself doesn't depend on which session is bound (see
       // izapia's parseWebhook — no sid in scope), so any configured session
