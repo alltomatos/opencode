@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.48",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Integração Bidirecional AgentUI & Rotinas, Debounce e Mídias no WhatsApp",
+              "description": "Adicionada integração bidirecional entre AgentUI e Rotinas: rotinas podem acionar agentes customizados e agentes podem consultar/executar rotinas. No canal do WhatsApp, foi implementada janela de 7s para agrupar mensagens sequenciais, deduplicação de webhooks e suporte completo a imagens, áudios e documentos (PDF, DOCX, XLSX) para modelos multimodais."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.47",
       "highlights": [
         {
