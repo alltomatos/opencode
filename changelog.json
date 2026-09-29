@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.44",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Prompt do Sistema Personalizado Global e Suporte a Ações de Rotinas AgentUI",
+              "description": "Adicionada opção nas Configurações Gerais para definir instruções globais personalizadas de prompt de sistema enviadas em cada mensagem. Incluído suporte a rotinas automatizadas com chamadas diretas a agentes AgentUI e ferramentas integradas de agendamento."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.43",
       "highlights": [
         {
