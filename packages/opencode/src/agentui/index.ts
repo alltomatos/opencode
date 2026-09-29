@@ -148,6 +148,7 @@ export interface Interface {
     directory: string
     chatKey: string
     message: string
+    attachments?: readonly { filename?: string; mime: string; url: string }[]
     channel?: AuditEntry["channel"]
   }) => Effect.Effect<{ reply: string; blocked: boolean }, AgentUINotFoundError>
   // Appends one turn to an agent's audit log — called by every channel
@@ -413,6 +414,7 @@ const layer = Layer.effect(
       directory: string
       chatKey: string
       message: string
+      attachments?: readonly { filename?: string; mime: string; url: string }[]
       channel?: AuditEntry["channel"]
     }) {
       const channel: AuditEntry["channel"] = input.channel ?? (input.chatKey === "sandbox" ? "sandbox" : "whatsapp")
@@ -451,12 +453,22 @@ const layer = Layer.effect(
       const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
       const system = hardenSystemPrompt(agent, personality)
 
+      const promptParts: SessionPrompt.PromptInput["parts"] = [
+        { type: "text", text: input.message || (input.attachments?.length ? "(mídia em anexo)" : "") },
+        ...(input.attachments ?? []).map((att) => ({
+          type: "file" as const,
+          mime: att.mime,
+          filename: att.filename,
+          url: att.url,
+        })),
+      ]
+
       const reply = yield* promptSvc
         .prompt({
           sessionID: SessionID.make(sessionID),
           model,
           system,
-          parts: [{ type: "text", text: input.message }],
+          parts: promptParts,
         })
         .pipe(
           Effect.map((result) => extractText(result) || "(sem resposta)"),
