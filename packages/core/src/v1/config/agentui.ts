@@ -135,6 +135,10 @@ export const Agent = Schema.Struct({
   mcpServers: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
     description: "Names of MCP servers this agent is allowed to call tools from. Empty/absent means none.",
   }),
+  // Whether this agent is allowed to access and trigger routines (schedules)
+  routinesEnabled: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether this agent has access to query and trigger scheduled routines. Absent/false means disabled.",
+  }),
   // Absent/undefined means enabled — old configs saved before this field
   // existed must keep working exactly as before. Read via isEnabled()
   // below rather than this field directly.

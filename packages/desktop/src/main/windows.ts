@@ -17,6 +17,7 @@ import { createWindowRegistry } from "./window-registry"
 import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
 import { createBrowserPanel, getBrowserPanel, type PanelState } from "./browser-panel"
+import { getCloseToTray } from "./auto-start"
 
 const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
@@ -155,9 +156,9 @@ export function getLastFocusedWindow() {
   return win
 }
 
-export function restoreMainWindows() {
+export function restoreMainWindows(opts: { show?: boolean } = {}) {
   const ids = registry.persisted()
-  return (ids.length ? ids : [randomUUID()]).map((id) => createMainWindow(id))
+  return (ids.length ? ids : [randomUUID()]).map((id) => createMainWindow(id, opts))
 }
 
 export function setDockIcon() {
@@ -166,7 +167,7 @@ export function setDockIcon() {
   if (!icon.isEmpty()) app.dock?.setIcon(icon)
 }
 
-export function createMainWindow(id: string = randomUUID()) {
+export function createMainWindow(id: string = randomUUID(), opts: { show?: boolean } = {}) {
   const state = windowState({
     file: windowStateFile(id),
     defaultWidth: 1280,
@@ -238,7 +239,9 @@ export function createMainWindow(id: string = randomUUID()) {
   wireZoom(win)
 
   win.once("ready-to-show", () => {
-    win.show()
+    if (opts.show !== false) {
+      win.show()
+    }
   })
 
   try {
@@ -340,6 +343,13 @@ function registerWindow(win: BrowserWindow, id: string) {
   // Windows never emits before-quit on OS shutdown/logoff, but each window
   // gets session-end before it closes; flag the quit so ids stay persisted.
   win.on("session-end", () => registry.setQuitting())
+  win.on("close", (event) => {
+    if (!registry.isQuitting() && getCloseToTray()) {
+      event.preventDefault()
+      win.hide()
+      return false
+    }
+  })
   win.on("closed", () => registry.closed(id))
 }
 

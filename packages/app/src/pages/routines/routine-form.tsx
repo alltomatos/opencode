@@ -152,10 +152,14 @@ export const RoutineFormPage: Component = () => {
 
       if (found.action) {
         if (found.action.kind === "shell") {
-          setAdvanced(true)
+          setActionKind("shell")
           setCommand(found.action.command ?? "")
+        } else if (found.action.kind === "agentui") {
+          setActionKind("agentui")
+          setSelectedAgentId(found.action.agentId ?? "")
+          setInstructions(found.action.message ?? "")
         } else if (found.action.kind === "skill") {
-          setAdvanced(false)
+          setActionKind("skill")
           setInstructions(found.action.instructions ?? "")
           if (found.action.model) setModel(found.action.model)
           if (found.action.permission) setPermissionMode(found.action.permission)
@@ -177,9 +181,20 @@ export const RoutineFormPage: Component = () => {
   })
 
   // Como
-  const [advanced, setAdvanced] = createSignal(false)
+  const [actionKind, setActionKind] = createSignal<"skill" | "agentui" | "shell">("skill")
   const [instructions, setInstructions] = createSignal("")
   const [command, setCommand] = createSignal("")
+  const [selectedAgentId, setSelectedAgentId] = createSignal<string>("")
+
+  // Listar agentes do AgentUI disponíveis
+  const [agentsList] = createResource(async () => {
+    try {
+      const res = await (serverSDK().client as any).agentui.list()
+      return (res.data ?? []) as { id: string; name: string; personality?: string }[]
+    } catch {
+      return []
+    }
+  })
 
   // Onde (Múltiplas Pastas / Repositórios)
   const [workspaces, setWorkspaces] = createSignal<string[]>([])
@@ -290,23 +305,33 @@ export const RoutineFormPage: Component = () => {
   }
 
   const buildCurrentAction = () => {
-    return advanced()
-      ? ({ kind: "shell", command: command() } as const)
-      : ({
-          kind: "skill",
-          instructions: instructions(),
-          mcpTools: mcpTools().length ? mcpTools() : undefined,
-          workspaces: workspaces().length > 0 ? workspaces() : undefined,
-          model: model() ? model() : undefined,
-          permission: permissionMode(),
-        } as const)
+    if (actionKind() === "shell") {
+      return { kind: "shell", command: command() } as const
+    }
+    if (actionKind() === "agentui") {
+      return {
+        kind: "agentui",
+        agentId: selectedAgentId(),
+        message: instructions(),
+      } as const
+    }
+    return {
+      kind: "skill",
+      instructions: instructions(),
+      mcpTools: mcpTools().length ? mcpTools() : undefined,
+      workspaces: workspaces().length > 0 ? workspaces() : undefined,
+      model: model() ? model() : undefined,
+      permission: permissionMode(),
+    } as const
   }
 
   const canSave = () => {
     if (whenKind() === "daily" && dailyTimes().length === 0) return false
     if (whenKind() === "weekdays" && dailyTimes().length === 0) return false
     if (whenKind() === "cron" && !customCron().trim()) return false
-    return advanced() ? command().trim().length > 0 : instructions().trim().length > 0
+    if (actionKind() === "shell") return command().trim().length > 0
+    if (actionKind() === "agentui") return selectedAgentId().trim().length > 0 && instructions().trim().length > 0
+    return instructions().trim().length > 0
   }
 
   // Mutação para Validar / Testar Rotina
@@ -587,13 +612,85 @@ export const RoutineFormPage: Component = () => {
               </div>
             </div>
 
+            {/* Tipo de Execução */}
+            <div class="flex flex-col gap-2 pt-1">
+              <label class="text-12-medium text-v2-text-text-base font-semibold">
+                Tipo de Ação da Rotina
+              </label>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class={`px-3 py-1.5 text-12-medium rounded border transition-colors ${
+                    actionKind() === "skill"
+                      ? "bg-v2-background-bg-layer-02 border-v2-border-border-focus text-v2-text-text-base"
+                      : "bg-v2-background-bg-base border-v2-border-border-base text-text-weak hover:text-v2-text-text-base"
+                  }`}
+                  onClick={() => setActionKind("skill")}
+                >
+                  Prompt com IA / MCP
+                </button>
+                <button
+                  type="button"
+                  class={`px-3 py-1.5 text-12-medium rounded border transition-colors ${
+                    actionKind() === "agentui"
+                      ? "bg-v2-background-bg-layer-02 border-v2-border-border-focus text-v2-text-text-base"
+                      : "bg-v2-background-bg-base border-v2-border-border-base text-text-weak hover:text-v2-text-text-base"
+                  }`}
+                  onClick={() => {
+                    setActionKind("agentui")
+                    const list = agentsList() ?? []
+                    if (list.length > 0 && !selectedAgentId()) {
+                      setSelectedAgentId(list[0].id)
+                    }
+                  }}
+                >
+                  Acionar Agente (AgentUI)
+                </button>
+                <button
+                  type="button"
+                  class={`px-3 py-1.5 text-12-medium rounded border transition-colors ${
+                    actionKind() === "shell"
+                      ? "bg-v2-background-bg-layer-02 border-v2-border-border-focus text-v2-text-text-base"
+                      : "bg-v2-background-bg-base border-v2-border-border-base text-text-weak hover:text-v2-text-text-base"
+                  }`}
+                  onClick={() => setActionKind("shell")}
+                >
+                  Comando Shell
+                </button>
+              </div>
+            </div>
+
             {/* O que fazer */}
             <div class="flex min-w-0 flex-col gap-2 pt-1">
+              <Show when={actionKind() === "agentui"}>
+                <div class="flex flex-col gap-1.5 pb-2">
+                  <label class="text-12-medium text-v2-text-text-base font-semibold">
+                    Selecione o Agente do AgentUI
+                  </label>
+                  <Show
+                    when={(agentsList() ?? []).length > 0}
+                    fallback={<p class="text-12-regular text-text-weak">Nenhum agente criado no AgentUI ainda. Crie um agente na aba AgentUI primeiro.</p>}
+                  >
+                    <SelectV2
+                      class="w-full max-w-[320px]"
+                      options={(agentsList() ?? []).map((a) => a.id)}
+                      current={selectedAgentId()}
+                      label={(id) => (agentsList() ?? []).find((a) => a.id === id)?.name ?? id}
+                      onSelect={(id) => id && setSelectedAgentId(id)}
+                    />
+                  </Show>
+                </div>
+              </Show>
+
               <label class="text-12-medium text-v2-text-text-base font-semibold">
-                O que você quer que essa rotina faça?
+                {actionKind() === "shell"
+                  ? "Comando a ser executado"
+                  : actionKind() === "agentui"
+                    ? "Mensagem / Instrução enviada para o Agente"
+                    : "O que você quer que essa rotina faça?"}
               </label>
               <Show
-                when={!advanced()}
+                when={actionKind() !== "shell"}
                 fallback={
                   <TextInputV2
                     class="w-full min-w-0"
@@ -612,17 +709,17 @@ export const RoutineFormPage: Component = () => {
                   `}
                   value={instructions()}
                   onInput={(event) => setInstructions(event.currentTarget.value)}
-                  placeholder="Instruções em linguagem natural. Ex: Acesse os emails usando mcpmail, filtre os mais urgentes das últimas 2 horas e me notifique via izapia no WhatsApp com os pontos de ação."
+                  placeholder={
+                    actionKind() === "agentui"
+                      ? "Mensagem ou comando que acionará o agente configurado. Ex: Faça um resumo dos emails recentes e me envie um relatório."
+                      : "Instruções em linguagem natural. Ex: Acesse os emails usando mcpmail, filtre os mais urgentes das últimas 2 horas e me notifique via izapia no WhatsApp com os pontos de ação."
+                  }
                 />
               </Show>
-              <label class="flex items-center gap-2 text-12-regular text-text-weak cursor-pointer select-none pt-0.5">
-                <SwitchV2 checked={advanced()} onChange={(checked) => setAdvanced(checked)} />
-                Modo avançado: rodar um comando direto de shell em vez de instruções com IA
-              </label>
             </div>
 
             {/* Configurações da Sessão / IA */}
-            <Show when={!advanced()}>
+            <Show when={actionKind() === "skill"}>
               <div class="flex flex-col gap-4 border-t border-v2-border-border-base pt-4">
                 {/* Pastas / Repositórios de Trabalho Múltiplos */}
                 <div class="flex flex-col gap-2">

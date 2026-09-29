@@ -2404,6 +2404,12 @@ export type ServerScheduleListOutput = ReadonlyArray<{
         readonly permission?: "auto" | "bypass" | "default"
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
       }
+    | {
+        readonly kind: "agentui"
+        readonly agentId: string
+        readonly message: string
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
   readonly workspace?: string
   readonly enabled?: boolean
   readonly lastRunAt?: number | "Infinity" | "-Infinity" | "NaN"
@@ -2445,6 +2451,12 @@ export type ServerScheduleCreateInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
     readonly enabled?: boolean
   }["name"]
@@ -2475,6 +2487,12 @@ export type ServerScheduleCreateInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2509,6 +2527,12 @@ export type ServerScheduleCreateInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
     readonly enabled?: boolean
   }["trigger"]
@@ -2539,6 +2563,12 @@ export type ServerScheduleCreateInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2573,6 +2603,12 @@ export type ServerScheduleCreateInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
     readonly enabled?: boolean
   }["workspace"]
@@ -2603,6 +2639,12 @@ export type ServerScheduleCreateInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2638,6 +2680,12 @@ export type ServerScheduleCreateOutput = {
         readonly workspaces?: ReadonlyArray<string>
         readonly model?: string
         readonly permission?: "auto" | "bypass" | "default"
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "agentui"
+        readonly agentId: string
+        readonly message: string
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
       }
   readonly workspace?: string
@@ -2685,6 +2733,12 @@ export type ServerScheduleRunOutput = {
         readonly permission?: "auto" | "bypass" | "default"
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
       }
+    | {
+        readonly kind: "agentui"
+        readonly agentId: string
+        readonly message: string
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
   readonly workspace?: string
   readonly enabled?: boolean
   readonly lastRunAt?: number | "Infinity" | "-Infinity" | "NaN"
@@ -2720,6 +2774,12 @@ export type ServerScheduleTestInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
   }["action"]
   readonly workspace?: {
@@ -2743,6 +2803,12 @@ export type ServerScheduleTestInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2789,6 +2855,12 @@ export type ServerScheduleUpdateInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
     readonly enabled?: boolean
   }["name"]
@@ -2819,6 +2891,12 @@ export type ServerScheduleUpdateInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2853,6 +2931,12 @@ export type ServerScheduleUpdateInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
     readonly enabled?: boolean
   }["trigger"]
@@ -2883,6 +2967,12 @@ export type ServerScheduleUpdateInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2917,6 +3007,12 @@ export type ServerScheduleUpdateInput = {
           readonly permission?: "auto" | "bypass" | "default"
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
     readonly workspace?: string
     readonly enabled?: boolean
   }["workspace"]
@@ -2947,6 +3043,12 @@ export type ServerScheduleUpdateInput = {
           readonly workspaces?: ReadonlyArray<string>
           readonly model?: string
           readonly permission?: "auto" | "bypass" | "default"
+          readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "agentui"
+          readonly agentId: string
+          readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
     readonly workspace?: string
@@ -2982,6 +3084,12 @@ export type ServerScheduleUpdateOutput = {
         readonly workspaces?: ReadonlyArray<string>
         readonly model?: string
         readonly permission?: "auto" | "bypass" | "default"
+        readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "agentui"
+        readonly agentId: string
+        readonly message: string
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
       }
   readonly workspace?: string

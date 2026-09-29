@@ -10,6 +10,7 @@ import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { useLocal, type ModelSelection } from "@/context/local"
 import { usePermission } from "@/context/permission"
+import { useSettings } from "@/context/settings"
 import { type ContextItem, type ImageAttachmentPart, type Prompt, type usePrompt } from "@/context/prompt"
 import { useSDK, type DirectorySDK } from "@/context/sdk"
 import { useSync, type DirectorySync } from "@/context/sync"
@@ -62,6 +63,19 @@ const LOCALE_RESPONSE_INSTRUCTIONS: Partial<Record<string, string>> = {
 
 export function languageResponseInstruction(locale: string) {
   return LOCALE_RESPONSE_INSTRUCTIONS[locale]
+}
+
+export function resolveSystemPrompt(locale: string, customSystemPrompt?: string) {
+  const instructions: string[] = []
+  const localeInstruction = languageResponseInstruction(locale)
+  if (localeInstruction) {
+    instructions.push(localeInstruction)
+  }
+  const custom = customSystemPrompt?.trim()
+  if (custom) {
+    instructions.push(custom)
+  }
+  return instructions.length > 0 ? instructions.join("\n\n") : undefined
 }
 
 const draftText = (prompt: Prompt) => prompt.map((part) => ("content" in part ? part.content : "")).join("")
@@ -255,6 +269,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const prompt = input.prompt
   const layout = useLayout()
   const language = useLanguage()
+  const settings = useSettings()
   const params = useParams()
   const [search] = useSearchParams<{ draftId?: string }>()
   const tabs = useTabs()
@@ -642,7 +657,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       messageID,
       optimisticBusy: sessionDirectory === projectDirectory,
       before: waitForWorktree,
-      system: languageResponseInstruction(language.locale()),
+      system: resolveSystemPrompt(language.locale(), settings.general.customSystemPrompt()),
     }).catch((err) => {
       pending.delete(pendingKey(session.id))
       if (sessionDirectory === projectDirectory) {

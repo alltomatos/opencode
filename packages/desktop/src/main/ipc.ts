@@ -26,6 +26,8 @@ import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
+import { getAutoStartSettings, setAutoStartSettings } from "./auto-start"
+import { updateTrayMenu } from "./tray"
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -75,6 +77,12 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("finish-first-launch-onboarding", (_event: IpcMainInvokeEvent, createDefaultProject: boolean) =>
     deps.finishFirstLaunchOnboarding(createDefaultProject),
   )
+  ipcMain.handle("get-auto-start-settings", () => getAutoStartSettings())
+  ipcMain.handle("set-auto-start-settings", (_event: IpcMainInvokeEvent, settings: any) => {
+    const updated = setAutoStartSettings(settings)
+    updateTrayMenu()
+    return updated
+  })
   ipcMain.handle("is-old-layout-eligible", () => deps.isOldLayoutEligible())
   ipcMain.handle("get-display-backend", () => deps.getDisplayBackend())
   ipcMain.handle("set-display-backend", (_event: IpcMainInvokeEvent, backend: string | null) =>

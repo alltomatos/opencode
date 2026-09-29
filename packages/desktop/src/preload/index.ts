@@ -162,6 +162,13 @@ const api: ElectronAPI = {
     ipcRenderer.on("computer-use-enabled-changed", handler)
     return () => ipcRenderer.removeListener("computer-use-enabled-changed", handler)
   },
+  getAutoStartSettings: () => ipcRenderer.invoke("get-auto-start-settings"),
+  setAutoStartSettings: (settings) => ipcRenderer.invoke("set-auto-start-settings", settings),
+  onAutoStartSettingsChanged: (cb) => {
+    const handler = (_: unknown, settings: any) => cb(settings)
+    ipcRenderer.on("auto-start-settings-changed", handler)
+    return () => ipcRenderer.removeListener("auto-start-settings-changed", handler)
+  },
   setTitlebar: (theme) => ipcRenderer.invoke("set-titlebar", theme),
   runDesktopMenuAction: (action) => ipcRenderer.invoke("run-desktop-menu-action", action),
   setBackgroundColor: (color: string) => ipcRenderer.invoke("set-background-color", color),

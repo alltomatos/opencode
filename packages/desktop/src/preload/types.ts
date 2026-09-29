@@ -55,6 +55,11 @@ export type TitlebarTheme = {
   mode: "light" | "dark"
   scheme?: "system" | "light" | "dark"
 }
+export type AutoStartSettings = {
+  openAtLogin: boolean
+  openAsHidden: boolean
+  closeToTray: boolean
+}
 export type FatalRendererError = {
   error: string
   url: string
@@ -135,6 +140,9 @@ export type ElectronAPI = {
   getComputerUseEnabled: () => Promise<boolean>
   setComputerUseEnabled: (enabled: boolean) => Promise<void>
   onComputerUseEnabledChanged: (cb: (enabled: boolean) => void) => () => void
+  getAutoStartSettings: () => Promise<AutoStartSettings>
+  setAutoStartSettings: (settings: Partial<AutoStartSettings>) => Promise<AutoStartSettings>
+  onAutoStartSettingsChanged: (cb: (settings: AutoStartSettings) => void) => () => void
   setTitlebar: (theme: TitlebarTheme) => Promise<void>
   runDesktopMenuAction: (action: DesktopMenuAction) => Promise<void>
   setBackgroundColor: (color: string) => Promise<void>

@@ -65,7 +65,15 @@ export const SkillAction = Schema.Struct({
   timeoutMs: optional(Schema.Number),
 }).annotate({ identifier: "Schedule.SkillAction" })
 
-export const Action = Schema.Union([ShellAction, McpToolAction, SkillAction])
+export interface AgentUIAction extends Schema.Schema.Type<typeof AgentUIAction> {}
+export const AgentUIAction = Schema.Struct({
+  kind: Schema.Literal("agentui"),
+  agentId: Schema.String,
+  message: Schema.String,
+  timeoutMs: optional(Schema.Number),
+}).annotate({ identifier: "Schedule.AgentUIAction" })
+
+export const Action = Schema.Union([ShellAction, McpToolAction, SkillAction, AgentUIAction])
   .pipe(Schema.toTaggedUnion("kind"))
   .annotate({ identifier: "Schedule.Action" })
 export type Action = Schema.Schema.Type<typeof Action>

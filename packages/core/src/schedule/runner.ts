@@ -39,6 +39,36 @@ const skillCallerUnsupportedLayer = Layer.succeed(
 
 export const skillCallerNode = makeGlobalNode({ service: SkillCaller, layer: skillCallerUnsupportedLayer, deps: [] })
 
+export interface AgentUICallResult {
+  readonly success: boolean
+  readonly error?: string
+  readonly reply?: string
+}
+
+export interface AgentUICallerInterface {
+  readonly runAgent: (
+    action: Schedule.AgentUIAction,
+    workspace: string | undefined,
+  ) => Effect.Effect<AgentUICallResult>
+}
+
+export class AgentUICaller extends Context.Service<AgentUICaller, AgentUICallerInterface>()(
+  "@opencode/v2/Schedule/AgentUICaller",
+) {}
+
+const agentUICallerUnsupportedLayer = Layer.succeed(
+  AgentUICaller,
+  AgentUICaller.of({
+    runAgent: () =>
+      Effect.succeed({
+        success: false,
+        error: "AgentUI actions require the OpenCode runtime session, not available in this standalone server process.",
+      }),
+  }),
+)
+
+export const agentUICallerNode = makeGlobalNode({ service: AgentUICaller, layer: agentUICallerUnsupportedLayer, deps: [] })
+
 export interface McpCallResult {
   readonly success: boolean
   readonly error?: string
@@ -180,6 +210,18 @@ function runAction(action: Schedule.Action, workspace: string | undefined, sessi
       return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: result.sessionId }
     })
   }
+  if (action.kind === "agentui") {
+    return Effect.gen(function* () {
+      const caller = yield* AgentUICaller
+      const result: AgentUICallResult = yield* caller.runAgent(action, workspace).pipe(
+        Effect.timeoutOrElse({
+          duration: Duration.millis(timeoutMs),
+          orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+        }),
+      )
+      return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: undefined }
+    })
+  }
   return Effect.succeed({
     exitCode: 1,
     error: `Action kind "${(action as any).kind}" is not yet supported by the schedule runner.`,
@@ -256,5 +298,5 @@ const tickLayer = Layer.effectDiscard(
 export const tickNode = makeGlobalNode({
   name: "schedule-tick",
   layer: Layer.merge(Schedule.layer, tickLayer.pipe(Layer.provide(Schedule.layer))),
-  deps: [Database.node, mcpCallerNode, skillCallerNode],
+  deps: [Database.node, mcpCallerNode, skillCallerNode, agentUICallerNode],
 })

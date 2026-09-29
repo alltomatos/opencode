@@ -1,6 +1,7 @@
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { httpClient } from "@opencode-ai/core/effect/app-node-platform"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
+import { Schedule } from "@opencode-ai/core/schedule"
 import { PlanExitTool } from "./plan"
 import { Session } from "@/session/session"
 import { QuestionTool } from "./question"
@@ -18,6 +19,7 @@ import { ComputerTool } from "./computer"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
+import { RoutineTool } from "./routine"
 import { MemorySearchTool } from "./memory-search"
 import { MemorySaveTool } from "./memory-save"
 import { Memory } from "../memory"
@@ -124,6 +126,7 @@ const layer = Layer.effect(
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
+    const routinetool = yield* RoutineTool
     const memorysearchtool = yield* MemorySearchTool
     const memorysavetool = yield* MemorySaveTool
     const agent = yield* Agent.Service
@@ -236,6 +239,7 @@ const layer = Layer.effect(
           todo: Tool.init(todo),
           search: Tool.init(websearch),
           skill: Tool.init(skilltool),
+          routine: Tool.init(routinetool),
           memorySearch: Tool.init(memorysearchtool),
           memorySave: Tool.init(memorysavetool),
           patch: Tool.init(patchtool),
@@ -263,6 +267,7 @@ const layer = Layer.effect(
             tool.todo,
             tool.search,
             tool.skill,
+            tool.routine,
             ...(memoryEnabled ? [tool.memorySearch, tool.memorySave] : []),
             tool.patch,
             ...(tool.execute ? [tool.execute] : []),
@@ -474,6 +479,7 @@ export const node = LayerNode.make({
     Batuta.node,
     ExternalAgent.node,
     Database.node,
+    Schedule.node,
     Ripgrep.node,
     Memory.node,
   ],

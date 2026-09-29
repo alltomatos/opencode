@@ -331,6 +331,12 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     onComputerUseEnabledChanged: (cb: (enabled: boolean) => void) => window.api.onComputerUseEnabledChanged(cb),
 
+    getAutoStartSettings: () => window.api.getAutoStartSettings(),
+
+    setAutoStartSettings: (settings) => window.api.setAutoStartSettings(settings),
+
+    onAutoStartSettingsChanged: (cb) => window.api.onAutoStartSettingsChanged(cb),
+
     checkAppExists: async (appName: string) => {
       return window.api.checkAppExists(appName)
     },

@@ -22,6 +22,9 @@ export type SkillAction = Schedule.SkillAction
 export const McpToolAction = Schedule.McpToolAction
 export type McpToolAction = Schedule.McpToolAction
 
+export const AgentUIAction = Schedule.AgentUIAction
+export type AgentUIAction = Schedule.AgentUIAction
+
 export const ShellAction = Schedule.ShellAction
 export type ShellAction = Schedule.ShellAction
 

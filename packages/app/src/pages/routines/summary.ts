@@ -56,9 +56,12 @@ export function actionSummary(action: {
   mcpTools?: readonly McpToolRef[]
   model?: string
   permission?: string
+  agentId?: string
+  message?: string
 }): string {
   if (action.kind === "shell") return action.command ?? ""
   if (action.kind === "mcp_tool") return `${action.server}/${action.tool}`
+  if (action.kind === "agentui") return `[AgentUI] ${action.message ?? ""}`
   const tools = action.mcpTools?.length
     ? ` · ferramentas: ${Array.from(new Set(action.mcpTools.map((t) => t.server))).join(", ")}`
     : ""

@@ -60,6 +60,7 @@ type AgentUIFormState = {
   whatsappAllowedGroups: string[]
   whatsappWebhookSecret: string
   mcpServers: string[]
+  routinesEnabled: boolean
   enabled: boolean
 }
 
@@ -82,6 +83,7 @@ function emptyForm(): AgentUIFormState {
     whatsappAllowedGroups: [],
     whatsappWebhookSecret: "",
     mcpServers: [],
+    routinesEnabled: false,
     enabled: true,
   }
 }
@@ -160,6 +162,7 @@ export function AgentUIFormPage() {
       whatsappAllowedGroups: [...(agent.channels.find((c) => c.type === "whatsapp")?.allowedGroups ?? [])],
       whatsappWebhookSecret: agent.channels.find((c) => c.type === "whatsapp")?.webhookSecret ?? "",
       mcpServers: agent.mcpServers ?? [],
+      routinesEnabled: agent.routinesEnabled === true,
       enabled: agent.enabled !== false,
     })
   })
@@ -381,6 +384,7 @@ export function AgentUIFormPage() {
             .map((s) => ({ ...s, label: s.label.trim() || s.value.trim() })),
           guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
           mcpServers: form.mcpServers,
+          routinesEnabled: form.routinesEnabled,
           enabled: form.enabled,
         },
       })
@@ -899,6 +903,19 @@ export function AgentUIFormPage() {
                         </For>
                       </Show>
                     </Show>
+
+                    <div class="mt-4 pt-4 border-t border-v2-border-border-faint flex flex-col gap-3">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.routines")}</label>
+                          <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.routines.hint")}</p>
+                        </div>
+                        <Switch
+                          checked={form.routinesEnabled}
+                          onChange={(checked) => setForm("routinesEnabled", checked)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </TabsV2.Content>
 

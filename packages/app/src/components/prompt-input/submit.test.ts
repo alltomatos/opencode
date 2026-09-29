@@ -135,6 +135,13 @@ beforeAll(async () => {
   mock.module("@opencode-ai/ui/toast", () => ({
     Toast: { Region: () => null },
     showToast: () => 0,
+    toaster: { create: () => 0, dismiss: () => undefined },
+  }))
+
+  mock.module("@opencode-ai/ui/v2/toast-v2", () => ({
+    ToastV2: { Region: () => null },
+    showToastV2: () => 0,
+    toasterV2: { create: () => 0, dismiss: () => undefined },
   }))
 
   mock.module("@opencode-ai/core/util/encode", () => ({
@@ -272,6 +279,14 @@ beforeAll(async () => {
     useLanguage: () => ({
       t: (key: string) => key,
       locale: () => "en",
+    }),
+  }))
+
+  mock.module("@/context/settings", () => ({
+    useSettings: () => ({
+      general: {
+        customSystemPrompt: () => "",
+      },
     }),
   }))
 
@@ -595,5 +610,17 @@ describe("prompt submit worktree selection", () => {
     expect(storedSessions["/repo/worktree-a"]).toHaveLength(1)
     expect(storedSessions["/repo/worktree-a"]?.[0]).toMatchObject({ id: "session-1", title: "New session 1" })
     expect(optimisticSeeded).toEqual([true])
+  })
+
+  test("resolveSystemPrompt combines locale instructions and custom system instructions", async () => {
+    const { resolveSystemPrompt } = await import("./submit")
+    expect(resolveSystemPrompt("en", "")).toBeUndefined()
+    expect(resolveSystemPrompt("en", "Always review tests")).toBe("Always review tests")
+    expect(resolveSystemPrompt("br", "")).toBe(
+      "Responda sempre em português do Brasil (pt-BR). Toda informação exibida ao usuário deve estar em português do Brasil.",
+    )
+    expect(resolveSystemPrompt("br", "Monitore os PRs")).toBe(
+      "Responda sempre em português do Brasil (pt-BR). Toda informação exibida ao usuário deve estar em português do Brasil.\n\nMonitore os PRs",
+    )
   })
 })

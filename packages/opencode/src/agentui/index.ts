@@ -119,7 +119,7 @@ export interface Interface {
   //    allow rule per server so its tool calls don't fall through to the
   //    default "ask" action — which would hang forever, since a channel
   //    dispatch has no human attached to answer a permission prompt.
-  readonly sessionPermission: (mcpServers?: readonly string[]) => PermissionV1.Ruleset
+  readonly sessionPermission: (mcpServers?: readonly string[], routinesEnabled?: boolean) => PermissionV1.Ruleset
   // Resolves an agent's `model` field ("providerID/modelID" or
   // "combo:<id>", same encoding ModelPickerV2 uses) to a concrete pair.
   // Shared by every channel (Telegram, the sandbox test chat below) so
@@ -315,7 +315,10 @@ const layer = Layer.effect(
       return { allowed: true }
     }
 
-    const sessionPermission = (mcpServers?: readonly string[]): PermissionV1.Ruleset => [
+    const sessionPermission = (
+      mcpServers?: readonly string[],
+      routinesEnabled?: boolean,
+    ): PermissionV1.Ruleset => [
       // Wildcard deny-everything, not a per-category list: anything not
       // covered by an explicit rule below falls through to the *default*
       // permission action, which for tools outside this short list (e.g.
@@ -337,6 +340,11 @@ const layer = Layer.effect(
           action: "allow",
         }),
       ),
+      ...(routinesEnabled
+        ? ([
+            { permission: "routine", pattern: "*", action: "allow" },
+          ] as PermissionV1.Rule[])
+        : []),
     ]
 
     const resolveModel = Effect.fn("AgentUI.resolveModel")(function* (spec: string) {
@@ -428,7 +436,7 @@ const layer = Layer.effect(
           .create({
             title: `${agent.name}: ${input.chatKey}`,
             directory: input.directory,
-            permission: sessionPermission(agent.mcpServers),
+            permission: sessionPermission(agent.mcpServers, agent.routinesEnabled),
           })
           .pipe(Effect.provideService(InstanceRef, ctx))
         channelSessions.set(sessionKey, session.id)

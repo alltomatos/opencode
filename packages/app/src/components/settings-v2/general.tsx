@@ -283,6 +283,32 @@ const LanguageSetting = () => {
   )
 }
 
+const CustomSystemPromptSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <div class="flex flex-col gap-2.5 py-4 border-b border-v2-border-border-base last:border-b-0">
+      <div class="flex flex-col gap-1">
+        <span class="flex items-center gap-2 text-[13px] font-[530] text-v2-text-text-base">
+          <Icon name="edit" class="size-3.5 shrink-0 text-text-weak" />
+          {language.t("settings.general.row.customSystemPrompt.title")}
+        </span>
+        <div class="text-[13px] text-text-weak">
+          {language.t("settings.general.row.customSystemPrompt.description")}
+        </div>
+      </div>
+      <textarea
+        data-action="settings-custom-system-prompt"
+        class="w-full min-h-[96px] resize-y rounded-lg border border-v2-border-border-base bg-v2-background-bg-base px-3 py-2 text-[12.5px] text-v2-text-text-base placeholder:text-v2-text-text-faint outline-none focus-visible:border-v2-border-border-focus transition-colors"
+        placeholder={language.t("settings.general.row.customSystemPrompt.placeholder")}
+        value={settings.general.customSystemPrompt()}
+        onInput={(e) => settings.general.setCustomSystemPrompt(e.currentTarget.value)}
+        rows={4}
+      />
+    </div>
+  )
+}
+
 export const SettingsGeneralV2: Component<{
   sessionID?: string
 }> = (props) => {
@@ -347,6 +373,47 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setComputerUseResource(!checked))
   }
 
+  const [autoStart, { mutate: setAutoStartResource }] = createResource(
+    () => desktop() && "getAutoStartSettings" in platform,
+    () =>
+      Promise.resolve(
+        platform.getAutoStartSettings?.() ?? { openAtLogin: false, openAsHidden: false, closeToTray: false },
+      ).catch(() => ({ openAtLogin: false, openAsHidden: false, closeToTray: false })),
+    { initialValue: { openAtLogin: false, openAsHidden: false, closeToTray: false } },
+  )
+
+  onMount(() => {
+    const unsubscribe = platform.onAutoStartSettingsChanged?.(setAutoStartResource)
+    onCleanup(() => unsubscribe?.())
+  })
+
+  const onStartAtLoginChange = (checked: boolean) => {
+    const current = autoStart()
+    const next = { ...current, openAtLogin: checked }
+    setAutoStartResource(next)
+    const update = platform.setAutoStartSettings?.({ openAtLogin: checked })
+    if (!update) return
+    void Promise.resolve(update).catch(() => setAutoStartResource(current))
+  }
+
+  const onStartHiddenChange = (checked: boolean) => {
+    const current = autoStart()
+    const next = { ...current, openAsHidden: checked }
+    setAutoStartResource(next)
+    const update = platform.setAutoStartSettings?.({ openAsHidden: checked })
+    if (!update) return
+    void Promise.resolve(update).catch(() => setAutoStartResource(current))
+  }
+
+  const onCloseToTrayChange = (checked: boolean) => {
+    const current = autoStart()
+    const next = { ...current, closeToTray: checked }
+    setAutoStartResource(next)
+    const update = platform.setAutoStartSettings?.({ closeToTray: checked })
+    if (!update) return
+    void Promise.resolve(update).catch(() => setAutoStartResource(current))
+  }
+
   const serverSDK = useServerSDK()
 
   const [bugReports, { mutate: setBugReportsResource }] = createResource(
@@ -391,6 +458,8 @@ export const SettingsGeneralV2: Component<{
       <h3 class="settings-v2-section-title">{language.t("settings.general.section.general")}</h3>
       <SettingsListV2>
         <LanguageSetting />
+
+        <CustomSystemPromptSetting />
 
         <PermissionScopeSetting controller={permissionScope} />
 
@@ -446,6 +515,52 @@ export const SettingsGeneralV2: Component<{
             />
           </div>
         </SettingsRowV2>
+
+        <Show when={desktop()}>
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="server" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.startAtLogin.title")}
+              </span>
+            }
+            description={language.t("settings.general.row.startAtLogin.description")}
+          >
+            <div data-action="settings-start-at-login">
+              <Switch checked={autoStart().openAtLogin} onChange={onStartAtLoginChange} />
+            </div>
+          </SettingsRowV2>
+
+          <Show when={autoStart().openAtLogin}>
+            <SettingsRowV2
+              title={
+                <span class="flex items-center gap-2">
+                  <Icon name="eye" class="size-3.5 shrink-0 text-text-weak" />
+                  {language.t("settings.general.row.startHidden.title")}
+                </span>
+              }
+              description={language.t("settings.general.row.startHidden.description")}
+            >
+              <div data-action="settings-start-hidden">
+                <Switch checked={autoStart().openAsHidden} onChange={onStartHiddenChange} />
+              </div>
+            </SettingsRowV2>
+          </Show>
+
+          <SettingsRowV2
+            title={
+              <span class="flex items-center gap-2">
+                <Icon name="collapse" class="size-3.5 shrink-0 text-text-weak" />
+                {language.t("settings.general.row.closeToTray.title")}
+              </span>
+            }
+            description={language.t("settings.general.row.closeToTray.description")}
+          >
+            <div data-action="settings-close-to-tray">
+              <Switch checked={autoStart().closeToTray} onChange={onCloseToTrayChange} />
+            </div>
+          </SettingsRowV2>
+        </Show>
 
         <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
           <SettingsRowV2

@@ -8,6 +8,9 @@ export const PINCH_ZOOM_ENABLED_KEY = "pinchZoomEnabled"
 export const WINDOW_IDS_KEY = "windowIds"
 export const DEBUG_MODE_ENABLED_KEY = "debugModeEnabled"
 export const COMPUTER_USE_ENABLED_KEY = "computerUseEnabled"
+export const AUTO_START_ENABLED_KEY = "autoStartEnabled"
+export const AUTO_START_HIDDEN_KEY = "autoStartHidden"
+export const CLOSE_TO_TRAY_KEY = "closeToTray"
 // Porta e senha do sidecar local — persistidas pra sobreviver a um
 // restart do desktop. Sem isso, todo restart sorteava porta nova E senha
 // nova, invalidando qualquer pareamento QR feito com um celular (a URL

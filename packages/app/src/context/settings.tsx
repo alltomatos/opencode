@@ -23,6 +23,7 @@ export interface Settings {
   general: {
     autoSave: boolean
     releaseNotes: boolean
+    customSystemPrompt?: string
     followup: "queue" | "steer"
     showFileTree: boolean
     showNavigation: boolean
@@ -185,6 +186,7 @@ const defaultSettings: Settings = {
   general: {
     autoSave: true,
     releaseNotes: true,
+    customSystemPrompt: "",
     followup: "steer",
     showFileTree: false,
     showNavigation: false,
@@ -370,6 +372,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         releaseNotes: withFallback(() => store.general?.releaseNotes, defaultSettings.general.releaseNotes),
         setReleaseNotes(value: boolean) {
           setStore("general", "releaseNotes", value)
+        },
+        customSystemPrompt: withFallback(
+          () => store.general?.customSystemPrompt,
+          defaultSettings.general.customSystemPrompt ?? "",
+        ),
+        setCustomSystemPrompt(value: string) {
+          setStore("general", "customSystemPrompt", value)
         },
         followup: withFallback(
           () => (store.general?.followup === "queue" ? "steer" : store.general?.followup),

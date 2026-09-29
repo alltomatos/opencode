@@ -150,6 +150,47 @@ export const SettingsGeneral: Component = () => {
     { initialValue: false },
   )
 
+  const [autoStart, { mutate: setAutoStartResource }] = createResource(
+    () => desktop() && "getAutoStartSettings" in platform,
+    () =>
+      Promise.resolve(
+        platform.getAutoStartSettings?.() ?? { openAtLogin: false, openAsHidden: false, closeToTray: false },
+      ).catch(() => ({ openAtLogin: false, openAsHidden: false, closeToTray: false })),
+    { initialValue: { openAtLogin: false, openAsHidden: false, closeToTray: false } },
+  )
+
+  onMount(() => {
+    const unsubscribe = platform.onAutoStartSettingsChanged?.(setAutoStartResource)
+    return () => unsubscribe?.()
+  })
+
+  const onStartAtLoginChange = (checked: boolean) => {
+    const current = autoStart()
+    const next = { ...current, openAtLogin: checked }
+    setAutoStartResource(next)
+    const update = platform.setAutoStartSettings?.({ openAtLogin: checked })
+    if (!update) return
+    void Promise.resolve(update).catch(() => setAutoStartResource(current))
+  }
+
+  const onStartHiddenChange = (checked: boolean) => {
+    const current = autoStart()
+    const next = { ...current, openAsHidden: checked }
+    setAutoStartResource(next)
+    const update = platform.setAutoStartSettings?.({ openAsHidden: checked })
+    if (!update) return
+    void Promise.resolve(update).catch(() => setAutoStartResource(current))
+  }
+
+  const onCloseToTrayChange = (checked: boolean) => {
+    const current = autoStart()
+    const next = { ...current, closeToTray: checked }
+    setAutoStartResource(next)
+    const update = platform.setAutoStartSettings?.({ closeToTray: checked })
+    if (!update) return
+    void Promise.resolve(update).catch(() => setAutoStartResource(current))
+  }
+
   onMount(() => {
     void theme.loadThemes()
   })
@@ -316,6 +357,21 @@ export const SettingsGeneral: Component = () => {
           />
         </SettingsRow>
 
+        <div class="flex flex-col gap-2 p-3 border-b border-border-base last:border-b-0">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-13-medium text-text-base">{language.t("settings.general.row.customSystemPrompt.title")}</span>
+            <span class="text-12-regular text-text-weak">{language.t("settings.general.row.customSystemPrompt.description")}</span>
+          </div>
+          <textarea
+            data-action="settings-custom-system-prompt"
+            class="w-full min-h-[80px] resize-y rounded-md border border-border-base bg-surface-base px-3 py-2 text-12-regular text-text-base placeholder:text-text-weaker outline-none focus:border-border-focus transition-colors"
+            placeholder={language.t("settings.general.row.customSystemPrompt.placeholder")}
+            value={settings.general.customSystemPrompt()}
+            onInput={(e) => settings.general.setCustomSystemPrompt(e.currentTarget.value)}
+            rows={3}
+          />
+        </div>
+
         <SettingsRow
           title={language.t("command.permissions.autoaccept.enable")}
           description={language.t("toast.permissions.autoaccept.on.description")}
@@ -382,6 +438,37 @@ export const SettingsGeneral: Component = () => {
             />
           </div>
         </SettingsRow>
+
+        <Show when={desktop()}>
+          <SettingsRow
+            title={language.t("settings.general.row.startAtLogin.title")}
+            description={language.t("settings.general.row.startAtLogin.description")}
+          >
+            <div data-action="settings-start-at-login">
+              <Switch checked={autoStart().openAtLogin} onChange={onStartAtLoginChange} />
+            </div>
+          </SettingsRow>
+
+          <Show when={autoStart().openAtLogin}>
+            <SettingsRow
+              title={language.t("settings.general.row.startHidden.title")}
+              description={language.t("settings.general.row.startHidden.description")}
+            >
+              <div data-action="settings-start-hidden">
+                <Switch checked={autoStart().openAsHidden} onChange={onStartHiddenChange} />
+              </div>
+            </SettingsRow>
+          </Show>
+
+          <SettingsRow
+            title={language.t("settings.general.row.closeToTray.title")}
+            description={language.t("settings.general.row.closeToTray.description")}
+          >
+            <div data-action="settings-close-to-tray">
+              <Switch checked={autoStart().closeToTray} onChange={onCloseToTrayChange} />
+            </div>
+          </SettingsRow>
+        </Show>
       </SettingsList>
     </div>
   )

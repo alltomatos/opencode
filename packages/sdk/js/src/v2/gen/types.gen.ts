@@ -2058,6 +2058,7 @@ export type AgentUiAgent = {
   ragSources: Array<AgentUiRagSource>
   guardrails: AgentUiGuardrails
   mcpServers?: Array<string>
+  routinesEnabled?: boolean
   enabled?: boolean
 }
 
@@ -5408,7 +5409,14 @@ export type ScheduleSkillAction = {
   timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
-export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction
+export type ScheduleAgentUiAction = {
+  kind: "agentui"
+  agentId: string
+  message: string
+  timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction | ScheduleAgentUiAction
 
 export type ScheduleInfo = {
   id: string

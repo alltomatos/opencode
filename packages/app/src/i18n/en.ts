@@ -1008,6 +1008,8 @@ export const dict = {
   "settings.agentui.field.mcpServers.hint": "Let this agent call tools from the MCP servers below, connected to the same project as its channels. Off by default — agents are conversational-only until you turn one on.",
   "settings.agentui.field.mcpServers.empty": "No MCP servers configured for this project yet. Add one in Settings → MCP first.",
   "settings.agentui.field.mcpServers.noDirectory": "Open a project first to see its MCP servers.",
+  "settings.agentui.field.routines": "Access to Routines",
+  "settings.agentui.field.routines.hint": "Allow this agent to query, list, and trigger scheduled routines during conversations.",
   "settings.agentui.field.name": "Name",
   "settings.agentui.field.personality": "Personality",
   "settings.agentui.field.model": "Model",
@@ -1231,6 +1233,9 @@ export const dict = {
 
   "settings.general.row.language.title": "Language",
   "settings.general.row.language.description": "Change the display language for OpenCode",
+  "settings.general.row.customSystemPrompt.title": "Custom System Instructions",
+  "settings.general.row.customSystemPrompt.description": "Global instructions sent with every prompt to guide the assistant's behavior and responses",
+  "settings.general.row.customSystemPrompt.placeholder": "e.g. Always monitor PRs, suggest code improvements when appropriate, maintain concise explanations...",
   "settings.general.row.shell.title": "Terminal shell",
   "settings.general.row.shell.description": "Shell used by the terminal and agent tools",
   "settings.general.row.shell.autoDefault": "Auto (Default)",
@@ -1275,6 +1280,14 @@ export const dict = {
   "settings.general.row.editToolPartsExpanded.title": "Expand edit tool parts",
   "settings.general.row.editToolPartsExpanded.description":
     "Show edit, write, and patch tool parts expanded by default in the timeline",
+  "settings.general.row.startAtLogin.title": "Start on system boot",
+  "settings.general.row.startAtLogin.description":
+    "Automatically start OpenCode when your computer starts or logs in",
+  "settings.general.row.startHidden.title": "Start in background",
+  "settings.general.row.startHidden.description": "Start minimized to the system tray on startup",
+  "settings.general.row.closeToTray.title": "Close to system tray",
+  "settings.general.row.closeToTray.description":
+    "Keep OpenCode running in the background in the system tray when closing the window",
   "settings.general.row.use3dAnimations.title": "Use 3D animations",
   "settings.general.row.use3dAnimations.description":
     "Render 3D visuals where available (like the Batuta activity scene) instead of the flat 2D fallback",

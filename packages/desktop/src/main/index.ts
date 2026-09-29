@@ -59,6 +59,8 @@ import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
 import { setNativeTranslations } from "./native-translations"
+import { getCloseToTray } from "./auto-start"
+import { createOrUpdateTray, destroyTray, updateTrayMenu } from "./tray"
 
 const APP_NAMES: Record<string, string> = {
   dev: "OpenCode Dev",
@@ -289,11 +291,13 @@ const main = Effect.gen(function* () {
 
   app.on("before-quit", () => {
     setAppQuitting()
+    destroyTray()
     void stopSidecars()
   })
 
   app.on("will-quit", () => {
     setAppQuitting()
+    destroyTray()
     void stopSidecars()
   })
 
@@ -376,7 +380,10 @@ const main = Effect.gen(function* () {
     exportDebugLogs: () => exportDebugLogs(),
     recordFatalRendererError: (error) => writeLog("renderer", "fatal renderer error", { ...error }, "error"),
     setNativeTranslations: (bundle) => {
-      if (setNativeTranslations(bundle)) createMenu(menuDeps)
+      if (setNativeTranslations(bundle)) {
+        createMenu(menuDeps)
+        updateTrayMenu()
+      }
     },
   })
   registerWslIpcHandlers(wslServers)
@@ -487,7 +494,7 @@ const main = Effect.gen(function* () {
   yield* Fiber.await(loadingTask)
 
   app.on("window-all-closed", () => {
-    if (process.platform === "darwin") return
+    if (process.platform === "darwin" || getCloseToTray()) return
     app.quit()
   })
   app.on("activate", () => {
@@ -495,7 +502,12 @@ const main = Effect.gen(function* () {
     restoreMainWindows()
   })
 
-  const windows = restoreMainWindows()
+  createOrUpdateTray()
+  const isHiddenLaunch =
+    process.argv.includes("--hidden") ||
+    process.argv.includes("--background") ||
+    app.getLoginItemSettings().wasOpenedAsHidden
+  const windows = restoreMainWindows({ show: !isHiddenLaunch })
   if (windows.length) createMenu(menuDeps)
 })
 

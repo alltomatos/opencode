@@ -128,6 +128,21 @@ type PlatformBase = {
   /** Subscribe to computer-use changes from any window/source (desktop only). Returns an unsubscribe function. */
   onComputerUseEnabledChanged?(cb: (enabled: boolean) => void): () => void
 
+  /** Get auto-start and background/tray settings (desktop only) */
+  getAutoStartSettings?(): Promise<{ openAtLogin: boolean; openAsHidden: boolean; closeToTray: boolean }>
+
+  /** Update auto-start and background/tray settings (desktop only) */
+  setAutoStartSettings?(settings: {
+    openAtLogin?: boolean
+    openAsHidden?: boolean
+    closeToTray?: boolean
+  }): Promise<{ openAtLogin: boolean; openAsHidden: boolean; closeToTray: boolean }> | void
+
+  /** Subscribe to auto-start setting changes (desktop only). Returns an unsubscribe function. */
+  onAutoStartSettingsChanged?(
+    cb: (settings: { openAtLogin: boolean; openAsHidden: boolean; closeToTray: boolean }) => void,
+  ): () => void
+
   /** Check if an editor app exists (desktop only) */
   checkAppExists?(appName: string): Promise<boolean>
 

@@ -18,7 +18,13 @@ const mockMcpCaller = (handler: ScheduleRunner.McpCallerInterface["callTool"]) =
 describe("ScheduleRunner execution and timeout", () => {
   const it = testEffect(
     AppNodeBuilder.build(
-      LayerNode.group([Database.node, Schedule.node, ScheduleRunner.mcpCallerNode, ScheduleRunner.skillCallerNode]),
+      LayerNode.group([
+        Database.node,
+        Schedule.node,
+        ScheduleRunner.mcpCallerNode,
+        ScheduleRunner.skillCallerNode,
+        ScheduleRunner.agentUICallerNode,
+      ]),
       [[ScheduleRunner.mcpCallerNode, mockMcpCaller((server, tool) => {
         if (server === "disconnected") {
           return Effect.succeed({ success: false, error: `MCP server "${server}" is not connected` })

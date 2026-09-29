@@ -980,6 +980,8 @@ export const dict = {
   "settings.agentui.field.mcpServers.hint": "Permite que este agente use as ferramentas dos servidores MCP abaixo, conectados ao mesmo projeto dos seus canais. Desligado por padrão — agentes são só conversacionais até você ativar um.",
   "settings.agentui.field.mcpServers.empty": "Nenhum servidor MCP configurado neste projeto ainda. Adicione um em Configurações → MCP primeiro.",
   "settings.agentui.field.mcpServers.noDirectory": "Abra um projeto primeiro para ver seus servidores MCP.",
+  "settings.agentui.field.routines": "Acesso a Rotinas",
+  "settings.agentui.field.routines.hint": "Permitir que este agente liste, consulte e dispare rotinas agendadas durante conversas.",
   "settings.agentui.field.whatsapp.providerLink": "Abrir painel do {{provider}} →",
   "settings.agentui.field.whatsapp.izapiaSessions.label": "Sessões do WhatsApp (selecione uma ou mais)",
   "settings.agentui.field.whatsapp.izapiaSessions.fetch": "Buscar sessões",
@@ -1160,6 +1162,11 @@ export const dict = {
   "settings.general.section.display": "Tela",
   "settings.general.row.language.title": "Idioma",
   "settings.general.row.language.description": "Alterar o idioma de exibição do OpenCode",
+  "settings.general.row.customSystemPrompt.title": "Instruções do Sistema (Prompt Global)",
+  "settings.general.row.customSystemPrompt.description":
+    "Instruções globais enviadas com cada prompt para orientar o comportamento e as respostas do assistente",
+  "settings.general.row.customSystemPrompt.placeholder":
+    "ex.: Sempre sugerir melhorias no código quando adequado, monitorar PRs, manter respostas concisas...",
   "settings.general.row.shell.title": "Shell do terminal",
   "settings.general.row.shell.description":
     "Escolha o shell usado no terminal. Os shells compatíveis também são usados nas chamadas de ferramentas do agente.",
@@ -1207,6 +1214,14 @@ export const dict = {
   "settings.general.row.editToolPartsExpanded.title": "Expandir partes da ferramenta de edição",
   "settings.general.row.editToolPartsExpanded.description":
     "Mostrar partes das ferramentas de edição, escrita e patch expandidas por padrão na linha do tempo",
+  "settings.general.row.startAtLogin.title": "Iniciar com o sistema",
+  "settings.general.row.startAtLogin.description":
+    "Iniciar o OpenCode automaticamente ao ligar o computador ou fazer login",
+  "settings.general.row.startHidden.title": "Iniciar em segundo plano",
+  "settings.general.row.startHidden.description": "Iniciar minimizado na bandeja do sistema ao inicializar",
+  "settings.general.row.closeToTray.title": "Minimizar para a bandeja ao fechar",
+  "settings.general.row.closeToTray.description":
+    "Manter o OpenCode rodando em segundo plano na bandeja ao fechar a janela",
   "settings.general.row.use3dAnimations.title": "Usar animações 3D",
   "settings.general.row.use3dAnimations.description":
     "Renderizar visuais em 3D onde disponível (como a cena de atividade do Batuta) em vez do modo 2D simplificado",

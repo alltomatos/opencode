@@ -1,0 +1,1 @@
+Allows an agent to list available routines (schedules), view details of a routine, and trigger or test execution of a routine.
