@@ -3,7 +3,7 @@ import { resolveThemeVariant } from "@opencode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@opencode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
-import { rmSync } from "node:fs"
+import { existsSync, rmSync } from "node:fs"
 import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, session, shell } from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
@@ -88,12 +88,27 @@ export function getBackgroundColor(): string | undefined {
 }
 
 function iconsDir() {
+  const candidateDirs = [
+    join(process.resourcesPath, "icons"),
+    join(process.resourcesPath, "resources", "icons"),
+    join(app.getAppPath(), "resources", "icons"),
+    join(root, "../../resources/icons"),
+    join(root, "../resources/icons"),
+  ]
+  for (const dir of candidateDirs) {
+    if (existsSync(dir)) return dir
+  }
   return app.isPackaged ? join(process.resourcesPath, "icons") : join(root, "../../resources/icons")
 }
 
 function iconPath() {
   const ext = process.platform === "win32" ? "ico" : "png"
-  return join(iconsDir(), `icon.${ext}`)
+  const dir = iconsDir()
+  const file = join(dir, `icon.${ext}`)
+  if (existsSync(file)) return file
+  const pngFile = join(dir, "icon.png")
+  if (existsSync(pngFile)) return pngFile
+  return file
 }
 
 function tone() {

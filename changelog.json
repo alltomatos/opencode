@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.45",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção do Ícone da Bandeja do Sistema no Windows",
+              "description": "Incluídos recursos de ícones no empacotamento do aplicativo desktop e implementada resolução robusta de caminhos com fallbacks (.ico e .png) para garantir a exibição do ícone na bandeja do sistema."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.44",
       "highlights": [
         {

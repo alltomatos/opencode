@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, nativeImage, Tray } from "electron"
+import { existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getAutoStartSettings, setAutoStartSettings } from "./auto-start"
@@ -8,14 +9,37 @@ import { getLastFocusedWindow, restoreMainWindows, setAppQuitting } from "./wind
 const root = dirname(fileURLToPath(import.meta.url))
 let trayInstance: Tray | null = null
 
-function iconsDir() {
-  return app.isPackaged ? join(process.resourcesPath, "icons") : join(root, "../../resources/icons")
+function resolveIconPath(preferredExt?: string): string {
+  const ext = preferredExt ?? (process.platform === "win32" ? "ico" : "png")
+  const candidates: string[] = []
+  const candidateDirs = [
+    join(process.resourcesPath, "icons"),
+    join(process.resourcesPath, "resources", "icons"),
+    join(app.getAppPath(), "resources", "icons"),
+    join(root, "../../resources/icons"),
+    join(root, "../resources/icons"),
+  ]
+
+  const extensions = [ext, "png", "ico"]
+  for (const dir of candidateDirs) {
+    for (const e of extensions) {
+      candidates.push(join(dir, `icon.${e}`))
+    }
+  }
+
+  for (const file of candidates) {
+    if (existsSync(file)) return file
+  }
+  return candidates[0]!
 }
 
 function getTrayIcon() {
-  const ext = process.platform === "win32" ? "ico" : "png"
-  const file = join(iconsDir(), `icon.${ext}`)
-  const img = nativeImage.createFromPath(file)
+  const file = resolveIconPath()
+  let img = nativeImage.createFromPath(file)
+  if (img.isEmpty()) {
+    const fallbackPng = resolveIconPath("png")
+    img = nativeImage.createFromPath(fallbackPng)
+  }
   if (process.platform === "win32") {
     return img.resize({ width: 16, height: 16 })
   }

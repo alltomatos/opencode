@@ -81,6 +81,11 @@ const getBase = (appId: string): Configuration => ({
       to: "mcpmail/",
       filter: ["**/*"],
     },
+    {
+      from: "resources/icons/",
+      to: "icons/",
+      filter: ["**/*"],
+    },
   ],
   mac: {
     category: "public.app-category.developer-tools",
