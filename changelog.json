@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.53",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Rotinas: Configuração de Tempo Limite (Timeout) e Preservação de Sessão",
+              "description": "Adicionada a configuração de tempo limite diretamente no formulário de rotinas (com padrão estendido para 20 minutos). Além disso, o sessionId de execuções de rotinas agora é preservado no banco mesmo se houver timeout, permitindo sempre visualizar o histórico e o chat da rotina pelo card."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.50",
       "highlights": [
         {

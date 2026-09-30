@@ -204,10 +204,10 @@ function runAction(action: Schedule.Action, workspace: string | undefined, sessi
       const result: SkillCallResult = yield* caller.runSkill(action, workspace, sessionId).pipe(
         Effect.timeoutOrElse({
           duration: Duration.millis(timeoutMs),
-          orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+          orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms`, sessionId }),
         }),
       )
-      return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: result.sessionId }
+      return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: result.sessionId ?? sessionId }
     })
   }
   if (action.kind === "agentui") {

@@ -163,6 +163,9 @@ export const RoutineFormPage: Component = () => {
           setInstructions(found.action.instructions ?? "")
           if (found.action.model) setModel(found.action.model)
           if (found.action.permission) setPermissionMode(found.action.permission)
+          if (found.action.timeoutMs && typeof found.action.timeoutMs === "number") {
+            setTimeoutMinutes(Math.max(1, Math.round(found.action.timeoutMs / 60000)))
+          }
           if (found.action.mcpTools && Array.isArray(found.action.mcpTools)) {
             setMcpTools([...found.action.mcpTools])
           }
@@ -216,6 +219,9 @@ export const RoutineFormPage: Component = () => {
 
   // Permissões
   const [permissionMode, setPermissionMode] = createSignal<PermissionMode>("auto")
+
+  // Timeout personalizado (em minutos)
+  const [timeoutMinutes, setTimeoutMinutes] = createSignal<number>(20)
 
   // Ferramentas MCP selecionadas
   const [mcpTools, setMcpTools] = createSignal<McpToolRef[]>([])
@@ -322,6 +328,7 @@ export const RoutineFormPage: Component = () => {
       workspaces: workspaces().length > 0 ? workspaces() : undefined,
       model: model() ? model() : undefined,
       permission: permissionMode(),
+      timeoutMs: timeoutMinutes() > 0 ? timeoutMinutes() * 60 * 1000 : undefined,
     } as const
   }
 
@@ -784,8 +791,8 @@ export const RoutineFormPage: Component = () => {
                   </div>
                 </div>
 
-                {/* Grid para Modelo de IA e Permissões */}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                {/* Grid para Modelo de IA, Permissões e Timeout */}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                   {/* Modelo de IA */}
                   <div class="flex flex-col gap-1.5">
                     <label class="text-12-medium text-v2-text-text-base font-semibold">Modelo de IA</label>
@@ -797,13 +804,13 @@ export const RoutineFormPage: Component = () => {
                       />
                     </div>
                     <span class="text-11-regular text-text-weak">
-                      Deixe padrão ou escolha um modelo/combo específico.
+                      Deixe padrão ou escolha um modelo/combo.
                     </span>
                   </div>
 
                   {/* Permissões */}
                   <div class="flex flex-col gap-1.5">
-                    <label class="text-12-medium text-v2-text-text-base font-semibold">Permissões de Execução</label>
+                    <label class="text-12-medium text-v2-text-text-base font-semibold">Permissões</label>
                     <div class="w-full">
                       <SelectV2
                         class="w-full"
@@ -811,16 +818,36 @@ export const RoutineFormPage: Component = () => {
                         current={permissionMode()}
                         label={(mode) =>
                           mode === "auto"
-                            ? "Automático (Executa sem travar)"
+                            ? "Automático (Sem travar)"
                             : mode === "bypass"
                               ? "Ignorar confirmações"
-                              : "Padrão de configurações"
+                              : "Padrão"
                         }
                         onSelect={(mode) => mode && setPermissionMode(mode)}
                       />
                     </div>
                     <span class="text-11-regular text-text-weak">
-                      "Automático" permite que a IA execute as ferramentas sem depender de cliques manuais.
+                      Executa ferramentas sem requerer confirmações.
+                    </span>
+                  </div>
+
+                  {/* Tempo Limite / Timeout */}
+                  <div class="flex flex-col gap-1.5">
+                    <label class="text-12-medium text-v2-text-text-base font-semibold">Tempo Limite</label>
+                    <div class="w-full flex items-center gap-2">
+                      <TextInputV2
+                        type="number"
+                        class="w-full"
+                        value={String(timeoutMinutes())}
+                        onInput={(e) => {
+                          const val = parseInt(e.currentTarget.value, 10)
+                          if (!isNaN(val) && val > 0) setTimeoutMinutes(val)
+                        }}
+                      />
+                      <span class="text-12-regular text-text-weak shrink-0">min</span>
+                    </div>
+                    <span class="text-11-regular text-text-weak">
+                      Duração máxima da execução (padrão: 20 min).
                     </span>
                   </div>
                 </div>
