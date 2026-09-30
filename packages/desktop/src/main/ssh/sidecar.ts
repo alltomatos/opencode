@@ -231,7 +231,7 @@ export async function spawnSshTunnel(config: SshServerConfig, opts: SshTunnelOpt
       const installCmd = [
         pathPrefix,
         "mkdir -p ~/.npm-global && npm config set prefix ~/.npm-global 2>/dev/null",
-        "(command -v npm >/dev/null 2>&1 && npm install -g @opencode-ai/server) || (curl -fsSL https://opencode.ai/install.sh 2>/dev/null | bash) || echo 'INSTALL_FAILED'",
+        "(command -v npm >/dev/null 2>&1 && npm install -g @alltomatos/opencode@latest) || (command -v bun >/dev/null 2>&1 && bun add -g @alltomatos/opencode@latest) || echo 'INSTALL_FAILED'",
       ].join(" && ")
 
       const installResult = await runRemoteCommand(config, installCmd, 120_000, (chunk, stream) => {
@@ -459,40 +459,18 @@ export async function updateRemoteOpencode(config: SshServerConfig, opts: SshTun
 
   // 2. Atualizar OpenCode
   setStep("check_install", "running")
-  log("info", `[2/3] Verificando e atualizando OpenCode na VPS...`)
+  log("info", `[2/3] Verificando e atualizando pacote @alltomatos/opencode@latest na VPS...`)
 
-  const checkGitApp = await runRemoteCommand(
-    config,
-    "su - opencode -c 'cd /home/opencode/app && git status' 2>/dev/null || (cd ~/app && git status) 2>/dev/null || echo 'NOT_GIT'",
-    10_000,
-  )
-
-  if (!checkGitApp.output.includes("NOT_GIT") && checkGitApp.success) {
-    log("info", `[2/3] Atualizando repositório OpenCode na VPS via git...`)
-    const gitPullCmd =
-      "su - opencode -c 'cd /home/opencode/app && git fetch origin dev && git reset --hard origin/dev && ~/.bun/bin/bun install'"
-
-    await runRemoteCommand(config, gitPullCmd, 120_000, (chunk, stream) => {
-      chunk
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .forEach((l) => log(stream, l))
-    })
-    log("success", `[2/3] Repositório atualizado e dependências instaladas.`)
-  } else {
-    log("info", `[2/3] Atualizando pacote global @opencode-ai/server na VPS...`)
-    const pathPrefix = 'export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin:$PATH"'
-    const updateNpmCmd = `${pathPrefix}; (command -v bun >/dev/null 2>&1 && bun add -g @opencode-ai/server@latest) || npm install -g @opencode-ai/server@latest 2>&1`
-    await runRemoteCommand(config, updateNpmCmd, 120_000, (chunk, stream) => {
-      chunk
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .forEach((l) => log(stream, l))
-    })
-    log("success", `[2/3] Pacote global atualizado com sucesso.`)
-  }
+  const pathPrefix = 'export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin:$PATH"'
+  const updateNpmCmd = `${pathPrefix}; (command -v npm >/dev/null 2>&1 && npm install -g @alltomatos/opencode@latest) || (command -v bun >/dev/null 2>&1 && bun add -g @alltomatos/opencode@latest) 2>&1`
+  await runRemoteCommand(config, updateNpmCmd, 120_000, (chunk, stream) => {
+    chunk
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .forEach((l) => log(stream, l))
+  })
+  log("success", `[2/3] Pacote @alltomatos/opencode atualizado com sucesso.`)
   setStep("check_install", "done")
 
   // 3. Reiniciar Serviço
