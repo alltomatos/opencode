@@ -129,15 +129,16 @@ function createServerCtx(
     return base
   }
 
-  // Sincronização bidirecional em tempo real:
-  // Todo projeto conhecido pelo servidor (`sync.data.project`) é refletido
-  // automaticamente na lista de projetos abertos no desktop (`projects`).
+  // Sincronização de novos projetos criados/importados remotamente:
+  // Novos projetos conhecidos pelo servidor (`sync.data.project`) que o usuário
+  // ainda não fechou voluntariamente (`recentlyClosed`) entram automaticamente.
   createEffect(() => {
+    const closed = new Set(projects.recentlyClosed().map((worktree) => pathKey(worktree)))
     const opened = new Set(projects.list().map((project) => pathKey(project.worktree)))
     for (const project of sync.data.project) {
       if (!project.worktree || project.worktree === "/") continue
       const key = pathKey(project.worktree)
-      if (opened.has(key)) continue
+      if (opened.has(key) || closed.has(key)) continue
       projects.open(project.worktree)
     }
   })
