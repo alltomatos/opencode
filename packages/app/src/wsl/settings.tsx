@@ -112,23 +112,30 @@ export function WslServerSettings(props: {
       <For each={props.servers()}>
         {(item) => {
           const key = ServerConnection.Key.make(item.config.id)
+          const health = () => props.controller.status()[key]
           const check = () => wsl.data?.opencodeChecks[item.config.distro]
+          const version = () => health()?.version ?? check()?.version
           const opencodeAction = () => wslOpencodeAction(check())
           const busy = () => wsl.data?.job?.kind === "install-opencode" && wsl.data.job.distro === item.config.distro
           return (
             <div class="settings-v2-servers-row">
               <div class="settings-v2-servers-lead">
-                <ServerHealthIndicator health={props.controller.status()[key]} />
+                <ServerHealthIndicator health={health()} />
                 <div class="settings-v2-servers-copy">
-                  <span class="flex min-w-0 items-center gap-1">
+                  <span class="flex min-w-0 items-center gap-1.5">
                     <span class="settings-v2-servers-name">{item.config.distro}</span>
                     <span class="shrink-0 rounded-[3px] border border-v2-border-border-base px-1 py-0.5 text-[9px] leading-none text-v2-text-text-muted">
                       {language.t("wsl.server.label")}
                     </span>
+                    <Show when={version()}>
+                      {(v) => (
+                        <span class="shrink-0 text-[11px] font-[440] text-v2-text-text-muted">
+                          v{v()}
+                        </span>
+                      )}
+                    </Show>
                   </span>
-                  <span class="settings-v2-servers-meta">
-                    <Show when={check()?.version}>{(version) => `v${version()}`}</Show>
-                  </span>
+                  <span class="settings-v2-servers-meta"></span>
                 </div>
               </div>
               <div class="settings-v2-servers-actions">

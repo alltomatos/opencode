@@ -126,10 +126,17 @@ export const SettingsServersV2: Component = () => {
                     <div class="settings-v2-servers-lead">
                       <ServerHealthIndicator health={health()} />
                       <div class="settings-v2-servers-copy">
-                        <span class="settings-v2-servers-name">{serverName(item)}</span>
+                        <span class="flex min-w-0 items-center gap-1.5">
+                          <span class="settings-v2-servers-name">{serverName(item)}</span>
+                          <Show when={health()?.version}>
+                            {(version) => (
+                              <span class="shrink-0 text-[11px] font-[440] text-v2-text-text-muted">
+                                v{version()}
+                              </span>
+                            )}
+                          </Show>
+                        </span>
                         <span class="settings-v2-servers-meta">
-                          <Show when={health()?.version}>v{health()?.version}</Show>
-                          <Show when={health()?.version && item.type === "http"}> • </Show>
                           <Show
                             when={item.type === "http" && item.http.username}
                             fallback={<Show when={item.type === "http"}>{language.t("server.row.noUsername")}</Show>}
