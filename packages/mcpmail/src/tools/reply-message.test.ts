@@ -6,12 +6,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-const { mockImapClient, mockSendViaSmtp } = vi.hoisted(() => ({
+const { mockImapClient, mockSendViaSmtp, mockSaveToSentFolder } = vi.hoisted(() => ({
   mockImapClient: {
     getMailboxLock: vi.fn(),
     download: vi.fn(),
   },
   mockSendViaSmtp: vi.fn(),
+  mockSaveToSentFolder: vi.fn(),
 }));
 
 vi.mock("../services/imap-client.js", () => ({
@@ -22,6 +23,10 @@ vi.mock("../services/imap-client.js", () => ({
 
 vi.mock("../services/smtp-client.js", () => ({
   sendViaSmtp: mockSendViaSmtp,
+}));
+
+vi.mock("../services/sent-folder.js", () => ({
+  saveToSentFolder: mockSaveToSentFolder,
 }));
 
 const { registerMailReplyMessage } = await import("./reply-message.js");
@@ -92,7 +97,8 @@ describe("mail_reply_message", () => {
 
     mockImapClient.getMailboxLock.mockReset().mockResolvedValue({ release: vi.fn() });
     mockImapClient.download.mockReset().mockResolvedValue(downloadObjectFor(buildRawEmail()));
-    mockSendViaSmtp.mockReset().mockResolvedValue(undefined);
+    mockSendViaSmtp.mockReset().mockResolvedValue({ rawRfc822: Buffer.from("raw"), messageId: "<test@id>" });
+    mockSaveToSentFolder.mockReset().mockResolvedValue({ saved: true, sentFolder: "Sent" });
   });
 
   afterEach(() => {

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   prepareNodemailerAttachments,
+  buildRawRfc822,
   MAX_ATTACHMENT_BYTES,
 } from "./smtp-client.js";
 
@@ -76,5 +77,33 @@ describe("prepareNodemailerAttachments", () => {
         { filename: "grande.bin", content: hugeBuffer },
       ])
     ).toThrow("excede o limite máximo");
+  });
+});
+
+describe("buildRawRfc822", () => {
+  const account = {
+    id: "test",
+    label: "Test",
+    provider: "generic-imap" as const,
+    host: "imap.test.com",
+    port: 993,
+    secure: true,
+    user: "from@test.com",
+    appPassword: "pw",
+  };
+
+  it("gera payload RFC822 válido com cabeçalhos e corpo", async () => {
+    const raw = await buildRawRfc822(account, {
+      to: "to@test.com",
+      subject: "Assunto Teste",
+      text: "Corpo do email",
+    });
+
+    expect(raw).toBeInstanceOf(Buffer);
+    const text = raw.toString("utf-8");
+    expect(text).toContain("From: from@test.com");
+    expect(text).toContain("To: to@test.com");
+    expect(text).toContain("Subject: Assunto Teste");
+    expect(text).toContain("Corpo do email");
   });
 });

@@ -3,6 +3,7 @@ import { loadAccountsConfig } from "../config.js";
 import { withImapConnection } from "../services/imap-client.js";
 import { downloadAndParseMessage, MessageNotFoundError } from "../services/message-reader.js";
 import { sendViaSmtp } from "../services/smtp-client.js";
+import { saveToSentFolder } from "../services/sent-folder.js";
 import { MailReplyMessageInputSchema } from "../schemas/tools.schema.js";
 
 function quoteOriginal(from: string | undefined, date: string | undefined, body: string): string {
@@ -131,7 +132,7 @@ export function registerMailReplyMessage(server: McpServer): void {
         original.messageId,
       ].filter((v): v is string => Boolean(v));
 
-      await sendViaSmtp(account, {
+      const { rawRfc822 } = await sendViaSmtp(account, {
         to: replyTo,
         cc: replyCc,
         bcc,
@@ -142,6 +143,8 @@ export function registerMailReplyMessage(server: McpServer): void {
         references: referencesList.length > 0 ? referencesList.join(" ") : undefined,
         attachments,
       });
+
+      const sentResult = await saveToSentFolder(account, rawRfc822);
 
       return {
         content: [
@@ -158,6 +161,9 @@ export function registerMailReplyMessage(server: McpServer): void {
                 replyAll,
                 attachmentsCount: attachments?.length ?? 0,
                 attachments: attachments?.map((a) => a.filename) ?? [],
+                savedToSent: sentResult.saved,
+                sentFolder: sentResult.sentFolder,
+                ...(sentResult.warning ? { sentWarning: sentResult.warning } : {}),
               },
               null,
               2

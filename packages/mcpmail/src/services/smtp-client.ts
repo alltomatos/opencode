@@ -1,5 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { createTransport } from "nodemailer";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+import MailComposer from "nodemailer/lib/mail-composer";
 import type { Account } from "../schemas/account.schema.js";
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -76,12 +78,49 @@ export function prepareNodemailerAttachments(attachments?: OutgoingAttachment[])
   });
 }
 
+export interface SendSmtpResult {
+  messageId?: string;
+  rawRfc822: Buffer;
+}
+
 /**
- * Envia um email via SMTP para a conta informada. Cria um transporter por
- * chamada e não mantém pool persistente — mesma decisão de simplicidade
+ * Constrói o buffer bruto MIME RFC822 do email usando MailComposer do nodemailer.
+ */
+export async function buildRawRfc822(
+  account: Account,
+  message: OutgoingMessage
+): Promise<Buffer> {
+  const attachments = prepareNodemailerAttachments(message.attachments);
+  const composer = new MailComposer({
+    from: account.user,
+    to: message.to,
+    cc: message.cc,
+    bcc: message.bcc,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
+    inReplyTo: message.inReplyTo,
+    references: message.references,
+    attachments,
+  });
+
+  return new Promise<Buffer>((resolve, reject) => {
+    composer.compile().build((err: Error | null, messageBuffer: Buffer) => {
+      if (err) return reject(err);
+      resolve(messageBuffer);
+    });
+  });
+}
+
+/**
+ * Envia um email via SMTP para a conta informada e retorna o buffer RFC822 bruto.
+ * Cria um transporter por chamada e não mantém pool persistente — mesma decisão
  * tomada para IMAP em src/services/imap-client.ts (ver ADR 0001/0002).
  */
-export async function sendViaSmtp(account: Account, message: OutgoingMessage): Promise<void> {
+export async function sendViaSmtp(
+  account: Account,
+  message: OutgoingMessage
+): Promise<SendSmtpResult> {
   if (!account.smtp) {
     throw new Error(
       `Conta "${account.id}" não possui configuração "smtp" em accounts.json. Adicione um bloco { host, port, secure } para habilitar o envio nesta conta.`
@@ -101,7 +140,7 @@ export async function sendViaSmtp(account: Account, message: OutgoingMessage): P
   const attachments = prepareNodemailerAttachments(message.attachments);
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: account.user,
       to: message.to,
       cc: message.cc,
@@ -113,6 +152,13 @@ export async function sendViaSmtp(account: Account, message: OutgoingMessage): P
       references: message.references,
       attachments,
     });
+
+    const rawRfc822 = await buildRawRfc822(account, message);
+
+    return {
+      messageId: info.messageId,
+      rawRfc822,
+    };
   } catch (err) {
     throw new Error(
       `Falha ao enviar email pela conta "${account.id}" (${account.smtp.host}:${account.smtp.port}). Verifique host/porta/App Password em accounts.json. Causa: ${

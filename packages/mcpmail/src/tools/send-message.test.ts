@@ -10,8 +10,16 @@ const { mockSendViaSmtp } = vi.hoisted(() => ({
   mockSendViaSmtp: vi.fn(),
 }));
 
+const { mockSaveToSentFolder } = vi.hoisted(() => ({
+  mockSaveToSentFolder: vi.fn(),
+}));
+
 vi.mock("../services/smtp-client.js", () => ({
   sendViaSmtp: mockSendViaSmtp,
+}));
+
+vi.mock("../services/sent-folder.js", () => ({
+  saveToSentFolder: mockSaveToSentFolder,
 }));
 
 const { registerMailSendMessage } = await import("./send-message.js");
@@ -61,7 +69,8 @@ describe("mail_send_message", () => {
     writeFileSync(accountsPath, JSON.stringify(ACCOUNTS_FIXTURE));
     process.env.MAIL_MCP_ACCOUNTS_PATH = accountsPath;
 
-    mockSendViaSmtp.mockReset().mockResolvedValue(undefined);
+    mockSendViaSmtp.mockReset().mockResolvedValue({ rawRfc822: Buffer.from("raw"), messageId: "<test@id>" });
+    mockSaveToSentFolder.mockReset().mockResolvedValue({ saved: true, sentFolder: "Sent" });
   });
 
   afterEach(() => {

@@ -3,6 +3,7 @@ import { loadAccountsConfig } from "../config.js";
 import { withImapConnection } from "../services/imap-client.js";
 import { downloadAndParseMessage, MessageNotFoundError } from "../services/message-reader.js";
 import { sendViaSmtp, type OutgoingAttachment } from "../services/smtp-client.js";
+import { saveToSentFolder } from "../services/sent-folder.js";
 import { MailForwardMessageInputSchema } from "../schemas/tools.schema.js";
 
 function buildForwardedBody(comment: string | undefined, original: {
@@ -109,7 +110,7 @@ export function registerMailForwardMessage(server: McpServer): void {
         outgoingAttachments.push(...attachments);
       }
 
-      await sendViaSmtp(account, {
+      const { rawRfc822 } = await sendViaSmtp(account, {
         to,
         cc,
         bcc,
@@ -117,6 +118,8 @@ export function registerMailForwardMessage(server: McpServer): void {
         text,
         attachments: outgoingAttachments.length > 0 ? outgoingAttachments : undefined,
       });
+
+      const sentResult = await saveToSentFolder(account, rawRfc822);
 
       return {
         content: [
@@ -130,6 +133,9 @@ export function registerMailForwardMessage(server: McpServer): void {
                 subject: forwardSubject,
                 attachmentsCount: outgoingAttachments.length,
                 attachments: outgoingAttachments.map((a) => a.filename),
+                savedToSent: sentResult.saved,
+                sentFolder: sentResult.sentFolder,
+                ...(sentResult.warning ? { sentWarning: sentResult.warning } : {}),
               },
               null,
               2

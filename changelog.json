@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.50",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "mcpmail: Salvar cópia na pasta Enviados via IMAP e suporte a Anexos no envio",
+              "description": "Ao enviar emails com mcpmail (mail_send_message, mail_reply_message, mail_forward_message), uma cópia MIME RFC822 é gravada automaticamente na pasta de itens enviados via IMAP APPEND com a flag \\Seen. Também adicionado suporte a envio de anexos via base64 ou caminho local."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.49",
       "highlights": [
         {

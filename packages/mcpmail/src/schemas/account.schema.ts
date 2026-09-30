@@ -54,6 +54,13 @@ export const AccountSchema = z
       .describe(
         "Configuração SMTP para envio de email; se omitida, tools de envio (mail_send_message, mail_reply_message, mail_forward_message) falham com erro claro para esta conta."
       ),
+    sentFolder: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Pasta IMAP de itens enviados (ex: 'Sent', '[Gmail]/E-mails enviados'). Se omitida, detectada automaticamente via flag \\Sent do IMAP LIST."
+      ),
   })
   .strict();
 

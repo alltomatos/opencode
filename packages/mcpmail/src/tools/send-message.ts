@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { loadAccountsConfig } from "../config.js";
 import { sendViaSmtp } from "../services/smtp-client.js";
+import { saveToSentFolder } from "../services/sent-folder.js";
 import { MailSendMessageInputSchema } from "../schemas/tools.schema.js";
 
 export function registerMailSendMessage(server: McpServer): void {
@@ -33,7 +34,7 @@ export function registerMailSendMessage(server: McpServer): void {
         );
       }
 
-      await sendViaSmtp(account, {
+      const { rawRfc822 } = await sendViaSmtp(account, {
         to,
         cc,
         bcc,
@@ -42,6 +43,8 @@ export function registerMailSendMessage(server: McpServer): void {
         html: bodyHtml,
         attachments,
       });
+
+      const sentResult = await saveToSentFolder(account, rawRfc822);
 
       return {
         content: [
@@ -55,6 +58,9 @@ export function registerMailSendMessage(server: McpServer): void {
                 subject,
                 attachmentsCount: attachments?.length ?? 0,
                 attachments: attachments?.map((a) => a.filename) ?? [],
+                savedToSent: sentResult.saved,
+                sentFolder: sentResult.sentFolder,
+                ...(sentResult.warning ? { sentWarning: sentResult.warning } : {}),
               },
               null,
               2

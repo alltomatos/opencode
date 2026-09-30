@@ -80,6 +80,25 @@ describe("AccountSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("aceita sentFolder opcional", () => {
+    const result = AccountSchema.safeParse({
+      ...validAccount,
+      sentFolder: "[Gmail]/E-mails enviados",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sentFolder).toBe("[Gmail]/E-mails enviados");
+    }
+  });
+
+  it("aceita conta sem sentFolder", () => {
+    const result = AccountSchema.safeParse(validAccount);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sentFolder).toBeUndefined();
+    }
+  });
 });
 
 describe("AccountsConfigSchema", () => {
