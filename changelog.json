@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.49",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Correção de URL da API Izapia e Envio de Respostas no WhatsApp",
+              "description": "Corrigido o endpoint base do Izapia para api.izapia.com e adicionado fallback de sessão ativa para garantir o envio e entrega de respostas no WhatsApp."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.48",
       "highlights": [
         {
