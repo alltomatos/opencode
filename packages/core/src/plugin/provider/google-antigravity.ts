@@ -393,6 +393,9 @@ export const GoogleAntigravityPlugin = define<HttpClient.HttpClient | Scope.Scop
         })
 
         const models = [
+          { id: "gemini-3.8-flash-high", name: "Gemini 3.8 Flash (High)", reasoning: true },
+          { id: "gemini-3.8-flash-medium", name: "Gemini 3.8 Flash (Medium)", reasoning: true },
+          { id: "gemini-3.8-flash-low", name: "Gemini 3.8 Flash (Low)", reasoning: true },
           { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)", reasoning: true },
           { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)", reasoning: true },
           { id: "gemini-3.7-flash-low", name: "Gemini 3.7 Flash (Low)", reasoning: true },

@@ -43,6 +43,9 @@ export function getSyncIntervalHours(config: ConfigMemoryV1.Info) {
 // is actually connected wins, so a fresh install gets a working default
 // without the user having to configure anything first.
 const DEFAULT_MODEL_CANDIDATES = [
+  "google-antigravity/gemini-3.8-flash-low",
+  "google-antigravity-cli/gemini-3.8-flash-low",
+  "omnrt/agy/gemini-3.8-flash-low",
   "google-antigravity/gemini-3.7-flash-low",
   "google-antigravity/gemini-3.1-flash-lite",
   "google-antigravity-cli/gemini-3.7-flash-low",

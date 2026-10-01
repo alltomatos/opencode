@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.57",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Google Antigravity: Suporte aos modelos Gemini 3.8 Flash",
+              "description": "Adicionado suporte nativo e fallbacks para os modelos Gemini 3.8 Flash (High, Medium e Low) no provedor Google Antigravity e na interface."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.53",
       "highlights": [
         {

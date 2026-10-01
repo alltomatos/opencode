@@ -23,6 +23,9 @@ export interface GeneratedMediaItem {
 }
 
 const ANTIGRAVITY_FALLBACK_MODELS: Record<string, any> = {
+  "gemini-3.8-flash-high": { id: "gemini-3.8-flash-high", name: "Gemini 3.8 Flash (High)" },
+  "gemini-3.8-flash-medium": { id: "gemini-3.8-flash-medium", name: "Gemini 3.8 Flash (Medium)" },
+  "gemini-3.8-flash-low": { id: "gemini-3.8-flash-low", name: "Gemini 3.8 Flash (Low)" },
   "gemini-3.7-flash-high": { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)" },
   "gemini-3.7-flash-medium": { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)" },
   "gemini-3.7-flash-low": { id: "gemini-3.7-flash-low", name: "Gemini 3.7 Flash (Low)" },
