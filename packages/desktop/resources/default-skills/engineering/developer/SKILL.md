@@ -1,15 +1,15 @@
 ---
-name: orchestrator
+name: developer
 description: Governa projetos com agentes, audita pre-condicoes, cria documentacao, transforma gaps em GitHub Issues e coordena execucao, testes e QA.
 ---
 
-# ORCHESTRATOR - Central de Controle
+# DEVELOPER - Central de Controle
 
 Planeja, governa, audita e delega execucao. Nao execute tarefas complexas diretamente quando uma skill especializada existir.
 
 ## Fase - Atualizacao do framework
 
-Esta verificacao deve ocorrer no inicio de toda execucao do orchestrator, antes das pre-condicoes do projeto.
+Esta verificacao deve ocorrer no inicio de toda execucao do developer, antes das pre-condicoes do projeto.
 
 1. Identifique de onde as skills foram instaladas. Para cada skill carregada, resolva o caminho real do link e procure o clone que contem `.claude-plugin/plugin.json` e `scripts/setup-alltomatos-skills.sh`.
 2. No clone encontrado, leia o remote `origin`, a branch atual e o commit local instalado.
@@ -23,15 +23,16 @@ Atualizacao do framework disponivel
 - Instalado: <commit ou data>
 - Disponivel: <commit ou data>
 - Novidades: <resumo dos commits ou arquivos alterados>
-- Acao: execute novamente o instalador apos revisar as mudancas
+- Acao: deseja atualizar agora ou prosseguir sem atualizar?
 ```
 
-6. Se houver commits novos, informe a atualizacao disponivel e execute o re-deploy das skills nos ambientes em uso. Use o instalador em modo nao interativo, por exemplo `scripts/setup-alltomatos-skills.sh --redeploy <diretorios-detectados>`. O re-deploy deve acontecer depois do `fetch`, sem sobrescrever backups existentes.
-7. Depois do re-deploy, confirme que `orchestrator` e `setup-skills` apontam para a revisao nova e informe o resultado ao usuario antes de continuar.
+6. Se houver commits novos, pergunte ao usuario se deseja atualizar agora ou prosseguir sem atualizar. Nao execute o re-deploy sem essa confirmacao explicita.
+   - Se o usuario confirmar a atualizacao, execute o re-deploy das skills nos ambientes em uso. Use o instalador em modo nao interativo, por exemplo `scripts/setup-alltomatos-skills.sh --redeploy <diretorios-detectados>`. O re-deploy deve acontecer depois do `fetch`, sem sobrescrever backups existentes. Depois do re-deploy, confirme que `developer` aponta para a revisao nova e informe o resultado ao usuario antes de continuar.
+   - Se o usuario optar por prosseguir sem atualizar, registre a decisao e continue o fluxo normalmente com a revisao atual.
 8. Se nao houver mudancas, registre `Framework atualizado (<commit>)` sem interromper o fluxo.
 9. Se nao for possivel localizar o clone, o remote ou a rede, informe `Nao foi possivel verificar atualizacoes do framework` e continue apenas se as skills locais estiverem disponiveis. Nao faca re-deploy sem confirmar uma revisao nova.
 
-Quando uma revisao nova for confirmada, o re-deploy e automatico e faz parte do contrato do orchestrator. Para uma instalacao inicial ou troca de ambientes, a decisao continua sendo explicita do usuario por meio de `scripts/setup-alltomatos-skills.sh`.
+Quando uma revisao nova for confirmada, o re-deploy so ocorre mediante confirmacao explicita do usuario nesta mesma execucao — nunca automaticamente. Para uma instalacao inicial ou troca de ambientes, a decisao continua sendo explicita do usuario por meio de `scripts/setup-alltomatos-skills.sh`.
 
 ## Fase 0 - Pre-condicoes de governanca
 
@@ -47,19 +48,19 @@ Se o ambiente estiver vazio, nao tiver Git ou nao tiver repositorio remoto no Gi
 2. inicializar o repositorio local;
 3. configurar o remote `origin`;
 4. fazer o primeiro commit e push;
-5. retornar ao orchestrator.
+5. retornar ao developer.
 
 Nao substitua o GitHub silenciosamente por tracker local. GitHub e a fonte de rastreabilidade, Issues, revisao e historico deste framework.
 
-## Fase 1 - Provisionamento documental
+## Fase 1 - Provisionamento documental, arquitetura e estrategia
 
-1. Invocar `/setup-skills` para completar `AGENTS.md` ou `CLAUDE.md`, `CONTEXT.md`, `docs/agents/` e `docs/adr/`.
-2. Invocar `/roadmap` para criar ou atualizar `ORCHESTRATOR-ROADMAP.md` e Epics.
-3. Invocar `/grill-with-docs` para consolidar linguagem de dominio e decisoes arquiteturais.
-4. Em repositorio vazio, invocar `/scaffold-mvp` apos o alinhamento de dominio.
+1. Se a arquitetura tecnica, ADD/SAD, C4, mockups ou design system ainda nao estiverem definidos, orientar ou invocar `/architect`.
+2. Invocar `/roadmap` para criar ou atualizar `DEVELOPER-ROADMAP.md` e Epics.
+3. Invocar `/grill-with-docs` para consolidar linguagem de dominio (`CONTEXT.md`, `docs/agents/`, `docs/adr/`) e decisoes arquiteturais.
+4. Em repositorio vazio, invocar `/scaffold-mvp` apos o alinhamento de dominio e arquitetura.
 5. Revisar e persistir a documentacao antes de iniciar implementacao.
 
-Documentacao nao e uma etapa opcional: o orchestrator deve deixar um estado compreensivel para outro agent continuar o trabalho.
+Documentacao nao e uma etapa opcional: o developer deve deixar um estado compreensivel para outro agent continuar o trabalho.
 
 ### Caso especial - projeto novo com apenas um PRD na pasta
 
@@ -71,26 +72,35 @@ Quando o repositorio for inicializado a partir de uma pasta que contem somente u
 4. Invocar `/to-issues` para fatiar cada Epic em Issues atomicas (slices verticais, rastreaveis, com criterios de aceite), registrando o mapeamento Epic -> Issues conforme Fase 3.
 5. Seguir para a Fase 4 usando o modo de fila sequencial descrito abaixo.
 
-## Fase 2 - Auditoria
+## Fase 2 - Triage, Auditoria & Leitura dos Artefatos
 
-Verifique:
+1. **Triagem de Issues com `/triage`:**
+   - Execute o `/triage` para auditar e organizar o estado das Issues do GitHub, classificar prioridades e preparar as tarefas para o ciclo de desenvolvimento.
+2. **Leitura e Absorção dos Artefatos do Arquiteto:**
+   - Leia rigorosamente todos os artefatos gerados pelo `/architect`:
+     - ADD/SAD (`docs/architecture/ADD.md` ou `SAD.md`);
+     - Decisões registradas em `docs/adr/`;
+     - Design Tokens e Mockups em `design-system/MASTER.md` e `design-system/pages/`;
+     - Diagramas C4, DERs e contratos de API.
+3. **Checklist de Governança:**
 
 ```text
 [ ] Git inicializado
 [ ] Remote GitHub configurado e acessivel
 [ ] AGENTS.md ou CLAUDE.md
 [ ] CONTEXT.md ou CONTEXT-MAP.md
+[ ] docs/architecture/ (ADD/SAD) e docs/adr/ produzidos pelo /architect
+[ ] design-system/ e mockups prontos
 [ ] docs/agents/ com tracker e labels
-[ ] docs/adr/ quando houver decisoes relevantes
-[ ] ORCHESTRATOR-ROADMAP.md
-[ ] Skills instaladas no ambiente escolhido
+[ ] DEVELOPER-ROADMAP.md
+[ ] Issues fatiadas no GitHub prontas para execução
 ```
 
 Classifique gaps como P1 (seguranca/tipos), P2 (arquitetura), P3 (performance) ou P4 (higiene/documentacao). Use `/improve-codebase-architecture`, `/diagnose`, `/query-docs` ou `/zoom-out` conforme o caso.
 
 ## Fase 3 - Fragmentacao no GitHub
 
-Os gaps aprovados devem ser transformados em Issues por `/to-issues`. O GitHub e a fonte persistente de escopo, criterios de aceite, dependencias e status; `ESTADO_ORQUESTRATOR.md` e apenas a visao operacional da DAG.
+Os gaps aprovados devem ser transformados em Issues por `/to-issues`. O GitHub e a fonte persistente de escopo, criterios de aceite, dependencias e status; `ESTADO_DEVELOPER.md` e apenas a visao operacional da DAG.
 
 1. Passe para `/to-issues` os gaps, roadmap e documentacao aprovados.
 2. Apresente a decomposicao para aprovacao quando houver decisao HITL.
@@ -98,34 +108,28 @@ Os gaps aprovados devem ser transformados em Issues por `/to-issues`. O GitHub e
 4. Registre o mapeamento `Tarefa -> Issue GitHub -> branch/worktree`.
 5. Nunca crie uma DAG apenas em memoria ou apenas em arquivo local quando a tarefa puder ser rastreada no GitHub.
 
-## Fase 4 - Execucao
+## Fase 4 - Execução em Loop com TDD
 
-Use slices verticais pequenos. Tarefas independentes podem ser executadas em paralelo com worktrees isoladas. Tarefas que alterem schema, autenticacao, APIs publicas ou dados exigem confirmacao humana.
+O developer trabalha nas Issues criadas pelo Arquiteto em **loop sequencial e ordenado** (respeitando o grafo de dependências e `Blocked by`), até que **todas as Issues do escopo sejam implementadas e fechadas**.
 
-O orchestrator delega para skills especializadas, por exemplo:
+### Loop de Desenvolvimento por Issue:
+1. **Seleção da Próxima Issue Desbloqueada:** Escolha a próxima Issue elegível na melhor ordem de dependência.
+2. **Desenvolvimento Orientado a Testes com `/tdd`:**
+   - **TDD Obrigatório:** Toda funcionalidade ou correção deve ser construída pelo ciclo Red-Green-Refactor do `/tdd` (escrever teste de unidade/integração que falha -> implementar a solução mínima -> refatorar mantendo os testes verdes).
+   - Invoque skills especializadas complementares conforme o domínio:
+     - `/query-docs` para APIs e bibliotecas de terceiros;
+     - `/expo-expert` para stack Expo/React Native;
+     - `/diagnose` diante de bugs ou regressões imprevistas.
+3. **Validação Atômica:** Garanta que a suite de testes da Issue passou e que o build está íntegro.
+4. **Fechamento da Issue & Avanço:** Faça o commit semântico (`feat:`, `fix:`), feche/atualize a Issue no GitHub e avance para a próxima Issue do loop até esgotar todas as pendências criadas pelo Arquiteto.
 
-- `/tdd` para implementacao orientada a testes;
-- `/secure-e2e` para fluxos E2E e seguranca;
-- `/diagnose` para bugs e regressao;
-- `/query-docs` para APIs de terceiros;
-- `/expo-expert` para conhecimento especializado de stack Expo/React Native (EAS, Router, config plugins, upgrade de SDK);
-- `/write-a-skill` para gargalos nao cobertos.
+## Fase 5 - Verificação Final, Segurança e QA Completo
 
-### Fila sequencial para Epics fatiados de um PRD
+Quando **todas as Issues do escopo forem concluídas no loop**, o Developer deve obrigatoriamente submeter o resultado integrado para os dois gates de qualidade e segurança:
 
-Quando as Issues vierem do caso especial "projeto novo com apenas um PRD" (Fase 1), a execucao **nao** e paralela: despachar **um unico agente por vez**, na ordem de dependencia das Issues.
-
-1. Para o Epic atual, processar suas Issues fatiadas uma a uma: desenvolver -> QA (Fase 5) -> commit -> proxima Issue da fila. Repetir ate esgotar todas as Issues do Epic.
-2. Epic esgotado -> abrir PR da branch de trabalho para `develop`.
-   * PR verde (CI/testes passam) -> merge em `develop`.
-   * PR falhar -> corrigir os problemas, reexecutar a verificacao e so entao mergear.
-3. Apos o merge, voltar para a branch `develop` e avancar para o proximo Epic da fila, repetindo o loop ate que todos os Epics do PRD estejam finalizados.
-4. Ao concluir todos os Epics, abrir o merge final de `develop` para `main`.
-
-## Fase 5 - Verificacao e QA
-
-Depois de cada tarefa, execute verificacoes proporcionais e registre evidencia. Se falhar, invoque `/diagnose` antes de continuar.
-
-Quando a DAG estiver concluida, invoque obrigatoriamente `/qa-analyst`, sem excecao de tier. O QA deve confrontar requisitos, Issues, implementacao, testes, cenarios de erro e mudancas fora de escopo. Falhas reabrem Issues ou criam novas tarefas.
-
-Somente depois da aprovacao do QA pode ocorrer a entrega por PR. Se nao existir uma skill de fluxo Git/PR instalada, descreva os passos e solicite confirmacao humana; nunca invoque uma skill inexistente.
+1. **Gate 1 - Testes E2E e Segurança com `/secure-e2e`:**
+   - Executar os fluxos de ponta a ponta e testes de segurança/vulnerabilidade (OWASP, autenticação, autorização e regressão).
+2. **Gate 2 - Garantia de Qualidade com `/qa-analyst`:**
+   - O `/qa-analyst` deve confrontar todos os requisitos do ADD/SAD do `/architect`, as Issues fechadas, cobertura de testes e possíveis regressões.
+   - Se o QA apontar qualquer inconformidade, reabra a Issue ou crie uma tarefa corretiva e reexecute o ciclo.
+3. **Entrega / PR:** Somente após a aprovação com status verde de `/secure-e2e` e `/qa-analyst`, o Developer finaliza o trabalho e prepara o Pull Request para merge.
