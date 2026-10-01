@@ -282,6 +282,7 @@ export function AgentUIFormPage() {
 
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
+  const [filterAudioOnly, setFilterAudioOnly] = createSignal(false)
 
   // "Criar com IA": one-shot generation, not a conversation — the user
   // describes the agent once, the draft lands in the form fields below for
@@ -598,12 +599,24 @@ export function AgentUIFormPage() {
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                      <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.model")}</label>
+                      <div class="flex items-center justify-between">
+                        <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.model")}</label>
+                        <label class="flex items-center gap-1.5 text-11-regular text-v2-text-text-muted cursor-pointer hover:text-v2-text-text-base transition-colors">
+                          <input
+                            type="checkbox"
+                            class="rounded border-v2-border-border-base cursor-pointer"
+                            checked={filterAudioOnly()}
+                            onChange={(e) => setFilterAudioOnly(e.currentTarget.checked)}
+                          />
+                          {language.t("settings.agentui.field.filterAudio")}
+                        </label>
+                      </div>
                       <ModelPickerV2
                         value={form.model}
                         onChange={(value) => setForm("model", value)}
                         combos={combos() ?? []}
                         directory={directory()}
+                        requireAudio={filterAudioOnly()}
                       />
                     </div>
 

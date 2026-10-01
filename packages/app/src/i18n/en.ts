@@ -1013,6 +1013,7 @@ export const dict = {
   "settings.agentui.field.name": "Name",
   "settings.agentui.field.personality": "Personality",
   "settings.agentui.field.model": "Model",
+  "settings.agentui.field.filterAudio": "Listen to audio (only models with voice/audio support)",
   "settings.agentui.field.telegram": "Reply on Telegram",
   "settings.agentui.field.telegramToken.placeholder": "Bot token (optional — leave empty to share the global bot)",
   "settings.agentui.field.telegramToken.hint": "Paste a token from @BotFather to give this agent its own dedicated Telegram bot. Leave empty to reach it through the shared bot in Settings → Integrations instead, using its command trigger.",

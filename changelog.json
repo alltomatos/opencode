@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.58",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI: Suporte completo a áudio e seleção de modelos com voz",
+              "description": "Habilitado suporte multimodal a áudio nos modelos Gemini/Antigravity e combos. Adicionado filtro no seletor de modelos do AgentUI para identificar e selecionar modelos capazes de ouvir áudio. Mídias e anexos recebidos no WhatsApp agora são armazenados na pasta temporária do sistema, evitando poluir o disco local permanentemente."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.57",
       "highlights": [
         {

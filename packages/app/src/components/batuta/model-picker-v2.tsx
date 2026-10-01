@@ -30,6 +30,8 @@ export interface ModelPickerV2Props {
   requireVision?: boolean
   /** Require models supporting PDF / document inputs */
   requirePdf?: boolean
+  /** Require models supporting audio inputs */
+  requireAudio?: boolean
 }
 
 function splitModel(value: string) {
@@ -210,6 +212,16 @@ export const ModelPickerV2: Component<ModelPickerV2Props> = (props) => {
         if (inputCaps && typeof inputCaps === "object") return Boolean(inputCaps.pdf)
         if (m.modalities?.input) return m.modalities.input.includes("pdf")
         return m.attachment || m.id.includes("flash") || m.id.includes("pro") || m.id.includes("sonnet")
+      })
+    }
+
+    if (props.requireAudio) {
+      models = models.filter((m) => {
+        const inputCaps = m.capabilities?.input
+        if (Array.isArray(inputCaps)) return inputCaps.includes("audio")
+        if (inputCaps && typeof inputCaps === "object") return Boolean(inputCaps.audio)
+        if (m.modalities?.input) return m.modalities.input.includes("audio")
+        return m.id.includes("gemini") || m.id.includes("audio") || m.id.includes("whisper")
       })
     }
 

@@ -959,6 +959,7 @@ export const dict = {
   "settings.agentui.field.name": "Nome",
   "settings.agentui.field.personality": "Personalidade",
   "settings.agentui.field.model": "Modelo",
+  "settings.agentui.field.filterAudio": "Ouvir áudio (apenas modelos com suporte a voz/áudio)",
   "settings.agentui.field.telegram": "Responder no Telegram",
   "settings.agentui.field.telegramToken.placeholder": "Token do bot (opcional — deixe vazio para usar o bot global)",
   "settings.agentui.field.telegramToken.hint": "Cole um token do @BotFather para dar a este agente seu próprio bot dedicado do Telegram. Deixe vazio para responder pelo bot compartilhado em Configurações → Integrações, usando o prefixo de comando.",

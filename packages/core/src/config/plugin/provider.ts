@@ -121,7 +121,7 @@ export const Plugin = define({
                 model.family = "combo"
                 model.capabilities = {
                   tools: true,
-                  input: ["text", "image", "pdf"],
+                  input: ["text", "image", "pdf", "audio"],
                   output: ["text"],
                 }
                 if (model.limit.context === 0) {

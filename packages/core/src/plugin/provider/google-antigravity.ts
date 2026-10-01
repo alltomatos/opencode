@@ -408,11 +408,12 @@ export const GoogleAntigravityPlugin = define<HttpClient.HttpClient | Scope.Scop
         ]
 
         for (const m of models) {
+          const isGemini = m.id.startsWith("gemini")
           catalog.model.update(providerID, m.id, (draft) => {
             draft.name = m.name
             draft.capabilities = {
               tools: true,
-              input: ["text", "image", "pdf"],
+              input: isGemini ? ["text", "image", "pdf", "audio"] : ["text", "image", "pdf"],
               output: ["text"],
             }
             draft.status = "active"

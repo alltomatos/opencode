@@ -6,6 +6,7 @@ import { AgentUI } from "@/agentui"
 import { Context, Duration, Effect, Fiber, Layer, Schedule, Schema, Scope } from "effect"
 import path from "node:path"
 import fs from "node:fs/promises"
+import os from "node:os"
 import { createConnector, type WaAdapter, type WaMessage } from "waconector"
 import { waha } from "waconector/waha"
 import { evolution } from "waconector/evolution"
@@ -169,7 +170,7 @@ const saveMediaToDisk = (
     try {
       const cleanChatId = sanitizeDirName(chatId)
       const subfolder = getSubfolderForMime(mime)
-      const targetDir = path.join(baseDirectory, "storage", "whatsapp", cleanChatId, subfolder)
+      const targetDir = path.join(os.tmpdir(), "opencode", "media", "whatsapp", cleanChatId, subfolder)
       await fs.mkdir(targetDir, { recursive: true })
 
       let finalFilename = filename
