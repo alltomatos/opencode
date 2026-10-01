@@ -287,46 +287,47 @@ const layer = Layer.effect(
       directory: string,
     ): Effect.Effect<WhatsAppAttachment | undefined> =>
       Effect.gen(function* () {
-        if (!msg.media) return undefined
-        const media = msg.media
-        if (media.base64) {
-          const mime = media.mimeType || "application/octet-stream"
-          const filename = media.filename || `anexo_${Date.now()}`
-          const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, media.base64)
-          return {
-            filename,
-            mime,
-            url: `data:${mime};base64,${media.base64}`,
-            localPath,
-          }
-        }
-        if (media.url && media.url.startsWith("http")) {
-          // Tenta baixar a URL caso o provedor exponha link público ou temporário
-          const res = yield* Effect.tryPromise(() => fetch(media.url!)).pipe(Effect.option)
-          if (res._tag === "Some" && res.value.ok) {
-            const buf = yield* Effect.promise(() => res.value.arrayBuffer())
-            const base64 = Buffer.from(buf).toString("base64")
-            const mime = media.mimeType || res.value.headers.get("content-type") || "application/octet-stream"
+        if (msg.media) {
+          const media = msg.media
+          if (media.base64) {
+            const mime = media.mimeType || "application/octet-stream"
             const filename = media.filename || `anexo_${Date.now()}`
-            const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, base64)
+            const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, media.base64)
             return {
               filename,
               mime,
-              url: `data:${mime};base64,${base64}`,
+              url: `data:${mime};base64,${media.base64}`,
               localPath,
+            }
+          }
+          if (media.url && media.url.startsWith("http")) {
+            // Tenta baixar a URL caso o provedor exponha link público ou temporário
+            const res = yield* Effect.tryPromise(() => fetch(media.url!)).pipe(Effect.option)
+            if (res._tag === "Some" && res.value.ok) {
+              const buf = yield* Effect.promise(() => res.value.arrayBuffer())
+              const base64 = Buffer.from(buf).toString("base64")
+              const mime = media.mimeType || res.value.headers.get("content-type") || "application/octet-stream"
+              const filename = media.filename || `anexo_${Date.now()}`
+              const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, base64)
+              return {
+                filename,
+                mime,
+                url: `data:${mime};base64,${base64}`,
+                localPath,
+              }
             }
           }
         }
 
-        // Tenta baixar via connector.messages.download caso o provedor suporte
+        // Tenta baixar via connector.messages.download caso o provedor suporte (ex.: izapia, waha, evolution)
         const connector = createConnector(adapter)
         const downloaded = yield* Effect.tryPromise(() =>
           connector.messages.download({ messageId: msg.id, raw: msg.raw }),
         ).pipe(Effect.option)
 
         if (downloaded._tag === "Some" && downloaded.value.base64) {
-          const mime = downloaded.value.mimeType || media.mimeType || "application/octet-stream"
-          const filename = downloaded.value.filename || media.filename || `anexo_${Date.now()}`
+          const mime = downloaded.value.mimeType || msg.media?.mimeType || "application/octet-stream"
+          const filename = downloaded.value.filename || msg.media?.filename || `anexo_${Date.now()}`
           const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, downloaded.value.base64)
           return {
             filename,
