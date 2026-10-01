@@ -1,0 +1,27 @@
+{
+  "name": "@opencode-ai/mcpm365",
+  "version": "0.1.0",
+  "description": "Servidor MCP de integração com Microsoft 365 (Outlook, Calendário, OneDrive/SharePoint e Teams).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.16.2",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "isomorphic-fetch": "^3.0.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/isomorphic-fetch": "^0.0.39",
+    "@types/node": "22.15.30",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
