@@ -14,6 +14,7 @@ import { ConfigAgent } from "./config/agent"
 import { ConfigAttachments } from "./config/attachments"
 import { ConfigCompaction } from "./config/compaction"
 import { ConfigCommand } from "./config/command"
+import { ConfigCombo } from "./config/combo"
 import { ConfigExperimental } from "./config/experimental"
 import { ConfigFormatter } from "./config/formatter"
 import { ConfigLSP } from "./config/lsp"
@@ -103,6 +104,9 @@ export class Info extends Schema.Class<Info>("Config.Info")({
     description: "Ordered external plugin packages to load",
   }),
   experimental: ConfigExperimental.Experimental.pipe(Schema.optional),
+  combo: Schema.Record(Schema.String, ConfigCombo.Info).pipe(Schema.optional).annotate({
+    description: "Model combos: named groups of models with failover/rate-limit",
+  }),
   providers: Schema.Record(Schema.String, ConfigProvider.Info).pipe(Schema.optional),
 }) {}
 

@@ -33,6 +33,19 @@ const layer = Layer.effect(
       interrupt: coordinator.interrupt,
       resume: coordinator.run,
       wake: coordinator.wake,
+      compact: (sessionID) =>
+        Effect.gen(function* () {
+          const session = yield* store.get(sessionID)
+          if (!session) return yield* Effect.die(`Session not found: ${sessionID}`)
+          return yield* SessionRunner.Service.use((runner) => runner.compact({ sessionID })).pipe(
+            Effect.provide(locations.get(session.location)),
+            Effect.tapCause((cause) =>
+              Cause.hasInterruptsOnly(cause)
+                ? Effect.void
+                : Effect.logError("Failed to compact Session", cause).pipe(Effect.annotateLogs({ sessionID })),
+            ),
+          )
+        }),
     })
   }),
 )

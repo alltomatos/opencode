@@ -124,6 +124,12 @@ export const Plugin = define({
                   input: ["text", "image", "pdf"],
                   output: ["text"],
                 }
+                if (model.limit.context === 0) {
+                  model.limit = {
+                    context: 200_000,
+                    output: 8_192,
+                  }
+                }
               })
             }
           }

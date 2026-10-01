@@ -23,6 +23,10 @@ export interface Interface {
     readonly sessionID: SessionSchema.ID
     readonly force: boolean
   }) => Effect.Effect<void, RunError>
+  /** Manually compacts session history into an anchored summary message. */
+  readonly compact: (input: {
+    readonly sessionID: SessionSchema.ID
+  }) => Effect.Effect<void, RunError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/SessionRunner") {}

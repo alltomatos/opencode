@@ -40,6 +40,7 @@ const execution = Layer.succeed(
       Effect.sync(() => {
         wakeCalls.push(sessionID)
       }),
+    compact: (_sessionID) => Effect.void,
   }),
 )
 const it = testEffect(

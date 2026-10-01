@@ -209,11 +209,20 @@ export const make = (dependencies: Dependencies) => {
         }),
       )
       .pipe(
-        Stream.runForEach((event) => {
-          if (LLMEvent.is.providerError(event)) failed = true
-          if (LLMEvent.is.textDelta(event)) chunks.push(event.text)
-          return Effect.void
-        }),
+        Stream.runForEach((event) =>
+          Effect.gen(function* () {
+            if (LLMEvent.is.providerError(event)) failed = true
+            if (LLMEvent.is.textDelta(event)) {
+              chunks.push(event.text)
+              yield* dependencies.events.publish(SessionEvent.Compaction.Delta, {
+                sessionID: input.sessionID,
+                messageID,
+                timestamp: yield* DateTime.now,
+                text: event.text,
+              })
+            }
+          }),
+        ),
         Effect.as(true),
         Effect.catchTag("LLM.Error", () => Effect.succeed(false)),
       )
@@ -224,6 +233,68 @@ export const make = (dependencies: Dependencies) => {
       messageID,
       timestamp: yield* DateTime.now,
       reason: "auto",
+      text: summary,
+      recent: selected.recent,
+    })
+    return true
+  })
+  const compactManual = Effect.fn("SessionCompaction.compactManual")(function* (input: Input) {
+    const context = input.model.route.defaults.limits?.context ?? 200_000
+    const output = input.request.generation?.maxTokens ?? input.model.route.defaults.limits?.output ?? 0
+    const selected = select(input.entries, config.tokens)
+    const previousSummary = input.entries.find((entry) => entry.message.type === "compaction")?.message
+    if (!selected || (selected.head.length === 0 && previousSummary?.type !== "compaction")) return false
+    const summaryPrompt = buildPrompt({
+      previousSummary: previousSummary?.type === "compaction" ? previousSummary.summary : undefined,
+      context: [previousSummary?.type === "compaction" ? previousSummary.recent : "", selected.head].filter(Boolean),
+    })
+    const summaryOutput = Math.min(output || SUMMARY_OUTPUT_TOKENS, SUMMARY_OUTPUT_TOKENS)
+    if (context > 0 && Token.estimate(summaryPrompt) > context - summaryOutput) return false
+    const messageID = SessionMessage.ID.create()
+    yield* dependencies.events.publish(SessionEvent.Compaction.Started, {
+      sessionID: input.sessionID,
+      messageID,
+      timestamp: yield* DateTime.now,
+      reason: "manual",
+    })
+
+    const chunks: string[] = []
+    let failed = false
+    const summarized = yield* dependencies.llm
+      .stream(
+        LLM.request({
+          model: input.model,
+          http: input.request.http,
+          messages: [Message.user(summaryPrompt)],
+          tools: [],
+          generation: { maxTokens: summaryOutput },
+        }),
+      )
+      .pipe(
+        Stream.runForEach((event) =>
+          Effect.gen(function* () {
+            if (LLMEvent.is.providerError(event)) failed = true
+            if (LLMEvent.is.textDelta(event)) {
+              chunks.push(event.text)
+              yield* dependencies.events.publish(SessionEvent.Compaction.Delta, {
+                sessionID: input.sessionID,
+                messageID,
+                timestamp: yield* DateTime.now,
+                text: event.text,
+              })
+            }
+          }),
+        ),
+        Effect.as(true),
+        Effect.catchTag("LLM.Error", () => Effect.succeed(false)),
+      )
+    const summary = chunks.join("")
+    if (!summarized || failed || !summary.trim()) return false
+    yield* dependencies.events.publish(SessionEvent.Compaction.Ended, {
+      sessionID: input.sessionID,
+      messageID,
+      timestamp: yield* DateTime.now,
+      reason: "manual",
       text: summary,
       recent: selected.recent,
     })
@@ -244,5 +315,6 @@ export const make = (dependencies: Dependencies) => {
   return {
     compactIfNeeded,
     compactAfterOverflow,
+    compactManual,
   }
 }

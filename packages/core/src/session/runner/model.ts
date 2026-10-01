@@ -8,6 +8,7 @@ import * as OpenAIResponses from "@opencode-ai/llm/protocols/openai-responses"
 import { Auth, type AnyRoute } from "@opencode-ai/llm/route"
 import { Context, Effect, Layer, Schema } from "effect"
 import { produce } from "immer"
+import { Config } from "../../config"
 import { Catalog } from "../../catalog"
 import { Credential } from "../../credential"
 import { Integration } from "../../integration"
@@ -189,13 +190,52 @@ export const locationLayer = Layer.effect(
   Effect.gen(function* () {
     const catalog = yield* Catalog.Service
     const integrations = yield* Integration.Service
+    const config = yield* Config.Service
+    const lastFailed = new Map<string, string>()
+
+    const resolveComboModel = (comboID: string) =>
+      Effect.gen(function* () {
+        const entries = yield* config.entries()
+        const documents = entries.filter((entry): entry is Config.Document => entry.type === "document")
+        let comboInfo: any
+        for (const doc of documents) {
+          if (doc.info.combo && doc.info.combo[comboID]) {
+            comboInfo = doc.info.combo[comboID]
+          }
+        }
+        if (!comboInfo || !comboInfo.models || comboInfo.models.length === 0) return undefined
+        const sorted = [...comboInfo.models].sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0))
+        const skip = comboInfo.failover?.enabled ? lastFailed.get(comboID) : undefined
+        for (const entry of sorted) {
+          if (entry.model === skip) continue
+          const [pID, ...mID] = (entry.model as string).split("/")
+          if (pID && mID.length > 0) return { providerID: ProviderV2.ID.make(pID), modelID: ModelV2.ID.make(mID.join("/")) }
+        }
+        const [firstPID, ...firstMID] = (sorted[0].model as string).split("/")
+        if (firstPID && firstMID.length > 0) {
+          return { providerID: ProviderV2.ID.make(firstPID), modelID: ModelV2.ID.make(firstMID.join("/")) }
+        }
+        return undefined
+      })
+
     return Service.of({
       resolve: Effect.fn("SessionRunnerModel.resolve")(function* (session) {
         // Location plugins populate and filter the catalog asynchronously during layer startup.
+        let targetProviderID = session.model?.providerID
+        let targetModelID = session.model?.id
+
+        if (targetProviderID === "combo" && targetModelID) {
+          const resolvedCombo = yield* resolveComboModel(targetModelID)
+          if (resolvedCombo) {
+            targetProviderID = resolvedCombo.providerID
+            targetModelID = resolvedCombo.modelID
+          }
+        }
+
         const defaultModel = session.model ? undefined : yield* catalog.model.default()
-        const selected = session.model
+        const selected = targetProviderID && targetModelID
           ? (yield* catalog.model.available()).find(
-              (model) => model.providerID === session.model?.providerID && model.id === session.model.id,
+              (model) => model.providerID === targetProviderID && model.id === targetModelID,
             )
           : defaultModel && supported(defaultModel)
             ? defaultModel
@@ -217,6 +257,13 @@ export const locationLayer = Layer.effect(
         )
       }),
       reportFailure: Effect.fn("SessionRunnerModel.reportFailure")(function* (session, error) {
+        if (session.model?.providerID === "combo" && session.model?.id) {
+          const comboID = session.model.id
+          const resolved = yield* resolveComboModel(comboID)
+          if (resolved) {
+            lastFailed.set(comboID, `${resolved.providerID}/${resolved.modelID}`)
+          }
+        }
         const defaultModel = session.model ? undefined : yield* catalog.model.default()
         const selected = session.model
           ? (yield* catalog.model.available()).find(
@@ -234,4 +281,4 @@ export const locationLayer = Layer.effect(
   }),
 )
 
-export const node = makeLocationNode({ service: Service, layer: locationLayer, deps: [Catalog.node, Integration.node] })
+export const node = makeLocationNode({ service: Service, layer: locationLayer, deps: [Catalog.node, Integration.node, Config.node] })

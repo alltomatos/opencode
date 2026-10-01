@@ -416,8 +416,42 @@ const layer = Layer.effect(
       }
     })
 
+    const compact = Effect.fn("SessionRunner.compact")(function* (input: {
+      readonly sessionID: SessionSchema.ID
+    }) {
+      const session = yield* getSession(input.sessionID)
+      if (session.location.directory !== location.directory || session.location.workspaceID !== location.workspaceID)
+        return yield* Effect.interrupt
+      const agent = yield* agents.select(session.agent)
+      const initialized = yield* SessionContextEpoch.initialize(db, loadSystemContext(agent), session.id)
+      const system =
+        initialized ?? (yield* SessionContextEpoch.prepare(db, events, loadSystemContext(agent), session.id))
+      const model = yield* models.resolve(session)
+      const entries = yield* SessionHistory.entriesForRunner(db, session.id, system.baselineSeq)
+      const context = entries.map((entry) => entry.message)
+      const promptCacheKey = /^ses_[0-9a-f]{64}$/.test(session.id) ? session.id.slice(4) : session.id
+      const request = LLM.request({
+        model,
+        http: {
+          headers: {
+            "x-session-affinity": session.id,
+            "X-Session-Id": session.id,
+            ...(session.parentID ? { "x-parent-session-id": session.parentID } : {}),
+          },
+        },
+        providerOptions: { openai: { promptCacheKey } },
+        system: [agent.info?.system, system.baseline]
+          .filter((part): part is string => part !== undefined && part.length > 0)
+          .map(SystemPart.make),
+        messages: toLLMMessages(context, model),
+        tools: [],
+      })
+      yield* compaction.compactManual({ sessionID: session.id, entries, model, request })
+    })
+
     return Service.of({
       run,
+      compact,
     })
   }),
 )

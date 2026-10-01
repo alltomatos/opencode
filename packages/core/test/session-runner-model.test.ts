@@ -4,6 +4,7 @@ import { LLMClient } from "@opencode-ai/llm/route"
 import { DateTime, Effect, Layer } from "effect"
 import { Headers } from "effect/unstable/http"
 import { Catalog } from "@opencode-ai/core/catalog"
+import { Config } from "@opencode-ai/core/config"
 import { Credential } from "@opencode-ai/core/credential"
 import { Integration } from "@opencode-ai/core/integration"
 import { IntegrationConnection } from "@opencode-ai/core/integration/connection"
@@ -386,6 +387,7 @@ describe("SessionRunnerModel", () => {
       const layer = SessionRunnerModel.locationLayer.pipe(
         Layer.provide(Layer.succeed(Catalog.Service, catalog as any)),
         Layer.provide(Layer.succeed(Integration.Service, integrations as any)),
+        Layer.provide(Layer.succeed(Config.Service, { entries: () => Effect.succeed([]) } as any)),
       )
 
       const models = yield* Effect.provide(SessionRunnerModel.Service, layer)
