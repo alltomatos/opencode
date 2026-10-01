@@ -69,6 +69,36 @@ const agentUICallerUnsupportedLayer = Layer.succeed(
 
 export const agentUICallerNode = makeGlobalNode({ service: AgentUICaller, layer: agentUICallerUnsupportedLayer, deps: [] })
 
+export interface ReminderCallResult {
+  readonly success: boolean
+  readonly error?: string
+}
+
+export interface ReminderCallerInterface {
+  readonly notifyReminder: (
+    action: Schedule.ReminderAction,
+    workspace: string | undefined,
+  ) => Effect.Effect<ReminderCallResult>
+}
+
+export class ReminderCaller extends Context.Service<ReminderCaller, ReminderCallerInterface>()(
+  "@opencode/v2/Schedule/ReminderCaller",
+) {}
+
+const reminderCallerDefaultLayer = Layer.succeed(
+  ReminderCaller,
+  ReminderCaller.of({
+    notifyReminder: (action) =>
+      Effect.sync(() => {
+        // Default in-process log/notification fallback
+        console.log(`[REMINDER ALERTA] 🔔 ${action.title}: ${action.message}`)
+        return { success: true }
+      }),
+  }),
+)
+
+export const reminderCallerNode = makeGlobalNode({ service: ReminderCaller, layer: reminderCallerDefaultLayer, deps: [] })
+
 export interface McpCallResult {
   readonly success: boolean
   readonly error?: string
@@ -222,6 +252,18 @@ function runAction(action: Schedule.Action, workspace: string | undefined, sessi
       return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: undefined }
     })
   }
+  if (action.kind === "reminder") {
+    return Effect.gen(function* () {
+      const caller = yield* ReminderCaller
+      const result: ReminderCallResult = yield* caller.notifyReminder(action, workspace).pipe(
+        Effect.timeoutOrElse({
+          duration: Duration.millis(timeoutMs),
+          orElse: () => Effect.succeed({ success: false, error: `timeout after ${timeoutMs}ms` }),
+        }),
+      )
+      return { exitCode: result.success ? 0 : 1, error: result.error, sessionId: undefined }
+    })
+  }
   return Effect.succeed({
     exitCode: 1,
     error: `Action kind "${(action as any).kind}" is not yet supported by the schedule runner.`,
@@ -267,7 +309,9 @@ const tick = Effect.fn("v2.Schedule.tick")(function* () {
     if (!schedule.enabled) continue
     if (schedule.trigger.kind === "manual") continue
 
-    if (schedule.trigger.kind === "interval") {
+    if (schedule.trigger.kind === "once") {
+      if (schedule.lastRunAt || nowMs < schedule.trigger.timestamp) continue
+    } else if (schedule.trigger.kind === "interval") {
       if (schedule.lastRunAt && nowMs - schedule.lastRunAt < schedule.trigger.ms) continue
     } else {
       if (schedule.lastRunAt && nowMs - schedule.lastRunAt < 59_000) continue
@@ -277,6 +321,7 @@ const tick = Effect.fn("v2.Schedule.tick")(function* () {
     const result = yield* runAction(schedule.action, schedule.workspace, schedule.lastSessionId)
     yield* schedules.update(schedule.id, {
       lastRunAt: nowMs,
+      enabled: schedule.trigger.kind === "once" ? false : schedule.enabled,
       lastStatus: result.exitCode === 0 ? "success" : "error",
       lastError: result.error,
       lastSessionId: result.sessionId ?? schedule.lastSessionId,
@@ -298,5 +343,5 @@ const tickLayer = Layer.effectDiscard(
 export const tickNode = makeGlobalNode({
   name: "schedule-tick",
   layer: Layer.merge(Schedule.layer, tickLayer.pipe(Layer.provide(Schedule.layer))),
-  deps: [Database.node, mcpCallerNode, skillCallerNode, agentUICallerNode],
+  deps: [Database.node, mcpCallerNode, skillCallerNode, agentUICallerNode, reminderCallerNode],
 })

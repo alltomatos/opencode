@@ -25,6 +25,12 @@ export type McpToolAction = Schedule.McpToolAction
 export const AgentUIAction = Schedule.AgentUIAction
 export type AgentUIAction = Schedule.AgentUIAction
 
+export const ReminderAction = Schedule.ReminderAction
+export type ReminderAction = Schedule.ReminderAction
+
+export const OnceTrigger = Schedule.OnceTrigger
+export type OnceTrigger = Schedule.OnceTrigger
+
 export const ShellAction = Schedule.ShellAction
 export type ShellAction = Schedule.ShellAction
 

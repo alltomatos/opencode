@@ -24,6 +24,7 @@ describe("ScheduleRunner execution and timeout", () => {
         ScheduleRunner.mcpCallerNode,
         ScheduleRunner.skillCallerNode,
         ScheduleRunner.agentUICallerNode,
+        ScheduleRunner.reminderCallerNode,
       ]),
       [[ScheduleRunner.mcpCallerNode, mockMcpCaller((server, tool) => {
         if (server === "disconnected") {

@@ -453,8 +453,21 @@ const layer = Layer.effect(
       const personality = knowledge ? `${agent.personality}\n\n${knowledge}` : agent.personality
       const system = hardenSystemPrompt(agent, personality)
 
+      const localPaths = (input.attachments ?? [])
+        .map((a) => (a as any).localPath)
+        .filter((p): p is string => Boolean(p))
+
+      let textMessage = input.message || ""
+      if (!textMessage && input.attachments?.length) {
+        textMessage = "(mídia em anexo)"
+      }
+      if (localPaths.length > 0) {
+        const pathsSummary = `\n[Arquivos salvos localmente: ${localPaths.join(", ")}]`
+        textMessage = textMessage ? `${textMessage}\n${pathsSummary}` : pathsSummary
+      }
+
       const promptParts: SessionPrompt.PromptInput["parts"] = [
-        { type: "text", text: input.message || (input.attachments?.length ? "(mídia em anexo)" : "") },
+        { type: "text", text: textMessage },
         ...(input.attachments ?? []).map((att) => ({
           type: "file" as const,
           mime: att.mime,

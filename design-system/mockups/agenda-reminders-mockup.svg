@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" style="background:#090d16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#151b2b"/>
+      <stop offset="100%" stop-color="#111622"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#d97706" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background App Frame -->
+  <rect x="0" y="0" width="1200" height="800" fill="#0b0f19"/>
+
+  <!-- Top App Navigation Bar -->
+  <rect x="0" y="0" width="1200" height="56" fill="#131926" stroke="#1f293d" stroke-width="1"/>
+  <circle cx="28" cy="28" r="6" fill="#ef4444"/>
+  <circle cx="48" cy="28" r="6" fill="#f59e0b"/>
+  <circle cx="68" cy="28" r="6" fill="#10b981"/>
+  
+  <text x="100" y="34" fill="#94a3b8" font-size="14" font-weight="500">OpenCode Desktop</text>
+  <text x="230" y="34" fill="#475569" font-size="14">/</text>
+  <text x="245" y="34" fill="#f8fafc" font-size="14" font-weight="600">Agenda &amp; Central de Lembretes</text>
+
+  <!-- Left Sidebar (Navigation) -->
+  <rect x="0" y="56" width="240" height="744" fill="#0f1420" stroke="#1f293d" stroke-width="1"/>
+  
+  <rect x="16" y="80" width="208" height="38" rx="8" fill="#1e293b"/>
+  <text x="50" y="104" fill="#60a5fa" font-size="14" font-weight="600">📅 Lembretes &amp; Agenda</text>
+  
+  <text x="50" y="148" fill="#94a3b8" font-size="14">💬 Sessões de Chat</text>
+  <text x="50" y="190" fill="#94a3b8" font-size="14">🤖 AgentUI Bots</text>
+  <text x="50" y="232" fill="#94a3b8" font-size="14">⚙️ Configurações</text>
+
+  <!-- Main Content Area -->
+  <!-- Header with Actions -->
+  <text x="280" y="105" fill="#f8fafc" font-size="24" font-weight="700">Agenda e Lembretes Ativos</text>
+  <text x="280" y="130" fill="#94a3b8" font-size="14">Gerencie os lembretes agendados por você ou criados automaticamente pelo Agente.</text>
+
+  <!-- Create Button -->
+  <rect x="1010" y="86" width="150" height="40" rx="8" fill="url(#accentGrad)" filter="url(#shadow)"/>
+  <text x="1035" y="111" fill="#ffffff" font-size="14" font-weight="600">+ Novo Lembrete</text>
+
+  <!-- Filter Tabs -->
+  <rect x="280" y="160" width="880" height="42" rx="8" fill="#131927" stroke="#1f293d" stroke-width="1"/>
+  <rect x="284" y="164" width="130" height="34" rx="6" fill="#1e293b"/>
+  <text x="315" y="186" fill="#f8fafc" font-size="13" font-weight="600">Próximos (4)</text>
+  <text x="445" y="186" fill="#94a3b8" font-size="13">Antecipados (2)</text>
+  <text x="575" y="186" fill="#94a3b8" font-size="13">Recorrentes (Cron)</text>
+  <text x="715" y="186" fill="#94a3b8" font-size="13">Histórico / Concluídos</text>
+
+  <!-- Reminder Card 1: Principal + Antecipado Ativo -->
+  <rect x="280" y="220" width="880" height="120" rx="12" fill="url(#cardGrad)" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow)"/>
+  <circle cx="315" cy="256" r="16" fill="#1e3a8a"/>
+  <text x="307" y="262" fill="#60a5fa" font-size="16">🔔</text>
+  
+  <text x="345" y="252" fill="#f8fafc" font-size="16" font-weight="600">Reunião de Alinhamento Trimestral com Diretoria</text>
+  <text x="345" y="275" fill="#94a3b8" font-size="13">Apresentar métricas de performance e novos agentes de atendimento.</text>
+
+  <!-- Badges -->
+  <rect x="345" y="290" width="190" height="26" rx="6" fill="#1e293b"/>
+  <text x="355" y="307" fill="#38bdf8" font-size="12">⏰ 15 Out 2026 às 14:00</text>
+
+  <rect x="545" y="290" width="180" height="26" rx="6" fill="url(#badgeGrad)" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="555" y="307" fill="#fbbf24" font-size="12">⚠️ Avisar 1 dia antes (14 Out)</text>
+
+  <rect x="735" y="290" width="105" height="26" rx="6" fill="#1e293b"/>
+  <text x="745" y="307" fill="#a7f3d0" font-size="12">📱 Telegram + OS</text>
+
+  <!-- Action Buttons -->
+  <rect x="1000" y="240" width="70" height="32" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1015" y="261" fill="#cbd5e1" font-size="12">Adiar</text>
+  
+  <rect x="1080" y="240" width="65" height="32" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+  <text x="1092" y="261" fill="#34d399" font-size="12">Concluir</text>
+
+  <!-- Reminder Card 2: Lembrete Rápido de Chat -->
+  <rect x="280" y="355" width="880" height="110" rx="12" fill="url(#cardGrad)" stroke="#1e293d" stroke-width="1"/>
+  <circle cx="315" cy="390" r="16" fill="#1e293b"/>
+  <text x="307" y="396" fill="#94a3b8" font-size="16">📌</text>
+  
+  <text x="345" y="385" fill="#f8fafc" font-size="15" font-weight="600">Enviar Documentação do Projeto Watink para o Cliente</text>
+  <text x="345" y="407" fill="#94a3b8" font-size="13">Gerado via Chat na sessão com o Agente de Engenharia.</text>
+
+  <rect x="345" y="420" width="170" height="24" rx="6" fill="#1e293b"/>
+  <text x="355" y="436" fill="#94a3b8" font-size="12">⏰ Amanhã às 09:00</text>
+
+  <rect x="525" y="420" width="90" height="24" rx="6" fill="#1e293b"/>
+  <text x="535" y="436" fill="#cbd5e1" font-size="12">💻 Desktop OS</text>
+
+  <rect x="1000" y="375" width="70" height="32" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1015" y="396" fill="#cbd5e1" font-size="12">Adiar</text>
+  
+  <rect x="1080" y="375" width="65" height="32" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+  <text x="1092" y="396" fill="#34d399" font-size="12">Concluir</text>
+
+  <!-- Chat Preview Box (Agent Interaction Showcase) -->
+  <rect x="280" y="485" width="880" height="280" rx="12" fill="#0f1523" stroke="#1e293b" stroke-width="1"/>
+  <rect x="280" y="485" width="880" height="40" rx="12" fill="#151c2e"/>
+  <text x="305" y="510" fill="#94a3b8" font-size="13" font-weight="600">💬 Exemplo de Agendamento por Linguagem Natural no Chat</text>
+
+  <!-- User Bubble -->
+  <rect x="620" y="540" width="520" height="45" rx="10" fill="#1d4ed8"/>
+  <text x="635" y="568" fill="#ffffff" font-size="13">"Me lembre de revisar a PR do core dia 12/10 às 16:00 e me avise 1h antes"</text>
+
+  <!-- Agent Bubble -->
+  <rect x="305" y="600" width="560" height="90" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="320" y="625" fill="#38bdf8" font-size="13" font-weight="600">🤖 OpenCode Assistant (Tool: reminder.create)</text>
+  <text x="320" y="650" fill="#f8fafc" font-size="13">✅ Lembrete agendado com sucesso!</text>
+  <text x="320" y="672" fill="#94a3b8" font-size="12">• Disparo Principal: 12/10/2026 às 16:00 (Notificação Desktop)</text>
+  <text x="320" y="688" fill="#fbbf24" font-size="12">• Alerta Antecipado: 12/10/2026 às 15:00 (1 hora antes)</text>
+
+</svg>

@@ -4,6 +4,8 @@ import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { ConfigAgentUIV1 } from "@opencode-ai/core/v1/config/agentui"
 import { AgentUI } from "@/agentui"
 import { Context, Duration, Effect, Fiber, Layer, Schedule, Schema, Scope } from "effect"
+import path from "node:path"
+import fs from "node:fs/promises"
 import { createConnector, type WaAdapter, type WaMessage } from "waconector"
 import { waha } from "waconector/waha"
 import { evolution } from "waconector/evolution"
@@ -129,7 +131,66 @@ interface WhatsAppAttachment {
   filename?: string
   mime: string
   url: string
+  localPath?: string
 }
+
+function sanitizeDirName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "_")
+}
+
+function getSubfolderForMime(mime: string): string {
+  if (mime.startsWith("audio/")) return "audios"
+  if (mime.startsWith("image/")) return "images"
+  if (mime.startsWith("video/")) return "videos"
+  if (mime === "application/pdf" || mime.startsWith("text/") || mime.includes("document") || mime.includes("sheet"))
+    return "docs"
+  return "files"
+}
+
+function getExtensionForMime(mime: string): string {
+  if (mime.includes("ogg") || mime.includes("opus")) return ".ogg"
+  if (mime.includes("mpeg") || mime.includes("mp3")) return ".mp3"
+  if (mime.includes("wav")) return ".wav"
+  if (mime.includes("jpeg") || mime.includes("jpg")) return ".jpg"
+  if (mime.includes("png")) return ".png"
+  if (mime.includes("webp")) return ".webp"
+  if (mime.includes("pdf")) return ".pdf"
+  return ""
+}
+
+const saveMediaToDisk = (
+  baseDirectory: string,
+  chatId: string,
+  filename: string,
+  mime: string,
+  base64Data: string,
+): Effect.Effect<string | undefined> =>
+  Effect.tryPromise(async () => {
+    try {
+      const cleanChatId = sanitizeDirName(chatId)
+      const subfolder = getSubfolderForMime(mime)
+      const targetDir = path.join(baseDirectory, "storage", "whatsapp", cleanChatId, subfolder)
+      await fs.mkdir(targetDir, { recursive: true })
+
+      let finalFilename = filename
+      if (!path.extname(finalFilename)) {
+        finalFilename += getExtensionForMime(mime)
+      }
+      // Adiciona timestamp no nome se for anexo genérico
+      if (finalFilename.startsWith("anexo_")) {
+        const d = new Date()
+        const datePrefix = d.toISOString().replace(/[:.]/g, "-").slice(0, 19)
+        finalFilename = `${datePrefix}_${finalFilename}`
+      }
+
+      const filePath = path.join(targetDir, finalFilename)
+      const buffer = Buffer.from(base64Data, "base64")
+      await fs.writeFile(filePath, buffer)
+      return filePath
+    } catch {
+      return undefined
+    }
+  }).pipe(Effect.option, Effect.map((opt) => (opt._tag === "Some" ? opt.value : undefined)))
 
 interface PendingBatch {
   texts: string[]
@@ -223,16 +284,20 @@ const layer = Layer.effect(
     const extractMediaAttachment = (
       adapter: WaAdapter,
       msg: WaMessage,
+      directory: string,
     ): Effect.Effect<WhatsAppAttachment | undefined> =>
       Effect.gen(function* () {
         if (!msg.media) return undefined
         const media = msg.media
         if (media.base64) {
           const mime = media.mimeType || "application/octet-stream"
+          const filename = media.filename || `anexo_${Date.now()}`
+          const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, media.base64)
           return {
-            filename: media.filename || `anexo_${Date.now()}`,
+            filename,
             mime,
             url: `data:${mime};base64,${media.base64}`,
+            localPath,
           }
         }
         if (media.url && media.url.startsWith("http")) {
@@ -240,11 +305,15 @@ const layer = Layer.effect(
           const res = yield* Effect.tryPromise(() => fetch(media.url!)).pipe(Effect.option)
           if (res._tag === "Some" && res.value.ok) {
             const buf = yield* Effect.promise(() => res.value.arrayBuffer())
+            const base64 = Buffer.from(buf).toString("base64")
             const mime = media.mimeType || res.value.headers.get("content-type") || "application/octet-stream"
+            const filename = media.filename || `anexo_${Date.now()}`
+            const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, base64)
             return {
-              filename: media.filename || `anexo_${Date.now()}`,
+              filename,
               mime,
-              url: `data:${mime};base64,${Buffer.from(buf).toString("base64")}`,
+              url: `data:${mime};base64,${base64}`,
+              localPath,
             }
           }
         }
@@ -257,10 +326,13 @@ const layer = Layer.effect(
 
         if (downloaded._tag === "Some" && downloaded.value.base64) {
           const mime = downloaded.value.mimeType || media.mimeType || "application/octet-stream"
+          const filename = downloaded.value.filename || media.filename || `anexo_${Date.now()}`
+          const localPath = yield* saveMediaToDisk(directory, msg.chatId, filename, mime, downloaded.value.base64)
           return {
-            filename: downloaded.value.filename || media.filename || `anexo_${Date.now()}`,
+            filename,
             mime,
             url: `data:${mime};base64,${downloaded.value.base64}`,
+            localPath,
           }
         }
 
@@ -307,7 +379,7 @@ const layer = Layer.effect(
         }
 
         const msgAdapter = buildAdapter(channel, event.instanceId)
-        const attachment = yield* extractMediaAttachment(msgAdapter, event.message)
+        const attachment = yield* extractMediaAttachment(msgAdapter, event.message, directory)
         const text = event.message.text?.trim()
 
         if (!text && !attachment) continue

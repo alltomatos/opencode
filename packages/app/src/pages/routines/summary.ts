@@ -4,7 +4,11 @@ function pad(n: number) {
   return String(n).padStart(2, "0")
 }
 
-export function triggerSummary(trigger: { kind: string; expr?: string; ms?: number | string }): string {
+export function triggerSummary(trigger: { kind: string; expr?: string; ms?: number | string; timestamp?: number }): string {
+  if (trigger.kind === "once" && trigger.timestamp) {
+    const d = new Date(trigger.timestamp)
+    return `Único em ${d.toLocaleDateString("pt-BR")} às ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
   if (trigger.kind === "cron") {
     const parts = String(trigger.expr ?? "").split(" ")
     if (
@@ -62,6 +66,7 @@ export function actionSummary(action: {
   if (action.kind === "shell") return action.command ?? ""
   if (action.kind === "mcp_tool") return `${action.server}/${action.tool}`
   if (action.kind === "agentui") return `[AgentUI] ${action.message ?? ""}`
+  if (action.kind === "reminder") return `[Lembrete] ${action.message ?? ""}`
   const tools = action.mcpTools?.length
     ? ` · ferramentas: ${Array.from(new Set(action.mcpTools.map((t) => t.server))).join(", ")}`
     : ""

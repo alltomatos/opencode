@@ -20,6 +20,7 @@ import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
 import { RoutineTool } from "./routine"
+import { ReminderTool } from "./reminder"
 import { MemorySearchTool } from "./memory-search"
 import { MemorySaveTool } from "./memory-save"
 import { Memory } from "../memory"
@@ -127,6 +128,7 @@ const layer = Layer.effect(
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
     const routinetool = yield* RoutineTool
+    const remindertool = yield* ReminderTool
     const memorysearchtool = yield* MemorySearchTool
     const memorysavetool = yield* MemorySaveTool
     const agent = yield* Agent.Service
@@ -240,6 +242,7 @@ const layer = Layer.effect(
           search: Tool.init(websearch),
           skill: Tool.init(skilltool),
           routine: Tool.init(routinetool),
+          reminder: Tool.init(remindertool),
           memorySearch: Tool.init(memorysearchtool),
           memorySave: Tool.init(memorysavetool),
           patch: Tool.init(patchtool),
@@ -268,6 +271,7 @@ const layer = Layer.effect(
             tool.search,
             tool.skill,
             tool.routine,
+            tool.reminder,
             ...(memoryEnabled ? [tool.memorySearch, tool.memorySave] : []),
             tool.patch,
             ...(tool.execute ? [tool.execute] : []),

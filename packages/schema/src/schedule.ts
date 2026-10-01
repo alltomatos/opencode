@@ -27,7 +27,13 @@ export const ManualTrigger = Schema.Struct({
   kind: Schema.Literal("manual"),
 }).annotate({ identifier: "Schedule.ManualTrigger" })
 
-export const Trigger = Schema.Union([CronTrigger, IntervalTrigger, ManualTrigger])
+export interface OnceTrigger extends Schema.Schema.Type<typeof OnceTrigger> {}
+export const OnceTrigger = Schema.Struct({
+  kind: Schema.Literal("once"),
+  timestamp: Schema.Number,
+}).annotate({ identifier: "Schedule.OnceTrigger" })
+
+export const Trigger = Schema.Union([CronTrigger, IntervalTrigger, ManualTrigger, OnceTrigger])
   .pipe(Schema.toTaggedUnion("kind"))
   .annotate({ identifier: "Schedule.Trigger" })
 export type Trigger = Schema.Schema.Type<typeof Trigger>
@@ -73,7 +79,17 @@ export const AgentUIAction = Schema.Struct({
   timeoutMs: optional(Schema.Number),
 }).annotate({ identifier: "Schedule.AgentUIAction" })
 
-export const Action = Schema.Union([ShellAction, McpToolAction, SkillAction, AgentUIAction])
+export interface ReminderAction extends Schema.Schema.Type<typeof ReminderAction> {}
+export const ReminderAction = Schema.Struct({
+  kind: Schema.Literal("reminder"),
+  title: Schema.String,
+  message: Schema.String,
+  channels: optional(Schema.Array(Schema.Literals(["desktop", "agentui", "telegram", "whatsapp"]))),
+  targetSessionId: optional(Schema.String),
+  agentId: optional(Schema.String),
+}).annotate({ identifier: "Schedule.ReminderAction" })
+
+export const Action = Schema.Union([ShellAction, McpToolAction, SkillAction, AgentUIAction, ReminderAction])
   .pipe(Schema.toTaggedUnion("kind"))
   .annotate({ identifier: "Schedule.Action" })
 export type Action = Schema.Schema.Type<typeof Action>

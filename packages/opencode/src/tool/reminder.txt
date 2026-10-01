@@ -1,0 +1,1 @@
+Gerencia lembretes e compromissos da agenda com alertas pontuais e avisos antecipados (ex.: 15m, 1h, 1d antes). Permite criar lembretes, listar pendências, consultar detalhes e cancelar lembretes.
