@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.61",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Agenda & Lembretes: Calendário em Grid, Lista e Memória Contínua no AgentUI",
+              "description": "Adicionada a página dedicada de Agenda (/agenda) acessível acima de Mídia na barra lateral, com visualização dual em Grid (Calendário Mensal) e Lista (Linha do Tempo). Toggles no AgentUI para controle granular de Agenda (reminder) e Memória Contínua (memory_save/memory_search), permitindo aos agentes de canais (WhatsApp/Telegram) agendar compromissos e reter contexto sem sobrecarregar o histórico."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.60",
       "highlights": [
         {
