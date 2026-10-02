@@ -21,66 +21,72 @@ const noopSummary = Layer.succeed(
 const noopLsp = Layer.succeed(
   LSP.Service,
   LSP.Service.of({
-    touch: () => Effect.void,
+    init: () => Effect.void,
+    status: () => Effect.succeed([]),
+    hasClients: () => Effect.succeed(false),
+    touchFile: () => Effect.void,
     diagnostics: () => Effect.succeed({}),
-    definitions: () => Effect.succeed([]),
+    hover: () => Effect.succeed(undefined),
+    definition: () => Effect.succeed([]),
     references: () => Effect.succeed([]),
-    documentSymbols: () => Effect.succeed([]),
-    workspaceSymbols: () => Effect.succeed([]),
-    prepareRename: () => Effect.succeed(undefined),
-    rename: () => Effect.succeed(undefined),
-    format: () => Effect.succeed([]),
+    implementation: () => Effect.succeed([]),
+    documentSymbol: () => Effect.succeed([]),
+    workspaceSymbol: () => Effect.succeed([]),
+    prepareCallHierarchy: () => Effect.succeed([]),
+    incomingCalls: () => Effect.succeed([]),
+    outgoingCalls: () => Effect.succeed([]),
   }),
 )
 const noopMcp = Layer.succeed(
   MCP.Service,
   MCP.Service.of({
-    clients: () => Effect.succeed({}),
     status: () => Effect.succeed({}),
+    clients: () => Effect.succeed({}),
+    instructions: () => Effect.succeed([]),
     tools: () => Effect.succeed({}),
-    callTool: () => Effect.die("unimplemented"),
-    listPrompts: () => Effect.succeed({}),
-    getPrompt: () => Effect.die("unimplemented"),
-    listResources: () => Effect.succeed({}),
-    listResourceTemplates: () => Effect.succeed({}),
-    readResource: () => Effect.die("unimplemented"),
-    subscribeResource: () => Effect.die("unimplemented"),
-    unsubscribeResource: () => Effect.die("unimplemented"),
-    start: () => Effect.void,
-    add: () => Effect.void,
-    restart: () => Effect.void,
+    prompts: () => Effect.succeed({}),
+    resources: () => Effect.succeed({}),
+    resourceTemplates: () => Effect.succeed({}),
+    add: () => Effect.succeed({ status: { status: "disabled" as const } }),
+    connect: () => Effect.void,
+    disconnect: () => Effect.void,
     remove: () => Effect.void,
+    serverCatalog: () => Effect.succeed({ tools: [], prompts: [], resources: [] }),
+    getPrompt: () => Effect.succeed(undefined),
+    readResource: () => Effect.succeed(undefined),
+    callTool: () => Effect.succeed(undefined),
+    startAuth: () => Effect.die("unexpected MCP auth in agentui tests"),
+    authenticate: () => Effect.die("unexpected MCP auth in agentui tests"),
+    finishAuth: () => Effect.die("unexpected MCP auth in agentui tests"),
+    removeAuth: () => Effect.void,
+    supportsOAuth: () => Effect.succeed(false),
+    hasStoredTokens: () => Effect.succeed(false),
+    getAuthStatus: () => Effect.succeed("not_authenticated" as const),
   }),
 )
-const noopRuntimeFlags = Layer.succeed(
-  RuntimeFlags.Service,
-  RuntimeFlags.Service.of({
-    experimentalBrowserPool: false,
-    experimentalNativeLLM: false,
-    experimentalCcr: false,
-    experimentalCodeMode: false,
-    experimentalCompactionPrune: false,
-    experimentalCompactionAutoContinue: false,
-  }),
-)
+const noopRuntimeFlags = RuntimeFlags.layer({ experimentalEventSystem: true })
 const storageState = new Map<string, unknown>()
+function storageRead<T>(key: string[]) {
+  return storageState.has(key.join("/"))
+    ? Effect.succeed(storageState.get(key.join("/")) as T)
+    : Effect.fail(new Storage.NotFoundError({ message: "not found" }))
+}
+function storageUpdate<T>(key: string[], fn: (draft: T) => void) {
+  return Effect.sync(() => {
+    const current = storageState.get(key.join("/")) as T
+    fn(current)
+    return current
+  })
+}
 const noopStorage = Layer.succeed(
   Storage.Service,
   Storage.Service.of({
-    read: (key: string[]) =>
-      storageState.has(key.join("/"))
-        ? Effect.succeed(storageState.get(key.join("/")) as any)
-        : Effect.fail(new Storage.NotFoundError({ message: "not found" })),
+    read: storageRead,
     write: (key, content) =>
       Effect.sync(() => {
         storageState.set(key.join("/"), content)
       }),
-    update: (key: string[], fn: (draft: any) => void) =>
-      Effect.sync(() => {
-        const current = storageState.get(key.join("/"))
-        fn(current)
-        return current
-      }),
+    update: storageUpdate,
     remove: (key) =>
       Effect.sync(() => {
         storageState.delete(key.join("/"))
