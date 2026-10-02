@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.59",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "MCPmail & Gemini: Resiliência IMAP e compatibilidade de schemas",
+              "description": "Adicionado mecanismo de retry exponencial com timeouts de conexão no MCPmail para recuperar instabilidades e conexões resetadas (ECONNRESET) em servidores de email corporativos. Corrigida a sanitização de schemas de ferramentas (enum/const booleanos) no protocolo Gemini para evitar erros de validação do Google Generative AI."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.58",
       "highlights": [
         {
