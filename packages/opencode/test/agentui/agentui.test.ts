@@ -296,3 +296,15 @@ it.instance("sessionPermission() still allows an agent's configured MCP servers"
     expect(rule?.action).toBe("allow")
   }),
 )
+
+it.instance("sessionPermission() allows routine and reminder tools when routinesEnabled is true", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    const ruleset = svc.sessionPermission([], true)
+    const routineRule = ruleset.findLast((r) => Wildcard.match("routine", r.permission))
+    expect(routineRule?.action).toBe("allow")
+    const reminderRule = ruleset.findLast((r) => Wildcard.match("reminder", r.permission))
+    expect(reminderRule?.action).toBe("allow")
+  }),
+)
+

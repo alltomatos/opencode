@@ -127,6 +127,7 @@ export async function sendViaSmtp(
     );
   }
 
+  const isSpeedmail = account.provider === "speedmail";
   const transporter = createTransport({
     host: account.smtp.host,
     port: account.smtp.port,
@@ -134,6 +135,11 @@ export async function sendViaSmtp(
     auth: {
       user: account.user,
       pass: account.appPassword,
+    },
+    tls: {
+      servername: account.smtp.host,
+      rejectUnauthorized: false,
+      ...(isSpeedmail ? { minVersion: "TLSv1.2", maxVersion: "TLSv1.2" } : {}),
     },
   });
 

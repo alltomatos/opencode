@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.60",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "MCPmail: Estabilidade TLS 1.2 para Speedmail e resiliência de rotinas",
+              "description": "Forçado TLS 1.2 no handshake IMAP/SMTP para contas Speedmail e retries resilientes, eliminando timeouts de conexão com servidores corporativos. Adicionadas permissões automáticas para ferramentas de rotina e lembretes em agentes com rotinas habilitadas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.59",
       "highlights": [
         {

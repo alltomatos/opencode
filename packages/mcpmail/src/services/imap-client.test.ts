@@ -66,4 +66,22 @@ describe("withImapConnection", () => {
 
     expect(mockConnect).toHaveBeenCalledTimes(3);
   });
+
+  it("aplica TLS 1.2 estável para provedor speedmail para evitar timeouts de handshake", async () => {
+    mockConnect.mockResolvedValueOnce(undefined);
+    mockLogout.mockResolvedValueOnce(undefined);
+
+    const { ImapFlow } = await import("imapflow");
+    await withImapConnection(account, async () => "ok");
+
+    expect(ImapFlow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tls: expect.objectContaining({
+          servername: "mail.speedmail.tec.br",
+          minVersion: "TLSv1.2",
+          maxVersion: "TLSv1.2",
+        }),
+      })
+    );
+  });
 });

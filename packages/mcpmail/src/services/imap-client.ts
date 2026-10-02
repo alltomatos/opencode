@@ -36,6 +36,10 @@ export async function withImapConnection<T>(
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // Provedor speedmail possui instabilidade conhecida de handshake com TLS 1.3 no Node.js;
+    // para speedmail ou em retries de erros de rede/handshake, forçamos TLS 1.2 estável.
+    const forceTls12 = account.provider === "speedmail" || attempt > 1;
+
     const client = new ImapFlow({
       host: account.host,
       port: account.port,
@@ -49,6 +53,7 @@ export async function withImapConnection<T>(
       tls: {
         servername: account.host,
         rejectUnauthorized: false,
+        ...(forceTls12 ? { minVersion: "TLSv1.2", maxVersion: "TLSv1.2" } : {}),
       },
       connectionTimeout: 20_000,
       greetingTimeout: 20_000,

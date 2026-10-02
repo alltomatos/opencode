@@ -344,6 +344,7 @@ const layer = Layer.effect(
       ...(routinesEnabled
         ? ([
             { permission: "routine", pattern: "*", action: "allow" },
+            { permission: "reminder", pattern: "*", action: "allow" },
           ] as PermissionV1.Rule[])
         : []),
     ]
