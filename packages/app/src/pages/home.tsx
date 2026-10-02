@@ -46,6 +46,7 @@ export function NewHome() {
             onOpenHelp={projects.utility.help}
             onOpenStats={() => navigate("/stats")}
             onOpenMedia={() => navigate("/media")}
+            onOpenAgenda={() => navigate("/agenda")}
             language={projects.copy.language}
           />
         </div>

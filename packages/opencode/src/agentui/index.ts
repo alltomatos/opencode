@@ -119,7 +119,12 @@ export interface Interface {
   //    allow rule per server so its tool calls don't fall through to the
   //    default "ask" action — which would hang forever, since a channel
   //    dispatch has no human attached to answer a permission prompt.
-  readonly sessionPermission: (mcpServers?: readonly string[], routinesEnabled?: boolean) => PermissionV1.Ruleset
+  readonly sessionPermission: (
+    mcpServers?: readonly string[],
+    routinesEnabled?: boolean,
+    agendaEnabled?: boolean,
+    memoryEnabled?: boolean,
+  ) => PermissionV1.Ruleset
   // Resolves an agent's `model` field ("providerID/modelID" or
   // "combo:<id>", same encoding ModelPickerV2 uses) to a concrete pair.
   // Shared by every channel (Telegram, the sandbox test chat below) so
@@ -319,6 +324,8 @@ const layer = Layer.effect(
     const sessionPermission = (
       mcpServers?: readonly string[],
       routinesEnabled?: boolean,
+      agendaEnabled?: boolean,
+      memoryEnabled?: boolean,
     ): PermissionV1.Ruleset => [
       // Wildcard deny-everything, not a per-category list: anything not
       // covered by an explicit rule below falls through to the *default*
@@ -344,7 +351,17 @@ const layer = Layer.effect(
       ...(routinesEnabled
         ? ([
             { permission: "routine", pattern: "*", action: "allow" },
+          ] as PermissionV1.Rule[])
+        : []),
+      ...(agendaEnabled || routinesEnabled
+        ? ([
             { permission: "reminder", pattern: "*", action: "allow" },
+          ] as PermissionV1.Rule[])
+        : []),
+      ...(memoryEnabled
+        ? ([
+            { permission: "memory_save", pattern: "*", action: "allow" },
+            { permission: "memory_search", pattern: "*", action: "allow" },
           ] as PermissionV1.Rule[])
         : []),
     ]
@@ -439,7 +456,12 @@ const layer = Layer.effect(
           .create({
             title: `${agent.name}: ${input.chatKey}`,
             directory: input.directory,
-            permission: sessionPermission(agent.mcpServers, agent.routinesEnabled),
+            permission: sessionPermission(
+              agent.mcpServers,
+              agent.routinesEnabled,
+              agent.agendaEnabled,
+              agent.memoryEnabled,
+            ),
           })
           .pipe(Effect.provideService(InstanceRef, ctx))
         channelSessions.set(sessionKey, session.id)

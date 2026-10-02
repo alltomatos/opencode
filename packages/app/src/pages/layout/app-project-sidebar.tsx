@@ -139,6 +139,15 @@ export const AppProjectSidebar: Component = () => {
             </ProjectRailTabButton>
           </div>
           <div class="flex w-full flex-col items-center gap-1.5 px-1">
+            <TooltipV2 placement="right" value={language.t("sidebar.agenda")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                icon={<IconV2 name="calendar" size="small" />}
+                aria-label={language.t("sidebar.agenda")}
+                onClick={() => navigate("/agenda")}
+              />
+            </TooltipV2>
             <TooltipV2 placement="right" value={language.t("sidebar.media")}>
               <IconButtonV2
                 variant="ghost-muted"
@@ -221,6 +230,7 @@ export const AppProjectSidebar: Component = () => {
           onOpenHelp={projectsController.utility.help}
           onOpenStats={() => navigate("/stats")}
           onOpenMedia={() => navigate("/media")}
+          onOpenAgenda={() => navigate("/agenda")}
           language={language}
         />
       </div>

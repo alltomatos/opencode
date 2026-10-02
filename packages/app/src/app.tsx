@@ -80,6 +80,7 @@ import { AgentUIAuditPage } from "@/pages/agentui-audit"
 import { SettingsPage } from "@/pages/settings"
 import { StatsPage } from "@/pages/stats"
 import { MediaPage } from "@/pages/media"
+import { AgendaPage } from "@/pages/agenda"
 import { LegacyHome } from "@/pages/home/legacy-home"
 
 const NewSession = lazy(() => import("@/pages/new-session"))
@@ -706,6 +707,7 @@ function Routes(props: { serverScoped?: JSX.Element }) {
         <Route path="/agentui/:id/edit" component={AgentUIFormPage} />
         <Route path="/stats" component={StatsPage} />
         <Route path="/media" component={MediaPage} />
+        <Route path="/agenda" component={AgendaPage} />
         <Route path="/agentui/:id/audit" component={AgentUIAuditPage} />
         <Route path="/settings/:tab?" component={SettingsPage} />
         <Route path="/:dir/session/:id" component={NewLayoutLegacySessionRedirect} />

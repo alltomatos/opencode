@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#090d16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0d111a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141824"/>
+      <stop offset="100%" stop-color="#0f131d"/>
+    </linearGradient>
+    <linearGradient id="accentPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect x="0" y="0" width="1440" height="900" fill="url(#bgGrad)"/>
+
+  <!-- ========================================== -->
+  <!-- 1. SIDEBAR ESQUERDA (NATIVA OPENCODE)      -->
+  <!-- ========================================== -->
+  <rect x="0" y="0" width="220" height="900" fill="#0d111a" stroke="#1c2333" stroke-width="1"/>
+  
+  <!-- Header Projetos / Abas -->
+  <rect x="12" y="12" width="196" height="36" rx="8" fill="#141926"/>
+  <rect x="14" y="14" width="60" height="32" rx="6" fill="#1e2436"/>
+  <text x="32" y="35" fill="#f8fafc" font-size="12" font-weight="600">Code</text>
+  <text x="92" y="35" fill="#94a3b8" font-size="12">Agentes</text>
+  <text x="150" y="35" fill="#94a3b8" font-size="12">Rotinas</text>
+
+  <!-- Projetos List -->
+  <text x="16" y="75" fill="#64748b" font-size="11" font-weight="600" letter-spacing="0.5">PROJETOS</text>
+  
+  <circle cx="24" cy="98" r="4" fill="#10b981"/>
+  <text x="36" y="102" fill="#e2e8f0" font-size="12" font-weight="500">Servidor local</text>
+  <rect x="115" y="92" width="30" height="16" rx="4" fill="#1e2436"/>
+  <text x="120" y="104" fill="#94a3b8" font-size="9">local</text>
+
+  <text x="36" y="132" fill="#94a3b8" font-size="13">mcpmail</text>
+  <text x="36" y="162" fill="#94a3b8" font-size="13">postumos</text>
+  <text x="36" y="192" fill="#94a3b8" font-size="13">alltomatos.github.io</text>
+  <text x="36" y="222" fill="#94a3b8" font-size="13">skills</text>
+  <text x="36" y="252" fill="#94a3b8" font-size="13">OmniRoute</text>
+  <text x="36" y="282" fill="#94a3b8" font-size="13">superkuma</text>
+
+  <!-- Rodapé Utilitário da Sidebar (HomeUtilityNav) -->
+  <line x1="12" y1="710" x2="208" y2="710" stroke="#1e2436" stroke-width="1"/>
+
+  <!-- NOVO ITEM: AGENDA (Selecionado) -->
+  <rect x="12" y="720" width="196" height="34" rx="6" fill="#1a2030" stroke="#2563eb" stroke-width="1"/>
+  <text x="24" y="742" fill="#60a5fa" font-size="14">📅</text>
+  <text x="46" y="742" fill="#60a5fa" font-size="13" font-weight="600">Agenda</text>
+
+  <text x="24" y="774" fill="#94a3b8" font-size="14">🖼️</text>
+  <text x="46" y="774" fill="#94a3b8" font-size="13">Mídia</text>
+
+  <text x="24" y="804" fill="#94a3b8" font-size="14">📊</text>
+  <text x="46" y="804" fill="#94a3b8" font-size="13">KPIs e Estatísticas</text>
+
+  <text x="24" y="834" fill="#94a3b8" font-size="14">⚙️</text>
+  <text x="46" y="834" fill="#94a3b8" font-size="13">Configurações</text>
+
+  <text x="24" y="864" fill="#94a3b8" font-size="14">❓</text>
+  <text x="46" y="864" fill="#94a3b8" font-size="13">Ajuda</text>
+
+
+  <!-- ========================================== -->
+  <!-- 2. PAINEL PRINCIPAL: AGENDA (MODO LISTA)   -->
+  <!-- ========================================== -->
+  <g transform="translate(240, 20)">
+    <!-- Barra Superior / Topbar da Agenda -->
+    <rect x="0" y="0" width="1180" height="60" rx="10" fill="#101522" stroke="#1c2333" stroke-width="1"/>
+    
+    <text x="20" y="36" fill="#f8fafc" font-size="18" font-weight="700">📅 Agenda &amp; Lembretes</text>
+    <rect x="230" y="18" width="80" height="24" rx="12" fill="#1e293b"/>
+    <text x="242" y="34" fill="#38bdf8" font-size="11" font-weight="600">2 Ativos</text>
+
+    <!-- Filtro Status -->
+    <rect x="340" y="15" width="150" height="30" rx="6" fill="#161c2a" stroke="#242e42" stroke-width="1"/>
+    <text x="355" y="34" fill="#e2e8f0" font-size="12">Filtro: Próximos ▾</text>
+
+    <!-- Filtro Canais -->
+    <rect x="510" y="15" width="140" height="30" rx="6" fill="#161c2a" stroke="#242e42" stroke-width="1"/>
+    <text x="525" y="34" fill="#94a3b8" font-size="12">Canal: Todos ▾</text>
+
+    <!-- Alternador Dual: Grid vs Lista (Segmented Control) -->
+    <rect x="740" y="14" width="160" height="32" rx="6" fill="#0d111a" stroke="#242e42" stroke-width="1"/>
+    <!-- Aba Grid Inativa -->
+    <text x="760" y="34" fill="#64748b" font-size="12" font-weight="500">▦ Grid</text>
+    <!-- Aba Lista Ativa -->
+    <rect x="822" y="16" width="76" height="28" rx="4" fill="#1e2738"/>
+    <text x="836" y="34" fill="#f8fafc" font-size="12" font-weight="600">☰ Lista</text>
+
+    <!-- Botão + Novo Lembrete -->
+    <rect x="1030" y="13" width="135" height="34" rx="6" fill="url(#accentPurple)" filter="url(#shadow)"/>
+    <text x="1047" y="35" fill="#ffffff" font-size="13" font-weight="600">+ Novo Lembrete</text>
+
+    <!-- ========================================== -->
+    <!-- FEED DE LINHA DO TEMPO / LISTA            -->
+    <!-- ========================================== -->
+    <g transform="translate(0, 85)">
+      <!-- Agrupador: Quarta-feira, 07 de Outubro -->
+      <text x="10" y="20" fill="#94a3b8" font-size="13" font-weight="600">▼ QUARTA-FEIRA, 07 DE OUTUBRO DE 2026 (AMANHÃ)</text>
+      
+      <!-- Card Lista 1 (Rodrigo Peixoto) -->
+      <g transform="translate(0, 35)">
+        <rect x="0" y="0" width="1180" height="110" rx="10" fill="url(#cardGrad)" stroke="#1c2333" stroke-width="1" filter="url(#shadow)"/>
+        
+        <!-- Ícone do Canal -->
+        <circle cx="35" cy="55" r="18" fill="#064e3b" fill-opacity="0.4"/>
+        <text x="27" y="61" fill="#10b981" font-size="16">💬</text>
+
+        <!-- Informações do Lembrete -->
+        <text x="75" y="38" fill="#f8fafc" font-size="16" font-weight="600">Alinhamento Rodrigo Peixoto (GNR Fortaleza)</text>
+        <text x="75" y="62" fill="#94a3b8" font-size="13">"Passando para confirmar o nosso alinhamento amanhã referente ao contrato e expansão (Mix Cegás)..."</text>
+        
+        <!-- Metadados -->
+        <rect x="75" y="75" width="130" height="22" rx="4" fill="#1e293b"/>
+        <text x="83" y="90" fill="#38bdf8" font-size="11">⏰ 08:30 (Horário Brasília)</text>
+
+        <rect x="215" y="75" width="105" height="22" rx="4" fill="#064e3b" fill-opacity="0.5"/>
+        <text x="223" y="90" fill="#34d399" font-size="11">📱 Canal: WhatsApp</text>
+
+        <rect x="330" y="75" width="160" height="22" rx="4" fill="#1e293b"/>
+        <text x="338" y="90" fill="#cbd5e1" font-size="11">🤖 Agente: Ronaldo pessoal</text>
+
+        <!-- Status & Ações -->
+        <rect x="960" y="40" width="80" height="28" rx="6" fill="#1e293b"/>
+        <text x="978" y="58" fill="#fbbf24" font-size="12" font-weight="500">● Pendente</text>
+
+        <rect x="1055" y="40" width="90" height="28" rx="6" fill="#7f1d1d" fill-opacity="0.3" stroke="#ef4444" stroke-width="0.8"/>
+        <text x="1080" y="58" fill="#f87171" font-size="12">Cancelar</text>
+      </g>
+
+      <!-- Agrupador: Quinta-feira, 08 de Outubro -->
+      <text x="10" y="185" fill="#94a3b8" font-size="13" font-weight="600">▼ QUINTA-FEIRA, 08 DE OUTUBRO DE 2026</text>
+
+      <!-- Card Lista 2 (Reunião Presencial) -->
+      <g transform="translate(0, 200)">
+        <rect x="0" y="0" width="1180" height="110" rx="10" fill="url(#cardGrad)" stroke="#1c2333" stroke-width="1" filter="url(#shadow)"/>
+        
+        <!-- Ícone do Canal -->
+        <circle cx="35" cy="55" r="18" fill="#2e1065" fill-opacity="0.5"/>
+        <text x="27" y="61" fill="#a78bfa" font-size="16">🔔</text>
+
+        <!-- Informações do Lembrete -->
+        <text x="75" y="38" fill="#f8fafc" font-size="16" font-weight="600">Reunião Presencial de Apresentação Técnica - Mix Cegás</text>
+        <text x="75" y="62" fill="#94a3b8" font-size="13">"Reforço de pauta e acesso para alinhamento de contrato com a diretoria."</text>
+        
+        <!-- Metadados -->
+        <rect x="75" y="75" width="130" height="22" rx="4" fill="#1e293b"/>
+        <text x="83" y="90" fill="#38bdf8" font-size="11">⏰ 10:00 (Horário Brasília)</text>
+
+        <rect x="215" y="75" width="135" height="22" rx="4" fill="#2e1065" fill-opacity="0.5"/>
+        <text x="223" y="90" fill="#c084fc" font-size="11">💻 Desktop + AgentUI</text>
+
+        <rect x="360" y="75" width="160" height="22" rx="4" fill="#1e293b"/>
+        <text x="368" y="90" fill="#cbd5e1" font-size="11">🤖 Agente: Ronaldo pessoal</text>
+
+        <!-- Status & Ações -->
+        <rect x="960" y="40" width="80" height="28" rx="6" fill="#1e293b"/>
+        <text x="978" y="58" fill="#60a5fa" font-size="12" font-weight="500">● Agendado</text>
+
+        <rect x="1055" y="40" width="90" height="28" rx="6" fill="#7f1d1d" fill-opacity="0.3" stroke="#ef4444" stroke-width="0.8"/>
+        <text x="1080" y="58" fill="#f87171" font-size="12">Cancelar</text>
+      </g>
+    </g>
+  </g>
+</svg>

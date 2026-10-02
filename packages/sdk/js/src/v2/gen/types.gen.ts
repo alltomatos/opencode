@@ -2059,6 +2059,8 @@ export type AgentUiAgent = {
   guardrails: AgentUiGuardrails
   mcpServers?: Array<string>
   routinesEnabled?: boolean
+  agendaEnabled?: boolean
+  memoryEnabled?: boolean
   enabled?: boolean
 }
 

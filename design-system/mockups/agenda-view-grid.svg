@@ -1,0 +1,249 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#090d16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0d111a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141824"/>
+      <stop offset="100%" stop-color="#10131d"/>
+    </linearGradient>
+    <linearGradient id="accentPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="tagWhatsapp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect x="0" y="0" width="1440" height="900" fill="url(#bgGrad)"/>
+
+  <!-- ========================================== -->
+  <!-- 1. SIDEBAR ESQUERDA (NATIVA OPENCODE)      -->
+  <!-- ========================================== -->
+  <rect x="0" y="0" width="220" height="900" fill="#0d111a" stroke="#1c2333" stroke-width="1"/>
+  
+  <!-- Header Projetos / Abas -->
+  <rect x="12" y="12" width="196" height="36" rx="8" fill="#141926"/>
+  <rect x="14" y="14" width="60" height="32" rx="6" fill="#1e2436"/>
+  <text x="32" y="35" fill="#f8fafc" font-size="12" font-weight="600">Code</text>
+  <text x="92" y="35" fill="#94a3b8" font-size="12">Agentes</text>
+  <text x="150" y="35" fill="#94a3b8" font-size="12">Rotinas</text>
+
+  <!-- Projetos List -->
+  <text x="16" y="75" fill="#64748b" font-size="11" font-weight="600" letter-spacing="0.5">PROJETOS</text>
+  
+  <!-- Servidor Local -->
+  <circle cx="24" cy="98" r="4" fill="#10b981"/>
+  <text x="36" y="102" fill="#e2e8f0" font-size="12" font-weight="500">Servidor local</text>
+  <rect x="115" y="92" width="30" height="16" rx="4" fill="#1e2436"/>
+  <text x="120" y="104" fill="#94a3b8" font-size="9">local</text>
+
+  <!-- Projects Names -->
+  <text x="36" y="132" fill="#94a3b8" font-size="13">mcpmail</text>
+  <text x="36" y="162" fill="#94a3b8" font-size="13">postumos</text>
+  <text x="36" y="192" fill="#94a3b8" font-size="13">alltomatos.github.io</text>
+  <text x="36" y="222" fill="#94a3b8" font-size="13">skills</text>
+  <text x="36" y="252" fill="#94a3b8" font-size="13">OmniRoute</text>
+  <text x="36" y="282" fill="#94a3b8" font-size="13">superkuma</text>
+
+  <!-- VPS s1 -->
+  <circle cx="24" cy="330" r="4" fill="#10b981"/>
+  <text x="36" y="334" fill="#e2e8f0" font-size="12" font-weight="500">VPS s1</text>
+  <rect x="80" y="324" width="26" height="16" rx="4" fill="#1e2436"/>
+  <text x="85" y="336" fill="#94a3b8" font-size="9">ssh</text>
+  <text x="36" y="364" fill="#94a3b8" font-size="13">teste-debug</text>
+  <text x="36" y="394" fill="#94a3b8" font-size="13">app</text>
+
+  <!-- Rodapé Utilitário da Sidebar (HomeUtilityNav) -->
+  <line x1="12" y1="710" x2="208" y2="710" stroke="#1e2436" stroke-width="1"/>
+
+  <!-- NOVO ITEM: AGENDA (Selecionado) -->
+  <rect x="12" y="720" width="196" height="34" rx="6" fill="#1a2030" stroke="#2563eb" stroke-width="1"/>
+  <text x="24" y="742" fill="#60a5fa" font-size="14">📅</text>
+  <text x="46" y="742" fill="#60a5fa" font-size="13" font-weight="600">Agenda</text>
+
+  <!-- Itens Existentes -->
+  <text x="24" y="774" fill="#94a3b8" font-size="14">🖼️</text>
+  <text x="46" y="774" fill="#94a3b8" font-size="13">Mídia</text>
+
+  <text x="24" y="804" fill="#94a3b8" font-size="14">📊</text>
+  <text x="46" y="804" fill="#94a3b8" font-size="13">KPIs e Estatísticas</text>
+
+  <text x="24" y="834" fill="#94a3b8" font-size="14">⚙️</text>
+  <text x="46" y="834" fill="#94a3b8" font-size="13">Configurações</text>
+
+  <text x="24" y="864" fill="#94a3b8" font-size="14">❓</text>
+  <text x="46" y="864" fill="#94a3b8" font-size="13">Ajuda</text>
+  <text x="24" y="888" fill="#475569" font-size="11">v1.21.60</text>
+
+
+  <!-- ========================================== -->
+  <!-- 2. PAINEL PRINCIPAL: AGENDA (MODO GRID)    -->
+  <!-- ========================================== -->
+  <g transform="translate(240, 20)">
+    <!-- Barra Superior / Topbar da Agenda -->
+    <rect x="0" y="0" width="1180" height="60" rx="10" fill="#101522" stroke="#1c2333" stroke-width="1"/>
+    
+    <text x="20" y="36" fill="#f8fafc" font-size="18" font-weight="700">📅 Agenda &amp; Lembretes</text>
+    <rect x="230" y="18" width="80" height="24" rx="12" fill="#1e293b"/>
+    <text x="242" y="34" fill="#38bdf8" font-size="11" font-weight="600">2 Ativos</text>
+
+    <!-- Navegação Mês -->
+    <rect x="340" y="15" width="220" height="30" rx="6" fill="#161c2a" stroke="#242e42" stroke-width="1"/>
+    <text x="355" y="34" fill="#94a3b8" font-size="13">◀</text>
+    <text x="385" y="34" fill="#f8fafc" font-size="13" font-weight="600">Outubro 2026</text>
+    <text x="535" y="34" fill="#94a3b8" font-size="13">▶</text>
+
+    <!-- Filtro Canais -->
+    <rect x="580" y="15" width="140" height="30" rx="6" fill="#161c2a" stroke="#242e42" stroke-width="1"/>
+    <text x="595" y="34" fill="#94a3b8" font-size="12">Canal: Todos ▾</text>
+
+    <!-- Alternador Dual: Grid vs Lista (Segmented Control) -->
+    <rect x="740" y="14" width="160" height="32" rx="6" fill="#0d111a" stroke="#242e42" stroke-width="1"/>
+    <!-- Aba Grid Ativa -->
+    <rect x="742" y="16" width="76" height="28" rx="4" fill="#1e2738"/>
+    <text x="754" y="34" fill="#f8fafc" font-size="12" font-weight="600">▦ Grid</text>
+    <!-- Aba Lista Inativa -->
+    <text x="835" y="34" fill="#64748b" font-size="12" font-weight="500">☰ Lista</text>
+
+    <!-- Botão + Novo Lembrete -->
+    <rect x="1030" y="13" width="135" height="34" rx="6" fill="url(#accentPurple)" filter="url(#shadow)"/>
+    <text x="1047" y="35" fill="#ffffff" font-size="13" font-weight="600">+ Novo Lembrete</text>
+
+    <!-- ========================================== -->
+    <!-- CALENDÁRIO EM GRID                         -->
+    <!-- ========================================== -->
+    <g transform="translate(0, 80)">
+      <!-- Dias da Semana Header -->
+      <g fill="#64748b" font-size="12" font-weight="600">
+        <text x="45" y="0">DOMINGO</text>
+        <text x="210" y="0">SEGUNDA</text>
+        <text x="385" y="0">TERÇA</text>
+        <text x="545" y="0">QUARTA</text>
+        <text x="720" y="0">QUINTA</text>
+        <text x="895" y="0">SEXTA</text>
+        <text x="1060" y="0">SÁBADO</text>
+      </g>
+
+      <!-- Grade Mensal -->
+      <!-- Linha 1 (Dias 27 a 03) -->
+      <g stroke="#1c2333" stroke-width="1" fill="#0d111a">
+        <rect x="0" y="15" width="168" height="140" fill="#090d16" fill-opacity="0.5"/>
+        <rect x="168" y="15" width="168" height="140" fill="#090d16" fill-opacity="0.5"/>
+        <rect x="336" y="15" width="168" height="140" fill="#090d16" fill-opacity="0.5"/>
+        <rect x="504" y="15" width="168" height="140"/>
+        <rect x="672" y="15" width="168" height="140"/>
+        <rect x="840" y="15" width="168" height="140"/>
+        <rect x="1008" y="15" width="168" height="140"/>
+      </g>
+      <!-- Números Linha 1 -->
+      <g fill="#475569" font-size="12">
+        <text x="10" y="35">27</text>
+        <text x="178" y="35">28</text>
+        <text x="346" y="35">29</text>
+      </g>
+      <g fill="#cbd5e1" font-size="12">
+        <text x="514" y="35">30</text>
+        <text x="682" y="35">01</text>
+        <text x="850" y="35">02</text>
+        <text x="1018" y="35">03</text>
+      </g>
+
+      <!-- Linha 2 (Dias 04 a 10) - ONDE ESTÃO OS LEMBRETES -->
+      <g stroke="#1c2333" stroke-width="1" fill="#0d111a">
+        <rect x="0" y="155" width="168" height="160"/>
+        <rect x="168" y="155" width="168" height="160"/>
+        <rect x="336" y="155" width="168" height="160"/>
+        <!-- Dia 07 (Quarta-Feira) -->
+        <rect x="504" y="155" width="168" height="160" fill="#121724" stroke="#2563eb" stroke-width="1.5"/>
+        <!-- Dia 08 (Quinta-Feira) -->
+        <rect x="672" y="155" width="168" height="160" fill="#121724"/>
+        <rect x="840" y="155" width="168" height="160"/>
+        <rect x="1008" y="155" width="168" height="160"/>
+      </g>
+      
+      <!-- Números Linha 2 -->
+      <g fill="#cbd5e1" font-size="12">
+        <text x="10" y="175">04</text>
+        <text x="178" y="175">05</text>
+        <text x="346" y="175">06</text>
+        <!-- Destaque Quarta 07 -->
+        <circle cx="520" cy="172" r="11" fill="#2563eb"/>
+        <text x="513" y="176" fill="#ffffff" font-weight="700">07</text>
+        <text x="682" y="175">08</text>
+        <text x="850" y="175">09</text>
+        <text x="1018" y="175">10</text>
+      </g>
+
+      <!-- CARD DE LEMBRETE: QUARTA 07 (Rodrigo Peixoto / WhatsApp) -->
+      <g transform="translate(510, 195)">
+        <rect x="0" y="0" width="156" height="74" rx="6" fill="#16222f" stroke="#10b981" stroke-width="1" filter="url(#shadow)"/>
+        <circle cx="12" cy="15" r="4" fill="#10b981"/>
+        <text x="22" y="19" fill="#10b981" font-size="11" font-weight="600">08:30 • WhatsApp</text>
+        <text x="10" y="38" fill="#f8fafc" font-size="12" font-weight="600">Rodrigo Peixoto</text>
+        <text x="10" y="52" fill="#94a3b8" font-size="10">Confirmar reunião</text>
+        <rect x="10" y="58" width="55" height="12" rx="3" fill="#0d111a"/>
+        <text x="14" y="67" fill="#64748b" font-size="8">Pendente</text>
+      </g>
+
+      <!-- CARD DE COMPROMISSO: QUINTA 08 (Mix Cegás / AgentUI) -->
+      <g transform="translate(678, 195)">
+        <rect x="0" y="0" width="156" height="74" rx="6" fill="#1a1c2e" stroke="#8b5cf6" stroke-width="1" filter="url(#shadow)"/>
+        <circle cx="12" cy="15" r="4" fill="#8b5cf6"/>
+        <text x="22" y="19" fill="#a78bfa" font-size="11" font-weight="600">10:00 • Alinhamento</text>
+        <text x="10" y="38" fill="#f8fafc" font-size="12" font-weight="600">Mix Cegás / GNR</text>
+        <text x="10" y="52" fill="#94a3b8" font-size="10">Apresentação pauta</text>
+        <rect x="10" y="58" width="55" height="12" rx="3" fill="#0d111a"/>
+        <text x="14" y="67" fill="#8b5cf6" font-size="8">Agendado</text>
+      </g>
+
+      <!-- Linha 3 (Dias 11 a 17) -->
+      <g stroke="#1c2333" stroke-width="1" fill="#0d111a">
+        <rect x="0" y="315" width="168" height="140"/>
+        <rect x="168" y="315" width="168" height="140"/>
+        <rect x="336" y="315" width="168" height="140"/>
+        <rect x="504" y="315" width="168" height="140"/>
+        <rect x="672" y="315" width="168" height="140"/>
+        <rect x="840" y="315" width="168" height="140"/>
+        <rect x="1008" y="315" width="168" height="140"/>
+      </g>
+      <g fill="#cbd5e1" font-size="12">
+        <text x="10" y="335">11</text>
+        <text x="178" y="335">12</text>
+        <text x="346" y="335">13</text>
+        <text x="514" y="335">14</text>
+        <text x="682" y="335">15</text>
+        <text x="850" y="335">16</text>
+        <text x="1018" y="335">17</text>
+      </g>
+
+      <!-- Linha 4 (Dias 18 a 24) -->
+      <g stroke="#1c2333" stroke-width="1" fill="#0d111a">
+        <rect x="0" y="455" width="168" height="140"/>
+        <rect x="168" y="455" width="168" height="140"/>
+        <rect x="336" y="455" width="168" height="140"/>
+        <rect x="504" y="455" width="168" height="140"/>
+        <rect x="672" y="455" width="168" height="140"/>
+        <rect x="840" y="455" width="168" height="140"/>
+        <rect x="1008" y="455" width="168" height="140"/>
+      </g>
+      <g fill="#cbd5e1" font-size="12">
+        <text x="10" y="475">18</text>
+        <text x="178" y="475">19</text>
+        <text x="346" y="475">20</text>
+        <text x="514" y="475">21</text>
+        <text x="682" y="475">22</text>
+        <text x="850" y="475">23</text>
+        <text x="1018" y="475">24</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -166,11 +166,22 @@ export function HomeUtilityNav(props: {
   onOpenHelp: () => void
   onOpenStats?: () => void
   onOpenMedia?: () => void
+  onOpenAgenda?: () => void
   language: ReturnType<typeof useLanguage>
 }) {
   const platform = usePlatform()
   return (
     <div class={`${props.class ?? ""} min-w-0 flex-col gap-1 pr-3`}>
+      <Show when={props.onOpenAgenda}>
+        <HomeProjectNavButton
+          type="button"
+          class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
+          onClick={props.onOpenAgenda}
+        >
+          <IconV2 name="calendar" size="small" />
+          <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.agenda")}</span>
+        </HomeProjectNavButton>
+      </Show>
       <Show when={props.onOpenMedia}>
         <HomeProjectNavButton
           type="button"

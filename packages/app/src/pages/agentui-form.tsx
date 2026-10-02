@@ -61,6 +61,8 @@ type AgentUIFormState = {
   whatsappWebhookSecret: string
   mcpServers: string[]
   routinesEnabled: boolean
+  agendaEnabled: boolean
+  memoryEnabled: boolean
   enabled: boolean
 }
 
@@ -84,6 +86,8 @@ function emptyForm(): AgentUIFormState {
     whatsappWebhookSecret: "",
     mcpServers: [],
     routinesEnabled: false,
+    agendaEnabled: true,
+    memoryEnabled: true,
     enabled: true,
   }
 }
@@ -163,6 +167,8 @@ export function AgentUIFormPage() {
       whatsappWebhookSecret: agent.channels.find((c) => c.type === "whatsapp")?.webhookSecret ?? "",
       mcpServers: agent.mcpServers ?? [],
       routinesEnabled: agent.routinesEnabled === true,
+      agendaEnabled: (agent as any).agendaEnabled ?? true,
+      memoryEnabled: (agent as any).memoryEnabled ?? true,
       enabled: agent.enabled !== false,
     })
   })
@@ -382,6 +388,8 @@ export function AgentUIFormPage() {
           guardrails: { enabled: form.guardrailsEnabled, level: form.guardrailsLevel },
           mcpServers: form.mcpServers,
           routinesEnabled: form.routinesEnabled,
+          agendaEnabled: form.agendaEnabled,
+          memoryEnabled: form.memoryEnabled,
           enabled: form.enabled,
         },
       })
@@ -922,6 +930,28 @@ export function AgentUIFormPage() {
                         <Switch
                           checked={form.routinesEnabled}
                           onChange={(checked) => setForm("routinesEnabled", checked)}
+                        />
+                      </div>
+
+                      <div class="flex items-center justify-between border-t border-v2-border-border-faint pt-3">
+                        <div>
+                          <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.agenda")}</label>
+                          <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.agenda.hint")}</p>
+                        </div>
+                        <Switch
+                          checked={form.agendaEnabled}
+                          onChange={(checked) => setForm("agendaEnabled", checked)}
+                        />
+                      </div>
+
+                      <div class="flex items-center justify-between border-t border-v2-border-border-faint pt-3">
+                        <div>
+                          <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.memory")}</label>
+                          <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.memory.hint")}</p>
+                        </div>
+                        <Switch
+                          checked={form.memoryEnabled}
+                          onChange={(checked) => setForm("memoryEnabled", checked)}
                         />
                       </div>
                     </div>

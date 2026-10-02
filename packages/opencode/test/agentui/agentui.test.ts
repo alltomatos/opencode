@@ -308,3 +308,25 @@ it.instance("sessionPermission() allows routine and reminder tools when routines
   }),
 )
 
+it.instance("sessionPermission() allows reminder tool when agendaEnabled is true", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    const ruleset = svc.sessionPermission([], false, true, false)
+    const reminderRule = ruleset.findLast((r) => Wildcard.match("reminder", r.permission))
+    expect(reminderRule?.action).toBe("allow")
+    const routineRule = ruleset.findLast((r) => Wildcard.match("routine", r.permission))
+    expect(routineRule?.action).toBe("deny")
+  }),
+)
+
+it.instance("sessionPermission() allows memory_save and memory_search tools when memoryEnabled is true", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    const ruleset = svc.sessionPermission([], false, false, true)
+    const saveRule = ruleset.findLast((r) => Wildcard.match("memory_save", r.permission))
+    expect(saveRule?.action).toBe("allow")
+    const searchRule = ruleset.findLast((r) => Wildcard.match("memory_search", r.permission))
+    expect(searchRule?.action).toBe("allow")
+  }),
+)
+

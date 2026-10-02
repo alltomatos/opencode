@@ -139,6 +139,14 @@ export const Agent = Schema.Struct({
   routinesEnabled: Schema.optional(Schema.Boolean).annotate({
     description: "Whether this agent has access to query and trigger scheduled routines. Absent/false means disabled.",
   }),
+  // Whether this agent is allowed to create and manage reminders/agenda
+  agendaEnabled: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether this agent has access to create and manage agenda reminders. Absent/false means disabled.",
+  }),
+  // Whether this agent is allowed to use continuous memory (memory_save / memory_search)
+  memoryEnabled: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether this agent has access to persistent memory tools. Absent/false means disabled.",
+  }),
   // Absent/undefined means enabled — old configs saved before this field
   // existed must keep working exactly as before. Read via isEnabled()
   // below rather than this field directly.
