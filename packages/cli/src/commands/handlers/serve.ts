@@ -49,6 +49,7 @@ function bind(hostname: string, port: number, password: string) {
             ScheduleRunner.mcpCallerNode,
             ScheduleRunner.skillCallerNode,
             ScheduleRunner.agentUICallerNode,
+            ScheduleRunner.reminderCallerNode,
             ScheduleRunner.tickNode,
           ]),
         ),
