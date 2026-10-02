@@ -1,38 +1,79 @@
 import { ImapFlow } from "imapflow";
 import type { Account } from "../schemas/account.schema.js";
 
+const MAX_RETRIES = 3;
+
+function isTransientError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  const code = ((err as { code?: string })?.code ?? "").toLowerCase();
+  return (
+    code.includes("econnreset") ||
+    code.includes("etimedout") ||
+    code.includes("econnrefused") ||
+    code.includes("epipe") ||
+    msg.includes("econnreset") ||
+    msg.includes("etimedout") ||
+    msg.includes("econnrefused") ||
+    msg.includes("epipe") ||
+    msg.includes("closed") ||
+    msg.includes("timeout") ||
+    msg.includes("handshake") ||
+    msg.includes("network") ||
+    msg.includes("aborted")
+  );
+}
+
 /**
- * Abre uma conexão IMAP para a conta informada, executa `handler` e garante
- * o fechamento da conexão ao final — sem pool persistente (v1).
+ * Abre uma conexão IMAP para a conta informada com retry exponencial para
+ * erros transitórios (ex: ECONNRESET, timeouts), executa `handler` e garante
+ * o fechamento da conexão ao final.
  */
 export async function withImapConnection<T>(
   account: Account,
   handler: (client: ImapFlow) => Promise<T>
 ): Promise<T> {
-  const client = new ImapFlow({
-    host: account.host,
-    port: account.port,
-    secure: account.secure,
-    auth: {
-      user: account.user,
-      pass: account.appPassword,
-    },
-    logger: false,
-  });
+  let lastError: unknown;
 
-  try {
-    await client.connect();
-  } catch (err) {
-    throw new Error(
-      `Falha ao conectar na conta "${account.id}" (${account.host}:${account.port}). Verifique host/porta/App Password em accounts.json. Causa: ${
-        (err as Error).message
-      }`
-    );
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const client = new ImapFlow({
+      host: account.host,
+      port: account.port,
+      secure: account.secure,
+      auth: {
+        user: account.user,
+        pass: account.appPassword,
+      },
+      logger: false,
+      clientInfo: { name: "mcpmail", version: "1.0.0" },
+      tls: {
+        servername: account.host,
+        rejectUnauthorized: false,
+      },
+      connectionTimeout: 20_000,
+      greetingTimeout: 20_000,
+      socketTimeout: 30_000,
+    });
+
+    try {
+      await client.connect();
+      return await handler(client);
+    } catch (err) {
+      lastError = err;
+      const isTransient = isTransientError(err);
+      if (attempt < MAX_RETRIES && isTransient) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+        continue;
+      }
+      break;
+    } finally {
+      await client.logout().catch(() => client.close());
+    }
   }
 
-  try {
-    return await handler(client);
-  } finally {
-    await client.logout().catch(() => client.close());
-  }
+  throw new Error(
+    `Falha ao conectar/executar na conta "${account.id}" (${account.host}:${account.port}). Verifique host/porta/App Password em accounts.json. Causa: ${
+      (lastError as Error)?.message || String(lastError)
+    }`
+  );
 }

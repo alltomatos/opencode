@@ -36,6 +36,14 @@ const sanitizeNode = (schema: unknown): unknown => {
     ]),
   )
 
+  if (result.type === "boolean" || typeof result.const === "boolean") {
+    delete result.enum
+    if (typeof result.const === "boolean") {
+      result.type = "boolean"
+      delete result.const
+    }
+  }
+
   if (Array.isArray(result.enum) && (result.type === "integer" || result.type === "number")) result.type = "string"
 
   const properties = result.properties
@@ -61,6 +69,18 @@ const emptyObjectSchema = (schema: Record<string, unknown>) =>
   (!isRecord(schema.properties) || Object.keys(schema.properties).length === 0) &&
   !schema.additionalProperties
 
+const getEnum = (schema: Record<string, unknown>): string[] | undefined => {
+  if (schema.type === "boolean") return undefined
+  if (schema.const !== undefined) {
+    if (typeof schema.const === "boolean") return undefined
+    return [String(schema.const)]
+  }
+  if (Array.isArray(schema.enum)) {
+    return schema.enum.map(String)
+  }
+  return undefined
+}
+
 const projectNode = (schema: unknown): Record<string, unknown> | undefined => {
   if (!isRecord(schema)) return undefined
   if (emptyObjectSchema(schema)) return undefined
@@ -71,7 +91,7 @@ const projectNode = (schema: unknown): Record<string, unknown> | undefined => {
       ["format", schema.format],
       ["type", Array.isArray(schema.type) ? schema.type.filter((type) => type !== "null")[0] : schema.type],
       ["nullable", Array.isArray(schema.type) && schema.type.includes("null") ? true : undefined],
-      ["enum", schema.const !== undefined ? [schema.const] : schema.enum],
+      ["enum", getEnum(schema)],
       [
         "properties",
         isRecord(schema.properties)

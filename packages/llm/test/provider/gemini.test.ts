@@ -110,6 +110,54 @@ describe("Gemini route", () => {
     }),
   )
 
+  it.effect("sanitizes boolean and non-string enums and consts in tool schemas", () =>
+    Effect.gen(function* () {
+      const prepared = yield* LLMClient.prepare<Gemini.GeminiBody>(
+        LLM.request({
+          model,
+          tools: [
+            {
+              name: "delete_item",
+              description: "Delete item",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  confirm: { type: "boolean", enum: [true] },
+                  directBoolConst: { const: true },
+                  numberEnum: { type: "number", enum: [1, 2] },
+                  stringConst: { const: "exact" },
+                },
+                required: ["confirm"],
+              },
+            },
+          ],
+          messages: [Message.user("Delete item.")],
+        }),
+      )
+
+      expect(prepared.body.tools).toEqual([
+        {
+          functionDeclarations: [
+            {
+              name: "delete_item",
+              description: "Delete item",
+              parameters: {
+                type: "object",
+                properties: {
+                  confirm: { type: "boolean" },
+                  directBoolConst: { type: "boolean" },
+                  numberEnum: { type: "string", enum: ["1", "2"] },
+                  stringConst: { enum: ["exact"] },
+                },
+                required: ["confirm"],
+              },
+            },
+          ],
+        },
+      ])
+    }),
+  )
+
   it.effect("continues image tool results as inline vision input without base64 text", () =>
     Effect.gen(function* () {
       const prepared = yield* LLMClient.prepare<Gemini.GeminiBody>(
