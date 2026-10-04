@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.62",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Skills de Engenharia: Protocolo de Segurança e Auditoria Ofensiva no /developer",
+              "description": "Atualizado o pipeline oficial de governança técnica do /developer com portão duplo obrigatório (QA Funcional via /qa-analyst e Auditoria de Segurança E2E com testes negativos *.spec.sec.ts via /secure-e2e). Aprimorada a skill /secure-e2e com mentalidade de atacante (White-Hat), threat modeling, rate limiting e blindagem preventiva."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.61",
       "highlights": [
         {
