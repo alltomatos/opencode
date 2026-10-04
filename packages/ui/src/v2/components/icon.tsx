@@ -173,6 +173,26 @@ const icons = {
     viewBox: "0 0 20 20",
     body: `<path d="M16.6665 16.6666L11.6665 11.6666L9.99984 13.3333L6.6665 9.99996L3.08317 13.5833M2.9165 2.91663H17.0832V17.0833H2.9165V2.91663ZM13.3332 7.49996C13.3332 8.30537 12.6803 8.95829 11.8748 8.95829C11.0694 8.95829 10.4165 8.30537 10.4165 7.49996C10.4165 6.69454 11.0694 6.04163 11.8748 6.04163C12.6803 6.04163 13.3332 6.69454 13.3332 7.49996Z" stroke="currentColor" stroke-linecap="square"/>`,
   },
+  "chevron-left": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "chevron-right": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  grid: {
+    viewBox: "0 0 16 16",
+    body: `<rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.25"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.25"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.25"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.25"/>`,
+  },
+  list: {
+    viewBox: "0 0 16 16",
+    body: `<path d="M2.5 4H13.5M2.5 8H13.5M2.5 12H13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>`,
+  },
+  clock: {
+    viewBox: "0 0 16 16",
+    body: `<circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.25"/><path d="M8 4.5V8L10.5 9.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>`,
+  },
 }
 
 const spriteID = "opencode-v2-icon-sprite"
