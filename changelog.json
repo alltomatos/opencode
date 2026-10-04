@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.63",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Agenda & Lembretes: Novo Design Visual e Cores Semânticas por Canal",
+              "description": "Design visual moderno para a Agenda e Lembretes (/agenda): cores semânticas vibrantes com badges luminosos para cada canal (WhatsApp em esmeralda, Desktop em ciano/sky, AgentUI em roxo/índigo e Telegram em ciano), grade mensal polida com destaque visual aprimorado para o dia atual e horários tabulares mono, agrupamento cronológico inteligente no Modo Lista (Hoje, Amanhã, datas futuras), e controles de cabeçalho refinados com ícones vetoriais nativos."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.62",
       "highlights": [
         {
