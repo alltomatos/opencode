@@ -432,31 +432,6 @@ export function AgentUIFormPage() {
   })
 
   const [publicTunnelUrl, setPublicTunnelUrl] = createSignal<string | undefined>()
-  const [tunnelStarting, setTunnelStarting] = createSignal(false)
-  const [tunnelError, setTunnelError] = createSignal<string | undefined>()
-
-  const startPublicTunnel = async () => {
-    if (tunnelStarting()) return
-    setTunnelError(undefined)
-    setTunnelStarting(true)
-    try {
-      const port = Number(new URL(serverSDK().url).port) || 80
-      const result = await serverSDK().client.tunnel.start({ port })
-      if (result.data?.url) setPublicTunnelUrl(result.data.url)
-      else setTunnelError(language.t("settings.agentui.field.whatsapp.tunnel.error"))
-    } catch (cause) {
-      setTunnelError(cause instanceof Error ? cause.message : String(cause))
-    } finally {
-      setTunnelStarting(false)
-    }
-  }
-
-  // Simpler alternative to the cloudflared quick tunnel: if this machine
-  // already has Tailscale running (as our own izapia VPS setups do), the
-  // provider can reach this server directly over the tailnet at its
-  // 100.x.x.x address — no external process, no random URL that expires
-  // when the tunnel dies. Reuses publicTunnelUrl as the webhook base since
-  // both are just "however the provider reaches this server publicly".
   const [tailscaleDetecting, setTailscaleDetecting] = createSignal(false)
   const [tailscaleError, setTailscaleError] = createSignal<string | undefined>()
   const [funnelStarting, setFunnelStarting] = createSignal(false)
@@ -880,20 +855,6 @@ export function AgentUIFormPage() {
                               </ButtonV2>
                               <Show when={funnelError()}>
                                 <span class="settings-v2-server-dialog-error">{funnelError()}</span>
-                              </Show>
-                            </div>
-
-                            <div class="flex flex-col gap-1 border-t border-v2-border-border-base pt-2">
-                              <p class="text-11-regular text-v2-text-text-faint">
-                                {language.t("settings.agentui.field.whatsapp.tunnel.hint")}
-                              </p>
-                              <ButtonV2 variant="outline" disabled={tunnelStarting()} onClick={() => void startPublicTunnel()}>
-                                {tunnelStarting()
-                                  ? language.t("settings.agentui.field.whatsapp.tunnel.starting")
-                                  : language.t("settings.agentui.field.whatsapp.tunnel.start")}
-                              </ButtonV2>
-                              <Show when={tunnelError()}>
-                                <span class="settings-v2-server-dialog-error">{tunnelError()}</span>
                               </Show>
                             </div>
                           </div>

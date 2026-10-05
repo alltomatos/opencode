@@ -259,7 +259,7 @@ const layer = Layer.effect(
       const promise = new Promise<Status>((resolve, reject) => {
         let proc: NodeChildProcess.ChildProcess
         try {
-          proc = NodeChildProcess.spawn(cmd, ["funnel", "--https=443", "--bg", String(input.port)], {
+          proc = NodeChildProcess.spawn(cmd, ["funnel", "--https=443", "--bg", "--yes", String(input.port)], {
             stdio: ["ignore", "pipe", "pipe"],
           })
         } catch (cause) {
@@ -269,6 +269,8 @@ const layer = Layer.effect(
 
         let out = ""
         let err = ""
+        let settled = false
+
         proc.stdout?.on("data", (chunk: Buffer) => {
           out += chunk.toString()
         })
@@ -276,11 +278,19 @@ const layer = Layer.effect(
           err += chunk.toString()
         })
         proc.on("error", (cause) => {
+          if (settled) return
+          settled = true
           reject(new TunnelError({ reason: String(cause) }))
         })
         proc.on("exit", (code) => {
+          if (settled) return
+          settled = true
           if (code !== 0) {
-            reject(new TunnelError({ reason: err.trim() || out.trim() || `tailscale funnel saiu com código ${code}` }))
+            reject(
+              new TunnelError({
+                reason: err.trim() || out.trim() || `tailscale funnel saiu com código ${code}`,
+              }),
+            )
             return
           }
           const dns = statusInfo.dnsName
@@ -288,6 +298,14 @@ const layer = Layer.effect(
           funnelUrl = resolved
           resolve({ running: true, url: resolved })
         })
+
+        const timer = setTimeout(() => {
+          if (settled) return
+          settled = true
+          proc.kill()
+          reject(new TunnelError({ reason: "Tempo esgotado aguardando o Tailscale Funnel iniciar." }))
+        }, 15_000)
+        proc.once("exit", () => clearTimeout(timer))
       })
 
       return yield* Effect.tryPromise({
