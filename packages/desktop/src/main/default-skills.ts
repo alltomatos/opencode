@@ -6,7 +6,19 @@ import { homedir } from "node:os"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const DEFAULT_SKILLS_SOURCE = join(__dirname, "skills", "default-skills")
+
+function resolveDefaultSkillsSource(): string | undefined {
+  const candidates = [
+    join(process.resourcesPath, "default-skills"),
+    join(process.resourcesPath, "resources", "default-skills"),
+    join(__dirname, "skills", "default-skills"),
+    join(__dirname, "../../resources/default-skills"),
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+  return undefined
+}
 
 export async function ensureDefaultSkills() {
   const target = join(homedir(), ".opencode", "skills")
@@ -18,10 +30,10 @@ export async function ensureDefaultSkills() {
   try {
     await mkdir(target, { recursive: true })
 
-    const sourceExists = existsSync(DEFAULT_SKILLS_SOURCE)
-    if (sourceExists) {
-      await copySkillsRecursive(DEFAULT_SKILLS_SOURCE, target)
-      console.log("default-skills", `seeded skills from bundled default-skills`)
+    const source = resolveDefaultSkillsSource()
+    if (source) {
+      await copySkillsRecursive(source, target)
+      console.log("default-skills", `seeded skills from ${source}`)
     }
   } catch (error) {
     console.warn("default-skills", `failed to seed default skills: ${String(error)}`, error)
