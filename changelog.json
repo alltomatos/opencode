@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.65",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Skills: Extração e Instalação Automática de Skills Embarcadas em Máquinas Novas",
+              "description": "Corrigida a resolução do diretório default-skills empacotado no Electron Desktop (process.resourcesPath). Agora, em instalações limpas ou novos computadores, todas as skills embutidas do fork Alltomatos são extraídas e provisionadas automaticamente para ~/.opencode/skills na primeira inicialização, garantindo disponibilidade imediata de todas as skills sem necessidade de download manual."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.64",
       "highlights": [
         {
