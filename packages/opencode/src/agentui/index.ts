@@ -197,7 +197,14 @@ const layer = Layer.effect(
     const overlay = new Map<string, ConfigAgentUIV1.Agent | undefined>()
 
     const list = Effect.fn("AgentUI.list")(function* () {
-      const cfg = yield* cfgSvc.get()
+      const cfg = yield* cfgSvc.get().pipe(
+        Effect.catchDefect((defect) => {
+          if (defect instanceof Error && defect.message.includes("InstanceRef not provided")) {
+            return cfgSvc.getGlobal()
+          }
+          return Effect.die(defect)
+        }),
+      )
       const merged = new Map<string, ConfigAgentUIV1.Agent>(Object.entries(cfg.agentui ?? {}))
       for (const [id, agent] of overlay) {
         if (agent) merged.set(id, agent)

@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.64",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI & WhatsApp: Opções de Webhook Tailscale Interno e Tailscale Funnel Público",
+              "description": "Adicionado suporte nativo para alternar a URL base de webhook do WhatsApp entre o IP interno do Tailscale (para ambientes onde a VPS do provedor está na mesma Tailnet) e o Tailscale Funnel com HTTPS público oficial (permitindo que provedores externos alcancem o webhook com segurança). Corrigido o reconciler de bots do Telegram no AgentUI com fallback para a configuração global quando executado fora do escopo de instância."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.63",
       "highlights": [
         {

@@ -27,7 +27,9 @@ export default Runtime.handler(
             ? `${item.action.server}/${item.action.tool}`
             : item.action.kind === "agentui"
               ? `agentui:${item.action.agentId}`
-              : `skill:${item.action.instructions}`
+              : item.action.kind === "reminder"
+                ? `reminder:${item.action.title}`
+                : `skill:${item.action.instructions}`
       process.stdout.write(`${item.id.padEnd(16)} ${trigger.padEnd(14)} ${action}${ws}${status}${lastRun}` + EOL)
     }
   }),

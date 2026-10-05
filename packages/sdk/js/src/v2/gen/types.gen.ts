@@ -5383,7 +5383,16 @@ export type ScheduleManualTrigger = {
   kind: "manual"
 }
 
-export type ScheduleTrigger = ScheduleCronTrigger | ScheduleIntervalTrigger | ScheduleManualTrigger
+export type ScheduleOnceTrigger = {
+  kind: "once"
+  timestamp: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type ScheduleTrigger =
+  | ScheduleCronTrigger
+  | ScheduleIntervalTrigger
+  | ScheduleManualTrigger
+  | ScheduleOnceTrigger
 
 export type ScheduleShellAction = {
   kind: "shell"
@@ -5423,7 +5432,21 @@ export type ScheduleAgentUiAction = {
   timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
-export type ScheduleAction = ScheduleShellAction | ScheduleMcpToolAction | ScheduleSkillAction | ScheduleAgentUiAction
+export type ScheduleReminderAction = {
+  kind: "reminder"
+  title: string
+  message: string
+  channels?: Array<"desktop" | "agentui" | "telegram" | "whatsapp">
+  targetSessionId?: string
+  agentId?: string
+}
+
+export type ScheduleAction =
+  | ScheduleShellAction
+  | ScheduleMcpToolAction
+  | ScheduleSkillAction
+  | ScheduleAgentUiAction
+  | ScheduleReminderAction
 
 export type ScheduleInfo = {
   id: string
@@ -13417,15 +13440,77 @@ export type TunnelTailscaleError = TunnelTailscaleErrors[keyof TunnelTailscaleEr
 
 export type TunnelTailscaleResponses = {
   /**
-   * Local Tailscale IP, if available
+   * Local Tailscale IP and node details, if available
    */
   200: {
     available: boolean
     ip?: string
+    dnsName?: string
   }
 }
 
 export type TunnelTailscaleResponse = TunnelTailscaleResponses[keyof TunnelTailscaleResponses]
+
+export type TunnelStartFunnelData = {
+  body?: {
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+  path?: never
+  query?: never
+  url: "/tunnel/funnel/start"
+}
+
+export type TunnelStartFunnelErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * TunnelError
+   */
+  500: TunnelError
+}
+
+export type TunnelStartFunnelError = TunnelStartFunnelErrors[keyof TunnelStartFunnelErrors]
+
+export type TunnelStartFunnelResponses = {
+  /**
+   * Tailscale Funnel started (or already running)
+   */
+  200: {
+    running: boolean
+    url?: string
+  }
+}
+
+export type TunnelStartFunnelResponse = TunnelStartFunnelResponses[keyof TunnelStartFunnelResponses]
+
+export type TunnelStopFunnelData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/tunnel/funnel/stop"
+}
+
+export type TunnelStopFunnelErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TunnelStopFunnelError = TunnelStopFunnelErrors[keyof TunnelStopFunnelErrors]
+
+export type TunnelStopFunnelResponses = {
+  /**
+   * Tailscale Funnel stopped
+   */
+  200: {
+    ok: true
+  }
+}
+
+export type TunnelStopFunnelResponse = TunnelStopFunnelResponses[keyof TunnelStopFunnelResponses]
 
 export type ExperimentalWorkspaceAdapterListData = {
   body?: never
@@ -13719,6 +13804,7 @@ export type V2HealthGetResponses = {
    */
   200: {
     healthy: true
+    version?: string
   }
 }
 

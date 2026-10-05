@@ -315,7 +315,17 @@ const tick = Effect.fn("v2.Schedule.tick")(function* () {
       if (schedule.lastRunAt && nowMs - schedule.lastRunAt < schedule.trigger.ms) continue
     } else {
       if (schedule.lastRunAt && nowMs - schedule.lastRunAt < 59_000) continue
-      if (!Schedule.matchesCron(schedule.trigger.expr, now)) continue
+
+      const matchesNow = Schedule.matchesCron(schedule.trigger.expr, now)
+      const missedWhileOffline =
+        schedule.lastRunAt != null && Schedule.hasCronRunBetween(schedule.trigger.expr, schedule.lastRunAt, nowMs)
+
+      if (!matchesNow && !missedWhileOffline) continue
+      if (missedWhileOffline && !matchesNow) {
+        yield* Effect.logInfo(
+          `[Schedule] Task ${schedule.id} catching up missed execution (scheduled between last run and now)`,
+        )
+      }
     }
 
     const result = yield* runAction(schedule.action, schedule.workspace, schedule.lastSessionId)
@@ -332,10 +342,16 @@ const tick = Effect.fn("v2.Schedule.tick")(function* () {
   }
 })
 
+const STARTUP_DELAY_SECONDS = 60
+
 const tickLayer = Layer.effectDiscard(
-  tick().pipe(
-    Effect.catch(() => Effect.void),
-    Effect.repeat(EffectSchedule.spaced(Duration.seconds(30))),
+  Effect.sleep(Duration.seconds(STARTUP_DELAY_SECONDS)).pipe(
+    Effect.flatMap(() =>
+      tick().pipe(
+        Effect.catch(() => Effect.void),
+        Effect.repeat(EffectSchedule.spaced(Duration.seconds(30))),
+      ),
+    ),
     Effect.forkScoped,
   ),
 )

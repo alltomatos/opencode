@@ -42,8 +42,9 @@ export function createPanelGeometry(deps: {
         opened: layout.fileTree.opened(),
       }),
   )
+  const browserPanelOpen = createMemo(() => isBrowserPanelAvailable() && isBrowserPanelOpen())
   const desktopSessionResizeOpen = createMemo(() =>
-    newSessionDesign() ? desktopV2ReviewOpen() || desktopTerminalOpen() : desktopReviewOpen(),
+    newSessionDesign() ? desktopV2ReviewOpen() || desktopTerminalOpen() || browserPanelOpen() : desktopReviewOpen() || browserPanelOpen(),
   )
   const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
 
@@ -92,13 +93,13 @@ export function createPanelGeometry(deps: {
       review: desktopV2ReviewOpen(),
       terminal: desktopTerminalOpen(),
       files: desktopFileTreeOpen(),
+      browser: browserPanelOpen(),
     }),
   )
-  const browserPanelOpen = createMemo(() => isBrowserPanelAvailable() && isBrowserPanelOpen())
   const terminalRegionOpen = createMemo(
     () => newSessionDesign() && (isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()),
   )
-  const browserPanelStacked = createMemo(() => browserPanelOpen() && terminalRegionOpen())
+  const browserPanelStacked = createMemo(() => browserPanelOpen() && (desktopV2ReviewOpen() || desktopTerminalOpen() || desktopFileTreeOpen()))
 
   const openReviewPanel = () => {
     if (!view().reviewPanel.opened()) view().reviewPanel.open()

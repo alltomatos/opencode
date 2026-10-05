@@ -15,5 +15,13 @@ describe("sessionPanelLayout", () => {
       visible: true,
       stacked: true,
     })
+    expect(sessionPanelLayout({ review: false, terminal: false, files: false, browser: true })).toEqual({
+      visible: true,
+      stacked: false,
+    })
+    expect(sessionPanelLayout({ review: true, terminal: false, files: false, browser: true })).toEqual({
+      visible: true,
+      stacked: true,
+    })
   })
 })

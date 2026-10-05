@@ -372,10 +372,14 @@ import type {
   TuiSubmitPromptErrors,
   TuiSubmitPromptResponses,
   TunnelStartErrors,
+  TunnelStartFunnelErrors,
+  TunnelStartFunnelResponses,
   TunnelStartResponses,
   TunnelStatusErrors,
   TunnelStatusResponses,
   TunnelStopErrors,
+  TunnelStopFunnelErrors,
+  TunnelStopFunnelResponses,
   TunnelStopResponses,
   TunnelTailscaleErrors,
   TunnelTailscaleResponses,
@@ -7124,6 +7128,40 @@ export class Tunnel extends HeyApiClient {
   public tailscale<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
     return (options?.client ?? this.client).get<TunnelTailscaleResponses, TunnelTailscaleErrors, ThrowOnError>({
       url: "/tunnel/tailscale",
+      ...options,
+    })
+  }
+
+  /**
+   * Start Tailscale Funnel
+   *
+   * Starts Tailscale Funnel exposing this server's given local port publicly over HTTPS.
+   */
+  public startFunnel<ThrowOnError extends boolean = false>(
+    parameters?: {
+      port?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "port" }] }])
+    return (options?.client ?? this.client).post<TunnelStartFunnelResponses, TunnelStartFunnelErrors, ThrowOnError>({
+      url: "/tunnel/funnel/start",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Stop Tailscale Funnel
+   */
+  public stopFunnel<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<TunnelStopFunnelResponses, TunnelStopFunnelErrors, ThrowOnError>({
+      url: "/tunnel/funnel/stop",
       ...options,
     })
   }

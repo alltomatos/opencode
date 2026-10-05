@@ -102,6 +102,7 @@ export function startBrowserBridge(getPanel: (id: string) => BrowserPanel | unde
       if (action === "navigate" && req.method === "POST") {
         const body = await readJson(req)
         if (typeof body.url !== "string") throw new Error("url is required")
+        panel.toggle(true)
         await panel.navigate(body.url)
         sendJson(res, 200, panel.state())
         return

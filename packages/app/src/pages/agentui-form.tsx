@@ -459,6 +459,8 @@ export function AgentUIFormPage() {
   // both are just "however the provider reaches this server publicly".
   const [tailscaleDetecting, setTailscaleDetecting] = createSignal(false)
   const [tailscaleError, setTailscaleError] = createSignal<string | undefined>()
+  const [funnelStarting, setFunnelStarting] = createSignal(false)
+  const [funnelError, setFunnelError] = createSignal<string | undefined>()
 
   const useTailscaleIp = async () => {
     if (tailscaleDetecting()) return
@@ -476,6 +478,25 @@ export function AgentUIFormPage() {
       setTailscaleError(cause instanceof Error ? cause.message : String(cause))
     } finally {
       setTailscaleDetecting(false)
+    }
+  }
+
+  const useTailscaleFunnel = async () => {
+    if (funnelStarting()) return
+    setFunnelError(undefined)
+    setFunnelStarting(true)
+    try {
+      const port = Number(new URL(serverSDK().url).port) || 80
+      const result = await serverSDK().client.tunnel.startFunnel({ port })
+      if (result.data?.url) {
+        setPublicTunnelUrl(result.data.url)
+      } else {
+        setFunnelError(language.t("settings.agentui.field.whatsapp.tunnel.tailscaleFunnel.error"))
+      }
+    } catch (cause) {
+      setFunnelError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setFunnelStarting(false)
     }
   }
 
@@ -825,39 +846,67 @@ export function AgentUIFormPage() {
                         </Show>
                         <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.whatsapp.hint")}</p>
                         <Show when={isPrivateServerUrl() && !publicTunnelUrl()}>
-                          <div class="flex flex-col gap-1.5 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 p-2.5">
-                            <p class="text-11-regular text-v2-text-text-faint">
-                              {language.t("settings.agentui.field.whatsapp.tunnel.tailscale.hint")}
-                            </p>
-                            <ButtonV2
-                              variant="outline"
-                              disabled={tailscaleDetecting()}
-                              onClick={() => void useTailscaleIp()}
-                            >
-                              {tailscaleDetecting()
-                                ? language.t("settings.agentui.field.whatsapp.tunnel.tailscale.detecting")
-                                : language.t("settings.agentui.field.whatsapp.tunnel.tailscale.use")}
-                            </ButtonV2>
-                            <Show when={tailscaleError()}>
-                              <span class="settings-v2-server-dialog-error">{tailscaleError()}</span>
-                            </Show>
-                            <p class="text-11-regular text-v2-text-text-faint">
-                              {language.t("settings.agentui.field.whatsapp.tunnel.hint")}
-                            </p>
-                            <ButtonV2 variant="outline" disabled={tunnelStarting()} onClick={() => void startPublicTunnel()}>
-                              {tunnelStarting()
-                                ? language.t("settings.agentui.field.whatsapp.tunnel.starting")
-                                : language.t("settings.agentui.field.whatsapp.tunnel.start")}
-                            </ButtonV2>
-                            <Show when={tunnelError()}>
-                              <span class="settings-v2-server-dialog-error">{tunnelError()}</span>
-                            </Show>
+                          <div class="flex flex-col gap-2 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 p-2.5">
+                            <div class="flex flex-col gap-1">
+                              <p class="text-11-regular text-v2-text-text-faint">
+                                {language.t("settings.agentui.field.whatsapp.tunnel.tailscale.hint")}
+                              </p>
+                              <ButtonV2
+                                variant="outline"
+                                disabled={tailscaleDetecting()}
+                                onClick={() => void useTailscaleIp()}
+                              >
+                                {tailscaleDetecting()
+                                  ? language.t("settings.agentui.field.whatsapp.tunnel.tailscale.detecting")
+                                  : language.t("settings.agentui.field.whatsapp.tunnel.tailscale.use")}
+                              </ButtonV2>
+                              <Show when={tailscaleError()}>
+                                <span class="settings-v2-server-dialog-error">{tailscaleError()}</span>
+                              </Show>
+                            </div>
+
+                            <div class="flex flex-col gap-1 border-t border-v2-border-border-base pt-2">
+                              <p class="text-11-regular text-v2-text-text-faint">
+                                {language.t("settings.agentui.field.whatsapp.tunnel.tailscaleFunnel.hint")}
+                              </p>
+                              <ButtonV2
+                                variant="outline"
+                                disabled={funnelStarting()}
+                                onClick={() => void useTailscaleFunnel()}
+                              >
+                                {funnelStarting()
+                                  ? language.t("settings.agentui.field.whatsapp.tunnel.tailscaleFunnel.starting")
+                                  : language.t("settings.agentui.field.whatsapp.tunnel.tailscaleFunnel.use")}
+                              </ButtonV2>
+                              <Show when={funnelError()}>
+                                <span class="settings-v2-server-dialog-error">{funnelError()}</span>
+                              </Show>
+                            </div>
+
+                            <div class="flex flex-col gap-1 border-t border-v2-border-border-base pt-2">
+                              <p class="text-11-regular text-v2-text-text-faint">
+                                {language.t("settings.agentui.field.whatsapp.tunnel.hint")}
+                              </p>
+                              <ButtonV2 variant="outline" disabled={tunnelStarting()} onClick={() => void startPublicTunnel()}>
+                                {tunnelStarting()
+                                  ? language.t("settings.agentui.field.whatsapp.tunnel.starting")
+                                  : language.t("settings.agentui.field.whatsapp.tunnel.start")}
+                              </ButtonV2>
+                              <Show when={tunnelError()}>
+                                <span class="settings-v2-server-dialog-error">{tunnelError()}</span>
+                              </Show>
+                            </div>
                           </div>
                         </Show>
                         <Show when={publicTunnelUrl()}>
-                          <p class="text-11-regular text-v2-text-text-accent">
-                            {language.t("settings.agentui.field.whatsapp.tunnel.active", { url: publicTunnelUrl()! })}
-                          </p>
+                          <div class="flex items-center justify-between gap-2 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 p-2">
+                            <p class="text-11-regular text-v2-text-text-accent">
+                              {language.t("settings.agentui.field.whatsapp.tunnel.active", { url: publicTunnelUrl()! })}
+                            </p>
+                            <ButtonV2 variant="ghost" size="small" onClick={() => setPublicTunnelUrl(undefined)}>
+                              {language.t("settings.agentui.field.whatsapp.tunnel.clear")}
+                            </ButtonV2>
+                          </div>
                         </Show>
                         <Show
                           when={whatsappWebhookUrl()}

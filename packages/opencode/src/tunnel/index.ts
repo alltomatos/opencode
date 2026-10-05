@@ -28,6 +28,7 @@ export type Status = Schema.Schema.Type<typeof Status>
 export const TailscaleStatus = Schema.Struct({
   available: Schema.Boolean,
   ip: Schema.optional(Schema.String),
+  dnsName: Schema.optional(Schema.String),
 })
 export type TailscaleStatus = Schema.Schema.Type<typeof TailscaleStatus>
 
@@ -36,6 +37,8 @@ export interface Interface {
   readonly status: () => Effect.Effect<Status>
   readonly stop: () => Effect.Effect<void>
   readonly tailscale: () => Effect.Effect<TailscaleStatus>
+  readonly startFunnel: (input: { port: number }) => Effect.Effect<Status, TunnelError>
+  readonly stopFunnel: () => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Tunnel") {}
@@ -161,11 +164,38 @@ const layer = Layer.effect(
           ? ["tailscale", "/Applications/Tailscale.app/Contents/MacOS/Tailscale", "/usr/local/bin/tailscale"]
           : ["tailscale"]
 
-    const tryTailscaleIp = (command: string): Promise<TailscaleStatus> =>
-      new Promise((resolve) => {
+    let funnelUrl: string | undefined
+
+    const findTailscaleCommand = async (): Promise<string | undefined> => {
+      for (const cmd of TAILSCALE_CANDIDATES) {
+        const ok = await new Promise<boolean>((resolve) => {
+          let proc: NodeChildProcess.ChildProcess
+          try {
+            proc = NodeChildProcess.spawn(cmd, ["version"], { stdio: ["ignore", "ignore", "ignore"] })
+          } catch {
+            resolve(false)
+            return
+          }
+          proc.on("error", () => resolve(false))
+          proc.on("exit", (code) => resolve(code === 0))
+          setTimeout(() => {
+            proc.kill()
+            resolve(false)
+          }, 2_000)
+        })
+        if (ok) return cmd
+      }
+      return undefined
+    }
+
+    const detectTailscaleStatus = async (): Promise<TailscaleStatus> => {
+      const cmd = await findTailscaleCommand()
+      if (!cmd) return { available: false }
+
+      return new Promise<TailscaleStatus>((resolve) => {
         let proc: NodeChildProcess.ChildProcess
         try {
-          proc = NodeChildProcess.spawn(command, ["ip", "-4"], { stdio: ["ignore", "pipe", "ignore"] })
+          proc = NodeChildProcess.spawn(cmd, ["status", "--json"], { stdio: ["ignore", "pipe", "ignore"] })
         } catch {
           resolve({ available: false })
           return
@@ -183,8 +213,26 @@ const layer = Layer.effect(
         proc.on("exit", (code) => {
           if (settled) return
           settled = true
-          const ip = out.trim().split("\n")[0]?.trim()
-          resolve(code === 0 && ip ? { available: true, ip } : { available: false })
+          if (code !== 0 || !out.trim()) {
+            resolve({ available: false })
+            return
+          }
+          try {
+            const data = JSON.parse(out) as {
+              TailscaleIPs?: string[]
+              Self?: { TailscaleIPs?: string[]; DNSName?: string }
+            }
+            const ips = data.Self?.TailscaleIPs ?? data.TailscaleIPs ?? []
+            const ip = ips.find((candidate) => candidate.includes(".")) ?? ips[0]
+            const rawDns = data.Self?.DNSName?.replace(/\.$/, "")
+            resolve({
+              available: true,
+              ip,
+              dnsName: rawDns,
+            })
+          } catch {
+            resolve({ available: false })
+          }
         })
         const timer = setTimeout(() => {
           if (settled) return
@@ -194,20 +242,89 @@ const layer = Layer.effect(
         }, 3_000)
         proc.once("exit", () => clearTimeout(timer))
       })
-
-    const detectTailscaleIp = async (): Promise<TailscaleStatus> => {
-      for (const command of TAILSCALE_CANDIDATES) {
-        const result = await tryTailscaleIp(command)
-        if (result.available) return result
-      }
-      return { available: false }
     }
 
-    const tailscale = Effect.fn("Tunnel.tailscale")(function* () {
-      return yield* Effect.promise(detectTailscaleIp)
+    const startFunnel = Effect.fn("Tunnel.startFunnel")(function* (input: { port: number }) {
+      if (funnelUrl) return { running: true, url: funnelUrl }
+      const cmd = yield* Effect.promise(findTailscaleCommand)
+      if (!cmd) {
+        return yield* new TunnelError({ reason: "Tailscale não está instalado ou não foi encontrado." })
+      }
+
+      const statusInfo = yield* Effect.promise(detectTailscaleStatus)
+      if (!statusInfo.available) {
+        return yield* new TunnelError({ reason: "Tailscale não está ativo ou conectado nesta máquina." })
+      }
+
+      const promise = new Promise<Status>((resolve, reject) => {
+        let proc: NodeChildProcess.ChildProcess
+        try {
+          proc = NodeChildProcess.spawn(cmd, ["funnel", "--https=443", "--bg", String(input.port)], {
+            stdio: ["ignore", "pipe", "pipe"],
+          })
+        } catch (cause) {
+          reject(new TunnelError({ reason: String(cause) }))
+          return
+        }
+
+        let out = ""
+        let err = ""
+        proc.stdout?.on("data", (chunk: Buffer) => {
+          out += chunk.toString()
+        })
+        proc.stderr?.on("data", (chunk: Buffer) => {
+          err += chunk.toString()
+        })
+        proc.on("error", (cause) => {
+          reject(new TunnelError({ reason: String(cause) }))
+        })
+        proc.on("exit", (code) => {
+          if (code !== 0) {
+            reject(new TunnelError({ reason: err.trim() || out.trim() || `tailscale funnel saiu com código ${code}` }))
+            return
+          }
+          const dns = statusInfo.dnsName
+          const resolved = dns ? `https://${dns}` : undefined
+          funnelUrl = resolved
+          resolve({ running: true, url: resolved })
+        })
+      })
+
+      return yield* Effect.tryPromise({
+        try: () => promise,
+        catch: (cause) => (cause instanceof TunnelError ? cause : new TunnelError({ reason: String(cause) })),
+      })
     })
 
-    return Service.of({ start, status, stop, tailscale })
+    const stopFunnel = Effect.fn("Tunnel.stopFunnel")(function* () {
+      funnelUrl = undefined
+      const cmd = yield* Effect.promise(findTailscaleCommand)
+      if (!cmd) return
+      yield* Effect.promise(() =>
+        new Promise<void>((resolve) => {
+          let proc: NodeChildProcess.ChildProcess
+          try {
+            proc = NodeChildProcess.spawn(cmd, ["funnel", "--https=443", "off"], {
+              stdio: ["ignore", "ignore", "ignore"],
+            })
+            proc.on("close", () => resolve())
+            proc.on("error", () => resolve())
+            setTimeout(() => {
+              proc.kill()
+              resolve()
+            }, 3_000)
+          } catch {
+            resolve()
+          }
+        }),
+      )
+    })
+
+    const tailscale = Effect.fn("Tunnel.tailscale")(function* () {
+      return yield* Effect.promise(detectTailscaleStatus)
+    })
+
+    return Service.of({ start, status, stop, tailscale, startFunnel, stopFunnel })
   }),
 )
 

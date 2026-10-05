@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { isValidCron, matchesCron } from "./schedule"
+import { hasCronRunBetween, isValidCron, matchesCron } from "./schedule"
 
 describe("Schedule cron parser", () => {
   test("validates valid cron expressions", () => {
@@ -48,5 +48,18 @@ describe("Schedule cron parser", () => {
 
     expect(matchesCron("0 0 1 * *", tuesdayThe1st)).toBe(true)
     expect(matchesCron("0 0 1 * *", mondayThe14th)).toBe(false)
+  })
+
+  test("hasCronRunBetween detects missed schedules", () => {
+    // 09:00:00 to 09:45:00
+    const start = new Date(2026, 8, 14, 8, 30, 0).getTime()
+    const end = new Date(2026, 8, 14, 9, 45, 0).getTime()
+
+    // Ran at 09:00
+    expect(hasCronRunBetween("0 9 * * *", start, end)).toBe(true)
+    // Runs at 10:00 (outside window)
+    expect(hasCronRunBetween("0 10 * * *", start, end)).toBe(false)
+    // Runs every 15 minutes
+    expect(hasCronRunBetween("*/15 * * * *", start, end)).toBe(true)
   })
 })

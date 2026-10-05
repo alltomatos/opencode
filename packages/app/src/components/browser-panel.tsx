@@ -33,6 +33,20 @@ function browserPanelAPI(): BrowserPanelAPI | undefined {
 
 const [open, setOpen] = createSignal(false)
 
+let globalUnsubscribe: (() => void) | undefined
+if (typeof window !== "undefined") {
+  const api = browserPanelAPI()
+  if (api && !globalUnsubscribe) {
+    let lastUrl = ""
+    globalUnsubscribe = api.onStateChanged((next) => {
+      if (next.url && next.url !== "about:blank" && (next.url !== lastUrl || next.isLoading)) {
+        lastUrl = next.url
+        setOpen(true)
+      }
+    })
+  }
+}
+
 export function isBrowserPanelAvailable() {
   return typeof window !== "undefined" && !!browserPanelAPI()
 }
@@ -105,7 +119,7 @@ export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => 
         classList={{
           "relative flex flex-col bg-v2-background-bg-base": true,
           "w-full h-[45%] min-h-[220px] shrink-0 border-b border-v2-border-border-base": !!props.stacked,
-          "w-[420px] shrink-0 h-full border-l border-v2-border-border-base": !props.stacked,
+          "w-full flex-1 h-full min-h-0": !props.stacked,
         }}
       >
           <div class="flex items-center gap-2 border-b border-v2-border-base p-2">

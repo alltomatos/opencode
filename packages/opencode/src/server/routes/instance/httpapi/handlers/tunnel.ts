@@ -24,6 +24,21 @@ export const tunnelHandlers = HttpApiBuilder.group(InstanceHttpApi, "tunnel", (h
       return yield* tunnel.tailscale()
     })
 
-    return handlers.handle("start", start).handle("status", status).handle("stop", stop).handle("tailscale", tailscale)
+    const startFunnel = Effect.fn("TunnelHttpApi.startFunnel")(function* (ctx: { payload: { port: number } }) {
+      return yield* tunnel.startFunnel({ port: ctx.payload.port })
+    })
+
+    const stopFunnel = Effect.fn("TunnelHttpApi.stopFunnel")(function* () {
+      yield* tunnel.stopFunnel()
+      return { ok: true as const }
+    })
+
+    return handlers
+      .handle("start", start)
+      .handle("status", status)
+      .handle("stop", stop)
+      .handle("tailscale", tailscale)
+      .handle("startFunnel", startFunnel)
+      .handle("stopFunnel", stopFunnel)
   }),
 )

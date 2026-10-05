@@ -115,33 +115,14 @@ export function SessionPanelsLayout(props: {
           </Show>
         </div>
 
-        <Show when={!props.browserPanelStacked()}>
-          <BrowserPanelOverlay />
-        </Show>
-
-        <Show when={!props.newSessionDesign() && props.desktopSidePanelOpen()}>
-          <Suspense>
-            <SessionSidePanel
-              canReview={props.canReview}
-              diffs={props.reviewDiffs}
-              diffsReady={props.reviewReady}
-              empty={props.reviewEmptyText}
-              hasReview={props.hasReview}
-              reviewHasFocusableContent={props.hasReview}
-              reviewCount={props.reviewCount}
-              reviewPanel={props.reviewPanel}
-              activeDiff={props.activeReviewFile()}
-              focusReviewDiff={props.focusReviewDiff}
-              reviewSnap={props.reviewSnap}
-              size={props.size}
-            />
-          </Suspense>
-        </Show>
         <Show when={props.newSessionDesign()}>
           <Show when={props.terminalRegionOpen()}>
             <div class="min-w-0 h-full flex flex-1 flex-col">
               <Show when={props.browserPanelStacked()}>
                 <BrowserPanelOverlay stacked />
+              </Show>
+              <Show when={!props.browserPanelStacked()}>
+                <BrowserPanelOverlay />
               </Show>
               <Show when={props.isDesktop() && (props.desktopV2ReviewOpen() || props.desktopFileTreeOpen())}>
                 <div class="min-h-0 flex-1">

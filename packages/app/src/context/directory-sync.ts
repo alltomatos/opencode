@@ -134,7 +134,6 @@ export const createDirSyncContext = (
       },
       more: createMemo(() => current()[0].session.length >= current()[0].limit),
       archive: async (sessionID: string) => {
-        if ((await serverSDK.protocol) !== "v1") return
         await serverSDK.client.session.update({ sessionID, directory, time: { archived: Date.now() } })
         current()[1](
           "session",

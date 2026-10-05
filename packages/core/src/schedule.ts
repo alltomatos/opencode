@@ -165,6 +165,31 @@ export function matchesCron(cron: string, date: Date = new Date()): boolean {
   return true
 }
 
+/**
+ * Checks if a cron expression was scheduled to run at least once between fromMs and toMs (inclusive of minutes).
+ * Used for detecting missed cron schedules (misfires) when the computer was turned off or process was closed.
+ */
+export function hasCronRunBetween(cron: string, fromMs: number, toMs: number): boolean {
+  if (fromMs >= toMs) return false
+  if (!isValidCron(cron)) return false
+
+  // Truncate to minute boundaries
+  const startMinute = Math.floor(fromMs / 60_000) * 60_000 + 60_000
+  const endMinute = Math.floor(toMs / 60_000) * 60_000
+
+  // Cap lookback window to prevent excessive iteration (e.g. max 7 days = 10080 minutes)
+  const maxLookbackMs = 7 * 24 * 60 * 60_000
+  const effectiveStartMinute = Math.max(startMinute, endMinute - maxLookbackMs)
+
+  for (let t = effectiveStartMinute; t <= endMinute; t += 60_000) {
+    if (matchesCron(cron, new Date(t))) {
+      return true
+    }
+  }
+
+  return false
+}
+
 export interface Interface {
   readonly list: () => Effect.Effect<Info[]>
   readonly get: (id: ID) => Effect.Effect<Info | undefined>

@@ -4,8 +4,8 @@ function pad(n: number) {
   return String(n).padStart(2, "0")
 }
 
-export function triggerSummary(trigger: { kind: string; expr?: string; ms?: number | string; timestamp?: number }): string {
-  if (trigger.kind === "once" && trigger.timestamp) {
+export function triggerSummary(trigger: { kind: string; expr?: string; ms?: number | string; timestamp?: number | string }): string {
+  if (trigger.kind === "once" && typeof trigger.timestamp === "number" && !isNaN(trigger.timestamp)) {
     const d = new Date(trigger.timestamp)
     return `Único em ${d.toLocaleDateString("pt-BR")} às ${pad(d.getHours())}:${pad(d.getMinutes())}`
   }

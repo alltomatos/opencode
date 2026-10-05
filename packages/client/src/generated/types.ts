@@ -2382,6 +2382,7 @@ export type ServerScheduleListOutput = ReadonlyArray<{
     | { readonly kind: "cron"; readonly expr: string }
     | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
     | { readonly kind: "manual" }
+    | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
   readonly action:
     | {
         readonly kind: "shell"
@@ -2409,6 +2410,14 @@ export type ServerScheduleListOutput = ReadonlyArray<{
         readonly agentId: string
         readonly message: string
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "reminder"
+        readonly title: string
+        readonly message: string
+        readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+        readonly targetSessionId?: string
+        readonly agentId?: string
       }
   readonly workspace?: string
   readonly enabled?: boolean
@@ -2429,6 +2438,7 @@ export type ServerScheduleCreateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action:
       | {
           readonly kind: "shell"
@@ -2456,6 +2466,14 @@ export type ServerScheduleCreateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2467,6 +2485,7 @@ export type ServerScheduleCreateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action:
       | {
           readonly kind: "shell"
@@ -2494,6 +2513,14 @@ export type ServerScheduleCreateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2505,6 +2532,7 @@ export type ServerScheduleCreateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action:
       | {
           readonly kind: "shell"
@@ -2532,6 +2560,14 @@ export type ServerScheduleCreateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2543,6 +2579,7 @@ export type ServerScheduleCreateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action:
       | {
           readonly kind: "shell"
@@ -2570,6 +2607,14 @@ export type ServerScheduleCreateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2581,6 +2626,7 @@ export type ServerScheduleCreateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action:
       | {
           readonly kind: "shell"
@@ -2608,6 +2654,14 @@ export type ServerScheduleCreateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2619,6 +2673,7 @@ export type ServerScheduleCreateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action:
       | {
           readonly kind: "shell"
@@ -2646,6 +2701,14 @@ export type ServerScheduleCreateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2660,6 +2723,7 @@ export type ServerScheduleCreateOutput = {
     | { readonly kind: "cron"; readonly expr: string }
     | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
     | { readonly kind: "manual" }
+    | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
   readonly action:
     | {
         readonly kind: "shell"
@@ -2687,6 +2751,14 @@ export type ServerScheduleCreateOutput = {
         readonly agentId: string
         readonly message: string
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "reminder"
+        readonly title: string
+        readonly message: string
+        readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+        readonly targetSessionId?: string
+        readonly agentId?: string
       }
   readonly workspace?: string
   readonly enabled?: boolean
@@ -2711,6 +2783,7 @@ export type ServerScheduleRunOutput = {
     | { readonly kind: "cron"; readonly expr: string }
     | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
     | { readonly kind: "manual" }
+    | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
   readonly action:
     | {
         readonly kind: "shell"
@@ -2738,6 +2811,14 @@ export type ServerScheduleRunOutput = {
         readonly agentId: string
         readonly message: string
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "reminder"
+        readonly title: string
+        readonly message: string
+        readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+        readonly targetSessionId?: string
+        readonly agentId?: string
       }
   readonly workspace?: string
   readonly enabled?: boolean
@@ -2780,6 +2861,14 @@ export type ServerScheduleTestInput = {
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
+        }
     readonly workspace?: string
   }["action"]
   readonly workspace?: {
@@ -2811,6 +2900,14 @@ export type ServerScheduleTestInput = {
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
         }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
+        }
     readonly workspace?: string
   }["workspace"]
 }
@@ -2833,6 +2930,7 @@ export type ServerScheduleUpdateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action?:
       | {
           readonly kind: "shell"
@@ -2860,6 +2958,14 @@ export type ServerScheduleUpdateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2871,6 +2977,7 @@ export type ServerScheduleUpdateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action?:
       | {
           readonly kind: "shell"
@@ -2898,6 +3005,14 @@ export type ServerScheduleUpdateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2909,6 +3024,7 @@ export type ServerScheduleUpdateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action?:
       | {
           readonly kind: "shell"
@@ -2936,6 +3052,14 @@ export type ServerScheduleUpdateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2947,6 +3071,7 @@ export type ServerScheduleUpdateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action?:
       | {
           readonly kind: "shell"
@@ -2974,6 +3099,14 @@ export type ServerScheduleUpdateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -2985,6 +3118,7 @@ export type ServerScheduleUpdateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action?:
       | {
           readonly kind: "shell"
@@ -3012,6 +3146,14 @@ export type ServerScheduleUpdateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -3023,6 +3165,7 @@ export type ServerScheduleUpdateInput = {
       | { readonly kind: "cron"; readonly expr: string }
       | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
       | { readonly kind: "manual" }
+      | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
     readonly action?:
       | {
           readonly kind: "shell"
@@ -3050,6 +3193,14 @@ export type ServerScheduleUpdateInput = {
           readonly agentId: string
           readonly message: string
           readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+        }
+      | {
+          readonly kind: "reminder"
+          readonly title: string
+          readonly message: string
+          readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+          readonly targetSessionId?: string
+          readonly agentId?: string
         }
     readonly workspace?: string
     readonly enabled?: boolean
@@ -3064,6 +3215,7 @@ export type ServerScheduleUpdateOutput = {
     | { readonly kind: "cron"; readonly expr: string }
     | { readonly kind: "interval"; readonly ms: number | "Infinity" | "-Infinity" | "NaN" }
     | { readonly kind: "manual" }
+    | { readonly kind: "once"; readonly timestamp: number | "Infinity" | "-Infinity" | "NaN" }
   readonly action:
     | {
         readonly kind: "shell"
@@ -3091,6 +3243,14 @@ export type ServerScheduleUpdateOutput = {
         readonly agentId: string
         readonly message: string
         readonly timeoutMs?: number | "Infinity" | "-Infinity" | "NaN"
+      }
+    | {
+        readonly kind: "reminder"
+        readonly title: string
+        readonly message: string
+        readonly channels?: ReadonlyArray<"desktop" | "agentui" | "telegram" | "whatsapp">
+        readonly targetSessionId?: string
+        readonly agentId?: string
       }
   readonly workspace?: string
   readonly enabled?: boolean

@@ -46,15 +46,33 @@ export const TunnelApi = HttpApi.make("tunnel")
             summary: "Stop public tunnel",
           }),
         ),
-        // Detects a local Tailscale IP as a simpler alternative to the
-        // cloudflared quick tunnel above — no process to start/stop, just
-        // whatever `tailscale ip -4` reports for this machine right now.
+        // Detects a local Tailscale IP and DNS as a simpler alternative to the
+        // cloudflared quick tunnel above.
         HttpApiEndpoint.get("tailscale", `${root}/tailscale`, {
-          success: described(TailscaleStatus, "Local Tailscale IP, if available"),
+          success: described(TailscaleStatus, "Local Tailscale IP and node details, if available"),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tunnel.tailscale",
             summary: "Detect local Tailscale IP",
+          }),
+        ),
+        HttpApiEndpoint.post("startFunnel", `${root}/funnel/start`, {
+          payload: StartPayload,
+          success: described(TunnelStatus, "Tailscale Funnel started (or already running)"),
+          error: TunnelError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "tunnel.startFunnel",
+            summary: "Start Tailscale Funnel",
+            description: "Starts Tailscale Funnel exposing this server's given local port publicly over HTTPS.",
+          }),
+        ),
+        HttpApiEndpoint.post("stopFunnel", `${root}/funnel/stop`, {
+          success: described(Schema.Struct({ ok: Schema.Literal(true) }), "Tailscale Funnel stopped"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "tunnel.stopFunnel",
+            summary: "Stop Tailscale Funnel",
           }),
         ),
       )
