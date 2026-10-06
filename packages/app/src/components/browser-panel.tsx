@@ -32,16 +32,17 @@ function browserPanelAPI(): BrowserPanelAPI | undefined {
 }
 
 const [open, setOpen] = createSignal(false)
+let lastOpenedUrl = ""
 
 let globalUnsubscribe: (() => void) | undefined
 if (typeof window !== "undefined") {
   const api = browserPanelAPI()
   if (api && !globalUnsubscribe) {
-    let lastUrl = ""
     globalUnsubscribe = api.onStateChanged((next) => {
-      if (next.url && next.url !== "about:blank" && (next.url !== lastUrl || next.isLoading)) {
-        lastUrl = next.url
+      if (next.url && next.url !== "about:blank" && next.url !== lastOpenedUrl) {
+        lastOpenedUrl = next.url
         setOpen(true)
+        void api.toggle(true)
       }
     })
   }
@@ -57,10 +58,27 @@ export function isBrowserPanelOpen() {
 
 export function openBrowserPanel() {
   setOpen(true)
+  const api = browserPanelAPI()
+  if (api) {
+    void api.toggle(true)
+  }
+}
+
+export function closeBrowserPanel() {
+  setOpen(false)
+  const api = browserPanelAPI()
+  if (api) {
+    api.setBounds(null)
+    void api.toggle(false)
+  }
 }
 
 export function toggleBrowserPanel() {
-  setOpen((value) => !value)
+  if (open()) {
+    closeBrowserPanel()
+  } else {
+    openBrowserPanel()
+  }
 }
 
 export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => {
@@ -83,34 +101,44 @@ export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => 
       return
     }
     const rect = placeholder.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      api.setBounds(null)
+      return
+    }
     api.setBounds({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
   }
 
   onMount(() => {
     const api = browserPanelAPI()
     if (!api) return
-    let lastUrl = ""
     const unsubscribe = api.onStateChanged((next) => {
       setState(next)
       setAddressInput(next.url)
-      if (next.url && next.url !== "about:blank" && (next.url !== lastUrl || next.isLoading)) {
-        lastUrl = next.url
-        setOpen(true)
-      }
+      lastOpenedUrl = next.url
     })
     const resizeObserver = new ResizeObserver(syncBounds)
     if (placeholder) resizeObserver.observe(placeholder)
     window.addEventListener("resize", syncBounds)
+    syncBounds()
     onCleanup(() => {
       unsubscribe()
       resizeObserver.disconnect()
       window.removeEventListener("resize", syncBounds)
+      api.setBounds(null)
+      void api.toggle(false)
     })
   })
 
   createEffect(() => {
     const visible = open()
-    void browserPanelAPI()?.toggle(visible).then(syncBounds)
+    const api = browserPanelAPI()
+    if (!api) return
+    if (visible) {
+      void api.toggle(true).then(syncBounds)
+    } else {
+      api.setBounds(null)
+      void api.toggle(false)
+    }
   })
 
   return (
@@ -174,7 +202,7 @@ export const BrowserPanelOverlay: Component<{ stacked?: boolean }> = (props) => 
               size="small"
               icon={<Icon name="close" />}
               aria-label={language.t("common.close")}
-              onClick={() => setOpen(false)}
+              onClick={closeBrowserPanel}
             />
           </div>
           <div ref={placeholder} class="flex-1 min-h-0" />
