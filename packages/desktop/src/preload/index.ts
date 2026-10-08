@@ -59,7 +59,8 @@ const api: ElectronAPI = {
   },
   checkTailscale: () => ipcRenderer.invoke("tailscale-check"),
   getMaintenanceStatus: () => ipcRenderer.invoke("maintenance-status"),
-  runMaintenance: () => ipcRenderer.invoke("maintenance-run"),
+  runMaintenance: (options?: { purgeOldSessions?: boolean; maxAgeDays?: number; fullVacuum?: boolean }) =>
+    ipcRenderer.invoke("maintenance-run", options),
   updater: {
     subscribe: async (cb) => {
       updaterCallbacks.add(cb)

@@ -82,7 +82,11 @@ export type ElectronAPI = {
     largeEventCount: number
     needsMaintenance: boolean
   }>
-  runMaintenance: () => Promise<{
+  runMaintenance: (options?: {
+    purgeOldSessions?: boolean
+    maxAgeDays?: number
+    fullVacuum?: boolean
+  }) => Promise<{
     freedBytes: number
     purgedEvents: number
     durationMs: number

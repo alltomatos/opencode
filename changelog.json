@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.69",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Manutenção Avançada: Badge Isolado na Titlebar, Expurgo de Sessões Antigas e Manutenção Profunda com Reinício",
+              "description": "Aprimorado o alerta de manutenção na barra de título para um botão/pílula destacado com animação de pulso e acesso direto. Adicionado suporte a expurgo automático de sessões antigas (> 30 dias), compactação de eventos de streaming intermediários, execução de VACUUM completo e ação de 'Manutenção completa e reiniciar' com fechamento do servidor e reinício limpo do app. Melhorada a sincronização periódica de memória automática sem bloqueio de sessões filhas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.68",
       "highlights": [
         {

@@ -33,11 +33,15 @@ export const { use: useMaintenance, provider: MaintenanceProvider } = createSimp
       } catch {}
     }
 
-    const run = async (): Promise<MaintenanceRunResult | null> => {
+    const run = async (options?: {
+      purgeOldSessions?: boolean
+      maxAgeDays?: number
+      fullVacuum?: boolean
+    }): Promise<MaintenanceRunResult | null> => {
       if (platform.platform !== "desktop" || !platform.runMaintenance || running()) return null
       setRunning(true)
       try {
-        const res = await platform.runMaintenance()
+        const res = await platform.runMaintenance(options)
         await check()
         return res
       } finally {

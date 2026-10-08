@@ -622,11 +622,24 @@ type TitlebarV2RightState = {
 function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
   const language = useLanguage()
   const showSettings = useSettingsDialog()
+  const showSettingsGeneral = useSettingsDialog("general")
   const maintenance = useMaintenance()
   return (
-    <div class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible">
+    <div class="relative z-20 flex shrink-0 items-center justify-end gap-1.5 overflow-visible">
       <Show when={props.state.update.visible}>
         <TitlebarUpdateIconButton state={props.state.update} />
+      </Show>
+      <Show when={maintenance.needsMaintenance()}>
+        <TooltipV2 placement="bottom" value={language.t("settings.maintenance.titlebar.tooltip")}>
+          <button
+            type="button"
+            onClick={() => showSettingsGeneral()}
+            class="flex h-5 items-center gap-1.5 rounded-full bg-v2-state-bg-warning px-2 text-[11px] font-medium text-v2-state-fg-warning border border-v2-state-border-warning hover:brightness-105 transition-all focus-visible:outline-none"
+          >
+            <span class="size-1.5 rounded-full bg-icon-warning-base animate-pulse" />
+            <span>{language.t("settings.maintenance.titlebar.button")}</span>
+          </button>
+        </TooltipV2>
       </Show>
       <GlobalDevToolsButton variant="v2" />
       <TooltipV2 placement="bottom" value={language.t("command.settings.open")}>
@@ -638,9 +651,6 @@ function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
             aria-label={language.t("command.settings.open")}
             icon={<IconV2 name="settings-gear" />}
           />
-          <Show when={maintenance.needsMaintenance()}>
-            <span class="absolute top-0 right-0 size-2 rounded-full border border-[var(--v2-background-bg-deep)] bg-icon-warning-base pointer-events-none" />
-          </Show>
         </div>
       </TooltipV2>
       <div id="opencode-titlebar-right" class="flex shrink-0 items-center justify-end gap-0" />

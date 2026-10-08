@@ -1,4 +1,4 @@
-import { Component, Show, createMemo, createResource, onCleanup, onMount } from "solid-js"
+import { Component, Show, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -823,7 +823,7 @@ export const SettingsGeneralV2: Component<{
   }
 
   const handleRunMaintenance = async () => {
-    const res = await maintenance.run()
+    const res = await maintenance.run({ purgeOldSessions: false, fullVacuum: false })
     if (res) {
       showToast({
         variant: "success",
@@ -834,6 +834,28 @@ export const SettingsGeneralV2: Component<{
           duration: res.durationMs,
         }),
       })
+    }
+  }
+
+  const [deepMaintenanceRunning, setDeepMaintenanceRunning] = createSignal(false)
+
+  const handleDeepMaintenanceAndRelaunch = async () => {
+    if (deepMaintenanceRunning()) return
+    setDeepMaintenanceRunning(true)
+    try {
+      showToast({
+        variant: "loading",
+        title: language.t("settings.maintenance.action.deep"),
+        description: language.t("settings.maintenance.action.optimizing"),
+      })
+      // Executa expurgo de sessões com mais de 30 dias + VACUUM completo
+      await maintenance.run({ purgeOldSessions: true, maxAgeDays: 30, fullVacuum: true })
+      // Reinicia o app
+      if (platform.restart) {
+        await platform.restart()
+      }
+    } finally {
+      setDeepMaintenanceRunning(false)
     }
   }
 
@@ -865,16 +887,28 @@ export const SettingsGeneralV2: Component<{
               </div>
             }
           >
-            <ButtonV2
-              size="normal"
-              variant={maintenance.needsMaintenance() ? "contrast" : "neutral"}
-              disabled={maintenance.running()}
-              onClick={handleRunMaintenance}
-            >
-              {maintenance.running()
-                ? language.t("settings.maintenance.action.optimizing")
-                : language.t("settings.maintenance.action.optimize")}
-            </ButtonV2>
+            <div class="flex items-center gap-2">
+              <ButtonV2
+                size="normal"
+                variant="neutral"
+                disabled={maintenance.running() || deepMaintenanceRunning()}
+                onClick={handleRunMaintenance}
+              >
+                {maintenance.running()
+                  ? language.t("settings.maintenance.action.optimizing")
+                  : language.t("settings.maintenance.action.optimize")}
+              </ButtonV2>
+              <ButtonV2
+                size="normal"
+                variant={maintenance.needsMaintenance() ? "contrast" : "neutral"}
+                disabled={maintenance.running() || deepMaintenanceRunning()}
+                onClick={handleDeepMaintenanceAndRelaunch}
+              >
+                {deepMaintenanceRunning()
+                  ? language.t("settings.maintenance.action.optimizing")
+                  : language.t("settings.maintenance.action.deep")}
+              </ButtonV2>
+            </div>
           </SettingsRowV2>
         </SettingsListV2>
       </div>

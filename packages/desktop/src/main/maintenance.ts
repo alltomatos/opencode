@@ -73,7 +73,11 @@ export async function getSystemMaintenanceStatus(): Promise<SystemMaintenanceSta
   }
 }
 
-export async function runSystemMaintenance(): Promise<SystemMaintenanceResult> {
+export async function runSystemMaintenance(options?: {
+  purgeOldSessions?: boolean
+  maxAgeDays?: number
+  fullVacuum?: boolean
+}): Promise<SystemMaintenanceResult> {
   const start = Date.now()
   const userDataPath = app.getPath("userData")
   const dbPath = process.env.OPENCODE_DB ?? join(userDataPath, "opencode.db")
@@ -102,14 +106,59 @@ export async function runSystemMaintenance(): Promise<SystemMaintenanceResult> {
           "DELETE FROM event WHERE length(data) > 1000000 AND type = 'message.updated.1'",
         )
         .run()
-      purgedEvents = Number(deleteResult.changes)
+      purgedEvents += Number(deleteResult.changes)
     } catch {}
 
-    // 3. Otimiza índices e estatísticas do SQLite
+    // 3. Expurgo de sessões antigas (padrão: 30 dias se solicitado)
+    if (options?.purgeOldSessions) {
+      const days = options.maxAgeDays ?? 30
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+      try {
+        const oldSessions = native
+          .prepare("SELECT id FROM session WHERE time_updated < ?")
+          .all(cutoff) as Array<{ id: string }>
+
+        for (const s of oldSessions) {
+          try {
+            // Remove eventos associados
+            native.prepare("DELETE FROM event WHERE aggregate_id = ?").run(s.id)
+            native.prepare("DELETE FROM event_sequence WHERE aggregate_id = ?").run(s.id)
+            // Remove sessão (as tabelas filhas message, part, todo têm ON DELETE CASCADE)
+            native.prepare("DELETE FROM session WHERE id = ?").run(s.id)
+          } catch {}
+        }
+      } catch {}
+    }
+
+    // 4. Compacta eventos de streaming intermediários (.updated.) em sessões com mais de 7 dias
+    try {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+      const oldEventSessions = native
+        .prepare("SELECT id FROM session WHERE time_updated < ?")
+        .all(sevenDaysAgo) as Array<{ id: string }>
+      
+      for (const s of oldEventSessions) {
+        try {
+          const res = native
+            .prepare("DELETE FROM event WHERE aggregate_id = ? AND type LIKE '%.updated.%'")
+            .run(s.id)
+          purgedEvents += Number(res.changes)
+        } catch {}
+      }
+    } catch {}
+
+    // 5. Otimiza índices e estatísticas do SQLite
     native.exec("PRAGMA optimize;")
 
-    // 4. Checkpoint final
+    // 6. Checkpoint final
     native.exec("PRAGMA wal_checkpoint(TRUNCATE);")
+
+    // 7. Se solicitado VACUUM completo (reorganiza fisicamente o banco no disco)
+    if (options?.fullVacuum) {
+      try {
+        native.exec("VACUUM;")
+      } catch {}
+    }
   } finally {
     native.close()
   }

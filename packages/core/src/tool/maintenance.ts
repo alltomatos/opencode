@@ -21,6 +21,15 @@ export const Input = Schema.Struct({
   action: Schema.Literals(["status", "run"]).annotate({
     description: "The maintenance action to execute: 'status' to inspect health/metrics, or 'run' to perform optimization.",
   }),
+  purgeOldSessions: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether to purge sessions older than maxAgeDays (default: 30 days).",
+  }),
+  maxAgeDays: Schema.optional(Schema.Number).annotate({
+    description: "Age threshold in days for session purging (default: 30).",
+  }),
+  fullVacuum: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether to perform a full SQLite VACUUM to reclaim free space physically from the disk.",
+  }),
 })
 
 export const Output = Schema.Struct({
@@ -164,11 +173,43 @@ const layer = Layer.effectDiscard(
                   sql`DELETE FROM event WHERE length(data) > 1000000 AND type = 'message.updated.1'`,
                 )
 
-                // 3. Otimiza SQLite
+                // 3. Expurgo de sessões antigas se solicitado
+                if (input.purgeOldSessions) {
+                  const days = input.maxAgeDays ?? 30
+                  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+                  const oldSessions = yield* db
+                    .all<{ id: string }>(sql`SELECT id FROM session WHERE time_updated < ${cutoff}`)
+                    .pipe(Effect.orDie)
+
+                  for (const s of oldSessions) {
+                    yield* db.run(sql`DELETE FROM event WHERE aggregate_id = ${s.id}`).pipe(Effect.ignore)
+                    yield* db.run(sql`DELETE FROM event_sequence WHERE aggregate_id = ${s.id}`).pipe(Effect.ignore)
+                    yield* db.run(sql`DELETE FROM session WHERE id = ${s.id}`).pipe(Effect.ignore)
+                  }
+                }
+
+                // 4. Compacta eventos de streaming intermediários (.updated.) em sessões com mais de 7 dias
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+                const oldEventSessions = yield* db
+                  .all<{ id: string }>(sql`SELECT id FROM session WHERE time_updated < ${sevenDaysAgo}`)
+                  .pipe(Effect.orDie)
+
+                for (const s of oldEventSessions) {
+                  yield* db
+                    .run(sql`DELETE FROM event WHERE aggregate_id = ${s.id} AND type LIKE '%.updated.%'`)
+                    .pipe(Effect.ignore)
+                }
+
+                // 5. Otimiza SQLite
                 yield* db.run(sql`PRAGMA optimize`)
 
-                // 4. Checkpoint final
+                // 6. Checkpoint final
                 yield* db.run(sql`PRAGMA wal_checkpoint(TRUNCATE)`)
+
+                // 7. VACUUM se solicitado
+                if (input.fullVacuum) {
+                  yield* db.run(sql`VACUUM`).pipe(Effect.ignore)
+                }
               } catch (err) {
                 return yield* new ToolFailure({ message: `Maintenance failed: ${String(err)}` })
               }

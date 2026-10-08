@@ -563,8 +563,8 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
     })
 
     const backfill = Effect.fn("Memory.backfill")(function* (input?: BackfillInput) {
-      const sessionList = yield* sessions.listGlobal().pipe(Effect.orElseSucceed(() => []))
-      let targets = sessionList.filter((s) => !s.parentID)
+      const sessionList = yield* sessions.listGlobal({ limit: 1000 }).pipe(Effect.orElseSucceed(() => []))
+      let targets = [...sessionList]
       if (input?.directory) {
         targets = targets.filter((s) => s.directory === input.directory)
       }
@@ -646,10 +646,11 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       yield* Effect.tryPromise(() => saveSyncState({ lastSyncAt: new Date(now).toISOString() })).pipe(Effect.ignore)
     })
 
+    // Executa uma sincronização rápida 10s após a inicialização e repete a cada 15m
     yield* runAutoPeriodicSync().pipe(
       Effect.catchCause((cause) => Effect.logError("Memory auto periodic sync failed", { cause: Cause.pretty(cause) })),
       Effect.repeat(Schedule.spaced(Duration.minutes(15))),
-      Effect.delay(Duration.minutes(1)),
+      Effect.delay(Duration.seconds(10)),
       Effect.forkScoped,
     )
 

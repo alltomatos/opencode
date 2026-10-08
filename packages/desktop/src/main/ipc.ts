@@ -108,7 +108,9 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("set-background-color", (_event: IpcMainInvokeEvent, color: string) => deps.setBackgroundColor(color))
   ipcMain.handle("export-debug-logs", () => deps.exportDebugLogs())
   ipcMain.handle("maintenance-status", () => getSystemMaintenanceStatus())
-  ipcMain.handle("maintenance-run", () => runSystemMaintenance())
+  ipcMain.handle("maintenance-run", (_event, options?: { purgeOldSessions?: boolean; maxAgeDays?: number; fullVacuum?: boolean }) =>
+    runSystemMaintenance(options),
+  )
   ipcMain.handle("set-force-focus", (event: IpcMainInvokeEvent, enabled: boolean) =>
     setForceFocus(event.sender, enabled),
   )
