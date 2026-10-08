@@ -136,6 +136,7 @@ export async function spawnLocalServer(
   const child = utilityProcess.fork(sidecar, [], {
     cwd: process.cwd(),
     env: createSidecarEnv(),
+    execArgv: ["--max-old-space-size=4096"],
     serviceName: SIDECAR_SERVICE_NAME,
     stdio: "pipe",
   })

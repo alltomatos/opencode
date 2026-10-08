@@ -88,7 +88,11 @@ export function TextInputV2(props: TextInputV2Props) {
               local.onClearClick?.(event)
               return
             }
-            local.onCopyClick?.(event)
+            if (local.onCopyClick) {
+              local.onCopyClick(event)
+            } else if (inputProps.value !== undefined) {
+              void navigator.clipboard?.writeText(String(inputProps.value))
+            }
           }}
         >
           <Icon name={local.showClearButton ? "xmark-small" : "copy"} />

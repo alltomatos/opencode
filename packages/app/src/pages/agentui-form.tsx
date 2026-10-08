@@ -915,12 +915,13 @@ export function AgentUIFormPage() {
                         </Show>
                         <Show when={publicTunnelUrl()}>
                           <div class="flex items-center justify-between gap-2 rounded-lg border border-v2-border-border-base bg-v2-surface-surface-raised/40 p-2.5">
-                            <p class="text-11-regular text-v2-text-text-accent font-mono truncate">
+                            <span class="text-11-regular text-v2-text-text-accent font-mono break-all select-all">
                               {language.t("settings.agentui.field.whatsapp.tunnel.active", { url: publicTunnelUrl()! })}
-                            </p>
+                            </span>
                             <ButtonV2
                               variant="ghost"
                               size="small"
+                              class="shrink-0"
                               onClick={() => {
                                 setPublicTunnelUrl(undefined)
                                 setForm("whatsappPublicUrl", undefined)
@@ -944,13 +945,31 @@ export function AgentUIFormPage() {
                                 <label class="settings-v2-server-dialog-label font-medium">
                                   {language.t("settings.agentui.field.whatsapp.webhookUrl")}
                                 </label>
-                                <TextInputV2 value={url()} readOnly showCopyButton />
+                                <TextInputV2
+                                  value={url()}
+                                  readOnly
+                                  showCopyButton
+                                  class="!w-full self-stretch"
+                                  onCopyClick={() => {
+                                    void navigator.clipboard?.writeText(url())
+                                    showToast({ variant: "success", icon: "circle-check", title: "URL do Webhook copiada!" })
+                                  }}
+                                />
                               </div>
                               <div class="flex flex-col gap-1.5">
                                 <label class="settings-v2-server-dialog-label font-medium">
                                   {language.t("settings.agentui.field.whatsapp.webhookSecret")}
                                 </label>
-                                <TextInputV2 value={form.whatsappWebhookSecret} readOnly showCopyButton />
+                                <TextInputV2
+                                  value={form.whatsappWebhookSecret}
+                                  readOnly
+                                  showCopyButton
+                                  class="!w-full self-stretch"
+                                  onCopyClick={() => {
+                                    void navigator.clipboard?.writeText(form.whatsappWebhookSecret)
+                                    showToast({ variant: "success", icon: "circle-check", title: "Secret copiado!" })
+                                  }}
+                                />
                               </div>
                             </div>
                           )}
