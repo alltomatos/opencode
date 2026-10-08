@@ -2000,7 +2000,9 @@ export type AgentUiWhatsAppChannelBinding = {
   }
   sessionIds?: Array<string>
   allowedGroups?: Array<string>
+  allowedSenders?: Array<string>
   directory?: string
+  publicUrl?: string
   /**
    * Random per-channel secret embedded in the webhook URL — authenticates inbound webhook calls from the provider.
    */

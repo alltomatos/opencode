@@ -74,4 +74,16 @@ export type SshServersPlatform = {
     id: string,
     credentials: Array<{ integrationID: string; label?: string; value: unknown }>,
   ): Promise<{ synced: number }>
+  handoffSession?(options: {
+    serverId: string
+    localDirectory: string
+    sessionData: unknown
+    includeGitChanges?: boolean
+  }): Promise<{
+    success: boolean
+    remoteSessionID: string
+    remoteDirectory: string
+    remoteUrl: string
+    error?: string
+  }>
 }

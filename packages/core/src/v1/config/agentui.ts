@@ -70,8 +70,17 @@ export const WhatsAppChannelBinding = Schema.Struct({
   allowedGroups: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
     description: "WhatsApp group JIDs this agent may respond in, in addition to direct messages. Empty/absent means direct messages only.",
   }),
+  // Senders allowed to interact with the bot (phone numbers or JIDs).
+  // Empty/absent = all senders allowed.
+  allowedSenders: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+    description: "WhatsApp numbers/JIDs allowed to interact with this agent. Empty/absent means anyone can interact.",
+  }),
   directory: Schema.optional(Schema.String).annotate({
     description: "Connected project directory this agent's WhatsApp channel operates against.",
+  }),
+  // Optional custom base URL or tunnel URL used for generating the webhook endpoint
+  publicUrl: Schema.optional(Schema.String).annotate({
+    description: "Custom base URL or tunnel URL for generating the webhook endpoint (e.g. Tailscale or Tailscale Funnel URL).",
   }),
   // Generated once, embedded in the webhook URL handed to the provider —
   // this inbound endpoint is called by a third-party service (not our own

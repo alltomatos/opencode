@@ -59,6 +59,11 @@ const LOGOS = {
       <path d="M3 5.5C3 4.7 3.7 4 4.5 4h15c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5h-15C3.7 20 3 19.3 3 18.5v-13Zm2 .6v.2l7 5.2 7-5.2v-.2H5Zm14 2.5-6.4 4.8a1 1 0 0 1-1.2 0L5 8.6V18h14V8.6Z" />
     </svg>
   ),
+  m365: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M2.5 3.5h8.5v8.5H2.5V3.5Zm10.5 0H21.5v8.5H13V3.5ZM2.5 13H11v8.5H2.5V13Zm10.5 0H21.5v8.5H13V13Z" />
+    </svg>
+  ),
 } as const
 
 const KNOWN_SERVERS = [
@@ -127,6 +132,15 @@ const KNOWN_SERVERS = [
     environment: { MAIL_MCP_ACCOUNTS_PATH: "" },
     logo: LOGOS.mcpmail,
     oauth: false,
+  },
+  {
+    id: "m365",
+    name: "Microsoft 365",
+    kind: "remote",
+    url: "https://mcp.microsoft365.com/mcp",
+    logo: LOGOS.m365,
+    oauth: true,
+    defaultClientId: "d3590ed6-52b3-4102-aeff-aad2292ab01c", // Microsoft Office public client ID for interactive PKCE
   },
 ] as const
 
@@ -354,6 +368,12 @@ export const DialogMcpAddV2: Component<{
                         setForm("name", server.name)
                         setForm("type", "remote")
                         setForm("url", server.url)
+                        if ("defaultClientId" in server && server.defaultClientId) {
+                          setForm("oauthClientId", server.defaultClientId)
+                        } else {
+                          setForm("oauthClientId", "")
+                        }
+                        setForm("oauthClientSecret", "")
                         setForm("err", {})
                       }}
                     >

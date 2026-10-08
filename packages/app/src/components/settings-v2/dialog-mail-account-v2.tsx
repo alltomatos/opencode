@@ -9,6 +9,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useMutation } from "@tanstack/solid-query"
 import { createResource, createSignal, For, Show, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
+import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import "./settings-v2.css"
@@ -23,6 +24,7 @@ const inferProvider = (host: string): "gmail" | "speedmail" | "outlook" | "gener
 
 export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) => {
   const dialog = useDialog()
+  const platform = usePlatform()
   const serverSDK = useServerSDK()
   const [showDebug, setShowDebug] = createSignal(false)
   const [debugLog, setDebugLog] = createSignal<string>("")
@@ -269,21 +271,37 @@ export const DialogMailAccountV2: Component<{ onAdded?: () => void }> = (props) 
           </div>
 
           <div class="flex w-full min-w-0 flex-col gap-2">
-            <label class="settings-v2-server-dialog-label">Senha de app</label>
+            <div class="flex items-center justify-between">
+              <label class="settings-v2-server-dialog-label">Senha de app</label>
+              <button
+                type="button"
+                class="text-11-medium text-text-interactive hover:underline cursor-pointer bg-transparent border-0 p-0 flex items-center gap-1"
+                onClick={() => platform.openExternal("https://myaccount.google.com/apppasswords")}
+              >
+                <span>Gerar senha no Google</span>
+                <Icon name="link" size="small" />
+              </button>
+            </div>
             <TextInputV2
               type="password"
               appearance="large"
               class="!w-full self-stretch"
               value={form.appPassword}
+              placeholder="16 caracteres (ex: abcd efgh ijkl mnop)"
               invalid={!!form.err.appPassword}
               onInput={(e) => setForm("appPassword", e.currentTarget.value)}
             />
             <Show when={form.err.appPassword}>
               <span class="settings-v2-server-dialog-error">{form.err.appPassword}</span>
             </Show>
-            <span class="settings-v2-server-dialog-hint">
-              Para Gmail, gere uma senha de app em myaccount.google.com/apppasswords — não é a sua senha normal.
-            </span>
+            <div class="rounded-md bg-v2-background-bg-layer-02 p-2.5 text-12-regular text-text-weak flex flex-col gap-1 border border-v2-border-subtle">
+              <span class="font-medium text-text-base">Como gerar para o Gmail:</span>
+              <ol class="list-decimal pl-4 flex flex-col gap-0.5">
+                <li>Acesse <button type="button" class="text-text-interactive underline bg-transparent border-0 p-0 cursor-pointer inline" onClick={() => platform.openExternal("https://myaccount.google.com/apppasswords")}>myaccount.google.com/apppasswords</button> (exige autenticação em 2 etapas ativa).</li>
+                <li>Dê um nome (ex: <i>OpenCode</i>) e clique em <b>Criar</b>.</li>
+                <li>Copie a senha gerada de 16 letras e cole no campo acima (não use sua senha normal da conta).</li>
+              </ol>
+            </div>
           </div>
 
           <label class="flex items-center gap-2 text-12-regular text-text-weak">

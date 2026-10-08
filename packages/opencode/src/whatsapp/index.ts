@@ -106,6 +106,43 @@ function isChatAllowed(channel: ConfigAgentUIV1.WhatsAppChannelBinding, chatId: 
   return Array.isArray(allowed) && allowed.includes(chatId)
 }
 
+function normalizePhoneNumber(value: string): string {
+  return value.replace(/\D+/g, "")
+}
+
+function isSenderAllowed(channel: ConfigAgentUIV1.WhatsAppChannelBinding, message: WaMessage): boolean {
+  const allowed = channel.allowedSenders
+  if (!Array.isArray(allowed) || allowed.length === 0) return true
+
+  // Coleta possíveis identificadores do remetente
+  const candidates: string[] = []
+  if (message.from) candidates.push(message.from)
+  if (message.chatId && !message.chatId.endsWith("@g.us")) candidates.push(message.chatId)
+
+  // Extrai de campos brutos se existirem no payload de diferentes provedores
+  const raw = message.raw && typeof message.raw === "object" ? (message.raw as Record<string, unknown>) : undefined
+  if (raw) {
+    if (typeof raw.participant === "string") candidates.push(raw.participant)
+    if (typeof raw.author === "string") candidates.push(raw.author)
+    if (typeof raw.sender === "string") candidates.push(raw.sender)
+  }
+
+  const normalizedAllowed = allowed.map((item) => {
+    const digits = normalizePhoneNumber(item)
+    return { raw: item.trim(), digits }
+  })
+
+  for (const candidate of candidates) {
+    const candidateDigits = normalizePhoneNumber(candidate)
+    for (const rule of normalizedAllowed) {
+      if (rule.raw && candidate === rule.raw) return true
+      if (rule.digits && candidateDigits.includes(rule.digits)) return true
+    }
+  }
+
+  return false
+}
+
 export interface Interface {
   readonly handleWebhook: (input: {
     agentID: string
@@ -368,6 +405,7 @@ const layer = Layer.effect(
         if (allowedSessions && event.instanceId && !allowedSessions.includes(event.instanceId)) continue
         if (event.message.fromMe) continue
         if (!isChatAllowed(channel, event.message.chatId)) continue
+        if (!isSenderAllowed(channel, event.message)) continue
 
         // Deduplicação: se a mensagem já foi processada recentemente, ignora
         if (event.message.id) {

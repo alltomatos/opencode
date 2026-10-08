@@ -17,13 +17,13 @@ export type SshTunnelOpts = {
   healthTimeoutMs?: number
 }
 
-type RemoteCommandResult = {
+export type RemoteCommandResult = {
   success: boolean
   output: string
   error?: string
 }
 
-async function runRemoteCommand(
+export async function runRemoteCommand(
   config: SshServerConfig,
   command: string,
   timeoutMs = 30_000,

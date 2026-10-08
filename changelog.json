@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.66",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI & WhatsApp: Filtro de Remetentes Autorizados, Persistência de Host e Redesign",
+              "description": "Adicionado suporte para 'allowedSenders' (Remetentes Permitidos) no canal WhatsApp, permitindo restringir o agente para responder estritamente a números específicos em grupos ou privado; persistência automática da URL do Tailscale/Funnel nas configurações do agente ao salvar; melhorias visuais de contraste (WCAG AA), agrupamento de sessões/grupos em cartões e suporte aprimorado no Tailscale Funnel com detecção de link de aprovação para novas máquinas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.65",
       "highlights": [
         {

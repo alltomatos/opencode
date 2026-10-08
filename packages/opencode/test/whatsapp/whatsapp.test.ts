@@ -133,11 +133,68 @@ it.instance("handleWebhook() fails with WhatsAppInvalidWebhookError on secret mi
     }
     yield* agentUI.add(created)
 
+    yield* agentUI.remove(created.id)
+  }),
+)
+
+it.instance("handleWebhook() ignores messages from senders not in allowedSenders", () =>
+  Effect.gen(function* () {
+    const agentUI = yield* AgentUI.Service
+    const created = {
+      ...agent({ id: "agent-sender-filter" }),
+      channels: [
+        {
+          type: "whatsapp" as const,
+          provider: "waha" as const,
+          config: { baseUrl: "http://localhost:3000", apiKey: "k" },
+          directory: "/tmp/does-not-matter",
+          allowedSenders: ["5585998490991"],
+          webhookSecret: "secret-123",
+        },
+      ],
+    }
+    yield* agentUI.add(created)
+
     const svc = yield* WhatsApp.Service
-    const exit = yield* svc
-      .handleWebhook({ agentID: created.id, secret: "wrong-secret", body: {}, headers: {} })
+    // Mensagem de outro remetente no formato WAHA
+    const exitOther = yield* svc
+      .handleWebhook({
+        agentID: created.id,
+        secret: "secret-123",
+        body: {
+          event: "message",
+          payload: {
+            id: "msg-1",
+            from: "5585888888888@c.us",
+            body: "Olá, sou outro contato",
+            fromMe: false,
+          },
+        },
+        headers: {},
+      })
       .pipe(Effect.exit)
-    expect(Exit.isFailure(exit)).toBe(true)
+
+    expect(Exit.isSuccess(exitOther)).toBe(true)
+
+    // Mensagem do remetente permitido
+    const exitAllowed = yield* svc
+      .handleWebhook({
+        agentID: created.id,
+        secret: "secret-123",
+        body: {
+          event: "message",
+          payload: {
+            id: "msg-2",
+            from: "5585998490991@c.us",
+            body: "Olá, sou o admin",
+            fromMe: false,
+          },
+        },
+        headers: {},
+      })
+      .pipe(Effect.exit)
+
+    expect(Exit.isSuccess(exitAllowed)).toBe(true)
 
     yield* agentUI.remove(created.id)
   }),

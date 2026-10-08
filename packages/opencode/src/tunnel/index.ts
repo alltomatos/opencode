@@ -286,9 +286,16 @@ const layer = Layer.effect(
           if (settled) return
           settled = true
           if (code !== 0) {
+            const combined = `${out}\n${err}`.trim()
+            // Detecta URLs de aprovação/nó do Tailscale (ex: https://login.tailscale.com/a/...)
+            const authUrlMatch = combined.match(/https:\/\/login\.tailscale\.com\/[^\s]+/i) || combined.match(/https:\/\/[^\s]+tailscale\.com[^\s]*/i)
+            let reason = err.trim() || out.trim() || `tailscale funnel saiu com código ${code}`
+            if (authUrlMatch) {
+              reason = `Aprovação necessária no Tailscale Admin: acesse ${authUrlMatch[0]} para liberar o Funnel neste dispositivo.`
+            }
             reject(
               new TunnelError({
-                reason: err.trim() || out.trim() || `tailscale funnel saiu com código ${code}`,
+                reason,
               }),
             )
             return
