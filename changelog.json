@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.67",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI & WhatsApp: Melhorias de UX no Webhook, Cópia em 1 Clique e Ajustes de Layout",
+              "description": "Campos de entrada de Webhook URL e Secret agora ocupam 100% da largura útil com suporte a cópia em 1 clique e feedback visual via toast; quebra de linha inteligente para URLs longas; e persistência confiável do host Tailscale/Funnel no AgentUI."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.66",
       "highlights": [
         {
