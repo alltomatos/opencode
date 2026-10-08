@@ -26,6 +26,7 @@ import { LayoutRoute, useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
+import { useMaintenance } from "@/context/maintenance"
 import { useSettings } from "@/context/settings"
 import { useSettingsDialog } from "./settings-dialog"
 import { WindowsAppMenu } from "./windows-app-menu"
@@ -621,6 +622,7 @@ type TitlebarV2RightState = {
 function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
   const language = useLanguage()
   const showSettings = useSettingsDialog()
+  const maintenance = useMaintenance()
   return (
     <div class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible">
       <Show when={props.state.update.visible}>
@@ -628,13 +630,18 @@ function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
       </Show>
       <GlobalDevToolsButton variant="v2" />
       <TooltipV2 placement="bottom" value={language.t("command.settings.open")}>
-        <IconButtonV2
-          variant="ghost-muted"
-          size="small"
-          onClick={() => showSettings()}
-          aria-label={language.t("command.settings.open")}
-          icon={<IconV2 name="settings-gear" />}
-        />
+        <div class="relative flex items-center justify-center">
+          <IconButtonV2
+            variant="ghost-muted"
+            size="small"
+            onClick={() => showSettings()}
+            aria-label={language.t("command.settings.open")}
+            icon={<IconV2 name="settings-gear" />}
+          />
+          <Show when={maintenance.needsMaintenance()}>
+            <span class="absolute top-0 right-0 size-2 rounded-full border border-[var(--v2-background-bg-deep)] bg-icon-warning-base pointer-events-none" />
+          </Show>
+        </div>
       </TooltipV2>
       <div id="opencode-titlebar-right" class="flex shrink-0 items-center justify-end gap-0" />
     </div>

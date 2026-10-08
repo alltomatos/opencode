@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onMount, startTransition } from "solid-js"
+import { Show, createEffect, createMemo, createSignal, onMount, startTransition } from "solid-js"
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -22,6 +22,7 @@ import { SettingsServerPicker, SettingsServerScope } from "@/components/settings
 import "@/components/settings-v2/settings-v2.css"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
+import { useMaintenance } from "@/context/maintenance"
 import { useServerSync } from "@/context/server-sync"
 import { createHomeController } from "@/pages/home/home-controller"
 
@@ -35,6 +36,7 @@ export function SettingsPage() {
   const tabs = useTabs()
   const global = useGlobal()
   const serverSync = useServerSync()
+  const maintenance = useMaintenance()
   const home = createHomeController()
   const [tab, setTab] = createSignal(params.tab || "general")
 
@@ -129,7 +131,10 @@ export function SettingsPage() {
                     <div class="flex flex-col gap-1.5 w-full">
                       <TabsV2.Trigger value="general">
                         <Icon name="sliders" />
-                        {language.t("settings.tab.general")}
+                        <span class="flex-1">{language.t("settings.tab.general")}</span>
+                        <Show when={maintenance.needsMaintenance()}>
+                          <span class="size-2 rounded-full bg-icon-warning-base shrink-0" />
+                        </Show>
                       </TabsV2.Trigger>
                       <TabsV2.Trigger value="shortcuts">
                         <Icon name="keyboard" />

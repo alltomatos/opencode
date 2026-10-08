@@ -58,6 +58,8 @@ const api: ElectronAPI = {
     syncCredentials: (id, credentials) => ipcRenderer.invoke("ssh-servers-sync-credentials", id, credentials),
   },
   checkTailscale: () => ipcRenderer.invoke("tailscale-check"),
+  getMaintenanceStatus: () => ipcRenderer.invoke("maintenance-status"),
+  runMaintenance: () => ipcRenderer.invoke("maintenance-run"),
   updater: {
     subscribe: async (cb) => {
       updaterCallbacks.add(cb)

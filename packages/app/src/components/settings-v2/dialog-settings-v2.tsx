@@ -1,4 +1,4 @@
-import { Component, createMemo, createSignal, startTransition } from "solid-js"
+import { Component, Show, createMemo, createSignal, startTransition } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -16,6 +16,7 @@ import { SettingsMemoryV2 } from "./memory"
 import { SettingsExternalAgentsV2 } from "./external-agents"
 import { SettingsMcpV2 } from "./mcp"
 import { SettingsIntegrationsV2 } from "./integrations"
+import { useMaintenance } from "@/context/maintenance"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -31,6 +32,7 @@ export const DialogSettings: Component<{
   const layout = useLayout()
   const tabs = useTabs()
   const serverSync = useServerSync()
+  const maintenance = useMaintenance()
   const [tab, setTab] = createSignal(props.defaultValue ?? "general")
   const directory = createMemo(() => {
     const route = layout.route()
@@ -65,7 +67,10 @@ export const DialogSettings: Component<{
                   <div class="flex flex-col gap-1.5 w-full">
                     <TabsV2.Trigger value="general">
                       <Icon name="sliders" />
-                      {language.t("settings.tab.general")}
+                      <span class="flex-1">{language.t("settings.tab.general")}</span>
+                      <Show when={maintenance.needsMaintenance()}>
+                        <span class="size-2 rounded-full bg-icon-warning-base shrink-0" />
+                      </Show>
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="shortcuts">
                       <Icon name="keyboard" />

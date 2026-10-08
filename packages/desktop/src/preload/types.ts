@@ -75,6 +75,18 @@ export type ElectronAPI = {
   wslServers: WslServersAPI
   sshServers: SshServersAPI
   checkTailscale: () => Promise<TailscaleStatus>
+  getMaintenanceStatus: () => Promise<{
+    dbSizeBytes: number
+    walSizeBytes: number
+    eventCount: number
+    largeEventCount: number
+    needsMaintenance: boolean
+  }>
+  runMaintenance: () => Promise<{
+    freedBytes: number
+    purgedEvents: number
+    durationMs: number
+  }>
   updater: UpdaterAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>

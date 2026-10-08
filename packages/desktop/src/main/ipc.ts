@@ -22,6 +22,7 @@ import {
   setTitlebar,
   updateTitlebar,
 } from "./windows"
+import { getSystemMaintenanceStatus, runSystemMaintenance } from "./maintenance"
 import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
@@ -106,6 +107,8 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("updater-install", () => deps.updater.install())
   ipcMain.handle("set-background-color", (_event: IpcMainInvokeEvent, color: string) => deps.setBackgroundColor(color))
   ipcMain.handle("export-debug-logs", () => deps.exportDebugLogs())
+  ipcMain.handle("maintenance-status", () => getSystemMaintenanceStatus())
+  ipcMain.handle("maintenance-run", () => runSystemMaintenance())
   ipcMain.handle("set-force-focus", (event: IpcMainInvokeEvent, enabled: boolean) =>
     setForceFocus(event.sender, enabled),
   )

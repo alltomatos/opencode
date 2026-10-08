@@ -88,6 +88,18 @@ type PlatformBase = {
   wslServers?: WslServersPlatform
   sshServers?: SshServersPlatform
   checkTailscale?: () => Promise<{ available: boolean; ip: string | null }>
+  getMaintenanceStatus?: () => Promise<{
+    dbSizeBytes: number
+    walSizeBytes: number
+    eventCount: number
+    largeEventCount: number
+    needsMaintenance: boolean
+  }>
+  runMaintenance?: () => Promise<{
+    freedBytes: number
+    purgedEvents: number
+    durationMs: number
+  }>
 
   /** Get the preferred display backend (desktop only) */
   getDisplayBackend?(): Promise<DisplayBackend | null> | DisplayBackend | null

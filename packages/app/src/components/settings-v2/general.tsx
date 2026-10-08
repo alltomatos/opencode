@@ -15,6 +15,9 @@ import { ExternalLink } from "../external-link"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { LayoutRetirementNotice, LayoutTransitionToggle } from "./interface-transition"
+import { useMaintenance } from "@/context/maintenance"
+import { showToast } from "@/utils/toast"
+import { Tag } from "@opencode-ai/ui/tag"
 import {
   createAppearanceSettingsController,
   createPermissionScopeController,
@@ -811,6 +814,73 @@ export const SettingsGeneralV2: Component<{
     </div>
   )
 
+  const maintenance = useMaintenance()
+
+  const formatSize = (bytes: number) => {
+    if (!bytes || bytes <= 0) return "0 MB"
+    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const handleRunMaintenance = async () => {
+    const res = await maintenance.run()
+    if (res) {
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("settings.maintenance.toast.success.title"),
+        description: language.t("settings.maintenance.toast.success.description", {
+          freed: formatSize(res.freedBytes),
+          duration: res.durationMs,
+        }),
+      })
+    }
+  }
+
+  const MaintenanceSection = () => (
+    <Show when={desktop()}>
+      <div class="settings-v2-section">
+        <h3 class="settings-v2-section-title">{language.t("settings.maintenance.section.title")}</h3>
+
+        <SettingsListV2>
+          <SettingsRowV2
+            title={
+              <div class="flex items-center gap-2">
+                <span>{language.t("settings.maintenance.row.title")}</span>
+                <Show when={maintenance.needsMaintenance()}>
+                  <Tag>{language.t("settings.maintenance.badge.needed")}</Tag>
+                </Show>
+              </div>
+            }
+            description={
+              <div class="flex flex-col gap-0.5">
+                <span>{language.t("settings.maintenance.row.description")}</span>
+                <Show when={maintenance.status()}>
+                  {(st) => (
+                    <span class="text-11-regular text-v2-text-text-muted">
+                      BD: {formatSize(st().dbSizeBytes)} | WAL: {formatSize(st().walSizeBytes)} | Eventos: {st().eventCount}
+                    </span>
+                  )}
+                </Show>
+              </div>
+            }
+          >
+            <ButtonV2
+              size="normal"
+              variant={maintenance.needsMaintenance() ? "contrast" : "neutral"}
+              disabled={maintenance.running()}
+              onClick={handleRunMaintenance}
+            >
+              {maintenance.running()
+                ? language.t("settings.maintenance.action.optimizing")
+                : language.t("settings.maintenance.action.optimize")}
+            </ButtonV2>
+          </SettingsRowV2>
+        </SettingsListV2>
+      </div>
+    </Show>
+  )
+
   // We can probably remove this, right?
   const DisplaySection = () => (
     <Show when={desktop()}>
@@ -856,6 +926,7 @@ export const SettingsGeneralV2: Component<{
 
         <Show when={desktop()}>
           <UpdatesSection />
+          <MaintenanceSection />
         </Show>
 
         <DisplaySection />

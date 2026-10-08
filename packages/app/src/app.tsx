@@ -52,6 +52,7 @@ import { NotificationProvider } from "@/context/notification"
 import { PermissionProvider } from "@/context/permission"
 import { usePlatform } from "@/context/platform"
 import { PromptProvider } from "@/context/prompt"
+import { MaintenanceProvider } from "@/context/maintenance"
 import { ServerConnection, ServerProvider, serverName, useServer } from "@/context/server"
 import { SettingsProvider, useSettings } from "@/context/settings"
 import { TabsProvider, useTabs, type DraftTab } from "@/context/tabs"
@@ -641,6 +642,7 @@ export function AppInterface(props: {
     >
       <GlobalProvider>
         <SettingsProvider>
+          <MaintenanceProvider>
           <ConnectionGate disableHealthCheck={props.disableHealthCheck} startup={props.startup}>
             <Show when={useSettings().general.newLayoutDesigns().toString()} keyed>
               <Dynamic
@@ -663,6 +665,7 @@ export function AppInterface(props: {
               </Dynamic>
             </Show>
           </ConnectionGate>
+          </MaintenanceProvider>
         </SettingsProvider>
       </GlobalProvider>
     </ServerProvider>
