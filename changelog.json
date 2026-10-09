@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.77",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI & WhatsApp: Suporte a Documentos com Legenda (Caption) e Formatos Office",
+              "description": "Corrigida a leitura de mensagens no WhatsApp enviadas com arquivos/documentos contendo legenda (caption), garantindo que o texto explicativo acompanhe o anexo; suporte e mapeamento automático de extensões para apresentações PowerPoint (.pptx), planilhas Excel (.xlsx) e documentos Word (.docx)."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.76",
       "highlights": [
         {
