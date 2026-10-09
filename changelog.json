@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.73",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Detecção Fidedigna de Contas Pro vs Gratuito via loadCodeAssist (Paridade OmniRoute)",
+              "description": "Implementada consulta oficial ao endpoint loadCodeAssist do Google Cloud Code para extração do paidTier (g1-pro-tier, g1-ultra-tier) seguindo a arquitetura de referência do OmniRoute. Contas Pro reais com Google AI Pro e contas gratuitas agora são classificadas com precisão em ambos os blocos AGY e AGY CLI."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.72",
       "highlights": [
         {

@@ -468,6 +468,26 @@ export async function fetchUserQuotaDetails(
       Authorization: `Bearer ${access}`,
     }
 
+    // Query loadCodeAssist to get authoritative subscription/tier info (Google AI Pro, Ultra, etc.)
+    let subscriptionTierId: string | undefined
+    for (const baseUrl of ANTIGRAVITY_BASE_URLS) {
+      try {
+        const subRes = await fetch(`${baseUrl}/v1internal:loadCodeAssist`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ metadata: { ideType: 9, platform: 5, pluginType: 2 } }),
+          signal: AbortSignal.timeout(5000),
+        })
+        if (subRes.ok) {
+          const subJson = await subRes.json()
+          subscriptionTierId = subJson.paidTier?.id || subJson.currentTier?.id
+          break
+        }
+      } catch {
+        continue
+      }
+    }
+
     let data: any
     let isAvailableModelsFormat = false
 
@@ -590,31 +610,21 @@ export async function fetchUserQuotaDetails(
 
     const avgFraction = validCount > 0 ? totalFraction / validCount : 1
     // Detect Pro tier:
-    // 1. Check metadata stored during OAuth onboarding if available (e.g. "free-tier", "legacy-tier", "pro-tier")
-    const metadataTier = String(parsed.metadata?.tier || "").toLowerCase()
-    const isExplicitFreeMetadata = metadataTier.includes("free")
+    // 1. Authoritative check via loadCodeAssist (paidTier id, e.g. "g1-pro-tier", "g1-ultra-tier")
+    const subTier = String(subscriptionTierId || "").toLowerCase()
+    const isSubPro = subTier.includes("pro") || subTier.includes("ultra") || subTier.includes("premium")
 
-    // 2. Models payload / buckets check:
-    // Pro accounts have access to Pro models (e.g. "pro", "3.1-pro", "claude")
-    const hasProModels =
-      (isAvailableModelsFormat &&
-        data.models &&
-        Object.keys(data.models).some((m) => m.includes("pro") || m.includes("claude"))) ||
-      (Array.isArray(data.buckets) &&
-        data.buckets.some(
-          (b: any) =>
-            b?.modelId?.includes("pro") ||
-            b?.modelId?.includes("3.1-pro") ||
-            b?.modelId?.includes("claude"),
-        ))
+    // 2. Fallback check: metadata or response flags
+    const metadataTier = String(parsed.metadata?.tier || "").toLowerCase()
+    const isExplicitFree = !isSubPro && (subTier.includes("free") || (!subTier && !metadataTier))
 
     const isPro =
-      !isExplicitFreeMetadata &&
-      (hasProModels ||
-        data.userTier === "PRO" ||
-        data.tier === "pro" ||
-        Boolean(data.isProUser) ||
-        metadataTier.includes("pro"))
+      isSubPro ||
+      (!isExplicitFree &&
+        (data.userTier === "PRO" ||
+          data.tier === "pro" ||
+          Boolean(data.isProUser) ||
+          metadataTier.includes("pro")))
 
     const overallPct = Math.round(avgFraction * 100)
     const cooldownUntil = IntegrationRotation.getCooldownUntilByKey(credentialID)
