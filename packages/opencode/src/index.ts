@@ -28,6 +28,9 @@ import { SessionCommand } from "./cli/cmd/session"
 import { DbCommand } from "./cli/cmd/db"
 import { errorMessage } from "./util/error"
 import { PluginCommand } from "./cli/cmd/plug"
+import { Global } from "@opencode-ai/core/global"
+import { DefaultSkills } from "./skill/default-skills"
+import { DefaultPython } from "./provider/agentrouter/default-python"
 import { Heap } from "./cli/heap"
 
 const args = hideBin(process.argv)
@@ -71,6 +74,9 @@ const cli = yargs(args)
     }
 
     Heap.start()
+
+    void DefaultSkills.ensureDefaultSkills(Global.Path.home)
+    void DefaultPython.ensureDefaultPython(Global.Path.home)
 
     process.env.AGENT = "1"
     process.env.OPENCODE = "1"

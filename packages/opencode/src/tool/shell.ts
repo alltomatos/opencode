@@ -17,6 +17,8 @@ import { ShellID } from "./shell/id"
 
 import * as Truncate from "./truncate"
 import { Plugin } from "@/plugin"
+import { Global } from "@opencode-ai/core/global"
+import { DefaultPython } from "../provider/agentrouter/default-python"
 import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import { ShellPrompt, type Parameters } from "./shell/prompt"
@@ -419,10 +421,24 @@ export const ShellTool = Tool.define(
         { cwd, sessionID: ctx.sessionID, callID: ctx.callID },
         { env: {} },
       )
-      return {
+      const mergedEnv: Record<string, string | undefined> = {
         ...process.env,
         ...extra.env,
       }
+
+      const vendor = DefaultPython.findVendorPythonSync(Global.Path.home)
+      if (vendor) {
+        const pathSep = process.platform === "win32" ? ";" : ":"
+        const currentPath = mergedEnv.PATH || mergedEnv.Path || ""
+        const parts = [vendor.binDir]
+        if (vendor.scriptsDir) parts.push(vendor.scriptsDir)
+        const newPath = `${parts.join(pathSep)}${pathSep}${currentPath}`
+        mergedEnv.PATH = newPath
+        mergedEnv.Path = newPath
+        mergedEnv.OPENCODE_VENDOR_PYTHON = vendor.pythonPath
+      }
+
+      return mergedEnv
     })
 
     const run = Effect.fn("ShellTool.run")(function* (

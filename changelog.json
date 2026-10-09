@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.75",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Python 3.12 Vendorizado Multiplataforma (Windows, macOS e Linux)",
+              "description": "Adicionado provisionamento automático e transparente de ambiente portable Python 3.12 (astral-sh standalone) sem dependência de instalação prévia no SO nem privilégios de administrador. Injetado dinamicamente no PATH dos shells e terminais do OpenCode para garantir disponibilidade imediata para agents, skills e scripts."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.74",
       "highlights": [
         {
