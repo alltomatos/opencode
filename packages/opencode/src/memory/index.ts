@@ -37,6 +37,10 @@ export function getSyncIntervalHours(config: ConfigMemoryV1.Info) {
   return typeof config.syncIntervalHours === "number" && config.syncIntervalHours > 0 ? config.syncIntervalHours : 6
 }
 
+export function getMaxSessionAgeDays(config: ConfigMemoryV1.Info) {
+  return typeof config.maxSessionAgeDays === "number" && config.maxSessionAgeDays > 0 ? config.maxSessionAgeDays : 30
+}
+
 // Curated against the Omniroute catalog (same list used by the Breniac
 // recommended-models dialog) — cheap/fast models that have proven reliable
 // for structured tool-calling. Tried in order; the first one whose provider
@@ -200,12 +204,14 @@ export type BackfillInput = {
   directory?: string
   sessionID?: string
   force?: boolean
+  purgeAfterDays?: number
 }
 
 export type BackfillResult = {
   totalSessions: number
   processedSessions: number
   summarizedSessions: number
+  purgedSessions?: number
   projectsCount: number
   errors: string[]
 }
@@ -619,10 +625,22 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
 
       yield* Effect.tryPromise(() => saveProcessedSessionIDs(processedIDs)).pipe(Effect.ignore)
 
+      // Se solicitado expurgo após N dias, remove apenas as sessões que já possuem memória garantida
+      let purgedSessions = 0
+      if (input?.purgeAfterDays && input.purgeAfterDays > 0) {
+        const cutoff = Date.now() - input.purgeAfterDays * 24 * 60 * 60 * 1000
+        const eligible = sessionList.filter((s) => s.time.updated < cutoff && processedIDs.has(s.id))
+        for (const s of eligible) {
+          yield* sessions.remove(s.id as any).pipe(Effect.ignore)
+          purgedSessions++
+        }
+      }
+
       return {
         totalSessions,
         processedSessions,
         summarizedSessions,
+        purgedSessions,
         projectsCount: projects.size,
         errors,
       }
@@ -642,7 +660,8 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
 
       if (now - lastSyncTime < intervalMs) return
 
-      yield* backfill().pipe(Effect.ignore)
+      const maxAgeDays = getMaxSessionAgeDays(memoryConfig)
+      yield* backfill({ purgeAfterDays: maxAgeDays }).pipe(Effect.ignore)
       yield* Effect.tryPromise(() => saveSyncState({ lastSyncAt: new Date(now).toISOString() })).pipe(Effect.ignore)
     })
 

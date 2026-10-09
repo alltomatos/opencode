@@ -1439,6 +1439,14 @@ export const dict = {
   "settings.memory.field.syncInterval.title": "Intervalo da rotina",
   "settings.memory.field.syncInterval.description":
     "Frequência com que a rotina automática de memória é executada em segundo plano.",
+  "settings.memory.field.maxAge.title": "Retenção de sessões",
+  "settings.memory.field.maxAge.description":
+    "Período máximo para manter sessões ativas no banco. Sessões que ultrapassarem este prazo são sintetizadas em arquivo .md de memória e expurgadas do SQLite.",
+  "settings.memory.age.7d": "7 dias",
+  "settings.memory.age.15d": "15 dias",
+  "settings.memory.age.30d": "30 dias (padrão)",
+  "settings.memory.age.60d": "60 dias",
+  "settings.memory.age.90d": "90 dias",
   "settings.memory.interval.1h": "A cada 1 hora",
   "settings.memory.interval.2h": "A cada 2 horas",
   "settings.memory.interval.6h": "A cada 6 horas (recomendado)",

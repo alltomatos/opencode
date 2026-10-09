@@ -1943,7 +1943,7 @@ export type ComboFailover = {
    */
   enabled: boolean
   /**
-   * 'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' starts from whichever model comes after the last one used.
+   * 'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' rotates through all models sequentially. 'priority-round-robin' groups models by priority tier, rounds robin within the best tier available, and fails over to lower tiers if needed.
    */
   strategy: "priority" | "round-robin" | "priority-round-robin"
 }
@@ -2078,6 +2078,10 @@ export type MemoryConfig = {
    * Interval in hours between automatic memory syncs (default: 6)
    */
   syncIntervalHours?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  /**
+   * Retention period in days for active sessions. Sessions older than this are synthesized into memory and purged (default: 30)
+   */
+  maxSessionAgeDays?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 /**
@@ -11210,11 +11214,42 @@ export type ProviderQuotaResponses = {
     }>
     overallPercentage: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     healthStatus?: "healthy" | "cooldown" | "exhausted"
-    cooldownUntil?: number | null
+    cooldownUntil?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }
 }
 
 export type ProviderQuotaResponse = ProviderQuotaResponses[keyof ProviderQuotaResponses]
+
+export type ProviderResetCooldownData = {
+  body?: never
+  path: {
+    providerID: string
+  }
+  query: {
+    directory?: string
+    workspace?: string
+    credentialID: string
+  }
+  url: "/provider/{providerID}/reset-cooldown"
+}
+
+export type ProviderResetCooldownErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ProviderResetCooldownError = ProviderResetCooldownErrors[keyof ProviderResetCooldownErrors]
+
+export type ProviderResetCooldownResponses = {
+  /**
+   * Reset cooldown result
+   */
+  200: boolean
+}
+
+export type ProviderResetCooldownResponse = ProviderResetCooldownResponses[keyof ProviderResetCooldownResponses]
 
 export type ProviderOauthAuthorizeData = {
   body?: {

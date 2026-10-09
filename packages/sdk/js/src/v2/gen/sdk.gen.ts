@@ -250,6 +250,8 @@ import type {
   ProviderOauthCallbackResponses,
   ProviderQuotaErrors,
   ProviderQuotaResponses,
+  ProviderResetCooldownErrors,
+  ProviderResetCooldownResponses,
   PtyConnectErrors,
   PtyConnectResponses,
   PtyConnectTokenErrors,
@@ -4888,6 +4890,44 @@ export class Provider extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<ProviderQuotaResponses, ProviderQuotaErrors, ThrowOnError>({
       url: "/provider/{providerID}/quota",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Reset provider account cooldown
+   *
+   * Clear temporary 429/benched cooldown for an active provider connection.
+   */
+  public resetCooldown<ThrowOnError extends boolean = false>(
+    parameters: {
+      providerID: string
+      directory?: string
+      workspace?: string
+      credentialID: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "providerID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "credentialID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ProviderResetCooldownResponses,
+      ProviderResetCooldownErrors,
+      ThrowOnError
+    >({
+      url: "/provider/{providerID}/reset-cooldown",
       ...options,
       ...params,
     })

@@ -150,12 +150,16 @@ export async function runSystemMaintenance(options?: {
     // 5. Otimiza índices e estatísticas do SQLite
     native.exec("PRAGMA optimize;")
 
-    // 6. Checkpoint final
+    // 6. Checkpoint final antes do vacuum
     native.exec("PRAGMA wal_checkpoint(TRUNCATE);")
 
-    // 7. Se solicitado VACUUM completo (reorganiza fisicamente o banco no disco)
-    if (options?.fullVacuum) {
+    // 7. VACUUM completo (libera o espaço físico no disco)
+    // Se o banco tiver mais de 100MB de espaço livre ou fullVacuum for solicitado, roda sempre VACUUM
+    const freelistRow = native.prepare("SELECT freelist_count, page_size FROM pragma_freelist_count(), pragma_page_size()").get() as { freelist_count: number; page_size: number } | undefined
+    const freeBytesInFile = (freelistRow?.freelist_count ?? 0) * (freelistRow?.page_size ?? 4096)
+    if (options?.fullVacuum || freeBytesInFile > 50 * 1024 * 1024) {
       try {
+        native.exec("PRAGMA busy_timeout = 5000;")
         native.exec("VACUUM;")
       } catch {}
     }

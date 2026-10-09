@@ -24,6 +24,14 @@ const intervalOptions = [
   { value: 24, labelKey: "settings.memory.interval.24h" as const },
 ]
 
+const maxAgeOptions = [
+  { value: 7, labelKey: "settings.memory.age.7d" as const },
+  { value: 15, labelKey: "settings.memory.age.15d" as const },
+  { value: 30, labelKey: "settings.memory.age.30d" as const },
+  { value: 60, labelKey: "settings.memory.age.60d" as const },
+  { value: 90, labelKey: "settings.memory.age.90d" as const },
+]
+
 export const SettingsMemoryV2: Component<{
   directory?: Accessor<string | undefined>
 }> = (props) => {
@@ -39,6 +47,7 @@ export const SettingsMemoryV2: Component<{
   const [form, setForm] = createStore({
     memoryModel: "",
     syncIntervalHours: 6,
+    maxSessionAgeDays: 30,
   })
 
   createEffect(() => {
@@ -46,6 +55,7 @@ export const SettingsMemoryV2: Component<{
     if (!data) return
     setForm("memoryModel", data.memoryModel ?? "")
     setForm("syncIntervalHours", typeof data.syncIntervalHours === "number" ? data.syncIntervalHours : 6)
+    setForm("maxSessionAgeDays", typeof data.maxSessionAgeDays === "number" ? data.maxSessionAgeDays : 30)
   })
 
   const saveMutation = useMutation(() => ({
@@ -54,6 +64,7 @@ export const SettingsMemoryV2: Component<{
         enabled: config()?.enabled,
         autoSync: config()?.autoSync,
         syncIntervalHours: form.syncIntervalHours,
+        maxSessionAgeDays: form.maxSessionAgeDays,
         memoryModel: form.memoryModel || undefined,
       }
       await serverSDK().client.memory.setConfig({ memoryConfig: payload })
@@ -66,6 +77,9 @@ export const SettingsMemoryV2: Component<{
       }
       if (saved.syncIntervalHours !== undefined) {
         setForm("syncIntervalHours", saved.syncIntervalHours ?? 6)
+      }
+      if (saved.maxSessionAgeDays !== undefined) {
+        setForm("maxSessionAgeDays", saved.maxSessionAgeDays ?? 30)
       }
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.memory.toast.saved") })
     },
@@ -84,6 +98,7 @@ export const SettingsMemoryV2: Component<{
           memoryModel: current.memoryModel,
           autoSync: current.autoSync,
           syncIntervalHours: form.syncIntervalHours,
+          maxSessionAgeDays: form.maxSessionAgeDays,
         },
       })
       return enabled
@@ -106,6 +121,7 @@ export const SettingsMemoryV2: Component<{
           memoryModel: current.memoryModel,
           autoSync,
           syncIntervalHours: form.syncIntervalHours,
+          maxSessionAgeDays: form.maxSessionAgeDays,
         },
       })
       return autoSync
@@ -194,6 +210,27 @@ export const SettingsMemoryV2: Component<{
                 onSelect={(option) => {
                   if (option) {
                     setForm("syncIntervalHours", option.value)
+                    void saveMutation.mutate()
+                  }
+                }}
+              />
+            </SettingsRowV2>
+            <SettingsRowV2
+              title={language.t("settings.memory.field.maxAge.title")}
+              description={language.t("settings.memory.field.maxAge.description")}
+            >
+              <SelectV2
+                appearance="inline"
+                data-action="settings-memory-maxage"
+                options={maxAgeOptions}
+                current={maxAgeOptions.find((opt) => opt.value === form.maxSessionAgeDays) ?? maxAgeOptions[2]}
+                placement="bottom-end"
+                gutter={6}
+                value={(option) => String(option.value)}
+                label={(option) => language.t(option.labelKey)}
+                onSelect={(option) => {
+                  if (option) {
+                    setForm("maxSessionAgeDays", option.value)
                     void saveMutation.mutate()
                   }
                 }}

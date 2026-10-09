@@ -1510,6 +1510,14 @@ export const dict = {
   "settings.memory.field.syncInterval.title": "Routine interval",
   "settings.memory.field.syncInterval.description":
     "How frequently the automatic memory sync routine runs in the background.",
+  "settings.memory.field.maxAge.title": "Session retention",
+  "settings.memory.field.maxAge.description":
+    "Maximum period to keep active sessions in the database. Sessions older than this are synthesized into memory .md files and purged from SQLite.",
+  "settings.memory.age.7d": "7 days",
+  "settings.memory.age.15d": "15 days",
+  "settings.memory.age.30d": "30 days (default)",
+  "settings.memory.age.60d": "60 days",
+  "settings.memory.age.90d": "90 days",
   "settings.memory.interval.1h": "Every 1 hour",
   "settings.memory.interval.2h": "Every 2 hours",
   "settings.memory.interval.6h": "Every 6 hours (recommended)",

@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.72",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Sistema de Memória & Manutenção: Pipeline de Memória antes do Expurgo, Retenção Configurável e VACUUM Automático",
+              "description": "Adicionada configuração de período de retenção de sessões nas configurações de Memória (7d, 15d, 30d, 60d, 90d; padrão 30 dias). Implementado pipeline seguro na rotina periódica e na manutenção: antes de expurgar uma sessão do banco de dados, ela é obrigatoriamente sintetizada em arquivo Markdown (.md) no repositório de memórias do projeto. Implementada execução automática de VACUUM com truncate de WAL quando o banco possui páginas livres acumuladas, recuperando gigabytes de espaço físico em disco."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.71",
       "highlights": [
         {

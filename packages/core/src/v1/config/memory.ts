@@ -15,5 +15,8 @@ export const Info = Schema.Struct({
   syncIntervalHours: Schema.optional(Schema.Number).annotate({
     description: "Interval in hours between automatic memory syncs (default: 6)",
   }),
+  maxSessionAgeDays: Schema.optional(Schema.Number).annotate({
+    description: "Retention period in days for active sessions. Sessions older than this are synthesized into memory and purged (default: 30)",
+  }),
 }).annotate({ identifier: "MemoryConfig" })
 export type Info = Schema.Schema.Type<typeof Info>
