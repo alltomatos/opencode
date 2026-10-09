@@ -1945,7 +1945,7 @@ export type ComboFailover = {
   /**
    * 'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' starts from whichever model comes after the last one used.
    */
-  strategy: "priority" | "round-robin"
+  strategy: "priority" | "round-robin" | "priority-round-robin"
 }
 
 export type ComboRateLimit = {
@@ -8497,7 +8497,7 @@ export type ComboGenerateResponses = {
     name: string
     models: Array<ComboModel>
     failoverEnabled: boolean
-    failoverStrategy: "priority" | "round-robin"
+    failoverStrategy: "priority" | "round-robin" | "priority-round-robin"
     requestsPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     tokensPerMinute?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }

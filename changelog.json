@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.71",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Combos com Prioridade + Round-Robin e Monitoramento de Saúde das Contas (Health/Cooldown 429)",
+              "description": "Adicionado suporte nativo à estratégia 'Prioridade + Round-Robin' no sistema de combos com configuração visual de Tiers por modelo. Implementado rastreamento em tempo real de saúde das contas com tag interativa 'Cooldown (429)' e ação de reset instantâneo. Corrigida a identificação indevida de contas gratuitas como Pro no provedor AGY."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.70",
       "highlights": [
         {

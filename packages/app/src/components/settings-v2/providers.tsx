@@ -258,6 +258,7 @@ const ProviderAccountList: Component<{
     try {
       // Discard server caches and force reload model catalog
       await serverSdk().client.global.dispose().catch(() => undefined)
+      await fetchQuota(account)
       await refetch()
       props.onChanged?.()
       showToast({

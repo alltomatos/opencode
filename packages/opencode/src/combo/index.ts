@@ -47,7 +47,7 @@ export const GeneratedDraft = Schema.Struct({
   name: Schema.String,
   models: Schema.Array(ConfigComboV1.ComboModel),
   failoverEnabled: Schema.Boolean,
-  failoverStrategy: Schema.Literals(["priority", "round-robin"]),
+  failoverStrategy: Schema.Literals(["priority", "round-robin", "priority-round-robin"]),
   requestsPerMinute: Schema.optional(Schema.Number),
   tokensPerMinute: Schema.optional(Schema.Number),
 })
@@ -106,6 +106,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
     // round-robin cursor, and the sliding-window rate-limit counters.
     const lastFailed = new Map<string, string>()
     const roundRobinCursor = new Map<string, number>()
+    const tierCursors = new Map<string, Map<number, number>>()
     const windows = new Map<string, { requests: number[]; tokens: { at: number; count: number }[] }>()
 
     const list = Effect.fn("Combo.list")(function* () {
@@ -168,6 +169,30 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
     const orderedModels = (combo: ConfigComboV1.Combo) => {
       const sorted = [...combo.models].sort((a, b) => a.priority - b.priority)
       if (combo.failover.strategy === "priority") return sorted
+
+      if (combo.failover.strategy === "priority-round-robin") {
+        const groups = new Map<number, typeof combo.models>()
+        for (const m of sorted) {
+          const list = groups.get(m.priority) ?? []
+          list.push(m)
+          groups.set(m.priority, list)
+        }
+
+        let comboTiers = tierCursors.get(combo.id)
+        if (!comboTiers) {
+          comboTiers = new Map<number, number>()
+          tierCursors.set(combo.id, comboTiers)
+        }
+
+        const result: typeof combo.models = []
+        for (const [tier, list] of groups.entries()) {
+          const cursor = comboTiers.get(tier) ?? 0
+          const rotated = [...list.slice(cursor % list.length), ...list.slice(0, cursor % list.length)]
+          result.push(...rotated)
+        }
+        return result
+      }
+
       const cursor = roundRobinCursor.get(combo.id) ?? 0
       return [...sorted.slice(cursor % sorted.length), ...sorted.slice(0, cursor % sorted.length)]
     }
@@ -202,6 +227,20 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
       if (combo?.failover.strategy === "round-robin") {
         const index = combo.models.findIndex((entry) => entry.model === input.model)
         if (index >= 0) roundRobinCursor.set(input.id, index + 1)
+      } else if (combo?.failover.strategy === "priority-round-robin") {
+        const entry = combo.models.find((e) => e.model === input.model)
+        if (entry) {
+          let comboTiers = tierCursors.get(combo.id)
+          if (!comboTiers) {
+            comboTiers = new Map<number, number>()
+            tierCursors.set(combo.id, comboTiers)
+          }
+          const tierModels = combo.models.filter((m) => m.priority === entry.priority)
+          const tierIndex = tierModels.findIndex((m) => m.model === input.model)
+          if (tierIndex >= 0) {
+            comboTiers.set(entry.priority, tierIndex + 1)
+          }
+        }
       }
 
       const w = window(input.id)

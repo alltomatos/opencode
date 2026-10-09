@@ -23,7 +23,7 @@ type ComboForm = {
   name: string
   models: ComboModel[]
   failoverEnabled: boolean
-  failoverStrategy: "priority" | "round-robin"
+  failoverStrategy: "priority" | "round-robin" | "priority-round-robin"
   requestsPerMinute: string
   tokensPerMinute: string
 }
@@ -92,7 +92,7 @@ export const DialogComboV2: Component<{
         })),
       )
       setForm("failoverEnabled", draft.failoverEnabled)
-      setForm("failoverStrategy", draft.failoverStrategy as "priority" | "round-robin")
+      setForm("failoverStrategy", draft.failoverStrategy as "priority" | "round-robin" | "priority-round-robin")
       setForm("requestsPerMinute", draft.requestsPerMinute?.toString() ?? "")
       setForm("tokensPerMinute", draft.tokensPerMinute?.toString() ?? "")
 
@@ -211,13 +211,27 @@ export const DialogComboV2: Component<{
           <For each={form.models}>
             {(row, index) => (
               <div class="flex items-center gap-2">
-                <ModelPickerV2
-                  directory={props.directory}
-                  requireVision={requireVision()}
-                  requirePdf={requirePdf()}
-                  value={row.model}
-                  onChange={(value) => setForm("models", index(), "model", value)}
-                />
+                <Show when={form.failoverStrategy === "priority-round-robin" || form.failoverStrategy === "priority"}>
+                  <div class="flex items-center gap-1 shrink-0" title={language.t("settings.combos.field.modelPriorityHint")}>
+                    <span class="text-11-medium text-v2-text-text-faint">{language.t("settings.combos.field.tier")}:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      class="h-7 w-12 rounded border border-v2-border-border-base bg-v2-background-bg-base px-1.5 text-center text-12-regular"
+                      value={row.priority}
+                      onInput={(e) => setForm("models", index(), "priority", Number(e.currentTarget.value) || 0)}
+                    />
+                  </div>
+                </Show>
+                <div class="flex-1 min-w-0">
+                  <ModelPickerV2
+                    directory={props.directory}
+                    requireVision={requireVision()}
+                    requirePdf={requirePdf()}
+                    value={row.model}
+                    onChange={(value) => setForm("models", index(), "model", value)}
+                  />
+                </div>
                 <IconButtonV2
                   type="button"
                   variant="ghost-muted"
@@ -245,8 +259,9 @@ export const DialogComboV2: Component<{
             <select
               class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular"
               value={form.failoverStrategy}
-              onChange={(event) => setForm("failoverStrategy", event.currentTarget.value as "priority" | "round-robin")}
+              onChange={(event) => setForm("failoverStrategy", event.currentTarget.value as "priority" | "round-robin" | "priority-round-robin")}
             >
+              <option value="priority-round-robin">{language.t("settings.combos.failover.priorityRoundRobin")}</option>
               <option value="priority">{language.t("settings.combos.failover.priority")}</option>
               <option value="round-robin">{language.t("settings.combos.failover.roundRobin")}</option>
             </select>

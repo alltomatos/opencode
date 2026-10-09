@@ -589,20 +589,32 @@ export async function fetchUserQuotaDetails(
     }
 
     const avgFraction = validCount > 0 ? totalFraction / validCount : 1
-    // Detect Pro tier: Pro accounts usually have more than 5 model buckets (including pro models like gemini-3.1-pro-high)
-    const isPro =
-      isAvailableModelsFormat ||
-      data.userTier === "PRO" ||
-      data.tier === "pro" ||
-      Boolean(data.isProUser) ||
+    // Detect Pro tier:
+    // 1. Check metadata stored during OAuth onboarding if available (e.g. "free-tier", "legacy-tier", "pro-tier")
+    const metadataTier = String(parsed.metadata?.tier || "").toLowerCase()
+    const isExplicitFreeMetadata = metadataTier.includes("free")
+
+    // 2. Models payload / buckets check:
+    // Pro accounts have access to Pro models (e.g. "pro", "3.1-pro", "claude")
+    const hasProModels =
+      (isAvailableModelsFormat &&
+        data.models &&
+        Object.keys(data.models).some((m) => m.includes("pro") || m.includes("claude"))) ||
       (Array.isArray(data.buckets) &&
         data.buckets.some(
           (b: any) =>
             b?.modelId?.includes("pro") ||
             b?.modelId?.includes("3.1-pro") ||
-            b?.modelId?.includes("3.7-flash") ||
-            b?.modelId?.includes("3.8-flash"),
+            b?.modelId?.includes("claude"),
         ))
+
+    const isPro =
+      !isExplicitFreeMetadata &&
+      (hasProModels ||
+        data.userTier === "PRO" ||
+        data.tier === "pro" ||
+        Boolean(data.isProUser) ||
+        metadataTier.includes("pro"))
 
     const overallPct = Math.round(avgFraction * 100)
     const cooldownUntil = IntegrationRotation.getCooldownUntilByKey(credentialID)

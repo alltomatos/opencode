@@ -14,9 +14,9 @@ export const Failover = Schema.Struct({
   enabled: Schema.Boolean.annotate({
     description: "When true, a request that fails on one model retries the next one in the combo instead of failing.",
   }),
-  strategy: Schema.Literals(["priority", "round-robin"]).annotate({
+  strategy: Schema.Literals(["priority", "round-robin", "priority-round-robin"]).annotate({
     description:
-      "'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' starts from whichever model comes after the last one used.",
+      "'priority' always starts from the lowest-priority model and falls through in order. 'round-robin' rotates through all models sequentially. 'priority-round-robin' groups models by priority tier, rounds robin within the best tier available, and fails over to lower tiers if needed.",
   }),
 }).annotate({ identifier: "ComboFailover" })
 export type Failover = Schema.Schema.Type<typeof Failover>
