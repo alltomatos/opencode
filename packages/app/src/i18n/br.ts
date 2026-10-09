@@ -1311,6 +1311,8 @@ export const dict = {
   "settings.maintenance.action.deep": "Manutenção completa e reiniciar",
   "settings.maintenance.action.deep_desc": "Fecha o servidor, expurga sessões antigas (> 30 dias), executa VACUUM completo e reinicia o aplicativo para recuperar o espaço em disco.",
   "settings.maintenance.badge.needed": "Manutenção recomendada",
+  "settings.maintenance.badge.healthy": "Saudável",
+  "settings.maintenance.last_run": "Última execução: {{time}} (liberou {{freed}}, limpou {{purged}} eventos)",
   "settings.maintenance.titlebar.button": "Manutenção necessária",
   "settings.maintenance.titlebar.tooltip": "O banco de dados atingiu tamanho elevado. Clique para abrir as opções de manutenção.",
   "settings.maintenance.toast.success.title": "Manutenção concluída",

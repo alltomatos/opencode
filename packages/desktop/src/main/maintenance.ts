@@ -2,6 +2,7 @@ import { stat } from "node:fs/promises"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
 import { app } from "electron"
+import { getStore } from "./store"
 
 export type SystemMaintenanceStatus = {
   dbSizeBytes: number
@@ -10,6 +11,8 @@ export type SystemMaintenanceStatus = {
   largeEventCount: number
   needsMaintenance: boolean
   lastMaintenanceTime?: number
+  lastFreedBytes?: number
+  lastPurgedEvents?: number
 }
 
 export type SystemMaintenanceResult = {
@@ -17,6 +20,10 @@ export type SystemMaintenanceResult = {
   purgedEvents: number
   durationMs: number
 }
+
+const LAST_MAINTENANCE_TIME_KEY = "lastMaintenanceTime"
+const LAST_FREED_BYTES_KEY = "lastMaintenanceFreedBytes"
+const LAST_PURGED_EVENTS_KEY = "lastMaintenancePurgedEvents"
 
 export async function getSystemMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
   const userDataPath = app.getPath("userData")
@@ -27,6 +34,7 @@ export async function getSystemMaintenanceStatus(): Promise<SystemMaintenanceSta
   let walSizeBytes = 0
   let eventCount = 0
   let largeEventCount = 0
+  let freeBytesInDb = 0
 
   try {
     const dbStat = await stat(dbPath).catch(() => null)
@@ -48,21 +56,31 @@ export async function getSystemMaintenanceStatus(): Promise<SystemMaintenanceSta
         .prepare("SELECT count(*) as cnt FROM event WHERE length(data) > 1000000")
         .get() as { cnt: number } | undefined
       if (largeRow) largeEventCount = largeRow.cnt
+
+      const fl = native.prepare("SELECT freelist_count, page_size FROM pragma_freelist_count(), pragma_page_size()").get() as { freelist_count: number; page_size: number } | undefined
+      if (fl) freeBytesInDb = (fl.freelist_count ?? 0) * (fl.page_size ?? 4096)
     } finally {
       native.close()
     }
   } catch {}
 
+  const store = getStore()
+  const lastMaintenanceTime = store.get(LAST_MAINTENANCE_TIME_KEY) as number | undefined
+  const lastFreedBytes = store.get(LAST_FREED_BYTES_KEY) as number | undefined
+  const lastPurgedEvents = store.get(LAST_PURGED_EVENTS_KEY) as number | undefined
+
   // Precisa de manutenção se:
-  // - Banco > 1GB
+  // - Banco físico > 3GB
   // - OU WAL acumulado > 50MB
-  // - OU mais de 50.000 eventos gravados
-  // - OU mais de 50 eventos gigantes (> 1MB)
+  // - OU Espaço ocioso desalocado (freelist) > 100MB
+  // - OU mais de 20 eventos gigantes (> 1MB)
+  // - OU mais de 250.000 eventos e sem manutenção recente
   const needsMaintenance =
-    dbSizeBytes > 1024 * 1024 * 1024 ||
+    dbSizeBytes > 3 * 1024 * 1024 * 1024 ||
     walSizeBytes > 50 * 1024 * 1024 ||
-    eventCount > 50000 ||
-    largeEventCount > 50
+    freeBytesInDb > 100 * 1024 * 1024 ||
+    largeEventCount > 20 ||
+    eventCount > 250000
 
   return {
     dbSizeBytes,
@@ -70,6 +88,9 @@ export async function getSystemMaintenanceStatus(): Promise<SystemMaintenanceSta
     eventCount,
     largeEventCount,
     needsMaintenance,
+    lastMaintenanceTime,
+    lastFreedBytes,
+    lastPurgedEvents,
   }
 }
 
@@ -176,6 +197,14 @@ export async function runSystemMaintenance(options?: {
 
   const freedBytes = Math.max(0, beforeBytes - afterBytes)
   const durationMs = Date.now() - start
+
+  // Grava histórico da última manutenção
+  try {
+    const store = getStore()
+    store.set(LAST_MAINTENANCE_TIME_KEY, Date.now())
+    store.set(LAST_FREED_BYTES_KEY, freedBytes)
+    store.set(LAST_PURGED_EVENTS_KEY, purgedEvents)
+  } catch {}
 
   return {
     freedBytes,

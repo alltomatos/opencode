@@ -1377,6 +1377,8 @@ export const dict = {
   "settings.maintenance.action.deep": "Full maintenance and relaunch",
   "settings.maintenance.action.deep_desc": "Closes local server, purges sessions older than 30 days, runs full database VACUUM, and restarts the app to reclaim disk space.",
   "settings.maintenance.badge.needed": "Maintenance recommended",
+  "settings.maintenance.badge.healthy": "Healthy",
+  "settings.maintenance.last_run": "Last run: {{time}} (freed {{freed}}, purged {{purged}} events)",
   "settings.maintenance.titlebar.button": "Maintenance needed",
   "settings.maintenance.titlebar.tooltip": "The database has grown large. Click to open maintenance options.",
   "settings.maintenance.toast.success.title": "Maintenance completed",

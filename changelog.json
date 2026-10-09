@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.74",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Manutenção & Feedback de Status: Diagnóstico Preciso de Saúde, Histórico de Execução e Síntese de Memória Prévia",
+              "description": "Refinados os critérios de avaliação de saúde do banco de dados para evitar falso-positivo de 'Manutenção necessária' após otimizações bem-sucedidas. Adicionado histórico visual da última manutenção com data/hora, bytes recuperados e eventos limpos. Adicionado badge de estado 'Saudável' e acionamento de síntese em background antes do ciclo de manutenção e reinicialização."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.73",
       "highlights": [
         {

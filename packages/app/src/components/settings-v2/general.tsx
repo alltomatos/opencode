@@ -848,9 +848,16 @@ export const SettingsGeneralV2: Component<{
         title: language.t("settings.maintenance.action.deep"),
         description: language.t("settings.maintenance.action.optimizing"),
       })
-      // Executa expurgo de sessões com mais de 30 dias + VACUUM completo
+
+      // 1. Sintetiza memórias de sessões pendentes via SDK antes de expurgá-las
+      try {
+        await serverSDK().client.memory.backfill({ force: false })
+      } catch {}
+
+      // 2. Executa expurgo de sessões com mais de 30 dias + VACUUM completo
       await maintenance.run({ purgeOldSessions: true, maxAgeDays: 30, fullVacuum: true })
-      // Reinicia o app
+
+      // 3. Reinicia o app
       if (platform.restart) {
         await platform.restart()
       }
@@ -869,7 +876,10 @@ export const SettingsGeneralV2: Component<{
             title={
               <div class="flex items-center gap-2">
                 <span>{language.t("settings.maintenance.row.title")}</span>
-                <Show when={maintenance.needsMaintenance()}>
+                <Show
+                  when={maintenance.needsMaintenance()}
+                  fallback={<Tag class="text-v2-text-text-muted">{language.t("settings.maintenance.badge.healthy")}</Tag>}
+                >
                   <Tag>{language.t("settings.maintenance.badge.needed")}</Tag>
                 </Show>
               </div>
@@ -879,9 +889,22 @@ export const SettingsGeneralV2: Component<{
                 <span>{language.t("settings.maintenance.row.description")}</span>
                 <Show when={maintenance.status()}>
                   {(st) => (
-                    <span class="text-11-regular text-v2-text-text-muted">
-                      BD: {formatSize(st().dbSizeBytes)} | WAL: {formatSize(st().walSizeBytes)} | Eventos: {st().eventCount}
-                    </span>
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-11-regular text-v2-text-text-muted">
+                        BD: {formatSize(st().dbSizeBytes)} | WAL: {formatSize(st().walSizeBytes)} | Eventos: {st().eventCount}
+                      </span>
+                      <Show when={st().lastMaintenanceTime}>
+                        {(time) => (
+                          <span class="text-11-regular text-v2-text-text-muted opacity-80">
+                            {language.t("settings.maintenance.last_run", {
+                              time: new Date(time()).toLocaleString(),
+                              freed: formatSize(st().lastFreedBytes ?? 0),
+                              purged: st().lastPurgedEvents ?? 0,
+                            })}
+                          </span>
+                        )}
+                      </Show>
+                    </div>
                   )}
                 </Show>
               </div>

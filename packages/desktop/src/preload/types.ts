@@ -81,6 +81,9 @@ export type ElectronAPI = {
     eventCount: number
     largeEventCount: number
     needsMaintenance: boolean
+    lastMaintenanceTime?: number
+    lastFreedBytes?: number
+    lastPurgedEvents?: number
   }>
   runMaintenance: (options?: {
     purgeOldSessions?: boolean

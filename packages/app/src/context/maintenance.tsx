@@ -8,6 +8,9 @@ export type MaintenanceStatus = {
   eventCount: number
   largeEventCount: number
   needsMaintenance: boolean
+  lastMaintenanceTime?: number
+  lastFreedBytes?: number
+  lastPurgedEvents?: number
 }
 
 export type MaintenanceRunResult = {
