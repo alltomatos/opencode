@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.76",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Sincronização de Release e Otimizações de Memória & Manutenção",
+              "description": "Consolidação e sincronização entre os canais de desenvolvimento e produção com melhorias no diagnóstico do banco de dados SQLite e provisionamento de ambiente em runtime."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.75",
       "highlights": [
         {
