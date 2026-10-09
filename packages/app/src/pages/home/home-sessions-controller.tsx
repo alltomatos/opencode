@@ -3,7 +3,7 @@ import { preloadMarkdown } from "@opencode-ai/session-ui/markdown-cache"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useQuery } from "@tanstack/solid-query"
 import { DateTime } from "luxon"
-import { type Accessor, createEffect, createMemo, createRoot, type JSX, onCleanup, startTransition } from "solid-js"
+import { type Accessor, createEffect, createMemo, createRoot, createSignal, type JSX, onCleanup, startTransition } from "solid-js"
 import { produce } from "solid-js/store"
 import { useCommand } from "@/context/command"
 import {
@@ -24,6 +24,19 @@ import { archiveHomeSession } from "../home-session-archive"
 import type { HomeController } from "./home-controller"
 
 const HOME_SESSION_LIMIT = 64
+const HOME_SESSIONS_VIEW_STORAGE_KEY = "home.sessions.view"
+
+export type HomeSessionsLayoutMode = "grid" | "list"
+
+function loadHomeSessionsLayoutMode(): HomeSessionsLayoutMode {
+  try {
+    const stored = localStorage.getItem(HOME_SESSIONS_VIEW_STORAGE_KEY)
+    return stored === "list" ? "list" : "grid"
+  } catch {
+    return "grid"
+  }
+}
+
 export type HomeSessionRecord = {
   session: Session
   project: LocalProject
@@ -166,9 +179,22 @@ export function createHomeSessionsController(home: HomeController) {
     },
   ])
 
+  const [viewMode, setViewModeState] = createSignal<HomeSessionsLayoutMode>(loadHomeSessionsLayoutMode())
+
+  function setViewMode(next: HomeSessionsLayoutMode) {
+    setViewModeState(next)
+    try {
+      localStorage.setItem(HOME_SESSIONS_VIEW_STORAGE_KEY, next)
+    } catch {}
+  }
+
   return {
     copy: {
       language,
+    },
+    view: {
+      mode: viewMode,
+      setMode: setViewMode,
     },
     data: {
       records,

@@ -141,6 +141,10 @@ const ProviderAccountList: Component<{
           accountLabel: account.label || account.id,
           tier: res.data.tier as "pro" | "free" | "unknown",
           overallPercentage: Number(res.data.overallPercentage) || 0,
+          healthStatus: (res.data as any).healthStatus,
+          cooldownUntil: (res.data as any).cooldownUntil,
+          providerID: props.integrationID,
+          credentialID: account.id,
           buckets: (res.data.buckets || []).map((b) => ({
             modelId: b.modelId,
             remainingFraction: Number(b.remainingFraction) || 0,
@@ -230,6 +234,25 @@ const ProviderAccountList: Component<{
     }
   }
 
+  const handleResetCooldown = async (account: { id: string; label?: string }) => {
+    try {
+      const url = new URL(`/provider/${props.integrationID}/reset-cooldown`, serverSdk().server.http.url)
+      url.searchParams.set("credentialID", account.id)
+      const res = await fetch(url, { method: "POST" })
+      if (!res.ok) throw new Error(res.statusText)
+      await fetchQuota(account)
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("settings.providers.health.resetCooldownSuccess"),
+        description: account.label,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+    }
+  }
+
   const handleRefresh = async (account: { id: string; label?: string }) => {
     setRefreshing((prev) => new Set(prev).add(account.id))
     try {
@@ -285,6 +308,20 @@ const ProviderAccountList: Component<{
                           fallback={<Tag variant="neutral">{language.t("settings.providers.quota.tier.free")}</Tag>}
                         >
                           <Tag variant="accent">{language.t("settings.providers.quota.tier.pro")}</Tag>
+                        </Show>
+                        <Show when={data().healthStatus === "cooldown"}>
+                          <span
+                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium leading-none cursor-pointer bg-v2-background-bg-layer-02 border border-v2-state-fg-warning/40 text-v2-state-fg-warning"
+                            onClick={() => void handleResetCooldown(account)}
+                            title={language.t("settings.providers.health.resetCooldown")}
+                          >
+                            {language.t("settings.providers.health.cooldown")}
+                          </span>
+                        </Show>
+                        <Show when={data().healthStatus === "exhausted"}>
+                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium leading-none bg-v2-background-bg-layer-02 border border-v2-state-fg-danger/40 text-v2-state-fg-danger">
+                            {language.t("settings.providers.health.exhausted")}
+                          </span>
                         </Show>
                         <button
                           type="button"

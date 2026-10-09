@@ -17,6 +17,10 @@ export interface AccountQuotaModalData {
   tier: "pro" | "free" | "unknown"
   overallPercentage: number
   buckets: QuotaBucket[]
+  healthStatus?: "healthy" | "cooldown" | "exhausted"
+  cooldownUntil?: number | null
+  providerID?: string
+  credentialID?: string
 }
 
 function formatReset(resetTime: string | null): string {
@@ -53,7 +57,40 @@ export const DialogAccountQuotaV2: Component<{
       </DialogHeader>
       <DialogBody class="flex w-full min-w-0 flex-1 flex-col gap-3 px-4 pt-4 pb-2 overflow-y-auto">
         <div class="flex items-center justify-between rounded-lg border border-v2-border-border-base bg-v2-background-bg-raised p-3 shrink-0">
-          <span class="text-13-medium text-v2-text-text-base">{language.t("settings.providers.quota.overall")}</span>
+          <div class="flex flex-col">
+            <span class="text-13-medium text-v2-text-text-base">{language.t("settings.providers.quota.overall")}</span>
+            <Show when={props.data.healthStatus}>
+              <div class="flex items-center gap-1.5 mt-1">
+                <span
+                  class="size-2 rounded-full"
+                  classList={{
+                    "bg-v2-state-fg-success": props.data.healthStatus === "healthy",
+                    "bg-v2-state-fg-warning": props.data.healthStatus === "cooldown",
+                    "bg-v2-state-fg-danger": props.data.healthStatus === "exhausted",
+                  }}
+                />
+                <span
+                  class="text-11-medium"
+                  classList={{
+                    "text-v2-state-fg-success": props.data.healthStatus === "healthy",
+                    "text-v2-state-fg-warning": props.data.healthStatus === "cooldown",
+                    "text-v2-state-fg-danger": props.data.healthStatus === "exhausted",
+                  }}
+                >
+                  {props.data.healthStatus === "healthy"
+                    ? language.t("settings.providers.health.healthy")
+                    : props.data.healthStatus === "cooldown"
+                      ? language.t("settings.providers.health.cooldown")
+                      : language.t("settings.providers.health.exhausted")}
+                </span>
+                <Show when={props.data.healthStatus === "cooldown" && props.data.cooldownUntil}>
+                  <span class="text-11-regular text-v2-text-text-faint">
+                    — {language.t("settings.providers.health.liberaEm", { time: formatReset(new Date(props.data.cooldownUntil!).toISOString()) })}
+                  </span>
+                </Show>
+              </div>
+            </Show>
+          </div>
           <div class="flex items-center gap-2">
             <span class="text-14-medium text-v2-text-text-strong">{props.data.overallPercentage}%</span>
             <div class="h-2 w-20 overflow-hidden rounded-full bg-v2-border-border-base">

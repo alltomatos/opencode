@@ -43,6 +43,8 @@ export const UserQuotaDetailsSchema = Schema.Struct({
   tier: Schema.Literals(["pro", "free", "unknown"]),
   buckets: Schema.Array(QuotaBucketInfoSchema),
   overallPercentage: Schema.Number,
+  healthStatus: Schema.optional(Schema.Literals(["healthy", "cooldown", "exhausted"])),
+  cooldownUntil: Schema.optional(Schema.NullOr(Schema.Number)),
 })
 
 export const ProviderApi = HttpApi.make("provider")
@@ -81,6 +83,20 @@ export const ProviderApi = HttpApi.make("provider")
             identifier: "provider.quota",
             summary: "Get provider account quota and plan tier",
             description: "Retrieve remaining percentage and tier details for an active provider connection.",
+          }),
+        ),
+        HttpApiEndpoint.post("resetCooldown", `${root}/:providerID/reset-cooldown`, {
+          params: { providerID: Schema.String },
+          query: {
+            ...WorkspaceRoutingQuery.fields,
+            credentialID: Schema.String,
+          },
+          success: described(Schema.Boolean, "Reset cooldown result"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "provider.resetCooldown",
+            summary: "Reset provider account cooldown",
+            description: "Clear temporary 429/benched cooldown for an active provider connection.",
           }),
         ),
         HttpApiEndpoint.post("authorize", `${root}/:providerID/oauth/authorize`, {

@@ -11209,6 +11209,8 @@ export type ProviderQuotaResponses = {
       resetTime: string
     }>
     overallPercentage: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    healthStatus?: "healthy" | "cooldown" | "exhausted"
+    cooldownUntil?: number | null
   }
 }
 

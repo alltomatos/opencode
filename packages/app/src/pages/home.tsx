@@ -35,8 +35,8 @@ export function NewHome() {
       >
         <div
           class={`
-            mx-auto grid min-h-full w-full max-w-[720px] grid-rows-[minmax(0,1fr)_auto] gap-4 px-3
-            lg:gap-8 lg:px-6
+            mx-auto grid min-h-full w-full max-w-7xl grid-rows-[minmax(0,1fr)_auto] gap-4 px-4
+            lg:gap-8 lg:px-8
           `}
         >
           <HomeSessions sessions={sessions} search={search} scroll={scroll} />

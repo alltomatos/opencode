@@ -33,6 +33,25 @@ export function clearUnavailable(connection: IntegrationConnection.Info): void {
   cooldowns.delete(connectionKey(connection))
 }
 
+/** Clears a connection's cooldown by connection key or ID directly. */
+export function clearUnavailableByKey(keyOrId: string): void {
+  cooldowns.delete(keyOrId)
+}
+
+/** Returns the cooldown timestamp (ms) if connection is benched and still in cooldown, or undefined. */
+export function getCooldownUntil(connection: IntegrationConnection.Info): number | undefined {
+  const until = cooldowns.get(connectionKey(connection))
+  if (until !== undefined && until > Date.now()) return until
+  return undefined
+}
+
+/** Returns the cooldown timestamp (ms) by connection key or ID if still in cooldown, or undefined. */
+export function getCooldownUntilByKey(keyOrId: string): number | undefined {
+  const until = cooldowns.get(keyOrId)
+  if (until !== undefined && until > Date.now()) return until
+  return undefined
+}
+
 /** Whether a connection is currently outside its cooldown window, if any. */
 export function isAvailable(connection: IntegrationConnection.Info): boolean {
   const until = cooldowns.get(connectionKey(connection))

@@ -118,6 +118,25 @@
     }
   }
 
+  .home-sessions-view-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 8px;
+    background-color: var(--v2-background-bg-layer-01);
+  }
+
+  .home-sessions-view-toggle [data-component="icon-button-v2"] {
+    color: var(--v2-icon-icon-muted);
+  }
+
+  .home-sessions-view-toggle-active {
+    background-color: var(--v2-background-bg-base) !important;
+    color: var(--v2-icon-icon-base) !important;
+    box-shadow: var(--v2-elevation-raised);
+  }
+
   .home-session-group-header::before {
     content: "";
     position: absolute;

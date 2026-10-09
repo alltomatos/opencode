@@ -5,6 +5,7 @@ import { ModelsDev } from "@opencode-ai/core/models-dev"
 import { Provider } from "@/provider/provider"
 import { Auth } from "@/auth"
 import { fetchUserQuotaDetails } from "@/provider/antigravity-adapter"
+import { IntegrationRotation } from "@opencode-ai/core/integration/rotation"
 import { Combo } from "@/combo"
 import { Credential } from "@opencode-ai/core/credential"
 
@@ -255,10 +256,19 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
       return null
     })
 
+    const resetCooldown = Effect.fn("ProviderHttpApi.resetCooldown")(function* (ctx: {
+      params: { providerID: string }
+      query: { credentialID: string }
+    }) {
+      IntegrationRotation.clearUnavailableByKey(ctx.query.credentialID)
+      return true
+    })
+
     return handlers
       .handle("list", list)
       .handle("auth", auth)
       .handle("quota", quota)
+      .handle("resetCooldown", resetCooldown)
       .handleRaw("authorize", authorizeRaw)
       .handle("callback", callback)
   }),

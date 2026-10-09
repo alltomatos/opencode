@@ -11,12 +11,14 @@ import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
 import { SessionTabAvatarView } from "@/pages/layout/session-tab-avatar"
 import { sessionTitle } from "@/utils/session-title"
+import { getRelativeTime } from "@/utils/time"
 import { shouldOpenSessionInBackground } from "../home-session-open"
 import {
   HomeSessionStatusController,
   homeSessionSearchKey,
   type HomeSessionGroup,
   type HomeSessionRecord,
+  type HomeSessionsLayoutMode,
   type OpenSessionOptions,
 } from "./home-sessions-controller"
 
@@ -41,6 +43,8 @@ export type HomeSessionsViewProps = {
   language: ReturnType<typeof useLanguage>
   groups: Accessor<HomeSessionGroup[]>
   showProjectName: Accessor<boolean>
+  viewMode?: Accessor<HomeSessionsLayoutMode>
+  onSetViewMode?: (mode: HomeSessionsLayoutMode) => void
   server: Accessor<ServerConnection.Key>
   canCreateSession: Accessor<boolean>
   searchValue: Accessor<string>
@@ -80,23 +84,47 @@ export function HomeSessionsView(props: HomeSessionsViewProps) {
       aria-label={props.language.t("sidebar.project.recentSessions")}
     >
       <div class="sticky top-0 z-30 shrink-0 bg-v2-background-bg-base pb-3 pt-6 lg:pt-12" onWheel={props.onWheel}>
-        <HomeSessionSearch {...props} />
-        <Suspense>
-          <Show when={props.groups().length > 0 && props.canCreateSession()}>
-            <div class="pointer-events-none absolute right-0 top-[84px] z-20 flex lg:top-[108px]">
+        <div class="flex items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <HomeSessionSearch {...props} />
+          </div>
+          <Show when={props.viewMode && props.onSetViewMode}>
+            <div class="home-sessions-view-toggle shrink-0" role="group" aria-label={props.language.t("sidebar.project.recentSessions")}>
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                aria-label={props.language.t("settings.providers.view.grid")}
+                aria-pressed={props.viewMode!() === "grid"}
+                classList={{ "home-sessions-view-toggle-active": props.viewMode!() === "grid" }}
+                icon={<IconV2 name="grid" size="small" />}
+                onClick={() => props.onSetViewMode!("grid")}
+              />
+              <IconButtonV2
+                variant="ghost-muted"
+                size="small"
+                aria-label={props.language.t("settings.providers.view.list")}
+                aria-pressed={props.viewMode!() === "list"}
+                classList={{ "home-sessions-view-toggle-active": props.viewMode!() === "list" }}
+                icon={<IconV2 name="list" size="small" />}
+                onClick={() => props.onSetViewMode!("list")}
+              />
+            </div>
+          </Show>
+          <Suspense>
+            <Show when={props.canCreateSession()}>
               <ButtonV2
                 data-action="home-new-session"
-                variant="ghost-muted"
+                variant="neutral"
                 size="normal"
                 icon="edit"
-                class="pointer-events-auto h-7 px-2 [font-weight:530]"
+                class="shrink-0 h-9 px-3 [font-weight:530]"
                 onClick={props.onCreateSession}
               >
                 {props.language.t("command.session.new")}
               </ButtonV2>
-            </div>
-          </Show>
-        </Suspense>
+            </Show>
+          </Suspense>
+        </div>
       </div>
       <div class="pointer-events-none sticky top-[84px] z-40 h-0 -mr-3 lg:top-[108px]">
         <div
@@ -128,15 +156,29 @@ export function HomeSessionsView(props: HomeSessionsViewProps) {
                   <>
                     <HomeSessionGroupHeader
                       title={group.title}
+                      count={group.sessions.length}
                       titleOpacity={props.titleOpacity(group.id)}
                       onSetRef={(element) => props.onSetHeader(group.id, element)}
                       elevated={index() === 0}
                     />
-                    <div
-                      class={`flex min-w-0 flex-col gap-px pt-4 ${index() === props.groups().length - 1 ? "" : "mb-6"}`}
+                    <Show
+                      when={props.viewMode ? props.viewMode() === "grid" : true}
+                      fallback={
+                        <div
+                          class={`flex min-w-0 flex-col gap-1.5 pt-4 ${index() === props.groups().length - 1 ? "" : "mb-8"}`}
+                        >
+                          <For each={group.sessions}>{(record) => <HomeSessionRow {...props} record={record} />}</For>
+                        </div>
+                      }
                     >
-                      <For each={group.sessions}>{(record) => <HomeSessionRow {...props} record={record} />}</For>
-                    </div>
+                      <div
+                        class={`grid min-w-0 grid-cols-1 gap-3 pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${
+                          index() === props.groups().length - 1 ? "" : "mb-8"
+                        }`}
+                      >
+                        <For each={group.sessions}>{(record) => <HomeSessionCard {...props} record={record} />}</For>
+                      </div>
+                    </Show>
                   </>
                 )}
               </For>
@@ -153,21 +195,26 @@ function HomeSessionLeadingController(props: {
   isOpenTab: HomeSessionsViewProps["isOpenTab"]
   record: HomeSessionRecord
   revealProjectOnHover: boolean
+  render?: (state: { unread: Accessor<boolean>; loading: Accessor<boolean>; open: Accessor<boolean> }) => any
 }) {
   return (
     <HomeSessionStatusController
       server={props.server}
       record={props.record}
       isOpenTab={props.isOpenTab}
-      render={(state) => (
-        <HomeSessionLeading
-          record={props.record}
-          revealProjectOnHover={props.revealProjectOnHover}
-          open={state.open()}
-          unread={state.unread()}
-          loading={state.loading()}
-        />
-      )}
+      render={(state) =>
+        props.render ? (
+          props.render(state)
+        ) : (
+          <HomeSessionLeading
+            record={props.record}
+            revealProjectOnHover={props.revealProjectOnHover}
+            open={state.open()}
+            unread={state.unread()}
+            loading={state.loading()}
+          />
+        )
+      }
     />
   )
 }
@@ -395,6 +442,7 @@ function HomeSessionSearchResultRow(
 
 function HomeSessionGroupHeader(props: {
   title: string
+  count?: number
   titleOpacity: number
   onSetRef: (element: HTMLDivElement) => void
   elevated?: boolean
@@ -404,34 +452,173 @@ function HomeSessionGroupHeader(props: {
       ref={props.onSetRef}
       class={`
         pointer-events-none sticky top-[84px] flex h-7 min-w-0 items-center justify-between
-        bg-v2-background-bg-base pl-3 lg:top-[108px]
+        bg-v2-background-bg-base pl-3 pr-1 lg:top-[108px]
       `}
       classList={{ "home-session-group-header z-[5]": !!props.elevated, "z-10": !props.elevated }}
     >
-      <div class={HOME_SECTION_LABEL} style={{ opacity: props.titleOpacity }}>
-        {props.title}
+      <div class="flex items-center gap-2" style={{ opacity: props.titleOpacity }}>
+        <span class={HOME_SECTION_LABEL}>{props.title}</span>
+        <Show when={props.count !== undefined}>
+          <span class="rounded-full bg-v2-background-bg-layer-02 px-1.5 py-0.2 text-[10px] font-mono text-v2-text-text-muted">
+            {props.count}
+          </span>
+        </Show>
       </div>
     </div>
+  )
+}
+
+function HomeSessionCard(props: HomeSessionsViewProps & { record: HomeSessionRecord }) {
+  const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
+  const showProjectName = () => props.showProjectName() && props.record.projectName
+  const relativeTime = createMemo(() => {
+    const ts = props.record.session.time.updated ?? props.record.session.time.created
+    return getRelativeTime(new Date(ts).toISOString(), props.language.t)
+  })
+  const summary = () => props.record.session.summary
+  const modelName = () => props.record.session.model?.id
+
+  return (
+    <HomeSessionLeadingController
+      server={props.server}
+      isOpenTab={props.isOpenTab}
+      record={props.record}
+      revealProjectOnHover={false}
+      render={(state) => (
+        <div
+          data-component="home-session-card"
+          class={`
+            group/session relative flex flex-col justify-between rounded-[10px] border border-v2-border-border-muted
+            bg-v2-background-bg-base p-3.5 text-left transition-[background-color,border-color,box-shadow,transform]
+            duration-150 ease-out hover:border-v2-border-border-base hover:bg-v2-background-bg-layer-01/40 hover:shadow-[var(--v2-elevation-raised)]
+          `}
+          classList={{
+            "ring-1 ring-v2-icon-icon-accent/40": state.loading(),
+          }}
+        >
+          <button
+            type="button"
+            data-component="home-session-row"
+            class="flex flex-1 flex-col text-left focus-visible:outline-none"
+            onMouseDown={(event) => {
+              if (event.button === 1) event.preventDefault()
+            }}
+            onClick={(event) => props.onOpenSession(props.record.session, { background: isBackgroundOpen(event) })}
+            onAuxClick={(event) => {
+              if (!isBackgroundOpen(event)) return
+              event.preventDefault()
+              props.onOpenSession(props.record.session, { background: true })
+            }}
+          >
+            <div class="flex items-center justify-between gap-2 pb-2">
+              <div class="flex min-w-0 items-center gap-2">
+                <HomeSessionLeading
+                  record={props.record}
+                  revealProjectOnHover={false}
+                  open={state.open()}
+                  unread={state.unread()}
+                  loading={state.loading()}
+                />
+                <Show when={showProjectName()}>
+                  <span class="truncate text-[11px] font-medium text-v2-text-text-muted">
+                    {props.record.projectName}
+                  </span>
+                </Show>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <Show when={state.loading()}>
+                  <span class="inline-flex items-center gap-1 rounded bg-v2-icon-icon-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-v2-icon-icon-accent animate-pulse">
+                    <span class="size-1.5 rounded-full bg-v2-icon-icon-accent" />
+                    {props.language.t("batuta.panel.status.busy")}
+                  </span>
+                </Show>
+                <span class="text-[11px] text-v2-text-text-faint">{relativeTime()}</span>
+              </div>
+            </div>
+
+            <h3
+              class="line-clamp-2 min-w-0 text-[13px] font-[530] leading-snug tracking-[-0.04px] text-v2-text-text-base group-hover/session:text-v2-text-text-primary"
+              title={title()}
+            >
+              {title()}
+            </h3>
+
+            <div class="mt-3 flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-v2-text-text-muted">
+              <Show when={summary() && ((summary()?.files ?? 0) > 0 || (summary()?.additions ?? 0) > 0 || (summary()?.deletions ?? 0) > 0)}>
+                <div class="flex items-center gap-1 font-mono text-[10px]">
+                  <Show when={(summary()?.files ?? 0) > 0}>
+                    <span class="rounded bg-v2-background-bg-layer-02 px-1 text-v2-text-text-muted">
+                      {summary()!.files} {props.language.t("session.files.all")}
+                    </span>
+                  </Show>
+                  <Show when={(summary()?.additions ?? 0) > 0}>
+                    <span class="text-text-diff-add-base">+{summary()!.additions}</span>
+                  </Show>
+                  <Show when={(summary()?.deletions ?? 0) > 0}>
+                    <span class="text-text-diff-delete-base">-{summary()!.deletions}</span>
+                  </Show>
+                </div>
+              </Show>
+              <Show when={modelName()}>
+                <span class="max-w-[120px] truncate rounded bg-v2-background-bg-layer-02/60 px-1 text-[10px] text-v2-text-text-faint" title={modelName()}>
+                  {modelName()?.split("/").pop()}
+                </span>
+              </Show>
+            </div>
+          </button>
+
+          <Show when={SHOW_HOME_SESSION_ARCHIVE}>
+            <div
+              class={`
+                hover-reveal absolute right-2 top-2 flex items-center
+                group-hover/session:opacity-100 focus-within:opacity-100
+              `}
+            >
+              <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("common.archive")}>
+                <IconButtonV2
+                  data-action="home-session-archive"
+                  variant="ghost-muted"
+                  size="normal"
+                  icon={<IconV2 name="archive" size="small" />}
+                  aria-label={props.language.t("common.archive")}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    void props.onArchiveSession(props.record.session)
+                  }}
+                />
+              </TooltipV2>
+            </div>
+          </Show>
+        </div>
+      )}
+    />
   )
 }
 
 function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionRecord }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
   const showProjectName = () => props.showProjectName() && props.record.projectName
+  const relativeTime = createMemo(() => {
+    const ts = props.record.session.time.updated ?? props.record.session.time.created
+    return getRelativeTime(new Date(ts).toISOString(), props.language.t)
+  })
 
   return (
     <div
-      class="group/session relative flex h-10 min-w-0 items-center rounded-[6px]"
+      class={`
+        group/session relative flex h-11 min-w-0 items-center rounded-[8px] border border-transparent
+        transition-[background-color,border-color] duration-120 ease-in-out hover:border-v2-border-border-muted hover:bg-v2-overlay-simple-overlay-hover
+      `}
       classList={{ group: !!showProjectName() }}
     >
       <button
         type="button"
         data-component="home-session-row"
         class={`
-          flex h-10 min-w-0 w-full flex-1 shrink-0 cursor-default items-center gap-2 rounded-[6px] border-0
-          bg-transparent py-3 pl-3 pr-10 text-left text-v2-text-text-muted [font-weight:530]
-          transition-[background-color,color,box-shadow] duration-[120ms] ease-in-out
-          hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none
+          flex h-11 min-w-0 w-full flex-1 shrink-0 cursor-default items-center gap-3 rounded-[8px] border-0
+          bg-transparent py-2.5 pl-3 pr-12 text-left text-v2-text-text-muted [font-weight:530]
+          focus-visible:outline-none
         `}
         onMouseDown={(event) => {
           if (event.button === 1) event.preventDefault()
@@ -449,15 +636,18 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
           record={props.record}
           revealProjectOnHover={!!showProjectName()}
         />
-        <HomeSessionTitle title={title()} showProjectName={!!showProjectName()} />
-        <Show when={showProjectName()}>
-          <HomeSessionProjectName name={props.record.projectName} />
-        </Show>
+        <div class="flex min-w-0 flex-1 items-center gap-2">
+          <HomeSessionTitle title={title()} showProjectName={!!showProjectName()} />
+          <Show when={showProjectName()}>
+            <HomeSessionProjectName name={props.record.projectName} />
+          </Show>
+        </div>
+        <span class="shrink-0 text-[11px] text-v2-text-text-faint">{relativeTime()}</span>
       </button>
       <Show when={SHOW_HOME_SESSION_ARCHIVE}>
         <div
           class={`
-            hover-reveal absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
+            hover-reveal absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1
             group-hover/session:opacity-100 focus-within:opacity-100
           `}
         >
@@ -465,8 +655,8 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
             <IconButtonV2
               data-action="home-session-archive"
               variant="ghost-muted"
-              size="large"
-              icon={<IconV2 name="archive" />}
+              size="normal"
+              icon={<IconV2 name="archive" size="small" />}
               aria-label={props.language.t("common.archive")}
               onClick={(event) => {
                 event.preventDefault()

@@ -430,6 +430,8 @@ export interface UserQuotaDetails {
   tier: "pro" | "free" | "unknown"
   buckets: QuotaBucketInfo[]
   overallPercentage: number
+  healthStatus?: "healthy" | "cooldown" | "exhausted"
+  cooldownUntil?: number | null
 }
 
 export async function fetchUserQuotaDetails(
@@ -602,17 +604,31 @@ export async function fetchUserQuotaDetails(
             b?.modelId?.includes("3.8-flash"),
         ))
 
+    const overallPct = Math.round(avgFraction * 100)
+    const cooldownUntil = IntegrationRotation.getCooldownUntilByKey(credentialID)
+    let healthStatus: "healthy" | "cooldown" | "exhausted" = "healthy"
+    if (cooldownUntil && cooldownUntil > Date.now()) {
+      healthStatus = "cooldown"
+    } else if (overallPct <= 0) {
+      healthStatus = "exhausted"
+    }
+
     return {
       email: parsed.metadata?.email,
       tier: isPro ? "pro" : "free",
       buckets,
-      overallPercentage: Math.round(avgFraction * 100),
+      overallPercentage: overallPct,
+      healthStatus,
+      cooldownUntil: cooldownUntil ?? null,
     }
   } catch {
+    const cooldownUntil = IntegrationRotation.getCooldownUntilByKey(credentialID)
     return {
       tier: "free",
       buckets: [],
       overallPercentage: 100,
+      healthStatus: cooldownUntil && cooldownUntil > Date.now() ? "cooldown" : "healthy",
+      cooldownUntil: cooldownUntil ?? null,
     }
   }
 }

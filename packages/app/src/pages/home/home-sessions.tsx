@@ -13,6 +13,8 @@ export function HomeSessions(props: {
       language={props.sessions.copy.language}
       groups={props.sessions.data.groups}
       showProjectName={props.sessions.session.showProjectName}
+      viewMode={props.sessions.view.mode}
+      onSetViewMode={props.sessions.view.setMode}
       server={props.sessions.session.server}
       canCreateSession={props.sessions.session.canCreate}
       searchValue={props.search.query.value}
