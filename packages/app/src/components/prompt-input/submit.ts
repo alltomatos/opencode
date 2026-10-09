@@ -331,6 +331,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
 
   const seed = (dir: string, info: Session) => {
     serverSync().session.remember(info)
+    serverSync().indexSession(info)
+    serverSync().homeSessions?.apply({ type: "session.created", properties: { sessionID: info.id, info } })
     const [, setStore] = serverSync().child(dir)
     setStore("session", (list: Session[]) => {
       const result = Binary.search(list, info.id, (item) => item.id)
@@ -342,6 +344,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       next.splice(result.index, 0, info)
       return next
     })
+    setStore("sessionTotal", (count: number) => (count ?? 0) + 1)
   }
 
   let isSubmitting = false

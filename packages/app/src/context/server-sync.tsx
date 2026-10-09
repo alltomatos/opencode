@@ -540,6 +540,13 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     if (event.type === "session.created" || event.type === "session.updated" || event.type === "session.deleted") {
       homeSessions.apply(event)
     }
+    if (event.current?.type === "session.renamed") {
+      const info = session.get(event.current.data.sessionID)
+      if (info) {
+        indexSession(info)
+        homeSessions.apply({ type: "session.updated", properties: { sessionID: info.id, info } })
+      }
+    }
     homeSessions.refresh(event.type)
     if (eventType === "integration.connection.updated") void refreshProviders()
 
@@ -688,6 +695,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     updateConfig: updateConfigMutation.mutateAsync,
     project: projectApi,
     session,
+    indexSession,
     homeSessions,
     mcp: {
       toggle: async (directory: string, name: string) => {
