@@ -193,6 +193,9 @@ function getExtensionForMime(mime: string): string {
   if (mime.includes("png")) return ".png"
   if (mime.includes("webp")) return ".webp"
   if (mime.includes("pdf")) return ".pdf"
+  if (mime.includes("presentation") || mime.includes("powerpoint")) return ".pptx"
+  if (mime.includes("spreadsheet") || mime.includes("excel")) return ".xlsx"
+  if (mime.includes("wordprocessingml") || mime.includes("msword")) return ".docx"
   return ""
 }
 
@@ -420,7 +423,10 @@ const layer = Layer.effect(
 
         const msgAdapter = buildAdapter(channel, event.instanceId)
         const attachment = yield* extractMediaAttachment(msgAdapter, event.message, directory)
-        const text = event.message.text?.trim()
+        const raw = event.message.raw && typeof event.message.raw === "object" ? (event.message.raw as Record<string, unknown>) : undefined
+        const rawData = raw && typeof raw.data === "object" ? (raw.data as Record<string, unknown>) : undefined
+        const caption = typeof raw?.caption === "string" ? raw.caption : typeof rawData?.caption === "string" ? rawData.caption : undefined
+        const text = (event.message.text || caption || "").trim()
 
         if (!text && !attachment) continue
 
