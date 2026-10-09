@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.70",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Página Inicial de Sessões: Layout Amplo, Grade/Lista, Cards com Métricas e Live Working Status",
+              "description": "Expandido o aproveitamento da página de sessões para largura máxima fluida (max-w-7xl). Adicionado alternador entre visualização em Grade (Grid) e Lista (List) com persistência em localStorage. Implementados novos cards detalhados contendo resumo de diffs (+adições/-remoções), contagem de arquivos, modelo utilizado, carimbos relativos de tempo e indicador ativo em tempo real de agente trabalhando. Corrigida a indexação imediata de novas sessões no projeto e na tela inicial."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.69",
       "highlights": [
         {
