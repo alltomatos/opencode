@@ -20,6 +20,9 @@ import { Context, Effect, Layer, Schema } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
 import { type LanguageModelV3 } from "@ai-sdk/provider"
 import { McpCatalog } from "@/mcp/catalog"
+import { Global } from "@opencode-ai/core/global"
+import path from "node:path"
+import fs from "node:fs/promises"
 
 // Phase 1 of the AgentUI epic (#144) — CRUD only. No channel routing, RAG
 // retrieval, or guardrail enforcement yet (those are Phases 3-5); this just
@@ -82,7 +85,10 @@ const DRAFT_MODEL_CANDIDATES = [
   "agy/gemini-3.1-flash-lite",
 ]
 
+export const getAgentUiProjectDirectory = () => path.join(Global.Path.data, "projects", "agentui")
+
 export interface Interface {
+  readonly getProjectDirectory: () => Effect.Effect<string>
   readonly list: () => Effect.Effect<ConfigAgentUIV1.Agent[]>
   readonly get: (id: string) => Effect.Effect<ConfigAgentUIV1.Agent, AgentUINotFoundError>
   readonly add: (agent: ConfigAgentUIV1.Agent) => Effect.Effect<ConfigAgentUIV1.Agent>
@@ -195,6 +201,25 @@ const layer = Layer.effect(
     // — Config.Service.updateGlobal only invalidates its own global cache,
     // not the per-instance merged view Config.Service.get() reads.
     const overlay = new Map<string, ConfigAgentUIV1.Agent | undefined>()
+
+    const getProjectDirectory = Effect.fn("AgentUI.getProjectDirectory")(function* () {
+      const dir = getAgentUiProjectDirectory()
+      yield* Effect.tryPromise(async () => {
+        await fs.mkdir(dir, { recursive: true })
+        // Cria um arquivo README explicativo para o projeto AgentUI se não existir
+        const readmePath = path.join(dir, "README.md")
+        try {
+          await fs.access(readmePath)
+        } catch {
+          await fs.writeFile(
+            readmePath,
+            "# AgentUI Hub\n\nEste diretório centraliza e gerencia todas as sessões e dados de conversas automáticas recebidas via WhatsApp e Telegram do AgentUI.\n",
+            "utf-8",
+          )
+        }
+      }).pipe(Effect.ignore)
+      return dir
+    })
 
     const list = Effect.fn("AgentUI.list")(function* () {
       const cfg = yield* cfgSvc.get().pipe(
@@ -454,7 +479,8 @@ const layer = Layer.effect(
         return { reply, blocked: true }
       }
 
-      const ctx = yield* instanceStore.load({ directory: input.directory })
+      const targetDirectory = input.directory || (yield* getProjectDirectory())
+      const ctx = yield* instanceStore.load({ directory: targetDirectory })
       const sessionKey = `${input.id}:${input.chatKey}`
       const sessionID = yield* Effect.gen(function* () {
         const existing = channelSessions.get(sessionKey)
@@ -462,7 +488,7 @@ const layer = Layer.effect(
         const session = yield* sessions
           .create({
             title: `${agent.name}: ${input.chatKey}`,
-            directory: input.directory,
+            directory: targetDirectory,
             permission: sessionPermission(
               agent.mcpServers,
               agent.routinesEnabled,
@@ -627,6 +653,7 @@ const layer = Layer.effect(
     })
 
     return Service.of({
+      getProjectDirectory,
       list,
       get,
       add,
@@ -638,10 +665,10 @@ const layer = Layer.effect(
       resolveModel,
       testMessage,
       resetSandbox,
-      generateDraft,
       dispatchChannelMessage,
       logAudit,
       listAudit,
+      generateDraft,
     })
   }),
 )

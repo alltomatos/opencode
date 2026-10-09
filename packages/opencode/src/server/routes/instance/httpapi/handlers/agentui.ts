@@ -12,6 +12,11 @@ export const agentuiHandlers = HttpApiBuilder.group(InstanceHttpApi, "agentui", 
       return yield* agentui.list()
     })
 
+    const projectDirectory = Effect.fn("AgentUIHttpApi.projectDirectory")(function* () {
+      const dir = yield* agentui.getProjectDirectory()
+      return { directory: dir }
+    })
+
     const get = Effect.fn("AgentUIHttpApi.get")(function* (ctx: { params: { id: string } }) {
       return yield* agentui.get(ctx.params.id)
     })
@@ -51,6 +56,7 @@ export const agentuiHandlers = HttpApiBuilder.group(InstanceHttpApi, "agentui", 
 
     return handlers
       .handle("list", list)
+      .handle("projectDirectory", projectDirectory)
       .handle("get", get)
       .handle("add", add)
       .handle("remove", remove)

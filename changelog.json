@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.78",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI: Centralização de Sessões de WhatsApp e Telegram em Projeto Dedicado",
+              "description": "Implementado diretório e projeto centralizador exclusivo para o AgentUI (~/.opencode/projects/agentui). Todas as conversas automáticas e sessões recebidas via WhatsApp e Telegram agora são criadas e organizadas centralizadamente nesse projeto por padrão, evitando poluir repositórios de código com sessões de mensageria, com opção de selecionar um projeto customizado se desejado."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.77",
       "highlights": [
         {

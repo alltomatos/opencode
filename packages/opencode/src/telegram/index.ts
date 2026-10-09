@@ -1104,15 +1104,14 @@ const layer = Layer.effect(
     const agentBotFibers = new Map<string, Fiber.Fiber<never, never>>()
 
     function agentSource(agentID: string): Effect.Effect<PollSource | undefined> {
-      return agentUI.get(agentID).pipe(
-        Effect.map((agent): PollSource | undefined => {
-          if (!ConfigAgentUIV1.isEnabled(agent)) return undefined
-          const channel = agent.channels.find((c) => c.type === "telegram")
-          if (!channel?.token) return undefined
-          return { token: channel.token, directory: channel.directory || process.cwd(), pinnedAgent: agent }
-        }),
-        Effect.orElseSucceed(() => undefined),
-      )
+      return Effect.gen(function* () {
+        const agent = yield* agentUI.get(agentID)
+        if (!ConfigAgentUIV1.isEnabled(agent)) return undefined
+        const channel = agent.channels.find((c) => c.type === "telegram")
+        if (!channel?.token) return undefined
+        const directory = channel.directory || (yield* agentUI.getProjectDirectory())
+        return { token: channel.token, directory, pinnedAgent: agent }
+      }).pipe(Effect.orElseSucceed(() => undefined))
     }
 
     const reconcileAgentBots = Effect.gen(function* () {

@@ -10,6 +10,7 @@ import { described } from "./metadata"
 const root = "/agentui"
 
 export const ListResponse = Schema.Array(ConfigAgentUIV1.Agent)
+export const ProjectDirectoryResponse = Schema.Struct({ directory: Schema.String })
 export const RemoveResponse = Schema.Struct({ success: Schema.Literal(true) })
 // `projectDirectory`, not `directory` — WorkspaceRoutingQuery already has its
 // own `directory` query param (which instance handles the request); this one
@@ -38,6 +39,16 @@ export const AgentUIApi = HttpApi.make("agentui")
             identifier: "agentui.list",
             summary: "List AgentUI agents",
             description: "List all configured custom conversational agents.",
+          }),
+        ),
+        HttpApiEndpoint.get("projectDirectory", `${root}/projectDirectory`, {
+          query: WorkspaceRoutingQuery,
+          success: described(ProjectDirectoryResponse, "Default central project directory for AgentUI"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "agentui.projectDirectory",
+            summary: "Get central AgentUI project directory",
+            description: "Returns the dedicated directory for storing centralized AgentUI sessions.",
           }),
         ),
         HttpApiEndpoint.get("get", `${root}/:id`, {

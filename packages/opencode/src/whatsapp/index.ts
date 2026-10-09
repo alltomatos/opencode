@@ -394,7 +394,7 @@ const layer = Layer.effect(
         return yield* new WhatsAppInvalidWebhookError({ reason: "secret mismatch" })
       }
       if (!ConfigAgentUIV1.isEnabled(agent)) return { ok: true as const }
-      const directory = channel.directory || process.cwd()
+      const directory = channel.directory || (yield* agentUI.getProjectDirectory())
 
       const parseAdapter = buildAdapter(channel)
       const events = yield* Effect.try({

@@ -61,6 +61,7 @@ type AgentUIFormState = {
   whatsappAllowedGroups: string[]
   whatsappAllowedSenders: string
   whatsappPublicUrl?: string
+  whatsappDirectory?: string
   whatsappWebhookSecret: string
   mcpServers: string[]
   routinesEnabled: boolean
@@ -88,6 +89,7 @@ function emptyForm(): AgentUIFormState {
     whatsappAllowedGroups: [],
     whatsappAllowedSenders: "",
     whatsappPublicUrl: undefined,
+    whatsappDirectory: undefined,
     whatsappWebhookSecret: "",
     mcpServers: [],
     routinesEnabled: false,
@@ -171,6 +173,7 @@ export function AgentUIFormPage() {
       whatsappAllowedGroups: [...(agent.channels.find((c) => c.type === "whatsapp")?.allowedGroups ?? [])],
       whatsappAllowedSenders: (agent.channels.find((c) => c.type === "whatsapp")?.allowedSenders ?? []).join(", "),
       whatsappPublicUrl: (agent.channels.find((c) => c.type === "whatsapp") as any)?.publicUrl,
+      whatsappDirectory: agent.channels.find((c) => c.type === "whatsapp")?.directory,
       whatsappWebhookSecret: agent.channels.find((c) => c.type === "whatsapp")?.webhookSecret ?? "",
       mcpServers: agent.mcpServers ?? [],
       routinesEnabled: agent.routinesEnabled === true,
@@ -367,7 +370,7 @@ export function AgentUIFormPage() {
           webhookSecret: string
         }
     > = []
-    if (form.telegram) channels.push({ type: "telegram", token: ownBotToken || undefined, directory: directory() || undefined })
+    if (form.telegram) channels.push({ type: "telegram", token: ownBotToken || undefined, directory: form.whatsappDirectory || undefined })
     const whatsappWebhookSecret = form.whatsappWebhookSecret || crypto.randomUUID()
     if (form.whatsapp) {
       channels.push({
@@ -378,7 +381,7 @@ export function AgentUIFormPage() {
         allowedGroups: form.whatsappProvider === "izapia" ? form.whatsappAllowedGroups : undefined,
         allowedSenders: senders.length > 0 ? senders : undefined,
         publicUrl: publicTunnelUrl() ?? form.whatsappPublicUrl ?? undefined,
-        directory: directory() || undefined,
+        directory: form.whatsappDirectory || undefined,
         webhookSecret: whatsappWebhookSecret,
       })
     }
@@ -869,6 +872,29 @@ export function AgentUIFormPage() {
                             value={form.whatsappAllowedSenders}
                             onInput={(event) => setForm("whatsappAllowedSenders", event.currentTarget.value)}
                           />
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                          <label class="settings-v2-server-dialog-label font-medium">
+                            {language.t("settings.agentui.field.whatsapp.directory.label")}
+                          </label>
+                          <p class="text-11-regular text-v2-text-text-muted">
+                            {language.t("settings.agentui.field.whatsapp.directory.hint")}
+                          </p>
+                          <select
+                            class="h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2 text-13-regular text-v2-text-text-base"
+                            value={form.whatsappDirectory || ""}
+                            onChange={(event) => setForm("whatsappDirectory", event.currentTarget.value || undefined)}
+                          >
+                            <option value="">{language.t("settings.agentui.field.whatsapp.directory.default")}</option>
+                            <For each={home.project.list()}>
+                              {(proj) => (
+                                <option value={proj.worktree}>
+                                  {proj.name || proj.worktree}
+                                </option>
+                              )}
+                            </For>
+                          </select>
                         </div>
 
                         <p class="text-11-regular text-v2-text-text-muted leading-relaxed">{language.t("settings.agentui.field.whatsapp.hint")}</p>
