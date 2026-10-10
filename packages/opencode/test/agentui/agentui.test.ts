@@ -333,11 +333,22 @@ it.instance("sessionPermission() allows memory_save and memory_search tools when
 it.instance("sessionPermission() allows filesystem tools when filesystemEnabled is true", () =>
   Effect.gen(function* () {
     const svc = yield* AgentUI.Service
-    const ruleset = svc.sessionPermission([], false, false, false, true)
+    const ruleset = svc.sessionPermission([], false, false, false, true, false)
     for (const permission of ["read", "write", "edit", "glob", "grep", "external_directory"]) {
       const rule = ruleset.findLast((r) => Wildcard.match(permission, r.permission))
       expect(rule?.action).toBe("allow")
     }
+  }),
+)
+
+it.instance("sessionPermission() allows bash tool when terminalEnabled is true", () =>
+  Effect.gen(function* () {
+    const svc = yield* AgentUI.Service
+    const ruleset = svc.sessionPermission([], false, false, false, false, true)
+    const bashRule = ruleset.findLast((r) => Wildcard.match("bash", r.permission))
+    expect(bashRule?.action).toBe("allow")
+    const extDirRule = ruleset.findLast((r) => Wildcard.match("external_directory", r.permission))
+    expect(extDirRule?.action).toBe("allow")
   }),
 )
 

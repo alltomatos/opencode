@@ -502,6 +502,7 @@ const layer = Layer.effect(
               agent?.agendaEnabled,
               agent?.memoryEnabled,
               agent?.filesystemEnabled,
+              agent?.terminalEnabled,
             ),
           })
           .pipe(Effect.provideService(InstanceRef, ctx))

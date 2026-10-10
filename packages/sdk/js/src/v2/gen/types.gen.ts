@@ -2064,6 +2064,7 @@ export type AgentUiAgent = {
   agendaEnabled?: boolean
   memoryEnabled?: boolean
   filesystemEnabled?: boolean
+  terminalEnabled?: boolean
   enabled?: boolean
 }
 

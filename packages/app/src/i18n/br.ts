@@ -989,6 +989,8 @@ export const dict = {
   "settings.agentui.field.memory.hint": "Permitir que este agente salve decisões (memory_save) e resgate fatos (memory_search) sem sobrecarregar o histórico.",
   "settings.agentui.field.filesystem": "Acesso a Arquivos & Documentos",
   "settings.agentui.field.filesystem.hint": "Permitir que este agente leia, pesquise, crie e edite arquivos e documentos locais do projeto (read, write, edit, glob, grep).",
+  "settings.agentui.field.terminal": "Terminal / Comandos (Bash)",
+  "settings.agentui.field.terminal.hint": "Permitir que este agente execute comandos no terminal (bash) para rodar scripts, ferramentas e tarefas no sistema.",
   "sidebar.agenda": "Agenda",
   "command.agenda.open": "Abrir Agenda e Lembretes",
   "agenda.title": "Agenda & Lembretes",

@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.80",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI: Toggle de Acesso ao Terminal e Comandos (Bash)",
+              "description": "Adicionada opção configurável na aba Ferramentas do AgentUI para conceder permissão de execução de comandos no terminal (bash). Permite que os agentes executem scripts, comandos do sistema e automações de linha de comando sob demanda."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.79",
       "highlights": [
         {

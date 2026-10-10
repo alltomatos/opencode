@@ -1016,6 +1016,8 @@ export const dict = {
   "settings.agentui.field.memory.hint": "Allow this agent to save decisions (memory_save) and search facts (memory_search) without context bloating.",
   "settings.agentui.field.filesystem": "Files & Documents Access",
   "settings.agentui.field.filesystem.hint": "Allow this agent to read, search, create, and edit local files and documents in the project (read, write, edit, glob, grep).",
+  "settings.agentui.field.terminal": "Terminal / Commands (Bash)",
+  "settings.agentui.field.terminal.hint": "Allow this agent to execute terminal commands (bash) to run scripts, system tools, and automations.",
   "sidebar.agenda": "Agenda",
   "command.agenda.open": "Open Agenda and Reminders",
   "agenda.title": "Agenda & Reminders",

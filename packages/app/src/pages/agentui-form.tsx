@@ -68,6 +68,7 @@ type AgentUIFormState = {
   agendaEnabled: boolean
   memoryEnabled: boolean
   filesystemEnabled: boolean
+  terminalEnabled: boolean
   enabled: boolean
 }
 
@@ -97,6 +98,7 @@ function emptyForm(): AgentUIFormState {
     agendaEnabled: true,
     memoryEnabled: true,
     filesystemEnabled: false,
+    terminalEnabled: false,
     enabled: true,
   }
 }
@@ -182,6 +184,7 @@ export function AgentUIFormPage() {
       agendaEnabled: (agent as any).agendaEnabled ?? true,
       memoryEnabled: (agent as any).memoryEnabled ?? true,
       filesystemEnabled: (agent as any).filesystemEnabled === true,
+      terminalEnabled: (agent as any).terminalEnabled === true,
       enabled: agent.enabled !== false,
     })
   })
@@ -412,6 +415,7 @@ export function AgentUIFormPage() {
           agendaEnabled: form.agendaEnabled,
           memoryEnabled: form.memoryEnabled,
           filesystemEnabled: form.filesystemEnabled,
+          terminalEnabled: form.terminalEnabled,
           enabled: form.enabled,
         },
       })
@@ -1083,6 +1087,17 @@ export function AgentUIFormPage() {
                         <Switch
                           checked={form.filesystemEnabled}
                           onChange={(checked) => setForm("filesystemEnabled", checked)}
+                        />
+                      </div>
+
+                      <div class="flex items-center justify-between border-t border-v2-border-border-faint pt-3">
+                        <div>
+                          <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.terminal")}</label>
+                          <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.terminal.hint")}</p>
+                        </div>
+                        <Switch
+                          checked={form.terminalEnabled}
+                          onChange={(checked) => setForm("terminalEnabled", checked)}
                         />
                       </div>
                     </div>
