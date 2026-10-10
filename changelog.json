@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.79",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "AgentUI: Acesso a Arquivos e Documentos Locais (Filesystem)",
+              "description": "Adicionado suporte nativo e permissão configurável de acesso a arquivos e documentos no AgentUI. Quando ativado na aba Ferramentas, o agente ganha acesso às ferramentas de leitura, criação, edição e pesquisa de arquivos (read, write, edit, glob, grep), permitindo manipular documentos locais e projetos com isolamento por padrão."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.78",
       "highlights": [
         {

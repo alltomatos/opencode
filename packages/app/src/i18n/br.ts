@@ -987,6 +987,8 @@ export const dict = {
   "settings.agentui.field.agenda.hint": "Permitir que este agente crie e gerencie lembretes pontuais e compromissos durante a conversa.",
   "settings.agentui.field.memory": "Memória Contínua & Compactação",
   "settings.agentui.field.memory.hint": "Permitir que este agente salve decisões (memory_save) e resgate fatos (memory_search) sem sobrecarregar o histórico.",
+  "settings.agentui.field.filesystem": "Acesso a Arquivos & Documentos",
+  "settings.agentui.field.filesystem.hint": "Permitir que este agente leia, pesquise, crie e edite arquivos e documentos locais do projeto (read, write, edit, glob, grep).",
   "sidebar.agenda": "Agenda",
   "command.agenda.open": "Abrir Agenda e Lembretes",
   "agenda.title": "Agenda & Lembretes",

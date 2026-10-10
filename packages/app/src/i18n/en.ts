@@ -1014,6 +1014,8 @@ export const dict = {
   "settings.agentui.field.agenda.hint": "Allow this agent to create and manage one-off reminders and agenda items during conversations.",
   "settings.agentui.field.memory": "Continuous Memory & Compaction",
   "settings.agentui.field.memory.hint": "Allow this agent to save decisions (memory_save) and search facts (memory_search) without context bloating.",
+  "settings.agentui.field.filesystem": "Files & Documents Access",
+  "settings.agentui.field.filesystem.hint": "Allow this agent to read, search, create, and edit local files and documents in the project (read, write, edit, glob, grep).",
   "sidebar.agenda": "Agenda",
   "command.agenda.open": "Open Agenda and Reminders",
   "agenda.title": "Agenda & Reminders",

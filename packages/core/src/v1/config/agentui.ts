@@ -156,6 +156,10 @@ export const Agent = Schema.Struct({
   memoryEnabled: Schema.optional(Schema.Boolean).annotate({
     description: "Whether this agent has access to persistent memory tools. Absent/false means disabled.",
   }),
+  // Whether this agent is allowed to access and edit local files (read, write, edit, glob, grep)
+  filesystemEnabled: Schema.optional(Schema.Boolean).annotate({
+    description: "Whether this agent has access to read, write, edit, and search workspace files. Absent/false means disabled.",
+  }),
   // Absent/undefined means enabled — old configs saved before this field
   // existed must keep working exactly as before. Read via isEnabled()
   // below rather than this field directly.

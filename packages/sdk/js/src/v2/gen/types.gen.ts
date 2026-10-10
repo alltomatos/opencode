@@ -2063,6 +2063,7 @@ export type AgentUiAgent = {
   routinesEnabled?: boolean
   agendaEnabled?: boolean
   memoryEnabled?: boolean
+  filesystemEnabled?: boolean
   enabled?: boolean
 }
 

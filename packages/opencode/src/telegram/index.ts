@@ -496,7 +496,13 @@ const layer = Layer.effect(
           .create({
             title: `Telegram AgentUI: ${agentKey}`,
             directory,
-            permission: agentUI.sessionPermission(agent?.mcpServers),
+            permission: agentUI.sessionPermission(
+              agent?.mcpServers,
+              agent?.routinesEnabled,
+              agent?.agendaEnabled,
+              agent?.memoryEnabled,
+              agent?.filesystemEnabled,
+            ),
           })
           .pipe(Effect.provideService(InstanceRef, ctx))
         agentSessionsByChat.set(agentKey, session.id)

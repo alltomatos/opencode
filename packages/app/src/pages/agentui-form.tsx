@@ -67,6 +67,7 @@ type AgentUIFormState = {
   routinesEnabled: boolean
   agendaEnabled: boolean
   memoryEnabled: boolean
+  filesystemEnabled: boolean
   enabled: boolean
 }
 
@@ -95,6 +96,7 @@ function emptyForm(): AgentUIFormState {
     routinesEnabled: false,
     agendaEnabled: true,
     memoryEnabled: true,
+    filesystemEnabled: false,
     enabled: true,
   }
 }
@@ -179,6 +181,7 @@ export function AgentUIFormPage() {
       routinesEnabled: agent.routinesEnabled === true,
       agendaEnabled: (agent as any).agendaEnabled ?? true,
       memoryEnabled: (agent as any).memoryEnabled ?? true,
+      filesystemEnabled: (agent as any).filesystemEnabled === true,
       enabled: agent.enabled !== false,
     })
   })
@@ -408,6 +411,7 @@ export function AgentUIFormPage() {
           routinesEnabled: form.routinesEnabled,
           agendaEnabled: form.agendaEnabled,
           memoryEnabled: form.memoryEnabled,
+          filesystemEnabled: form.filesystemEnabled,
           enabled: form.enabled,
         },
       })
@@ -1068,6 +1072,17 @@ export function AgentUIFormPage() {
                         <Switch
                           checked={form.memoryEnabled}
                           onChange={(checked) => setForm("memoryEnabled", checked)}
+                        />
+                      </div>
+
+                      <div class="flex items-center justify-between border-t border-v2-border-border-faint pt-3">
+                        <div>
+                          <label class="settings-v2-server-dialog-label">{language.t("settings.agentui.field.filesystem")}</label>
+                          <p class="text-11-regular text-v2-text-text-faint">{language.t("settings.agentui.field.filesystem.hint")}</p>
+                        </div>
+                        <Switch
+                          checked={form.filesystemEnabled}
+                          onChange={(checked) => setForm("filesystemEnabled", checked)}
                         />
                       </div>
                     </div>

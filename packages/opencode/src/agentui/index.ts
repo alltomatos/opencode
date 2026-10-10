@@ -130,6 +130,7 @@ export interface Interface {
     routinesEnabled?: boolean,
     agendaEnabled?: boolean,
     memoryEnabled?: boolean,
+    filesystemEnabled?: boolean,
   ) => PermissionV1.Ruleset
   // Resolves an agent's `model` field ("providerID/modelID" or
   // "combo:<id>", same encoding ModelPickerV2 uses) to a concrete pair.
@@ -358,6 +359,7 @@ const layer = Layer.effect(
       routinesEnabled?: boolean,
       agendaEnabled?: boolean,
       memoryEnabled?: boolean,
+      filesystemEnabled?: boolean,
     ): PermissionV1.Ruleset => [
       // Wildcard deny-everything, not a per-category list: anything not
       // covered by an explicit rule below falls through to the *default*
@@ -394,6 +396,16 @@ const layer = Layer.effect(
         ? ([
             { permission: "memory_save", pattern: "*", action: "allow" },
             { permission: "memory_search", pattern: "*", action: "allow" },
+          ] as PermissionV1.Rule[])
+        : []),
+      ...(filesystemEnabled
+        ? ([
+            { permission: "read", pattern: "*", action: "allow" },
+            { permission: "write", pattern: "*", action: "allow" },
+            { permission: "edit", pattern: "*", action: "allow" },
+            { permission: "glob", pattern: "*", action: "allow" },
+            { permission: "grep", pattern: "*", action: "allow" },
+            { permission: "external_directory", pattern: "*", action: "allow" },
           ] as PermissionV1.Rule[])
         : []),
     ]
@@ -494,6 +506,7 @@ const layer = Layer.effect(
               agent.routinesEnabled,
               agent.agendaEnabled,
               agent.memoryEnabled,
+              agent.filesystemEnabled,
             ),
           })
           .pipe(Effect.provideService(InstanceRef, ctx))

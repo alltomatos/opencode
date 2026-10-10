@@ -1,6 +1,6 @@
 {
   "name": "@opencode-ai/app",
-  "version": "1.21.78",
+  "version": "1.21.79",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
