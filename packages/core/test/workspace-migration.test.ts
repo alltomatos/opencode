@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test"
-import { Effect } from "effect"
+import { Effect, Scope } from "effect"
 import { Database } from "@opencode-ai/core/database/database"
 import { WorkspaceMigration } from "@opencode-ai/core/database/workspace-migration"
 import { sql } from "drizzle-orm"
+import path from "path"
+import fs from "fs/promises"
 
 describe("WorkspaceMigration", () => {
   it("migrates sessions, messages and parts cleanly from legacy source to target workspace database", async () => {
@@ -86,22 +88,25 @@ describe("WorkspaceMigration", () => {
     await Effect.runPromise(program)
   })
 
-  it("workspaceDatabaseLayer initializes isolated workspace schema and allows reading/writing", async () => {
+  it("workspaceDatabaseLayer initializes project.db schema on disk", async () => {
     const testHash = `wrk_test_${Date.now()}`
-    const program = Effect.gen(function* () {
-      const { db } = yield* Database.Service
-      // O schema Drizzle já deve ter sido aplicado automaticamente via migrations
-      const tables = yield* db.all<{ name: string }>(
-        sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('session', 'message', 'part')`
-      )
-      expect(tables.length).toBe(3)
-    }).pipe(Effect.provide(WorkspaceMigration.workspaceDatabaseLayer(testHash)))
+    const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(testHash)
+    const dbDir = path.dirname(dbPath)
+
+    const program = Effect.scoped(
+      Effect.gen(function* () {
+        const { db } = yield* Database.Service
+        // Confirma que as migrações aplicaram as tabelas essenciais no arquivo project.db
+        const tables = yield* db.all<{ name: string }>(
+          sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('session', 'message', 'part')`
+        )
+        expect(tables.length).toBe(3)
+      }).pipe(Effect.provide(WorkspaceMigration.workspaceDatabaseLayer(testHash))),
+    )
 
     await Effect.runPromise(program)
 
-    // Limpeza de arquivo de teste
-    const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(testHash)
-    const fs = await import("fs/promises")
-    await fs.rm(dbPath.substring(0, dbPath.lastIndexOf("\\")), { recursive: true, force: true }).catch(() => {})
+    // Limpeza portátil independente de sistema operacional (path.dirname)
+    await fs.rm(dbDir, { recursive: true, force: true }).catch(() => {})
   })
 })

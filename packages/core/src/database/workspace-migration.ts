@@ -35,14 +35,14 @@ export const ensureWorkspaceDatabaseDir = Effect.fn("WorkspaceMigration.ensureDi
 })
 
 /**
- * Cria ou inicializa uma instância de Database particionada por workspace,
- * garantindo diretório, aplicação do schema Drizzle e PRAGMAs.
+ * Cria ou inicializa uma camada de Database apontando para o arquivo project.db
+ * particionado por workspace, garantindo criação prévia do diretório e aplicação
+ * das migrações existentes.
  */
 export function workspaceDatabaseLayer(workspaceHash: string) {
-  const dbPath = getWorkspaceDatabasePath(workspaceHash)
   return Layer.unwrap(
     Effect.gen(function* () {
-      yield* ensureWorkspaceDatabaseDir(workspaceHash)
+      const dbPath = yield* ensureWorkspaceDatabaseDir(workspaceHash)
       return Database.layerFromPath(dbPath)
     }),
   )
