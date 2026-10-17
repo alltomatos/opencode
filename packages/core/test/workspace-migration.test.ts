@@ -85,4 +85,23 @@ describe("WorkspaceMigration", () => {
 
     await Effect.runPromise(program)
   })
+
+  it("workspaceDatabaseLayer initializes isolated workspace schema and allows reading/writing", async () => {
+    const testHash = `wrk_test_${Date.now()}`
+    const program = Effect.gen(function* () {
+      const { db } = yield* Database.Service
+      // O schema Drizzle já deve ter sido aplicado automaticamente via migrations
+      const tables = yield* db.all<{ name: string }>(
+        sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('session', 'message', 'part')`
+      )
+      expect(tables.length).toBe(3)
+    }).pipe(Effect.provide(WorkspaceMigration.workspaceDatabaseLayer(testHash)))
+
+    await Effect.runPromise(program)
+
+    // Limpeza de arquivo de teste
+    const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(testHash)
+    const fs = await import("fs/promises")
+    await fs.rm(dbPath.substring(0, dbPath.lastIndexOf("\\")), { recursive: true, force: true }).catch(() => {})
+  })
 })

@@ -1,11 +1,13 @@
 export * as WorkspaceMigration from "./workspace-migration"
 
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import { inArray, sql } from "drizzle-orm"
 import path from "path"
 import fs from "fs/promises"
 import { Global } from "../global"
 import type { EffectDrizzleSqlite } from "@opencode-ai/effect-drizzle-sqlite"
+
+import { Database } from "./database"
 
 export interface MigrationSummary {
   readonly sessionsMigrated: number
@@ -31,6 +33,20 @@ export const ensureWorkspaceDatabaseDir = Effect.fn("WorkspaceMigration.ensureDi
   yield* Effect.promise(() => fs.mkdir(path.dirname(dbPath), { recursive: true }))
   return dbPath
 })
+
+/**
+ * Cria ou inicializa uma instância de Database particionada por workspace,
+ * garantindo diretório, aplicação do schema Drizzle e PRAGMAs.
+ */
+export function workspaceDatabaseLayer(workspaceHash: string) {
+  const dbPath = getWorkspaceDatabasePath(workspaceHash)
+  return Layer.unwrap(
+    Effect.gen(function* () {
+      yield* ensureWorkspaceDatabaseDir(workspaceHash)
+      return Database.layerFromPath(dbPath)
+    }),
+  )
+}
 
 /**
  * Migra com segurança e sem perda de dados o histórico de um workspace específico
