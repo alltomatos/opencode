@@ -27,7 +27,8 @@ GitHub (`alltomatos/opencode`, branch default `dev`) é a fonte persistente de r
 | [**[E17] Otimização de Performance e Latência de UI/Navegação**](https://github.com/alltomatos/opencode/issues/228) | Otimização de queries SQLite, transição de timeline sem render stall, favicon glob e desoneração do boot desktop | done | [#228](https://github.com/alltomatos/opencode/issues/228) |
 | [**[E18] Multi-Account OAuth e Resiliência de Provedores**](https://github.com/alltomatos/opencode/issues/248) | Suporte multi-conta para Google Antigravity, Kiro AI e Kilo Code, com rotação em 429 e resiliência | in_progress | [#248](https://github.com/alltomatos/opencode/issues/248) |
 | [**[E19] Paridade Total de Plataforma Web com o Desktop**](https://github.com/alltomatos/opencode/issues/261) | Paridade funcional de UI/UX, persistência IndexedDB, navegação de FS virtual e desacoplamento do Electron | done | [#261](https://github.com/alltomatos/opencode/issues/261) |
-| [**[E20] Arquitetura de Persistência Híbrida e Particionada por Workspace**](https://github.com/alltomatos/opencode/issues/268) | Desacoplamento de stream para JSONL, particionamento de SQLite por workspace e pruning de eventos | done | [#268](https://github.com/alltomatos/opencode/issues/268) |
+| [**[E20] Higienização de Eventos Transientes, Tombstones e Memória**](https://github.com/alltomatos/opencode/issues/268) | Desacoplamento de streaming cumulativo para tombstones leves, preservação de seq e memória unificada | done | [#268](https://github.com/alltomatos/opencode/issues/268) |
+| [**[E21] Particionamento SQLite por Workspace e Rollout de PRAGMAs**](https://github.com/alltomatos/opencode/issues/279) | Particionamento do banco em global.db vs project.db via LocationServiceMap e rollout assistido de PRAGMAs | todo | [#279](https://github.com/alltomatos/opencode/issues/279) |
 
 ---
 
@@ -79,7 +80,8 @@ GitHub (`alltomatos/opencode`, branch default `dev`) é a fonte persistente de r
 - **Epics vinculadas:**
   - [**[E16] Rotinas Agendadas Cross-Platform**](https://github.com/alltomatos/opencode/issues/213) (`in_progress`)
   - [**[E17] Otimização de Performance e Latência de UI/Navegação**](https://github.com/alltomatos/opencode/issues/228) (`done`)
-  - [**[E20] Arquitetura de Persistência Híbrida e Particionada por Workspace**](https://github.com/alltomatos/opencode/issues/268) (`done`)
+  - [**[E20] Higienização de Eventos Transientes, Tombstones e Memória**](https://github.com/alltomatos/opencode/issues/268) (`done`)
+  - [**[E21] Particionamento SQLite por Workspace e Rollout de PRAGMAs**](https://github.com/alltomatos/opencode/issues/279) (`todo`)
 - **Estado:** `in_progress`
 
 ### M7: Full Web Parity & Universal Access

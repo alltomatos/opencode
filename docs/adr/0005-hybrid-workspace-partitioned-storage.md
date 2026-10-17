@@ -17,7 +17,7 @@ Adotar uma **arquitetura híbrida e particionada de armazenamento**, dividida em
 
 ### 1. Separação de Responsabilidades: Relacional vs. Streaming Event Log
 - **Projeções Relacionais (SQLite):** Tabelas que exigem buscas, ordenação, relacionamentos e foreign keys (`session`, `message`, `part`, `todo`, `permission`, `schedule`) permanecem gerenciadas no SQLite via Drizzle ORM.
-- **Log de Eventos Transitórios / Transcrições (JSONL no Sistema de Arquivos):** Eventos de streaming em tempo real (`message.updated.1`, deltas de chunks LLM e histórico de auditoria bruta) são desacoplados do banco relacional principal e persistidos como arquivos lineares `~/.local/share/opencode/workspaces/<workspace_hash>/transcripts/<session_id>.jsonl` via append atômico (`fs.appendFile`).
+- **Log de Eventos Transitórios / Transcrições (JSONL no Sistema de Arquivos):** *(Superseded pela Revisão pós-implementação §6)* Originalmente previsto como JSONL append-only; na fase *Contract*, o destino JSONL foi descontinuado e substituído pela gravação de tombstones leves no SQLite (`data = {}`), pois as tabelas relacionais de projeção já preservam o texto consolidado com 100% de integridade.
 
 ### 2. Particionamento de Banco por Workspace
 - **Banco Global (`global.db`):** Armazena estritamente entidades globais do usuário e de autenticação (`account`, `control_account`, `credential` e o catálogo de índices de `project`). O banco global permanece perene com tamanho inferior a 2 MB.
@@ -51,7 +51,7 @@ Após a avaliação arquitetural dos slices implementados, foi identificada uma 
 
 ### Positivas
 - **Latência Zero na UI:** Consultas para renderizar sessões, mensagens consolidadas e listas de projetos respondem em < 15ms, independentemente da duração ou tamanho do histórico.
-- **I/O O(1) no Streaming de Tokens:** O streaming do LLM escreve diretamente no arquivo JSONL da sessão sem acionar transações ou concorrer com leitura da interface.
+- **I/O O(1) e Zero Inchaço em Streaming:** A substituição de snapshots cumulativos pesados por tombstones leves (`data = {}`) elimina a gravação de centenas de megabytes no SQLite, enquanto o texto consolidado é gravado uma única vez nas projeções relacionais.
 - **Isolamento de Domínio:** Corrupção de dados ou sessões gigantescas em um workspace não afetam workspaces vizinhos.
 - **Diminuição Drástica do Tamanho em Disco:** O banco relacional por projeto se estabiliza em poucas dezenas de megabytes.
 
