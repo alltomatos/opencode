@@ -6,7 +6,6 @@ import type { Data, Definition, Payload } from "@opencode-ai/schema/event"
 import { and, asc, eq, gt, inArray } from "drizzle-orm"
 import { Database } from "./database/database"
 import { EventSequenceTable, EventTable } from "./event/sql"
-import { TranscriptLog } from "./event/transcript-log"
 import { Location } from "./location"
 import { makeGlobalNode } from "./effect/app-node"
 import { isDeepStrictEqual } from "node:util"
@@ -358,26 +357,13 @@ export const layerWith = (options?: LayerOptions) =>
                       { behavior: "immediate" },
                     )
                     .pipe(Effect.orDie)
-                  if (committed) {
-                    if (committed.isTransient) {
-                      yield* TranscriptLog.append({
-                        id: event.id,
-                        aggregateID: committed.aggregateID,
-                        seq: committed.seq,
-                        type: versionedType(definition.type, durable.version),
-                        data: committed.encoded,
-                      }).pipe(
-                        Effect.catchCause((cause) =>
-                          Effect.logWarning("failed to append to TranscriptLog", cause),
-                        ),
+                    if (committed) {
+                      yield* Effect.forEach(
+                        pubsub.durable.get(committed.aggregateID) ?? [],
+                        (wake) => PubSub.publish(wake, undefined),
+                        { discard: true },
                       )
                     }
-                    yield* Effect.forEach(
-                      pubsub.durable.get(committed.aggregateID) ?? [],
-                      (wake) => PubSub.publish(wake, undefined),
-                      { discard: true },
-                    )
-                  }
                   return committed
                 }),
               )
