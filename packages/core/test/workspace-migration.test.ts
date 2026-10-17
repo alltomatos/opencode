@@ -41,6 +41,7 @@ describe("WorkspaceMigration", () => {
       expect(summary.sessionsMigrated).toBe(1)
       expect(summary.messagesMigrated).toBe(1)
       expect(summary.partsMigrated).toBe(1)
+      expect(summary.locationsIndexed).toBe(1)
     }).pipe(Effect.provide(Database.layerFromPath(":memory:")))
 
     await Effect.runPromise(program)
@@ -83,6 +84,7 @@ describe("WorkspaceMigration", () => {
       expect(summary.sessionsMigrated).toBe(3)
       expect(summary.messagesMigrated).toBe(6)
       expect(summary.partsMigrated).toBe(12)
+      expect(summary.locationsIndexed).toBe(3)
     }).pipe(Effect.provide(Database.layerFromPath(":memory:")))
 
     await Effect.runPromise(program)

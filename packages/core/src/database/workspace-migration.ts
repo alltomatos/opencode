@@ -14,6 +14,8 @@ export interface MigrationSummary {
   readonly sessionsMigrated: number
   readonly messagesMigrated: number
   readonly partsMigrated: number
+  readonly eventsMigrated: number
+  readonly locationsIndexed: number
 }
 
 /**
@@ -95,6 +97,8 @@ export const migrateWorkspaceHistory = Effect.fn("WorkspaceMigration.migrate")(f
       sessionsMigrated: 0,
       messagesMigrated: 0,
       partsMigrated: 0,
+      eventsMigrated: 0,
+      locationsIndexed: 0,
     } satisfies MigrationSummary
   }
 
@@ -131,7 +135,29 @@ export const migrateWorkspaceHistory = Effect.fn("WorkspaceMigration.migrate")(f
     parts.push(...rows)
   }
 
-  // 4. Executar toda a gravação em uma transação atômica no banco destino
+  // 4. Buscar todos os eventos e sequências das sessões em lotes (Query 4 & 5)
+  type EventRow = { id: string; aggregate_id: string; seq: number; type: string; data: string }
+  type EventSequenceRow = { aggregate_id: string; seq: number; owner_id: string | null }
+  const events: EventRow[] = []
+  const sequences: EventSequenceRow[] = []
+
+  for (const chunk of chunks) {
+    const evRows = yield* sourceDb
+      .all<EventRow>(
+        sql`SELECT id, aggregate_id, seq, type, data FROM event WHERE ${inArray(sql`aggregate_id`, chunk)} ORDER BY seq ASC`
+      )
+      .pipe(Effect.orDie)
+    events.push(...evRows)
+
+    const seqRows = yield* sourceDb
+      .all<EventSequenceRow>(
+        sql`SELECT aggregate_id, seq, owner_id FROM event_sequence WHERE ${inArray(sql`aggregate_id`, chunk)}`
+      )
+      .pipe(Effect.orDie)
+    sequences.push(...seqRows)
+  }
+
+  // 5. Executar toda a gravação em uma transação atômica no banco destino
   yield* targetDb.transaction(() =>
     Effect.gen(function* () {
       for (const s of sessions) {
@@ -157,12 +183,46 @@ export const migrateWorkspaceHistory = Effect.fn("WorkspaceMigration.migrate")(f
               ON CONFLICT(id) DO UPDATE SET data = ${p.data}, time_updated = ${p.time_updated}`
         )
       }
+
+      for (const seq of sequences) {
+        yield* targetDb.run(
+          sql`INSERT INTO event_sequence (aggregate_id, seq, owner_id)
+              VALUES (${seq.aggregate_id}, ${seq.seq}, ${seq.owner_id})
+              ON CONFLICT(aggregate_id) DO UPDATE SET seq = ${seq.seq}, owner_id = ${seq.owner_id}`
+        )
+      }
+
+      for (const ev of events) {
+        yield* targetDb.run(
+          sql`INSERT INTO event (id, aggregate_id, seq, type, data)
+              VALUES (${ev.id}, ${ev.aggregate_id}, ${ev.seq}, ${ev.type}, ${ev.data})
+              ON CONFLICT(id) DO UPDATE SET data = ${ev.data}`
+        )
+      }
     }),
   ).pipe(Effect.orDie)
+
+  // 6. Preencher o índice session_location no banco de origem (que contém o schema global)
+  let locationsIndexed = 0
+  for (const s of sessions) {
+    const hash = directoryToWorkspaceHash(s.directory)
+    yield* sourceDb.run(
+      sql`INSERT INTO session_location (session_id, directory, workspace_id, workspace_hash, time_created, time_updated)
+          VALUES (${s.id}, ${s.directory}, ${s.workspace_id}, ${hash}, ${s.time_created}, ${s.time_updated})
+          ON CONFLICT(session_id) DO UPDATE SET
+            directory = ${s.directory},
+            workspace_id = ${s.workspace_id},
+            workspace_hash = ${hash},
+            time_updated = ${s.time_updated}`
+    ).pipe(Effect.orDie)
+    locationsIndexed++
+  }
 
   return {
     sessionsMigrated: sessions.length,
     messagesMigrated: messages.length,
     partsMigrated: parts.length,
+    eventsMigrated: events.length,
+    locationsIndexed,
   } satisfies MigrationSummary
 })

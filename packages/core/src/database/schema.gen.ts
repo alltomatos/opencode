@@ -290,6 +290,19 @@ export default {
         `CREATE INDEX \`session_directory_time_created_id_idx\` ON \`session\` (\`directory\`,\`time_created\`,\`id\`);`,
       )
       yield* tx.run(`CREATE INDEX \`todo_session_idx\` ON \`todo\` (\`session_id\`);`)
+      yield* tx.run(`
+        CREATE TABLE IF NOT EXISTS \`session_location\` (
+          \`session_id\` text PRIMARY KEY,
+          \`directory\` text NOT NULL,
+          \`workspace_id\` text,
+          \`workspace_hash\` text NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`CREATE INDEX IF NOT EXISTS \`session_location_directory_idx\` ON \`session_location\` (\`directory\`);`)
+      yield* tx.run(`CREATE INDEX IF NOT EXISTS \`session_location_workspace_id_idx\` ON \`session_location\` (\`workspace_id\`);`)
+      yield* tx.run(`CREATE INDEX IF NOT EXISTS \`session_location_workspace_hash_idx\` ON \`session_location\` (\`workspace_hash\`);`)
     })
   },
 } satisfies Omit<DatabaseMigration.Migration, "id">

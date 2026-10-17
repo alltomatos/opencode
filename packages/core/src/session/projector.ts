@@ -13,6 +13,8 @@ import { SessionMessageUpdater } from "./message-updater"
 import { SessionInput } from "./input"
 import { WorkspaceV2 } from "../workspace"
 import { MessageTable, PartTable, SessionInputTable, SessionMessageTable, SessionTable } from "./sql"
+import { SessionLocationTable } from "./location.sql"
+import { WorkspaceMigration } from "../database/workspace-migration"
 import type { DeepMutable } from "../schema"
 
 type DatabaseService = Database.Interface["db"]
@@ -221,6 +223,30 @@ const layer = Layer.effectDiscard(
           .get()
           .pipe(Effect.orDie)
         if (!stored) return yield* Effect.die(new SessionAlreadyProjected())
+
+        // Atualizar índice global session_location
+        yield* db
+          .insert(SessionLocationTable)
+          .values({
+            session_id: event.data.info.id,
+            directory: event.data.info.directory,
+            workspace_id: event.data.info.workspaceID,
+            workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+            time_created: event.data.info.time.created,
+            time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+          })
+          .onConflictDoUpdate({
+            target: SessionLocationTable.session_id,
+            set: {
+              directory: event.data.info.directory,
+              workspace_id: event.data.info.workspaceID,
+              workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+              time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+            },
+          })
+          .run()
+          .pipe(Effect.orDie)
+
         if (event.data.info.workspaceID) {
           yield* db
             .update(WorkspaceTable)
@@ -252,10 +278,25 @@ const layer = Layer.effectDiscard(
           .where(eq(SessionTable.id, event.data.sessionID))
           .run()
           .pipe(Effect.orDie)
+
+        yield* db
+          .update(SessionLocationTable)
+          .set({
+            directory: event.data.location.directory,
+            workspace_id: event.data.location.workspaceID ? WorkspaceV2.ID.make(event.data.location.workspaceID) : null,
+            workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.location.directory),
+            time_updated: DateTime.toEpochMillis(event.data.timestamp),
+          })
+          .where(eq(SessionLocationTable.session_id, event.data.sessionID))
+          .run()
+          .pipe(Effect.orDie)
       }),
     )
     yield* events.project(SessionV1.Event.Deleted, (event) =>
-      db.delete(SessionTable).where(eq(SessionTable.id, event.data.sessionID)).run().pipe(Effect.orDie),
+      Effect.gen(function* () {
+        yield* db.delete(SessionTable).where(eq(SessionTable.id, event.data.sessionID)).run().pipe(Effect.orDie)
+        yield* db.delete(SessionLocationTable).where(eq(SessionLocationTable.session_id, event.data.sessionID)).run().pipe(Effect.orDie)
+      }),
     )
     yield* events.project(SessionV1.Event.MessageUpdated, (event) =>
       Effect.gen(function* () {
