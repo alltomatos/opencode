@@ -9,9 +9,14 @@ Durante a implementação e auditoria técnica do E21 (Issue #279 / #280), levan
 
 ## Decisões de Arquitetura
 
-### 1. Resolução do Hash do Workspace
-- O `workspaceHash` é derivado de forma determinística e canônica a partir do diretório do projeto (`Location.Ref.directory`), utilizando a normalização de slug/hash já adotada no sistema (`projectKey`).
+### 1. Resolução do Hash do Workspace e Migração de Namespace
+- O `workspaceHash` **NÃO utiliza mais `projectKey`** (que continha colisões graves com `/a/b` vs `/a_b` e truncamento `slice(-80)` em monorepos/worktrees).
+- O hash é derivado de forma criptograficamente determinística e imune a colisões:
+  ```ts
+  sha256(path.resolve(directory).toLowerCase()).slice(0, 16)
+  ```
 - Workspaces em diretórios distintos recebem bases físicas de dados totalmente isoladas em `~/.local/share/opencode/workspaces/<hash>/project.db`.
+- **Migração da Namespace de Memória:** O helper de memória (`workspaceMemoryDir`) adota o mesmo hash SHA256(16). É fornecido fallback transparente: se existir pasta com o hash legado do `projectKey`, o conteúdo é renomeado/migrado transparentemente para o novo hash SHA256 no primeiro acesso.
 
 ### 2. Separação Estrita de Schemas Drizzle
 - **Banco Global (`global.db`):** Gerencia entidades de nível de processo, usuário e autenticação:
@@ -20,7 +25,7 @@ Durante a implementação e auditoria técnica do E21 (Issue #279 / #280), levan
   - `project`, `project_directory`
   - `workspace`
   - `schedule`
-  - `session_location` (Índice global de localização)
+  - `session_location` (Índice global de localização com índices em `session_id`, `directory` e `workspace_id`, com colunas `time_created` e `time_updated`)
 - **Banco de Workspace (`project.db`):** Gerencia entidades de sessão, execução e histórico local:
   - `session`
   - `message`, `part`
@@ -29,15 +34,19 @@ Durante a implementação e auditoria técnica do E21 (Issue #279 / #280), levan
   - `permission`
   - `event`, `event_sequence` (Event Log Durável particionado)
 - **Desacoplamento de Foreign Key:** A chave estrangeira `session.project_id -> project.id` deixa de ser uma restrição em nível de banco SQLite (cross-database FK não suportada) e passa a ser garantida em nível de aplicação/código no `ProjectV2.ID`.
+- **Fanout de Exclusão:** Como a FK física foi removida, a exclusão de um `project` no `global.db` executa um fanout seguro via aplicação, consultando `session_location` e excluindo/desvinculando as sessões correspondentes no respectivo `project.db`.
 
-### 3. Índice Global `session_location`
-- O `global.db` mantém a tabela leve `session_location` (`session_id TEXT PRIMARY KEY`, `directory TEXT NOT NULL`, `workspace_id TEXT`):
-  - Preenchida e atualizada no momento de criação ou migração de qualquer sessão.
-  - Permite que o middleware `SessionLocationMiddleware` descubra em $O(1)$ o diretório exato e workspace de qualquer `session_id` sem necessidade de abrir ou varrer múltiplos bancos no sistema de arquivos.
+### 3. Atomicidade Transacional do Índice Global via SQLite ATTACH
+- Como a gravação da projeção da sessão reside no `project.db` e o índice reside no `global.db`, gravações desconectadas criariam risco de sessão órfã (404 no `SessionLocationMiddleware` em caso de crash entre os writes).
+- **Mecanismo de Atomicidade:** A conexão do `project.db` executa `ATTACH DATABASE '<globalDbPath>' AS global_db;`.
+- A inserção/atualização da sessão no `project.db` e a inserção/atualização do índice em `global_db.session_location` são encapsuladas rigorosamente dentro da **mesma transação SQLite**, garantindo atomicidade ACID cross-database nativa.
 
-### 4. Particionamento do Event Log Durável
+### 4. Particionamento do Event Log Durável e Extensão do Migrate
 - As tabelas `event` e `event_sequence` residem diretamente em cada `project.db`.
-- Como os eventos duráveis são delimitados pelo aggregate `sessionID`, o crescimento de sessões em um workspace nunca satura a tabela de eventos de outro workspace.
+- O utilitário `WorkspaceMigration.migrateWorkspaceHistory` é formalmente estendido para migrar:
+  1. `session`, `message`, `part`;
+  2. `event`, `event_sequence` (preservando rigorosamente a contiguidade do `seq`);
+  3. Preenchimento transacional do índice `session_location` no `global.db`.
 
 ## Consequências
 
