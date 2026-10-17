@@ -29,6 +29,23 @@ Adotar uma **arquitetura híbrida e particionada de armazenamento**, dividida em
   - Elevar `PRAGMA page_size = 16384;` nas novas bases para mitigar overflow pages de grandes payloads.
   - Habilitar `PRAGMA auto_vacuum = INCREMENTAL;` para permitir reclaim contínuo de espaço em disco sem lock exclusivo prolongado.
 
+### Revisão pós-implementação (slices #269-#272): Política de Persistência Transiente
+
+Após a avaliação arquitetural dos slices implementados, foi identificada uma inconsistência de integridade: o desvio de `message.updated.1` para JSONL manteve o avanço do ledger de sequência (`EventSequenceTable`) sem gravar a linha correspondente no `EventTable`, criando **lacunas no event log durável**. Isso quebrava o `replay` idempotente (morte por `Replay diverged`), o `sync history` e o barramento de sync de control-plane.
+
+**Decisão revisada (desenho definitivo):**
+
+1. **Política declarativa, não literal no motor.** A decisão de persistir um evento em JSONL deixa de ser o literal hardcoded `"message.updated.1"` no motor genérico de eventos (`event.ts`) e passa a ser uma propriedade do `definition` (ex.: `durable.transient = true`). O motor de eventos permanece agnóstico de domínio.
+2. **Tombstone de continuidade.** Eventos transientes gravam uma linha leve (`id`, `aggregate_id`, `seq`, `type`, `data = NULL`) no `EventTable`, preservando a contiguidade da sequência. O custo é desprezível: o inchaço original vinha do tamanho dos blobs de `data`, não da contagem de linhas.
+3. **Replay idempotente por presença.** Para tipos transientes, a existência do tombstone em `(aggregate_id, seq)` significa "já aplicado" → no-op. Elimina a morte por divergência.
+4. **Leitura ignora transientes.** `readAfter`/`readAggregate` pulam linhas transientes (data `NULL`); esses eventos nunca foram consumidos pelo caminho local.
+5. **Transientes fora do barramento de sync.** Por serem derivados e V1-only, não são emitidos no GlobalBus de sync.
+6. **Append robusto.** A escrita do JSONL ocorre fora da transação SQLite e falhas são registradas como `WARN` (fim do `Effect.ignore` que descartava o evento silenciosamente).
+
+**Sem read-through / reconstrução a partir de JSONL.** Como `message.updated` (V1) está em rota de aposentadoria e o sync é local-only, não se constrói caminho de leitura retroativa: seria código morto para um evento em extinção. Quando o V1 for removido, o tipo transiente é eliminado por completo (fase *Contract*).
+
+**Descopado:** particionamento dos transcripts por `workspace_hash`. `session_id` já é globalmente único; particionar o transcript é otimização de housekeeping, não requisito de correção, e fica como melhoria futura.
+
 ## Consequências
 
 ### Positivas
