@@ -4,6 +4,7 @@ import { Effect, Layer } from "effect"
 import { inArray, sql } from "drizzle-orm"
 import path from "path"
 import fs from "fs/promises"
+import { createHash } from "crypto"
 import { Global } from "../global"
 import type { EffectDrizzleSqlite } from "@opencode-ai/effect-drizzle-sqlite"
 
@@ -13,6 +14,15 @@ export interface MigrationSummary {
   readonly sessionsMigrated: number
   readonly messagesMigrated: number
   readonly partsMigrated: number
+}
+
+/**
+ * Calcula o hash determinístico e livre de colisões a partir do caminho absoluto do diretório.
+ * Utiliza SHA-256 normalizado em minúsculas (16 primeiros caracteres hex).
+ */
+export function directoryToWorkspaceHash(directory: string): string {
+  const normalized = path.resolve(directory).toLowerCase()
+  return createHash("sha256").update(normalized).digest("hex").slice(0, 16)
 }
 
 /**

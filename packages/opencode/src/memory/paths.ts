@@ -1,4 +1,5 @@
 import { Global } from "@opencode-ai/core/global"
+import { WorkspaceMigration } from "@opencode-ai/core/database/workspace-migration"
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 
@@ -15,8 +16,13 @@ export function globalDir() {
 }
 
 export function workspaceMemoryDir(directory: string) {
-  const hash = projectKey(directory)
+  const hash = WorkspaceMigration.directoryToWorkspaceHash(directory)
   return path.join(Global.Path.data, "workspaces", hash, "memory")
+}
+
+export function legacyWorkspaceMemoryDir(directory: string) {
+  const legacyHash = projectKey(directory)
+  return path.join(Global.Path.data, "workspaces", legacyHash, "memory")
 }
 
 export function legacyProjectDir(directory: string) {
@@ -52,17 +58,20 @@ export async function readRecentMemoryFiles(dir: string, count: number) {
 }
 
 /**
- * Lê arquivos de memória combinando o diretório de workspace unificado e o diretório legado,
- * garantindo Zero Data Loss para memórias já existentes.
+ * Lê arquivos de memória combinando o diretório de workspace unificado SHA-256,
+ * o diretório legado de transição (projectKey sob workspaces/) e o legado original,
+ * garantindo Zero Data Loss e imunidade contra colisão de caminhos.
  */
 export async function readRecentProjectMemoryFiles(directory: string, count: number) {
   const primaryDir = workspaceMemoryDir(directory)
+  const legacyHashDir = legacyWorkspaceMemoryDir(directory)
   const legacyDir = legacyProjectDir(directory)
 
-  const [primaryContent, legacyContent] = await Promise.all([
+  const [primaryContent, legacyHashContent, legacyContent] = await Promise.all([
     readRecentMemoryFiles(primaryDir, count),
+    readRecentMemoryFiles(legacyHashDir, count),
     readRecentMemoryFiles(legacyDir, count),
   ])
 
-  return [legacyContent, primaryContent].filter(Boolean).join("\n")
+  return [legacyContent, legacyHashContent, primaryContent].filter(Boolean).join("\n")
 }

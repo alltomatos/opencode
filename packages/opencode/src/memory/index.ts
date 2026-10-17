@@ -21,6 +21,7 @@ import {
   todayFile,
   globalDir,
   workspaceMemoryDir,
+  legacyWorkspaceMemoryDir,
   legacyProjectDir,
   projectDir,
   processedSessionsFile,
@@ -506,6 +507,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       yield* Effect.tryPromise({
         try: async () => {
           await rm(workspaceMemoryDir(directory), { recursive: true, force: true }).catch(() => undefined)
+          await rm(legacyWorkspaceMemoryDir(directory), { recursive: true, force: true }).catch(() => undefined)
           await rm(legacyProjectDir(directory), { recursive: true, force: true }).catch(() => undefined)
         },
         catch: () => undefined,
@@ -513,17 +515,19 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
     })
 
     const hasProjectMemory = Effect.fn("Memory.hasProjectMemory")(function* (directory: string) {
-      const [primaryEntries, legacyEntries] = yield* Effect.tryPromise({
+      const [primaryEntries, legacyHashEntries, legacyEntries] = yield* Effect.tryPromise({
         try: () =>
           Promise.all([
             readdir(workspaceMemoryDir(directory)).catch(() => [] as string[]),
+            readdir(legacyWorkspaceMemoryDir(directory)).catch(() => [] as string[]),
             readdir(legacyProjectDir(directory)).catch(() => [] as string[]),
           ]),
-        catch: () => [[], []] as [string[], string[]],
-      }).pipe(Effect.orElseSucceed(() => [[], []] as [string[], string[]]))
+        catch: () => [[], [], []] as [string[], string[], string[]],
+      }).pipe(Effect.orElseSucceed(() => [[], [], []] as [string[], string[], string[]]))
 
       return (
         primaryEntries.some((entry) => entry.endsWith(".md")) ||
+        legacyHashEntries.some((entry) => entry.endsWith(".md")) ||
         legacyEntries.some((entry) => entry.endsWith(".md"))
       )
     })
