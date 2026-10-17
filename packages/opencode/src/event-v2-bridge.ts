@@ -7,6 +7,7 @@ import { EventV2 } from "@opencode-ai/core/event"
 import { Location } from "@opencode-ai/core/location"
 import { Project } from "@opencode-ai/core/project"
 import { AbsolutePath } from "@opencode-ai/core/schema"
+import { Durable } from "@opencode-ai/schema/durable-event-manifest"
 import { Context, Effect, Layer } from "effect"
 
 export class Service extends Context.Service<Service, EventV2.Interface>()("@opencode/EventV2Bridge") {}
@@ -43,6 +44,8 @@ const layer = Layer.effect(
           payload: { id: event.id, type: event.type, properties: event.data },
         })
         if (event.durable === undefined) return
+        const isTransient = Boolean(Durable.get(event.type)?.durable?.transient)
+        if (isTransient) return
         GlobalBus.emit("event", {
           directory: event.location?.directory ?? ctx?.directory,
           project: ctx?.project.id,

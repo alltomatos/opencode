@@ -20,6 +20,7 @@ export type Definition<
   readonly durable?: {
     readonly version: number
     readonly aggregate: string
+    readonly transient?: boolean
   }
   readonly data: DataSchema
 }
@@ -47,6 +48,7 @@ export function define<
   readonly durable?: {
     readonly version: number
     readonly aggregate: string
+    readonly transient?: boolean
   }
   readonly schema: Fields
 }) {

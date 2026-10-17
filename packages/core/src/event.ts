@@ -90,18 +90,20 @@ export const readAggregate = Effect.fn("EventV2.readAggregate")(function* <A>(
     .pipe(Effect.orDie)
   const page = rows.slice(0, input.limit)
   const decode = Schema.decodeUnknownSync(input.manifest.schema)
-  const events = page.map((event) =>
-    decode({
-      id: event.id,
-      type: input.manifest.definitions.get(event.type)?.type ?? event.type,
-      durable: {
-        aggregateID: event.aggregate_id,
-        seq: event.seq,
-        version: input.manifest.definitions.get(event.type)?.durable?.version,
-      },
-      data: event.data,
-    }),
-  )
+  const events = page
+    .filter((event) => event.data && Object.keys(event.data).length > 0)
+    .map((event) =>
+      decode({
+        id: event.id,
+        type: input.manifest.definitions.get(event.type)?.type ?? event.type,
+        durable: {
+          aggregateID: event.aggregate_id,
+          seq: event.seq,
+          version: input.manifest.definitions.get(event.type)?.durable?.version,
+        },
+        data: event.data,
+      }),
+    )
   return {
     events,
     hasMore: rows.length > input.limit,
@@ -267,11 +269,14 @@ export const layerWith = (options?: LayerOptions) =>
                               .where(and(eq(EventTable.aggregate_id, aggregateID), eq(EventTable.seq, input.seq)))
                               .get()
                               .pipe(Effect.orDie)
-                            if (
-                              stored?.id === event.id &&
-                              stored.type === versionedType(definition.type, durable.version) &&
-                              isDeepStrictEqual(stored.data, encoded)
-                            ) {
+                            const isTransient = Boolean(durable.transient)
+                            const match = isTransient
+                              ? stored?.id === event.id &&
+                                stored.type === versionedType(definition.type, durable.version)
+                              : stored?.id === event.id &&
+                                stored.type === versionedType(definition.type, durable.version) &&
+                                isDeepStrictEqual(stored.data, encoded)
+                            if (match) {
                               if (input.ownerID && row?.ownerID == null) {
                                 yield* db
                                   .update(EventSequenceTable)
@@ -334,37 +339,39 @@ export const layerWith = (options?: LayerOptions) =>
                             })
                             .run()
                             .pipe(Effect.orDie)
-                          const isTransientStreaming =
-                            versionedType(definition.type, durable.version) === "message.updated.1"
-                          if (isTransientStreaming) {
-                            yield* TranscriptLog.append({
-                              id: event.id,
-                              aggregateID,
-                              seq,
-                              type: versionedType(definition.type, durable.version),
-                              data: encoded,
-                            }).pipe(Effect.ignore)
-                          } else {
-                            yield* db
-                              .insert(EventTable)
-                              .values([
-                                {
-                                  id: event.id,
-                                  aggregate_id: aggregateID,
-                                  seq,
-                                  type: versionedType(definition.type, durable.version),
-                                  data: encoded,
-                                },
-                              ])
-                              .run()
-                              .pipe(Effect.orDie)
-                          }
-                          return { aggregateID, seq }
+                          const isTransient = Boolean(durable.transient)
+                          yield* db
+                            .insert(EventTable)
+                            .values([
+                              {
+                                id: event.id,
+                                aggregate_id: aggregateID,
+                                seq,
+                                type: versionedType(definition.type, durable.version),
+                                data: isTransient ? {} : encoded,
+                              },
+                            ])
+                            .run()
+                            .pipe(Effect.orDie)
+                          return { aggregateID, seq, isTransient, encoded }
                         }),
                       { behavior: "immediate" },
                     )
                     .pipe(Effect.orDie)
                   if (committed) {
+                    if (committed.isTransient) {
+                      yield* TranscriptLog.append({
+                        id: event.id,
+                        aggregateID: committed.aggregateID,
+                        seq: committed.seq,
+                        type: versionedType(definition.type, durable.version),
+                        data: committed.encoded,
+                      }).pipe(
+                        Effect.catchCause((cause) =>
+                          Effect.logWarning("failed to append to TranscriptLog", cause),
+                        ),
+                      )
+                    }
                     yield* Effect.forEach(
                       pubsub.durable.get(committed.aggregateID) ?? [],
                       (wake) => PubSub.publish(wake, undefined),
@@ -563,15 +570,17 @@ export const layerWith = (options?: LayerOptions) =>
           ),
           Effect.orDie,
           Effect.map((rows) =>
-            rows.map((event) =>
-              decodeSerializedEvent({
-                id: event.id,
-                aggregateID: event.aggregate_id,
-                seq: event.seq,
-                type: event.type,
-                data: event.data,
-              }),
-            ),
+            rows
+              .filter((event) => event.data && Object.keys(event.data).length > 0)
+              .map((event) =>
+                decodeSerializedEvent({
+                  id: event.id,
+                  aggregateID: event.aggregate_id,
+                  seq: event.seq,
+                  type: event.type,
+                  data: event.data,
+                }),
+              ),
           ),
         )
 
