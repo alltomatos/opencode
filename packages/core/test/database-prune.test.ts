@@ -67,11 +67,20 @@ describe("DatabasePrune", () => {
         expect(report.deletedEvents).toBe(3)
 
         // Verificar que eventos estruturais (ex: session.created.1) NÃO foram tocados
-        const remainingEvents = yield* db.all<{ id: string; type: string }>(
-          sql`SELECT \`id\`, \`type\` FROM \`event\` WHERE \`aggregate_id\` = 'sess_1'`
+        // e que os eventos transitórios permanecem como tombstones leves com seq contínuo (R1)
+        const remainingEvents = yield* db.all<{ id: string; seq: number; type: string; data: string }>(
+          sql`SELECT \`id\`, \`seq\`, \`type\`, \`data\` FROM \`event\` WHERE \`aggregate_id\` = 'sess_1' ORDER BY \`seq\` ASC`
         )
-        expect(remainingEvents.length).toBe(1)
+        expect(remainingEvents.length).toBe(4)
+        expect(remainingEvents.map((e) => e.seq)).toEqual([1, 2, 3, 4])
         expect(remainingEvents[0].type).toBe("session.created.1")
+        expect(remainingEvents[1].data).toBe("{}")
+        expect(remainingEvents[2].data).toBe("{}")
+        expect(remainingEvents[3].data).toBe("{}")
+
+        // Executar prune novamente não deve alterar nada (idempotente)
+        const secondReport = yield* DatabasePrune.prune(db, { vacuum: false })
+        expect(secondReport.deletedEvents).toBe(0)
 
         // Verificar que as tabelas de sessão, mensagem e partes continuam 100% INTACTAS
         const sessions = yield* db.all<{ id: string }>(sql`SELECT \`id\` FROM \`session\` WHERE \`id\` = 'sess_1'`)
