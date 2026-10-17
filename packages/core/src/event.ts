@@ -91,7 +91,7 @@ export const readAggregate = Effect.fn("EventV2.readAggregate")(function* <A>(
   const page = rows.slice(0, input.limit)
   const decode = Schema.decodeUnknownSync(input.manifest.schema)
   const events = page
-    .filter((event) => event.data && Object.keys(event.data).length > 0)
+    .filter((event) => !input.manifest.definitions.get(event.type)?.durable?.transient)
     .map((event) =>
       decode({
         id: event.id,
@@ -571,7 +571,7 @@ export const layerWith = (options?: LayerOptions) =>
           Effect.orDie,
           Effect.map((rows) =>
             rows
-              .filter((event) => event.data && Object.keys(event.data).length > 0)
+              .filter((event) => !Durable.get(event.type)?.durable?.transient)
               .map((event) =>
                 decodeSerializedEvent({
                   id: event.id,

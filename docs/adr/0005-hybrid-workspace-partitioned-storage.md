@@ -36,11 +36,12 @@ Após a avaliação arquitetural dos slices implementados, foi identificada uma 
 **Decisão revisada (desenho definitivo):**
 
 1. **Política declarativa, não literal no motor.** A decisão de persistir um evento em JSONL deixa de ser o literal hardcoded `"message.updated.1"` no motor genérico de eventos (`event.ts`) e passa a ser uma propriedade do `definition` (ex.: `durable.transient = true`). O motor de eventos permanece agnóstico de domínio.
-2. **Tombstone de continuidade.** Eventos transientes gravam uma linha leve (`id`, `aggregate_id`, `seq`, `type`, `data = NULL`) no `EventTable`, preservando a contiguidade da sequência. O custo é desprezível: o inchaço original vinha do tamanho dos blobs de `data`, não da contagem de linhas.
+2. **Tombstone de continuidade.** Eventos transientes gravam uma linha leve (`id`, `aggregate_id`, `seq`, `type`, `data = {}`) no `EventTable`, preservando a contiguidade da sequência e em conformidade com o schema Drizzle (`data: text({ mode: 'json' }).notNull()`). O custo é desprezível: o inchaço original vinha do tamanho dos blobs de `data`, não da contagem de linhas.
 3. **Replay idempotente por presença.** Para tipos transientes, a existência do tombstone em `(aggregate_id, seq)` significa "já aplicado" → no-op. Elimina a morte por divergência.
-4. **Leitura ignora transientes.** `readAfter`/`readAggregate` pulam linhas transientes (data `NULL`); esses eventos nunca foram consumidos pelo caminho local.
+4. **Leitura ignora transientes.** `readAfter`/`readAggregate` pulam linhas transientes inspecionando formalmente a flag `transient` do manifesto/definição; esses eventos nunca foram consumidos pelo caminho local.
 5. **Transientes fora do barramento de sync.** Por serem derivados e V1-only, não são emitidos no GlobalBus de sync.
 6. **Append robusto.** A escrita do JSONL ocorre fora da transação SQLite e falhas são registradas como `WARN` (fim do `Effect.ignore` que descartava o evento silenciosamente).
+7. **Pruning sem quebra de tombstone.** O comando `db prune` converte eventos legados de `message.updated.1` com payload cheio em tombstones leves (`UPDATE event SET data = '{}' WHERE length(data) > 2`), sem executar `DELETE`. Dessa forma, o prune elimina os gigabytes de inchaço sem quebrar o sequenciamento `seq` nem o replay idempotente.
 
 **Sem read-through / reconstrução a partir de JSONL.** Como `message.updated` (V1) está em rota de aposentadoria e o sync é local-only, não se constrói caminho de leitura retroativa: seria código morto para um evento em extinção. Quando o V1 for removido, o tipo transiente é eliminado por completo (fase *Contract*).
 
