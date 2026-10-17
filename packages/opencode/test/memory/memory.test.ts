@@ -153,3 +153,27 @@ it.instance("loadProject() and loadGlobal() return separate contents", () =>
     yield* memory.forgetProject(directory)
   }),
 )
+
+it.instance("preserves backward compatibility with legacy project memory dir", () =>
+  Effect.gen(function* () {
+    const memory = yield* Memory.Service
+    const directory = "/tmp/legacy-migration-test"
+
+    // Simular arquivo gravado na pasta legada antes da migração
+    const legacyDir = Memory.legacyProjectDir(directory)
+    const file = path.join(legacyDir, "2026-01-01.md")
+    yield* Effect.promise(async () => {
+      const { mkdir, writeFile } = await import("node:fs/promises")
+      await mkdir(legacyDir, { recursive: true })
+      await writeFile(file, "## 2026-01-01\n\nMemória antiga preservada sem perda de dados.\n\n", "utf8")
+    })
+
+    // hasProjectMemory e loadProject devem reconhecer o conteúdo legado imediatamente
+    expect(yield* memory.hasProjectMemory(directory)).toBe(true)
+    const { content } = yield* memory.loadProject(directory)
+    expect(content).toContain("Memória antiga preservada sem perda de dados.")
+
+    yield* memory.forgetProject(directory)
+    expect(yield* memory.hasProjectMemory(directory)).toBe(false)
+  }),
+)
