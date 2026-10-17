@@ -3,7 +3,6 @@ import { LocationServiceMap } from "@opencode-ai/core/location-services"
 import { Location } from "@opencode-ai/core/location"
 import { AbsolutePath } from "@opencode-ai/core/schema"
 import { SessionV2 } from "@opencode-ai/core/session"
-import { SessionTable } from "@opencode-ai/core/session/sql"
 import { SessionLocationTable } from "@opencode-ai/core/session/location.sql"
 import { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { eq } from "drizzle-orm"
@@ -40,20 +39,13 @@ export const sessionLocationLayer = Layer.effect(
               }),
           ),
         )
-        // 1. Tenta resolver O(1) pelo índice global session_location
-        const locationIndex = yield* db
+        // 1. Resolução estrita O(1) pelo índice global session_location
+        const resolved = yield* db
           .select({ directory: SessionLocationTable.directory, workspaceID: SessionLocationTable.workspace_id })
           .from(SessionLocationTable)
           .where(eq(SessionLocationTable.session_id, sessionID))
           .get()
           .pipe(Effect.orDie)
-
-        const resolved = locationIndex ?? (yield* db
-          .select({ directory: SessionTable.directory, workspaceID: SessionTable.workspace_id })
-          .from(SessionTable)
-          .where(eq(SessionTable.id, sessionID))
-          .get()
-          .pipe(Effect.orDie))
 
         if (!resolved)
           return yield* new SessionNotFoundError({
