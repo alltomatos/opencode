@@ -15,8 +15,24 @@ import { createAntigravityFetch, getLiveToken } from "../provider/antigravity-ad
 import { TranscriptLog } from "@opencode-ai/core/event/transcript-log"
 import { Context, Duration, Effect, Layer, Schedule, Schema, Cause } from "effect"
 import { jsonSchema, streamText, tool } from "ai"
-import { mkdir, readFile, readdir, rm, writeFile, stat } from "node:fs/promises"
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
+import {
+  projectKey,
+  todayFile,
+  globalDir,
+  workspaceMemoryDir,
+  legacyProjectDir,
+  projectDir,
+  processedSessionsFile,
+  syncStateFile,
+  appendMemoryEntry,
+  readRecentMemoryFiles,
+  readRecentProjectMemoryFiles,
+} from "./paths"
+import { buildTranscript, extractHeuristicSummary } from "./transcript"
+
+export { workspaceMemoryDir, legacyProjectDir }
 
 // Extracted from the `breniac` branch's memory feature (commit 96c044467c and
 // follow-ups), which was Breniac-voice-exclusive — this makes the same
@@ -64,71 +80,6 @@ const DEFAULT_MODEL_CANDIDATES = [
   "agentrouter/glm-5.3",
   "kc/anthropic/claude-haiku-4.5",
 ]
-
-function projectKey(directory: string) {
-  return directory.replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+/g, "_").slice(-80) || "root"
-}
-
-function todayFile() {
-  return `${new Date().toISOString().slice(0, 10)}.md`
-}
-
-async function appendMemoryEntry(file: string, entry: string) {
-  await mkdir(path.dirname(file), { recursive: true })
-  const existing = await readFile(file, "utf8").catch(() => "")
-  await writeFile(file, existing + entry, "utf8")
-}
-
-async function readRecentMemoryFiles(dir: string, count: number) {
-  const entries = await readdir(dir).catch(() => [] as string[])
-  const files = entries
-    .filter((entry) => entry.endsWith(".md"))
-    .sort()
-    .slice(-count)
-  const contents = await Promise.all(files.map((file) => readFile(path.join(dir, file), "utf8").catch(() => "")))
-  return contents.filter(Boolean).join("\n")
-}
-
-/**
- * Lê arquivos de memória combinando o diretório de workspace unificado e o diretório legado,
- * garantindo Zero Data Loss para memórias já existentes.
- */
-async function readRecentProjectMemoryFiles(directory: string, count: number) {
-  const primaryDir = workspaceMemoryDir(directory)
-  const legacyDir = legacyProjectDir(directory)
-
-  const [primaryContent, legacyContent] = await Promise.all([
-    readRecentMemoryFiles(primaryDir, count),
-    readRecentMemoryFiles(legacyDir, count),
-  ])
-
-  return [legacyContent, primaryContent].filter(Boolean).join("\n")
-}
-
-function globalDir() {
-  return path.join(Global.Path.data, "memory", "global")
-}
-
-export function workspaceMemoryDir(directory: string) {
-  const hash = projectKey(directory)
-  return path.join(Global.Path.data, "workspaces", hash, "memory")
-}
-
-export function legacyProjectDir(directory: string) {
-  return path.join(Global.Path.data, "memory", "projects", projectKey(directory))
-}
-
-function projectDir(directory: string) {
-  return workspaceMemoryDir(directory)
-}
-
-function processedSessionsFile() {
-  return path.join(Global.Path.data, "memory", "processed_sessions.json")
-}
-
-function syncStateFile() {
-  return path.join(Global.Path.data, "memory", "sync_state.json")
-}
 
 type SyncState = {
   lastSyncAt?: string
@@ -240,41 +191,6 @@ export type BackfillResult = {
   purgedSessions?: number
   projectsCount: number
   errors: string[]
-}
-
-function buildTranscript(messages: SessionV1.WithParts[]): string {
-  const lines: string[] = []
-  for (const msg of messages) {
-    const role = msg.info.role === "user" ? "Usuário" : "Assistente"
-    const textParts: string[] = []
-    for (const part of msg.parts) {
-      if ("text" in part && typeof part.text === "string" && part.text.trim()) {
-        textParts.push(part.text.trim())
-      } else if (part.type === "tool" && "tool" in part) {
-        textParts.push(`[Chamou ferramenta: ${part.tool}]`)
-      } else if (part.type === "patch" && "file" in part) {
-        textParts.push(`[Alterou arquivo: ${part.file}]`)
-      }
-    }
-    if (textParts.length > 0) {
-      lines.push(`${role}: ${textParts.join("\n")}`)
-    }
-  }
-  return lines.join("\n\n")
-}
-
-function extractHeuristicSummary(transcript: string): string {
-  const lines = transcript.split("\n").map((l) => l.trim()).filter(Boolean)
-  const keyPoints: string[] = []
-  for (const line of lines) {
-    if (line.startsWith("Usuário:") || line.startsWith("User:")) {
-      const clean = line.replace(/^(Usuário|User):\s*/, "").slice(0, 200)
-      if (clean.length > 5) keyPoints.push(`- **Pedido/Discussão**: ${clean}`)
-    } else if (line.startsWith("[Alterou arquivo:")) {
-      keyPoints.push(`- **Alteração**: ${line}`)
-    }
-  }
-  return keyPoints.slice(0, 8).join("\n") || "- Registro automático da sessão."
 }
 
 export interface Interface {
@@ -641,30 +557,14 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
         processedSessions++
         if (s.directory) projects.add(s.directory)
 
-        // Tentar obter a transcrição prioritariamente a partir do TranscriptLog do disco
-        let transcript = ""
-        const diskLines = yield* TranscriptLog.readLines(s.id).pipe(Effect.orElseSucceed(() => []))
-        if (diskLines.length > 0) {
-          transcript = diskLines
-            .map((line) => {
-              if (typeof line.data === "object" && line.data !== null && "text" in (line.data as any)) {
-                return String((line.data as any).text)
-              }
-              return JSON.stringify(line.data)
-            })
-            .join("\n")
+        // Obter a transcrição fiel das mensagens e partes consolidadas
+        const msgs = yield* sessions.messages({ sessionID: s.id as any }).pipe(Effect.orElseSucceed(() => []))
+        if (msgs.length === 0) {
+          processedIDs.add(s.id)
+          continue
         }
 
-        // Fallback para o banco relacional de mensagens se não houver transcript no disco
-        if (transcript.length < 50) {
-          const msgs = yield* sessions.messages({ sessionID: s.id as any }).pipe(Effect.orElseSucceed(() => []))
-          if (msgs.length === 0) {
-            processedIDs.add(s.id)
-            continue
-          }
-          transcript = buildTranscript(msgs)
-        }
-
+        const transcript = buildTranscript(msgs)
         if (transcript.length < 50) {
           processedIDs.add(s.id)
           continue

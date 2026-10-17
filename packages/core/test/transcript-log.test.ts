@@ -37,4 +37,23 @@ describe("TranscriptLog", () => {
     const filePath = TranscriptLog.getTranscriptPath(aggregateID)
     await fs.unlink(filePath).catch(() => {})
   })
+
+  it("skips corrupted lines cleanly without failing the entire transcript read", async () => {
+    const aggregateID = `test_corrupt_${Date.now()}`
+    const filePath = TranscriptLog.getTranscriptPath(aggregateID)
+    await fs.mkdir(filePath.substring(0, filePath.lastIndexOf("\\")), { recursive: true })
+
+    const validLine1 = JSON.stringify({ id: "1", aggregateID, seq: 1, type: "t", data: "ok1" })
+    const corruptedLine = '{"id":"2", truncated_json_...'
+    const validLine2 = JSON.stringify({ id: "3", aggregateID, seq: 3, type: "t", data: "ok2" })
+
+    await fs.writeFile(filePath, `${validLine1}\n${corruptedLine}\n${validLine2}\n`, "utf8")
+
+    const lines = await Effect.runPromise(TranscriptLog.readLines(aggregateID))
+    expect(lines.length).toBe(2)
+    expect(lines[0].id).toBe("1")
+    expect(lines[1].id).toBe("3")
+
+    await fs.unlink(filePath).catch(() => {})
+  })
 })

@@ -56,6 +56,8 @@ export const append = Effect.fn("TranscriptLog.append")(function* (
 
 /**
  * Lê as linhas de transcrição do arquivo JSONL de uma sessão.
+ * É tolerante a corrupção parcial de linhas (ex.: crash durante append ou arquivo truncado),
+ * ignorando linhas inválidas em vez de abortar toda a leitura.
  */
 export const readLines = Effect.fn("TranscriptLog.readLines")(function* (
   aggregateID: string,
@@ -65,10 +67,17 @@ export const readLines = Effect.fn("TranscriptLog.readLines")(function* (
   return yield* Effect.promise(async () => {
     try {
       const content = await fs.readFile(filePath, "utf8")
-      return content
-        .split("\n")
-        .filter((line) => line.trim().length > 0)
-        .map((line) => JSON.parse(line) as TranscriptEntry)
+      const result: TranscriptEntry[] = []
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim()
+        if (trimmed.length === 0) continue
+        try {
+          result.push(JSON.parse(trimmed) as TranscriptEntry)
+        } catch {
+          // Ignora silenciosamente a linha corrompida mantendo o resto íntegro
+        }
+      }
+      return result
     } catch (err: any) {
       if (err.code === "ENOENT") return []
       throw err
