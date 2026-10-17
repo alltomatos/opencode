@@ -2,6 +2,12 @@ import { describe, expect, it } from "bun:test"
 import { Effect, Scope } from "effect"
 import { Database } from "@opencode-ai/core/database/database"
 import { WorkspaceMigration } from "@opencode-ai/core/database/workspace-migration"
+import { EventV2 } from "@opencode-ai/core/event"
+import { SessionProjector } from "@opencode-ai/core/session/projector"
+import { SessionV1 } from "@opencode-ai/schema/session-v1"
+import { SessionSchema } from "@opencode-ai/core/session/schema"
+import { SessionLocationTable } from "@opencode-ai/core/session/location.sql"
+import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { sql } from "drizzle-orm"
 import path from "path"
 import fs from "fs/promises"
@@ -110,5 +116,66 @@ describe("WorkspaceMigration", () => {
 
     // Limpeza portátil independente de sistema operacional (path.dirname)
     await fs.rm(dbDir, { recursive: true, force: true }).catch(() => {})
+  })
+
+  it("projects sessions into physical project.db and populates session_location index", async () => {
+    const testDir = path.resolve(`C:/test/partition_${Date.now()}`)
+    const testHash = WorkspaceMigration.directoryToWorkspaceHash(testDir)
+    const projectDbPath = WorkspaceMigration.getWorkspaceDatabasePath(testHash)
+    const projectDbDir = path.dirname(projectDbPath)
+
+    const testNode = LayerNode.group([Database.node, EventV2.node, SessionProjector.node])
+
+    const program = Effect.gen(function* () {
+      const { db } = yield* Database.Service
+      const events = yield* EventV2.Service
+
+      const sessionID = SessionSchema.ID.create()
+      const now = Date.now()
+      const info = SessionV1.SessionInfo.make({
+        id: sessionID,
+        slug: "slug-part",
+        version: "1",
+        projectID: "proj_part" as any,
+        directory: testDir,
+        title: "Sessao Particionada",
+        time: { created: now, updated: now },
+      })
+
+      // Inserir projeto para compatibilidade com o banco em memória
+      yield* db.run(
+        sql`INSERT INTO project (id, worktree, time_created, time_updated, sandboxes)
+            VALUES ('proj_part', ${testDir}, 1000, 1000, '[]')`
+      )
+
+      // Publicar criação de sessão
+      yield* events.publish(SessionV1.Event.Created, { sessionID, info })
+
+      // 1. Validar que o índice session_location foi gravado no banco global
+      const loc = yield* db
+        .select()
+        .from(SessionLocationTable)
+        .where(sql`session_id = ${sessionID}`)
+        .get()
+      expect(loc).toBeDefined()
+      expect(loc?.workspace_hash).toBe(testHash)
+
+      // 2. Validar que a sessão foi gravada no arquivo físico project.db
+      const exists = yield* Effect.promise(() => fs.stat(projectDbPath).then(() => true).catch(() => false))
+      expect(exists).toBe(true)
+
+      const instance = yield* Database.makeFromPath(projectDbPath)
+      const projectRow = yield* instance.db
+        .all<{ id: string }>(sql`SELECT id FROM session WHERE id = ${sessionID}`)
+      expect(projectRow.length).toBe(1)
+    }).pipe(
+      Effect.provide(LayerNode.compile(testNode)),
+      Effect.orDie,
+    )
+
+    await Effect.runPromise(program)
+
+    // Limpeza
+    await fs.rm(projectDbDir, { recursive: true, force: true }).catch(() => {})
   })
 })

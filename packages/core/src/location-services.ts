@@ -94,7 +94,7 @@ export function buildLocationServiceMap(
         const workspaceDbNode = makeGlobalNode({
           service: Database.Service,
           layer: WorkspaceMigration.workspaceDatabaseLayer(workspaceHash),
-          deps: [],
+          deps: [] as const,
         })
         const allReplacements = replacements.concat([
           [Location.node, Location.boundNode(ref)],

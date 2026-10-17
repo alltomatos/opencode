@@ -20,10 +20,11 @@ export interface MigrationSummary {
 
 /**
  * Calcula o hash determinístico e livre de colisões a partir do caminho absoluto do diretório.
- * Utiliza SHA-256 normalizado em minúsculas (16 primeiros caracteres hex).
+ * Preserva case sensitivity em plataformas Unix-like e normaliza apenas em Windows/macOS case-insensitive.
  */
 export function directoryToWorkspaceHash(directory: string): string {
-  const normalized = path.resolve(directory).toLowerCase()
+  const resolved = path.resolve(directory)
+  const normalized = process.platform === "win32" ? resolved.toLowerCase() : resolved
   return createHash("sha256").update(normalized).digest("hex").slice(0, 16)
 }
 
@@ -31,8 +32,7 @@ export function directoryToWorkspaceHash(directory: string): string {
  * Retorna o caminho absoluto do banco de dados particionado por workspace.
  */
 export function getWorkspaceDatabasePath(workspaceHash: string): string {
-  const sanitized = workspaceHash.replace(/[^a-zA-Z0-9._-]/g, "_")
-  return path.join(Global.Path.data, "workspaces", sanitized, "project.db")
+  return path.join(Global.Path.data, "workspaces", workspaceHash, "project.db")
 }
 
 /**
@@ -48,14 +48,31 @@ export const ensureWorkspaceDatabaseDir = Effect.fn("WorkspaceMigration.ensureDi
 
 /**
  * Cria ou inicializa uma camada de Database apontando para o arquivo project.db
- * particionado por workspace, garantindo criação prévia do diretório e aplicação
- * das migrações existentes.
+ * particionado por workspace, garantindo criação prévia do diretório, aplicação
+ * das migrações e acoplamento (ATTACH) do banco global para atomicidade de session_location.
  */
-export function workspaceDatabaseLayer(workspaceHash: string) {
+export function workspaceDatabaseLayer(workspaceHash: string, globalDbPath?: string) {
   return Layer.unwrap(
     Effect.gen(function* () {
       const dbPath = yield* ensureWorkspaceDatabaseDir(workspaceHash)
-      return Database.layerFromPath(dbPath)
+      const targetGlobalPath = globalDbPath ?? Database.path()
+
+      // Se globalDbPath não for em memória e for diferente de project.db, anexa o banco global
+      const layer = Database.layerFromPath(dbPath)
+      if (targetGlobalPath !== ":memory:" && targetGlobalPath !== dbPath) {
+        return layer.pipe(
+          Layer.tap((env: any) =>
+            Effect.gen(function* () {
+              const service = env[Database.Service.key] as Database.Interface | undefined
+              if (service?.db) {
+                const sanitizedGlobal = targetGlobalPath.replace(/\\/g, "/")
+                yield* service.db.run(sql.raw(`ATTACH DATABASE '${sanitizedGlobal}' AS global_db;`)).pipe(Effect.ignore)
+              }
+            }),
+          ),
+        )
+      }
+      return layer
     }),
   )
 }

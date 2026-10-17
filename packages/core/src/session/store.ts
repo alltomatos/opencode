@@ -9,6 +9,8 @@ import { MessageDecodeError } from "./error"
 import { SessionMessage } from "./message"
 import { SessionSchema } from "./schema"
 import { SessionMessageTable, SessionTable } from "./sql"
+import { SessionLocationTable } from "./location.sql"
+import { WorkspaceMigration } from "../database/workspace-migration"
 import { fromRow } from "./info"
 
 export interface Interface {
@@ -33,8 +35,27 @@ const layer = Layer.effect(
 
     return Service.of({
       get: Effect.fn("SessionStore.get")(function* (sessionID) {
+        // 1. Tenta buscar no banco atual (global.db ou project.db ativo)
         const row = yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie)
-        return row ? fromRow(row) : undefined
+        if (row) return fromRow(row)
+
+        // 2. Se não encontrou, busca no índice global session_location para localizar o project.db da sessão
+        const loc = yield* db
+          .select({ directory: SessionLocationTable.directory, workspaceHash: SessionLocationTable.workspace_hash })
+          .from(SessionLocationTable)
+          .where(eq(SessionLocationTable.session_id, sessionID))
+          .get()
+          .pipe(Effect.orDie)
+
+        if (!loc) return undefined
+
+        // Abre o project.db correspondente para ler a sessão
+        const projectDbPath = WorkspaceMigration.getWorkspaceDatabasePath(loc.workspaceHash)
+        const instance = yield* Database.makeFromPath(projectDbPath).pipe(Effect.orDie)
+        const projectDb = instance.db
+
+        const projectRow = yield* projectDb.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie)
+        return projectRow ? fromRow(projectRow) : undefined
       }),
       context: Effect.fn("SessionStore.context")(function* (sessionID) {
         return yield* SessionHistory.load(db, sessionID)

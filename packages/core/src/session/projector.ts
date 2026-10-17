@@ -213,8 +213,19 @@ const layer = Layer.effectDiscard(
   Effect.gen(function* () {
     const events = yield* EventV2.Service
     const { db } = yield* Database.Service
+
+    // Helper para obter o banco do projeto onde a sessão deve ser gravada
+    const getTargetProjectDb = (directory: string) =>
+      Effect.gen(function* () {
+        const hash = WorkspaceMigration.directoryToWorkspaceHash(directory)
+        const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(hash)
+        yield* WorkspaceMigration.ensureWorkspaceDatabaseDir(hash)
+        const instance = yield* Database.makeFromPath(dbPath)
+        return instance.db
+      })
     yield* events.project(SessionV1.Event.Created, (event) =>
       Effect.gen(function* () {
+        // 1. Grava no banco da instância atual (ex: no teste onde db é o banco alvo ou memory)
         const stored = yield* db
           .insert(SessionTable)
           .values(sessionRow(event.data.info))
@@ -224,7 +235,18 @@ const layer = Layer.effectDiscard(
           .pipe(Effect.orDie)
         if (!stored) return yield* Effect.die(new SessionAlreadyProjected())
 
-        // Atualizar índice global session_location
+        // 2. Se o workspace tiver um project.db em disco configurado e for diferente do db atual, projeta lá também
+        const targetDb = yield* getTargetProjectDb(event.data.info.directory).pipe(Effect.orElseSucceed(() => null))
+        if (targetDb && targetDb !== db) {
+          yield* targetDb
+            .insert(SessionTable)
+            .values(sessionRow(event.data.info))
+            .onConflictDoNothing()
+            .run()
+            .pipe(Effect.orDie)
+        }
+
+        // 3. Atualizar índice global session_location no global.db
         yield* db
           .insert(SessionLocationTable)
           .values({
