@@ -19,13 +19,13 @@ Adotar uma **arquitetura híbrida e particionada de armazenamento**, dividida em
 - **Projeções Relacionais (SQLite):** Tabelas que exigem buscas, ordenação, relacionamentos e foreign keys (`session`, `message`, `part`, `todo`, `permission`, `schedule`) permanecem gerenciadas no SQLite via Drizzle ORM.
 - **Log de Eventos Transitórios / Transcrições (JSONL no Sistema de Arquivos):** *(Superseded pela Revisão pós-implementação §6)* Originalmente previsto como JSONL append-only; na fase *Contract*, o destino JSONL foi descontinuado e substituído pela gravação de tombstones leves no SQLite (`data = {}`), pois as tabelas relacionais de projeção já preservam o texto consolidado com 100% de integridade.
 
-### 2. Particionamento de Banco por Workspace
+### 2. Particionamento de Banco por Workspace *(Pendente de wiring em produção — E21 #279/#280)*
 - **Banco Global (`global.db`):** Armazena estritamente entidades globais do usuário e de autenticação (`account`, `control_account`, `credential` e o catálogo de índices de `project`). O banco global permanece perene com tamanho inferior a 2 MB.
 - **Banco de Workspace (`workspaces/<workspace_hash>/project.db`):** Cada projeto/repositório possui sua própria instância isolada de banco SQLite local. Isso garante isolamento total de falha, elimina contenção de concorrência entre projetos simultâneos e permite backups ou limpeza granular por diretório.
 
 ### 3. Política Ativa de Higienização e Otimização do SQLite Existente
-- Introduzir rotina periódica de *retention/pruning* que purga eventos transitórios de mensagens que já foram consolidadas nas tabelas `message`/`part`.
-- Ajustar os PRAGMAs do SQLite:
+- Introduzir rotina periódica de *retention/pruning* que purga eventos transitórios de mensagens que já foram consolidadas nas tabelas `message`/`part` *(Entregue em #269 e #276)*.
+- Ajustar os PRAGMAs do SQLite: *(Pendente de migração assistida em bases existentes — E21 #281)*
   - Elevar `PRAGMA page_size = 16384;` nas novas bases para mitigar overflow pages de grandes payloads.
   - Habilitar `PRAGMA auto_vacuum = INCREMENTAL;` para permitir reclaim contínuo de espaço em disco sem lock exclusivo prolongado.
 
