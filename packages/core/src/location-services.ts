@@ -5,7 +5,9 @@ import { Catalog } from "./catalog"
 import { CommandV2 } from "./command"
 import { Config } from "./config"
 import { LayerNode } from "./effect/layer-node"
-import { Node } from "./effect/app-node"
+import { WorkspaceMigration } from "./database/workspace-migration"
+import { Database } from "./database/database"
+import { makeGlobalNode, Node } from "./effect/app-node"
 import { FileMutation } from "./file-mutation"
 import { FileSystem } from "./filesystem"
 import { FileSystemSearch } from "./filesystem/search"
@@ -88,7 +90,16 @@ export function buildLocationServiceMap(
     LocationServiceMap.Service,
     LayerMap.make(
       (ref: Location.Ref) => {
-        const allReplacements = replacements.concat([[Location.node, Location.boundNode(ref)]])
+        const workspaceHash = WorkspaceMigration.directoryToWorkspaceHash(ref.directory)
+        const workspaceDbNode = makeGlobalNode({
+          service: Database.Service,
+          layer: WorkspaceMigration.workspaceDatabaseLayer(workspaceHash),
+          deps: [],
+        })
+        const allReplacements = replacements.concat([
+          [Location.node, Location.boundNode(ref)],
+          [Database.node, workspaceDbNode],
+        ])
         // Apply replacements during hoist, not afterward: replacements can
         // introduce new tagged dependencies (Location.boundNode depends on
         // Project), and the hoist walk is the only pass that can still slice
@@ -101,6 +112,7 @@ export function buildLocationServiceMap(
             Effect.logInfo("booting location services", {
               directory: ref.directory,
               workspaceID: ref.workspaceID,
+              workspaceHash,
             }),
           ),
           Layer.provide(LayerNode.compile(location.hoisted)),
