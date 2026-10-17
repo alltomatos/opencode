@@ -22,6 +22,7 @@ import { SessionV1 } from "./v1/session"
 import { InstallationVersion } from "./installation/version"
 import { Slug } from "./util/slug"
 import { ProjectTable } from "./project/sql"
+import { WorkspaceMigration } from "./database/workspace-migration"
 import path from "path"
 import { fromRow } from "./session/info"
 import { SessionRunner } from "./session/runner/index"
@@ -269,6 +270,16 @@ const layer = Layer.effect(
         const direction = input.anchor?.direction ?? "next"
         const requestedOrder = input.order ?? "desc"
         const order = direction === "previous" ? (requestedOrder === "asc" ? "desc" : "asc") : requestedOrder
+
+        // Se directory for fornecido, resolve o project.db daquele workspace; senão busca no banco ativo
+        let targetDb = db
+        if ("directory" in input && input.directory) {
+          const hash = WorkspaceMigration.directoryToWorkspaceHash(input.directory)
+          const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(hash)
+          const instance = yield* Database.makeFromPath(dbPath).pipe(Effect.orElseSucceed(() => null))
+          if (instance) targetDb = instance.db
+        }
+
         const sortColumn = SessionTable.time_created
         const conditions: SQL[] = []
         if ("directory" in input) conditions.push(eq(SessionTable.directory, input.directory))
@@ -288,7 +299,7 @@ const layer = Layer.effect(
                 )!,
           )
         }
-        const query = db
+        const query = targetDb
           .select()
           .from(SessionTable)
           .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -481,6 +492,5 @@ export const node = makeGlobalNode({
     SessionExecution.node,
     SessionStore.node,
     LocationServiceMap.node,
-    SessionProjector.node,
   ],
 })

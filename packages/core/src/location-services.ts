@@ -29,6 +29,7 @@ import { ReferenceGuidance } from "./reference/guidance"
 import * as SessionRunnerLLM from "./session/runner/llm"
 import { SessionRunnerModel } from "./session/runner/model"
 import { SessionTodo } from "./session/todo"
+import { SessionProjector } from "./session/projector"
 import { SkillV2 } from "./skill"
 import { SkillGuidance } from "./skill/guidance"
 import { Snapshot } from "./snapshot"
@@ -78,6 +79,7 @@ export const locationServices = LayerNode.group([
   SessionRunnerModel.node,
   Snapshot.node,
   SessionRunnerLLM.node,
+  SessionProjector.node,
 ])
 
 export type LocationServices = LayerNode.Output<typeof locationServices>
@@ -91,23 +93,24 @@ export function buildLocationServiceMap(
     LayerMap.make(
       (ref: Location.Ref) => {
         const workspaceHash = WorkspaceMigration.directoryToWorkspaceHash(ref.directory)
-        const workspaceDbNode = makeGlobalNode({
-          service: Database.Service,
-          layer: WorkspaceMigration.workspaceDatabaseLayer(workspaceHash),
-          deps: [] as const,
-        })
         const allReplacements = replacements.concat([
           [Location.node, Location.boundNode(ref)],
-          [Database.node, workspaceDbNode],
+          [Database.node, Database.locationNode(workspaceHash)],
+          [Database.globalNode, Database.globalNode],
         ])
-        // Apply replacements during hoist, not afterward: replacements can
-        // introduce new tagged dependencies (Location.boundNode depends on
-        // Project), and the hoist walk is the only pass that can still slice
-        // those back out.
         const location = LayerNode.hoist(locationServices, Node.tags.values.global, allReplacements)
+
+        Effect.runSync(
+          Effect.logInfo("hoisted debug", {
+            hoistedNames: (location.hoisted as any).dependencies?.map((d: any) => d.name),
+            locationNames: (location.node as any).dependencies?.map((d: any) => d.name),
+          }),
+        )
 
         return LayerNode.compile(location.node).pipe(
           Layer.fresh,
+          Layer.provide(LayerNode.compile(location.hoisted)),
+          Layer.provide(Database.globalLayer),
           Layer.tap(() =>
             Effect.logInfo("booting location services", {
               directory: ref.directory,
@@ -115,7 +118,6 @@ export function buildLocationServiceMap(
               workspaceHash,
             }),
           ),
-          Layer.provide(LayerNode.compile(location.hoisted)),
         )
       },
       { idleTimeToLive: "60 minutes" },

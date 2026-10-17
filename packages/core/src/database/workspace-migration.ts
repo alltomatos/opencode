@@ -63,7 +63,7 @@ export function workspaceDatabaseLayer(workspaceHash: string, globalDbPath?: str
         return layer.pipe(
           Layer.tap((env: any) =>
             Effect.gen(function* () {
-              const service = env[Database.Service.key] as Database.Interface | undefined
+              const service = (yield* Effect.serviceOption(Database.Service).pipe(Effect.map((opt) => opt._tag === "Some" ? opt.value : undefined)))
               if (service?.db) {
                 const sanitizedGlobal = targetGlobalPath.replace(/\\/g, "/")
                 yield* service.db.run(sql.raw(`ATTACH DATABASE '${sanitizedGlobal}' AS global_db;`)).pipe(Effect.ignore)

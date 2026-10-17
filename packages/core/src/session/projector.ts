@@ -4,7 +4,7 @@ import { and, desc, eq, gt, or, sql } from "drizzle-orm"
 import { DateTime, Effect, Layer, Schema } from "effect"
 import { Database } from "../database/database"
 import { EventV2 } from "../event"
-import { makeGlobalNode } from "../effect/app-node"
+import { makeLocationNode } from "../effect/app-node"
 import { SessionEvent } from "./event"
 import { SessionV1 } from "../v1/session"
 import { WorkspaceTable } from "../control-plane/workspace.sql"
@@ -213,19 +213,11 @@ const layer = Layer.effectDiscard(
   Effect.gen(function* () {
     const events = yield* EventV2.Service
     const { db } = yield* Database.Service
+    const globalDb = (yield* Effect.serviceOption(Database.GlobalService).pipe(Effect.map((opt) => opt._tag === "Some" ? opt.value.db : db)))
 
-    // Helper para obter o banco do projeto onde a sessão deve ser gravada
-    const getTargetProjectDb = (directory: string) =>
-      Effect.gen(function* () {
-        const hash = WorkspaceMigration.directoryToWorkspaceHash(directory)
-        const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(hash)
-        yield* WorkspaceMigration.ensureWorkspaceDatabaseDir(hash)
-        const instance = yield* Database.makeFromPath(dbPath)
-        return instance.db
-      })
     yield* events.project(SessionV1.Event.Created, (event) =>
       Effect.gen(function* () {
-        // 1. Grava no banco da instância atual (ex: no teste onde db é o banco alvo ou memory)
+        // 1. Grava no banco da instância do projetor (se for locationServices, já é o project.db!)
         const stored = yield* db
           .insert(SessionTable)
           .values(sessionRow(event.data.info))
@@ -235,19 +227,8 @@ const layer = Layer.effectDiscard(
           .pipe(Effect.orDie)
         if (!stored) return yield* Effect.die(new SessionAlreadyProjected())
 
-        // 2. Se o workspace tiver um project.db em disco configurado e for diferente do db atual, projeta lá também
-        const targetDb = yield* getTargetProjectDb(event.data.info.directory).pipe(Effect.orElseSucceed(() => null))
-        if (targetDb && targetDb !== db) {
-          yield* targetDb
-            .insert(SessionTable)
-            .values(sessionRow(event.data.info))
-            .onConflictDoNothing()
-            .run()
-            .pipe(Effect.orDie)
-        }
-
-        // 3. Atualizar índice global session_location no global.db
-        yield* db
+        // 2. Atualizar índice global session_location no globalDb
+        yield* globalDb
           .insert(SessionLocationTable)
           .values({
             session_id: event.data.info.id,
@@ -270,7 +251,7 @@ const layer = Layer.effectDiscard(
           .pipe(Effect.orDie)
 
         if (event.data.info.workspaceID) {
-          yield* db
+          yield* globalDb
             .update(WorkspaceTable)
             .set({ time_used: Date.now() })
             .where(eq(WorkspaceTable.id, event.data.info.workspaceID))
@@ -301,7 +282,7 @@ const layer = Layer.effectDiscard(
           .run()
           .pipe(Effect.orDie)
 
-        yield* db
+        yield* globalDb
           .update(SessionLocationTable)
           .set({
             directory: event.data.location.directory,
@@ -317,7 +298,7 @@ const layer = Layer.effectDiscard(
     yield* events.project(SessionV1.Event.Deleted, (event) =>
       Effect.gen(function* () {
         yield* db.delete(SessionTable).where(eq(SessionTable.id, event.data.sessionID)).run().pipe(Effect.orDie)
-        yield* db.delete(SessionLocationTable).where(eq(SessionLocationTable.session_id, event.data.sessionID)).run().pipe(Effect.orDie)
+        yield* globalDb.delete(SessionLocationTable).where(eq(SessionLocationTable.session_id, event.data.sessionID)).run().pipe(Effect.orDie)
       }),
     )
     yield* events.project(SessionV1.Event.MessageUpdated, (event) =>
@@ -515,4 +496,4 @@ const layer = Layer.effectDiscard(
   }),
 )
 
-export const node = makeGlobalNode({ name: "session-projector", layer, deps: [EventV2.node, Database.node] })
+export const node = makeLocationNode({ name: "session-projector", layer, deps: [EventV2.node, Database.node, Database.globalNode] })
