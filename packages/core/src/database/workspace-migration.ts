@@ -74,19 +74,36 @@ export const migrateWorkspaceHistory = Effect.fn("WorkspaceMigration.migrate")(f
 
   const sessionIDs = sessions.map((s) => s.id)
 
-  // 2. Buscar todas as mensagens das sessões em uma única query em lote (Query 2)
-  const messages = yield* sourceDb
-    .all<{ id: string; session_id: string; time_created: number; time_updated: number; data: string }>(
-      sql`SELECT id, session_id, time_created, time_updated, data FROM message WHERE ${inArray(sql`session_id`, sessionIDs)}`
-    )
-    .pipe(Effect.orDie)
+  // Chunking seguro para evitar o limite de 999 variáveis do SQLite
+  const CHUNK_SIZE = 500
+  const chunks: string[][] = []
+  for (let i = 0; i < sessionIDs.length; i += CHUNK_SIZE) {
+    chunks.push(sessionIDs.slice(i, i + CHUNK_SIZE))
+  }
 
-  // 3. Buscar todas as parts das sessões em uma única query em lote (Query 3)
-  const parts = yield* sourceDb
-    .all<{ id: string; message_id: string; session_id: string; time_created: number; time_updated: number; data: string }>(
-      sql`SELECT id, message_id, session_id, time_created, time_updated, data FROM part WHERE ${inArray(sql`session_id`, sessionIDs)}`
-    )
-    .pipe(Effect.orDie)
+  // 2. Buscar todas as mensagens das sessões em lotes (Query 2)
+  type MessageRow = { id: string; session_id: string; time_created: number; time_updated: number; data: string }
+  const messages: MessageRow[] = []
+  for (const chunk of chunks) {
+    const rows = yield* sourceDb
+      .all<MessageRow>(
+        sql`SELECT id, session_id, time_created, time_updated, data FROM message WHERE ${inArray(sql`session_id`, chunk)}`
+      )
+      .pipe(Effect.orDie)
+    messages.push(...rows)
+  }
+
+  // 3. Buscar todas as parts das sessões em lotes (Query 3)
+  type PartRow = { id: string; message_id: string; session_id: string; time_created: number; time_updated: number; data: string }
+  const parts: PartRow[] = []
+  for (const chunk of chunks) {
+    const rows = yield* sourceDb
+      .all<PartRow>(
+        sql`SELECT id, message_id, session_id, time_created, time_updated, data FROM part WHERE ${inArray(sql`session_id`, chunk)}`
+      )
+      .pipe(Effect.orDie)
+    parts.push(...rows)
+  }
 
   // 4. Executar toda a gravação em uma transação atômica no banco destino
   yield* targetDb.transaction(() =>
