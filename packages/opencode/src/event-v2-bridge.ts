@@ -8,7 +8,7 @@ import { Location } from "@opencode-ai/core/location"
 import { Project } from "@opencode-ai/core/project"
 import { AbsolutePath } from "@opencode-ai/core/schema"
 import { Durable } from "@opencode-ai/schema/durable-event-manifest"
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Stream } from "effect"
 
 export class Service extends Context.Service<Service, EventV2.Interface>()("@opencode/EventV2Bridge") {}
 
@@ -33,37 +33,40 @@ const layer = Layer.effect(
         })
       })
 
-    const unsubscribe = yield* events.listen((event) =>
-      Effect.gen(function* () {
-        const ctx = yield* InstanceRef
-        const workspaceID = (yield* WorkspaceRef) ?? event.location?.workspaceID
-        GlobalBus.emit("event", {
-          directory: event.location?.directory ?? ctx?.directory,
-          project: ctx?.project.id,
-          workspace: workspaceID,
-          payload: { id: event.id, type: event.type, properties: event.data },
-        })
-        if (event.durable === undefined) return
-        const isTransient = Boolean(Durable.get(event.type)?.durable?.transient)
-        if (isTransient) return
-        GlobalBus.emit("event", {
-          directory: event.location?.directory ?? ctx?.directory,
-          project: ctx?.project.id,
-          workspace: workspaceID,
-          payload: {
-            type: "sync",
-            syncEvent: {
-              id: event.id,
-              type: EventV2.versionedType(event.type, event.durable.version),
-              seq: event.durable.seq,
-              aggregateID: event.durable.aggregateID,
-              data: event.data,
-            },
-          },
-        })
-      }),
+    yield* Effect.forkScoped(
+      events.all().pipe(
+        Stream.runForEach((event) =>
+          Effect.gen(function* () {
+            const ctx = yield* InstanceRef
+            const workspaceID = (yield* WorkspaceRef) ?? event.location?.workspaceID
+            GlobalBus.emit("event", {
+              directory: event.location?.directory ?? ctx?.directory,
+              project: ctx?.project.id,
+              workspace: workspaceID,
+              payload: { id: event.id, type: event.type, properties: event.data },
+            })
+            if (event.durable === undefined) return
+            const isTransient = Boolean(Durable.get(event.type)?.durable?.transient)
+            if (isTransient) return
+            GlobalBus.emit("event", {
+              directory: event.location?.directory ?? ctx?.directory,
+              project: ctx?.project.id,
+              workspace: workspaceID,
+              payload: {
+                type: "sync",
+                syncEvent: {
+                  id: event.id,
+                  type: EventV2.versionedType(event.type, event.durable.version),
+                  seq: event.durable.seq,
+                  aggregateID: event.durable.aggregateID,
+                  data: event.data,
+                },
+              },
+            })
+          }),
+        ),
+      ),
     )
-    yield* Effect.addFinalizer(() => unsubscribe)
 
     return Service.of({ ...events, publish })
   }),

@@ -28,7 +28,7 @@ export const versionedType = Event.versionedType
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Event") {}
 
-export const allBounded = (events: Interface, capacity: number) =>
+export const allBounded = (events: { readonly listen: Interface["listen"] }, capacity: number) =>
   Effect.gen(function* () {
     const queue = yield* Queue.dropping<Payload, SubscriberOverflowError>(capacity)
     const unsubscribe = yield* events.listen((event) =>
