@@ -53,13 +53,6 @@ export function layerFromPath(filename: string) {
   return layer.pipe(Layer.provide(sqliteLayer({ filename })))
 }
 
-export function makeFromPath(filename: string) {
-  return Effect.gen(function* () {
-    const layer = layerFromPath(filename)
-    return yield* Service.pipe(Effect.provide(layer))
-  })
-}
-
 export function path() {
   if (Flag.OPENCODE_DB) {
     if (Flag.OPENCODE_DB === ":memory:" || isAbsolute(Flag.OPENCODE_DB)) return Flag.OPENCODE_DB

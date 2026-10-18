@@ -22,7 +22,6 @@ import { SessionV1 } from "./v1/session"
 import { InstallationVersion } from "./installation/version"
 import { Slug } from "./util/slug"
 import { ProjectTable } from "./project/sql"
-import { WorkspaceMigration } from "./database/workspace-migration"
 import path from "path"
 import { fromRow } from "./session/info"
 import { SessionRunner } from "./session/runner/index"
@@ -266,19 +265,10 @@ const layer = Layer.effect(
         if (!session) return yield* new NotFoundError({ sessionID })
         return session
       }),
-      list: Effect.fn("V2Session.list")(function* (input = {}) {
+      list: Effect.fn("V2Session.list")(function* (input: ListInput = {}) {
         const direction = input.anchor?.direction ?? "next"
         const requestedOrder = input.order ?? "desc"
         const order = direction === "previous" ? (requestedOrder === "asc" ? "desc" : "asc") : requestedOrder
-
-        // Se directory for fornecido, resolve o project.db daquele workspace; senão busca no banco ativo
-        let targetDb = db
-        if ("directory" in input && input.directory) {
-          const hash = WorkspaceMigration.directoryToWorkspaceHash(input.directory)
-          const dbPath = WorkspaceMigration.getWorkspaceDatabasePath(hash)
-          const instance = yield* Database.makeFromPath(dbPath).pipe(Effect.orElseSucceed(() => null))
-          if (instance) targetDb = instance.db
-        }
 
         const sortColumn = SessionTable.time_created
         const conditions: SQL[] = []
@@ -299,17 +289,36 @@ const layer = Layer.effect(
                 )!,
           )
         }
-        const query = targetDb
-          .select()
-          .from(SessionTable)
-          .where(conditions.length > 0 ? and(...conditions) : undefined)
-          .orderBy(
-            order === "asc" ? asc(sortColumn) : desc(sortColumn),
-            order === "asc" ? asc(SessionTable.id) : desc(SessionTable.id),
-          )
-        const rows = yield* (input.limit === undefined ? query.all() : query.limit(input.limit).all()).pipe(
-          Effect.orDie,
-        )
+        const runQuery = (target: typeof db) => {
+          const query = target
+            .select()
+            .from(SessionTable)
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
+            .orderBy(
+              order === "asc" ? asc(sortColumn) : desc(sortColumn),
+              order === "asc" ? asc(SessionTable.id) : desc(SessionTable.id),
+            )
+          return input.limit === undefined ? query.all() : query.limit(input.limit).all()
+        }
+        // Com directory, lê o project.db daquela Location; senão usa o banco ativo
+        const rows =
+          "directory" in input && input.directory
+            ? yield* Effect.gen(function* () {
+                const target = yield* Database.Service
+                return yield* runQuery(target.db)
+              }).pipe(
+                Effect.provideService(Database.Service, database),
+                Effect.provide(
+                  locations.get(
+                    Location.Ref.make({
+                      directory: AbsolutePath.make(input.directory),
+                      workspaceID: input.workspaceID ? WorkspaceV2.ID.make(input.workspaceID) : undefined,
+                    }),
+                  ),
+                ),
+                Effect.orDie,
+              )
+            : yield* runQuery(db).pipe(Effect.orDie)
         return (direction === "previous" ? rows.toReversed() : rows).map((row) => fromRow(row))
       }),
       messages: Effect.fn("V2Session.messages")(function* (input) {

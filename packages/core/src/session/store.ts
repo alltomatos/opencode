@@ -1,7 +1,7 @@
 export * as SessionStore from "./store"
 
 import { eq } from "drizzle-orm"
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Effect, Layer, Schema, Scope } from "effect"
 import { Database } from "../database/database"
 import { makeGlobalNode } from "../effect/app-node"
 import { SessionHistory } from "./history"
@@ -10,7 +10,7 @@ import { SessionMessage } from "./message"
 import { SessionSchema } from "./schema"
 import { SessionMessageTable, SessionTable } from "./sql"
 import { SessionLocationTable } from "./location.sql"
-import { WorkspaceMigration } from "../database/workspace-migration"
+import { LayerNode } from "../effect/layer-node"
 import { fromRow } from "./info"
 
 export interface Interface {
@@ -31,7 +31,10 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const { db } = yield* Database.Service
+    const scope = yield* Scope.Scope
     const decodeMessage = Schema.decodeUnknownEffect(SessionMessage.Message)
+    // Um project.db por workspace, reutilizado pelo tempo de vida da camada.
+    const workspaceDatabases = new Map<string, Database.Interface>()
 
     return Service.of({
       get: Effect.fn("SessionStore.get")(function* (sessionID) {
@@ -41,7 +44,7 @@ const layer = Layer.effect(
 
         // 2. Se não encontrou, busca no índice global session_location para localizar o project.db da sessão
         const loc = yield* db
-          .select({ directory: SessionLocationTable.directory, workspaceHash: SessionLocationTable.workspace_hash })
+          .select({ workspaceHash: SessionLocationTable.workspace_hash })
           .from(SessionLocationTable)
           .where(eq(SessionLocationTable.session_id, sessionID))
           .get()
@@ -49,12 +52,22 @@ const layer = Layer.effect(
 
         if (!loc) return undefined
 
-        // Abre o project.db correspondente para ler a sessão
-        const projectDbPath = WorkspaceMigration.getWorkspaceDatabasePath(loc.workspaceHash)
-        const instance = yield* Database.makeFromPath(projectDbPath).pipe(Effect.orDie)
-        const projectDb = instance.db
+        // 3. Lê a sessão do project.db da location, reutilizando a conexão por workspace
+        const existing = workspaceDatabases.get(loc.workspaceHash)
+        const workspace =
+          existing ??
+          Context.get(
+            yield* Layer.build(LayerNode.compile(Database.locationNode(loc.workspaceHash))).pipe(Scope.provide(scope)),
+            Database.Service,
+          )
+        if (!existing) workspaceDatabases.set(loc.workspaceHash, workspace)
 
-        const projectRow = yield* projectDb.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie)
+        const projectRow = yield* workspace.db
+          .select()
+          .from(SessionTable)
+          .where(eq(SessionTable.id, sessionID))
+          .get()
+          .pipe(Effect.orDie)
         return projectRow ? fromRow(projectRow) : undefined
       }),
       context: Effect.fn("SessionStore.context")(function* (sessionID) {

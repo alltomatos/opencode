@@ -180,8 +180,8 @@ describe("WorkspaceMigration", () => {
       const exists = yield* Effect.promise(() => fs.stat(projectDbPath).then(() => true).catch(() => false))
       expect(exists).toBe(true)
 
-      // Inspecionamos o arquivo diretamente: `Database.makeFromPath` reutiliza o
-      // SqlClient do ambiente (aqui :memory:), então não enxerga o arquivo particionado.
+      // Inspecionamos o arquivo físico diretamente: o teste roda sob um Database de
+      // ambiente (:memory:), então validamos o artefato em disco abrindo-o à parte.
       const projectRow = yield* Effect.sync(() => {
         const file = new SQLite(projectDbPath)
         const rows = file.query("SELECT id FROM session WHERE id = ?").all(sessionID) as { id: string }[]
