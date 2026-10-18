@@ -33,40 +33,37 @@ const layer = Layer.effect(
         })
       })
 
-    yield* Effect.forkScoped(
-      events.all().pipe(
-        Stream.runForEach((event) =>
-          Effect.gen(function* () {
-            const ctx = yield* InstanceRef
-            const workspaceID = (yield* WorkspaceRef) ?? event.location?.workspaceID
-            GlobalBus.emit("event", {
-              directory: event.location?.directory ?? ctx?.directory,
-              project: ctx?.project.id,
-              workspace: workspaceID,
-              payload: { id: event.id, type: event.type, properties: event.data },
-            })
-            if (event.durable === undefined) return
-            const isTransient = Boolean(Durable.get(event.type)?.durable?.transient)
-            if (isTransient) return
-            GlobalBus.emit("event", {
-              directory: event.location?.directory ?? ctx?.directory,
-              project: ctx?.project.id,
-              workspace: workspaceID,
-              payload: {
-                type: "sync",
-                syncEvent: {
-                  id: event.id,
-                  type: EventV2.versionedType(event.type, event.durable.version),
-                  seq: event.durable.seq,
-                  aggregateID: event.durable.aggregateID,
-                  data: event.data,
-                },
-              },
-            })
-          }),
-        ),
-      ),
+    const unsubscribe = yield* events.listen((event) =>
+      Effect.gen(function* () {
+        const ctx = yield* InstanceRef
+        const workspaceID = (yield* WorkspaceRef) ?? event.location?.workspaceID
+        GlobalBus.emit("event", {
+          directory: event.location?.directory ?? ctx?.directory,
+          project: ctx?.project.id,
+          workspace: workspaceID,
+          payload: { id: event.id, type: event.type, properties: event.data },
+        })
+        if (event.durable === undefined) return
+        const isTransient = Boolean(Durable.get(event.type)?.durable?.transient)
+        if (isTransient) return
+        GlobalBus.emit("event", {
+          directory: event.location?.directory ?? ctx?.directory,
+          project: ctx?.project.id,
+          workspace: workspaceID,
+          payload: {
+            type: "sync",
+            syncEvent: {
+              id: event.id,
+              type: EventV2.versionedType(event.type, event.durable.version),
+              seq: event.durable.seq,
+              aggregateID: event.durable.aggregateID,
+              data: event.data,
+            },
+          },
+        })
+      }),
     )
+    yield* Effect.addFinalizer(() => unsubscribe)
 
     return Service.of({ ...events, publish })
   }),
