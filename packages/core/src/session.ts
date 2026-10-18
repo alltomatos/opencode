@@ -27,6 +27,7 @@ import { fromRow } from "./session/info"
 import { SessionRunner } from "./session/runner/index"
 import { SessionStore } from "./session/store"
 import { SessionExecution } from "./session/execution"
+import { LocationsResolver } from "./location-resolver"
 import { makeGlobalNode } from "./effect/app-node"
 import { LocationServiceMap } from "./location-service-map"
 import { MessageDecodeError } from "./session/error"
@@ -191,6 +192,7 @@ const layer = Layer.effect(
     const execution = yield* SessionExecution.Service
     const store = yield* SessionStore.Service
     const locations = yield* LocationServiceMap.Service
+    const resolver = yield* LocationsResolver.Service
     const decodeMessage = Schema.decodeUnknownEffect(SessionMessage.Message)
     const isDurableSessionEvent = Schema.is(SessionEvent.Durable)
     const decode = (row: typeof SessionMessageTable.$inferSelect) =>
@@ -370,8 +372,9 @@ const layer = Layer.effect(
             .pipe(Effect.as(events.durable({ aggregateID: input.sessionID, after: input.after }))),
         ).pipe(Stream.filter((event): event is SessionEvent.DurableEvent => isDurableSessionEvent(event))),
       history: Effect.fn("V2Session.history")(function* (input) {
-        yield* result.get(input.sessionID)
-        return yield* EventV2.readAggregate(db, {
+        const session = yield* result.get(input.sessionID)
+        const workspace = yield* resolver.get(session.location).pipe(Effect.catch(() => Effect.succeed(database)))
+        return yield* EventV2.readAggregate(workspace.db, {
           ...input,
           aggregateID: input.sessionID,
           manifest: SessionDurable,
@@ -501,5 +504,6 @@ export const node = makeGlobalNode({
     SessionExecution.node,
     SessionStore.node,
     LocationServiceMap.node,
+    LocationsResolver.node,
   ],
 })

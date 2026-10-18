@@ -34,6 +34,7 @@ const layer: Layer.Layer<Service, never, LocationServiceMap.Service> = Layer.eff
         }).pipe(
           Effect.scoped,
           Effect.provideService(LocationServiceMap.Service, locations),
+          Effect.catchDefect(() => Database.Service),
           Effect.orDie,
         ),
     })
