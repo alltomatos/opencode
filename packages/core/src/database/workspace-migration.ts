@@ -48,32 +48,12 @@ export const ensureWorkspaceDatabaseDir = Effect.fn("WorkspaceMigration.ensureDi
 
 /**
  * Cria ou inicializa uma camada de Database apontando para o arquivo project.db
- * particionado por workspace, garantindo criação prévia do diretório, aplicação
- * das migrações e acoplamento (ATTACH) do banco global para atomicidade de session_location.
+ * particionado por workspace, garantindo criação prévia do diretório e aplicação
+ * das migrações.
  */
-export function workspaceDatabaseLayer(workspaceHash: string, globalDbPath?: string) {
+export function workspaceDatabaseLayer(workspaceHash: string) {
   return Layer.unwrap(
-    Effect.gen(function* () {
-      const dbPath = yield* ensureWorkspaceDatabaseDir(workspaceHash)
-      const targetGlobalPath = globalDbPath ?? Database.path()
-
-      // Se globalDbPath não for em memória e for diferente de project.db, anexa o banco global
-      const layer = Database.layerFromPath(dbPath)
-      if (targetGlobalPath !== ":memory:" && targetGlobalPath !== dbPath) {
-        return layer.pipe(
-          Layer.tap((env: any) =>
-            Effect.gen(function* () {
-              const service = (yield* Effect.serviceOption(Database.Service).pipe(Effect.map((opt) => opt._tag === "Some" ? opt.value : undefined)))
-              if (service?.db) {
-                const sanitizedGlobal = targetGlobalPath.replace(/\\/g, "/")
-                yield* service.db.run(sql.raw(`ATTACH DATABASE '${sanitizedGlobal}' AS global_db;`)).pipe(Effect.ignore)
-              }
-            }),
-          ),
-        )
-      }
-      return layer
-    }),
+    Effect.map(ensureWorkspaceDatabaseDir(workspaceHash), (dbPath) => Database.layerFromPath(dbPath)),
   )
 }
 
