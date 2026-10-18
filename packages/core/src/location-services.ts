@@ -1,5 +1,6 @@
 import { Effect, Layer, LayerMap } from "effect"
 import { AgentV2 } from "./agent"
+import { EventLog } from "./event/log"
 import { AISDK } from "./aisdk"
 import { Catalog } from "./catalog"
 import { CommandV2 } from "./command"
@@ -7,6 +8,7 @@ import { Config } from "./config"
 import { LayerNode } from "./effect/layer-node"
 import { WorkspaceMigration } from "./database/workspace-migration"
 import { Database } from "./database/database"
+import { EventBus } from "./event/bus"
 import { makeGlobalNode, Node } from "./effect/app-node"
 import { FileMutation } from "./file-mutation"
 import { FileSystem } from "./filesystem"
@@ -45,6 +47,8 @@ export { LocationServiceMap } from "./location-service-map"
 
 export const locationServices = LayerNode.group([
   Database.node,
+  EventBus.node,
+  EventLog.node,
   Location.node,
   Policy.node,
   Config.node,
