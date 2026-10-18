@@ -1,6 +1,7 @@
 import { Effect, Layer, LayerMap } from "effect"
 import { AgentV2 } from "./agent"
 import { EventLog } from "./event/log"
+import { EventV2 } from "./event"
 import { AISDK } from "./aisdk"
 import { Catalog } from "./catalog"
 import { CommandV2 } from "./command"
@@ -49,6 +50,7 @@ export const locationServices = LayerNode.group([
   Database.node,
   EventBus.node,
   EventLog.node,
+  EventV2.node,
   Location.node,
   Policy.node,
   Config.node,
@@ -102,6 +104,7 @@ export function buildLocationServiceMap(
         const allReplacements = replacements.concat([
           [Location.node, Location.boundNode(ref)],
           [Database.node, Database.locationNode(workspaceHash)],
+          [EventV2.node, EventV2.locationNode],
           [Database.globalNode, Database.globalNode],
           [LocationsResolver.node, LocationsResolver.localNode],
         ])

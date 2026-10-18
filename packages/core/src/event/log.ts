@@ -7,6 +7,7 @@ import { and, asc, eq, gt, inArray } from "drizzle-orm"
 import { Durable } from "@opencode-ai/schema/durable-event-manifest"
 import { isDeepStrictEqual } from "node:util"
 import { Database } from "../database/database"
+import { EventLogBackfill } from "../database/event-log-backfill"
 import { EventBus } from "./bus"
 import type { Subscriber } from "./bus"
 import { EventSequenceTable, EventTable } from "./sql"
@@ -156,6 +157,7 @@ export const make = (options?: LayerOptions) =>
     const projectors = new Map<string, Subscriber[]>()
     // TODO: Bind durable projectors to exact type+version before supporting incompatible historical payloads.
     const { db } = yield* Database.Service
+    const globalDbOption = yield* Effect.serviceOption(Database.GlobalService)
 
     yield* Effect.addFinalizer(() =>
       Effect.forEach(
@@ -199,6 +201,10 @@ export const make = (options?: LayerOptions) =>
             const list = projectors.get(event.type) ?? []
             return yield* Effect.uninterruptible(
               Effect.gen(function* () {
+                // F2b: varredura delta idempotente do global.db caso estejamos em location DB distinto do global
+                if (Option.isSome(globalDbOption) && globalDbOption.value.db !== db) {
+                  yield* EventLogBackfill.syncAggregateDelta(globalDbOption.value.db, db, aggregateID)
+                }
                 const committed = yield* db
                   .transaction(
                     () =>

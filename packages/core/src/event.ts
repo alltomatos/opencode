@@ -9,7 +9,7 @@ import { Database } from "./database/database"
 import { EventBus } from "./event/bus"
 import { EventLog } from "./event/log"
 import type { Interface, LayerOptions } from "./event/log"
-import { makeGlobalNode } from "./effect/app-node"
+import { makeGlobalNode, makeLocationNode } from "./effect/app-node"
 
 export const ID = Event.ID
 export type ID = import("@opencode-ai/schema/event").ID
@@ -50,3 +50,5 @@ export const layerWith = (options?: LayerOptions) =>
 
 const layer = layerWith()
 export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node, EventBus.node] })
+
+export const locationNode = makeLocationNode({ service: Service, layer, deps: [Database.node, EventBus.node] })

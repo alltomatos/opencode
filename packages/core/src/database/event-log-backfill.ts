@@ -122,6 +122,50 @@ export const backfillEventLog = Effect.fn("EventLogBackfill.run")(function* <R>(
 })
 
 /**
+ * Executa uma varredura delta idempotente para um aggregate específico do globalDb para o targetDb.
+ * Chamado antes de efetivar nova gravação local para garantir que quaisquer eventos legados
+ * ou gravados no global.db antes do switch de escrita sejam sincronizados com o seq original.
+ */
+export const syncAggregateDelta = Effect.fn("EventLogBackfill.syncAggregateDelta")(function* (
+  globalDb: EffectDrizzleSqlite.EffectSQLiteDatabase,
+  targetDb: EffectDrizzleSqlite.EffectSQLiteDatabase,
+  aggregateID: string,
+) {
+  const globalEvents = yield* globalDb
+    .all<EventRow>(
+      sql`SELECT id, aggregate_id, seq, type, data FROM event WHERE aggregate_id = ${aggregateID} ORDER BY seq ASC`,
+    )
+    .pipe(Effect.orDie)
+  if (globalEvents.length === 0) return
+
+  const globalSeq = yield* globalDb
+    .all<SequenceRow>(sql`SELECT aggregate_id, seq, owner_id FROM event_sequence WHERE aggregate_id = ${aggregateID}`)
+    .pipe(Effect.orDie)
+
+  yield* targetDb
+    .transaction(() =>
+      Effect.gen(function* () {
+        for (const seq of globalSeq) {
+          yield* targetDb.run(
+            sql`INSERT INTO event_sequence (aggregate_id, seq, owner_id)
+                VALUES (${seq.aggregate_id}, ${seq.seq}, ${seq.owner_id})
+                ON CONFLICT(aggregate_id) DO UPDATE SET
+                  seq = CASE WHEN excluded.seq > event_sequence.seq THEN excluded.seq ELSE event_sequence.seq END,
+                  owner_id = COALESCE(event_sequence.owner_id, excluded.owner_id)`,
+          )
+        }
+        for (const ev of globalEvents) {
+          yield* targetDb.run(
+            sql`INSERT OR IGNORE INTO event (id, aggregate_id, seq, type, data)
+                VALUES (${ev.id}, ${ev.aggregate_id}, ${ev.seq}, ${ev.type}, ${ev.data})`,
+          )
+        }
+      }),
+    )
+    .pipe(Effect.orDie)
+})
+
+/**
  * Runner one-shot autônomo: abre os project.db físicos através de
  * `WorkspaceMigration.workspaceDatabaseLayer(hash)` e executa o backfill completo.
  */
