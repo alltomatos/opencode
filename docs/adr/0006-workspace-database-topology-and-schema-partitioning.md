@@ -44,9 +44,12 @@ Durante a implementação e auditoria técnica do E21 (Issue #279 / #280), levan
 
 ### 4. Particionamento do Event Log Durável e Extensão do Migrate
 - As tabelas `event` e `event_sequence` residem diretamente em cada `project.db`.
-- O utilitário `WorkspaceMigration.migrateWorkspaceHistory` é formalmente estendido para migrar:
+- **Invariantes do Event Log Particionado (B3 / #284):**
+  1. **Durável ⇒ Tem Workspace:** Qualquer evento durável (`definition.durable` definido) pertence a um agregado associado a um workspace e deve ser gravado exclusivamente no `project.db` daquele workspace. Eventos globais (sem workspace) são estritamente transientes/live-only.
+  2. **`seq` como Watermark Monotônico (Zero Rebase):** O sequence (`seq`) de um evento durável atua como watermark de sincronização para clientes locais e remotos (`durable({ aggregateID, after })`). Por isso, em operações de backfill ou migração entre bancos (move), as linhas são copiadas **verbatim** com o `seq` original. O `seq` é garantidamente monotônico por aggregate (semeado por `MAX(seq)` existente), mas **não necessariamente contíguo ou 1-based** (inicia em 0 por aggregate).
+- O utilitário `WorkspaceMigration.migrateWorkspaceHistory` e `EventLogBackfill.backfillEventLog` foram consolidados para migrar:
   1. `session`, `message`, `part`;
-  2. `event`, `event_sequence` (preservando rigorosamente a contiguidade do `seq`);
+  2. `event`, `event_sequence` (copiados verbatim, preservando a monotonicidade do `seq`);
   3. Preenchimento idempotente do índice `session_location` no `global.db` (a partir das sessões migradas; ver §3).
 
 ## Consequências

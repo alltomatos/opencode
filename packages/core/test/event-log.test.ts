@@ -119,4 +119,46 @@ describe("EventLog", () => {
       ),
     ),
   )
+
+  it.live("enforces invariant that durable events belong to a location and writes directly to project.db", () =>
+    Effect.acquireRelease(
+      Effect.promise(() => tmpdir()),
+      (dir) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+    ).pipe(
+      Effect.flatMap((dir) =>
+        Effect.gen(function* () {
+          const globalService = yield* Database.GlobalService
+          const location = Location.Ref.make({ directory: AbsolutePath.make(dir.path) })
+
+          // 1. Gravação durável dentro do escopo de location
+          yield* Effect.gen(function* () {
+            const events = yield* EventV2.Service
+            yield* events.publish(Message, { id: "agg_inv", text: "location_event" })
+          }).pipe(Effect.scoped, Effect.provide(LocationServiceMap.Service.get(location)))
+
+          // 2. Prova que o evento foi gravado no project.db da location
+          const projectRows = yield* Effect.gen(function* () {
+            const { db } = yield* Database.Service
+            return yield* db
+              .select()
+              .from(EventTable)
+              .where(eq(EventTable.aggregate_id, "agg_inv"))
+              .all()
+          }).pipe(Effect.scoped, Effect.provide(LocationServiceMap.Service.get(location)))
+
+          expect(projectRows).toHaveLength(1)
+          expect(projectRows[0]?.aggregate_id).toBe("agg_inv")
+
+          // 3. Prova que o global.db NÃO recebeu o evento durável (sem dual-write no global)
+          const globalRows = yield* globalService.db
+            .select()
+            .from(EventTable)
+            .where(eq(EventTable.aggregate_id, "agg_inv"))
+            .all()
+
+          expect(globalRows).toHaveLength(0)
+        }),
+      ),
+    ),
+  )
 })
