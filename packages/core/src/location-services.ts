@@ -17,6 +17,7 @@ import { Integration } from "./integration"
 import { Location } from "./location"
 import { LocationMutation } from "./location-mutation"
 import { LocationServiceMap } from "./location-service-map"
+import { LocationsResolver } from "./location-resolver"
 import { PermissionV2 } from "./permission"
 import { PluginV2 } from "./plugin"
 import { PluginInternal } from "./plugin/internal"
@@ -43,6 +44,7 @@ import { ToolOutputStore } from "./tool-output-store"
 export { LocationServiceMap } from "./location-service-map"
 
 export const locationServices = LayerNode.group([
+  Database.node,
   Location.node,
   Policy.node,
   Config.node,
@@ -97,6 +99,7 @@ export function buildLocationServiceMap(
           [Location.node, Location.boundNode(ref)],
           [Database.node, Database.locationNode(workspaceHash)],
           [Database.globalNode, Database.globalNode],
+          [LocationsResolver.node, LocationsResolver.localNode],
         ])
         const location = LayerNode.hoist(locationServices, Node.tags.values.global, allReplacements)
 

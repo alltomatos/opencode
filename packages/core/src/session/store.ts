@@ -1,7 +1,7 @@
 export * as SessionStore from "./store"
 
 import { eq } from "drizzle-orm"
-import { Context, Effect, Layer, Schema, Scope } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { Database } from "../database/database"
 import { makeGlobalNode } from "../effect/app-node"
 import { SessionHistory } from "./history"
@@ -10,8 +10,11 @@ import { SessionMessage } from "./message"
 import { SessionSchema } from "./schema"
 import { SessionMessageTable, SessionTable } from "./sql"
 import { SessionLocationTable } from "./location.sql"
-import { LayerNode } from "../effect/layer-node"
 import { fromRow } from "./info"
+import { Location } from "../location"
+import { LocationsResolver } from "../location-resolver"
+import { AbsolutePath } from "../schema"
+import { WorkspaceV2 } from "../workspace"
 
 export interface Interface {
   readonly get: (sessionID: SessionSchema.ID) => Effect.Effect<SessionSchema.Info | undefined>
@@ -31,10 +34,8 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const { db } = yield* Database.Service
-    const scope = yield* Scope.Scope
+    const resolver = yield* LocationsResolver.Service
     const decodeMessage = Schema.decodeUnknownEffect(SessionMessage.Message)
-    // Um project.db por workspace, reutilizado pelo tempo de vida da camada.
-    const workspaceDatabases = new Map<string, Database.Interface>()
 
     return Service.of({
       get: Effect.fn("SessionStore.get")(function* (sessionID) {
@@ -44,7 +45,10 @@ const layer = Layer.effect(
 
         // 2. Se não encontrou, busca no índice global session_location para localizar o project.db da sessão
         const loc = yield* db
-          .select({ workspaceHash: SessionLocationTable.workspace_hash })
+          .select({
+            directory: SessionLocationTable.directory,
+            workspaceID: SessionLocationTable.workspace_id,
+          })
           .from(SessionLocationTable)
           .where(eq(SessionLocationTable.session_id, sessionID))
           .get()
@@ -52,15 +56,15 @@ const layer = Layer.effect(
 
         if (!loc) return undefined
 
-        // 3. Lê a sessão do project.db da location, reutilizando a conexão por workspace
-        const existing = workspaceDatabases.get(loc.workspaceHash)
-        const workspace =
-          existing ??
-          Context.get(
-            yield* Layer.build(LayerNode.compile(Database.locationNode(loc.workspaceHash))).pipe(Scope.provide(scope)),
-            Database.Service,
-          )
-        if (!existing) workspaceDatabases.set(loc.workspaceHash, workspace)
+        // 3. Lê a sessão do project.db da location pelo dono único das conexões
+        // (LocationsResolver), o mesmo Database.Interface que os serviços de
+        // location usam para essa ref.
+        const workspace = yield* resolver.get(
+          Location.Ref.make({
+            directory: AbsolutePath.make(loc.directory),
+            workspaceID: loc.workspaceID ? WorkspaceV2.ID.make(loc.workspaceID) : undefined,
+          }),
+        )
 
         const projectRow = yield* workspace.db
           .select()
@@ -94,4 +98,4 @@ const layer = Layer.effect(
   }),
 )
 
-export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node] })
+export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node, LocationsResolver.node] })
