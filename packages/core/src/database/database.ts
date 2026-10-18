@@ -69,8 +69,12 @@ export function path() {
 }
 
 export const node = makeGlobalNode({ service: Service, layer: layerFromPath(path()), deps: [] })
+
+// Location-scoped override of the global `Database.Service`. Tagged `location`
+// so `hoist` keeps it inside the location graph (the workspace `project.db`)
+// instead of hoisting it next to the global database.
 export const locationNode = (workspaceHash: string) =>
-  makeGlobalNode({
+  makeLocationNode({
     service: Service,
     layer: WorkspaceMigration.workspaceDatabaseLayer(workspaceHash),
     deps: [] as const,

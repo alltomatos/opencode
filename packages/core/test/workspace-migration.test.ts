@@ -13,6 +13,7 @@ import { AbsolutePath } from "@opencode-ai/core/schema"
 import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { sql } from "drizzle-orm"
+import { Database as SQLite } from "bun:sqlite"
 import path from "path"
 import fs from "fs/promises"
 
@@ -131,7 +132,7 @@ describe("WorkspaceMigration", () => {
 
     const program = Effect.gen(function* () {
       const locations = yield* LocationServiceMap.Service
-      const globalDb = (yield* Database.Service).db
+      const globalDb = (yield* Database.GlobalService).db
       const events = yield* EventV2.Service
 
       const sessionID = SessionSchema.ID.create()
@@ -179,9 +180,14 @@ describe("WorkspaceMigration", () => {
       const exists = yield* Effect.promise(() => fs.stat(projectDbPath).then(() => true).catch(() => false))
       expect(exists).toBe(true)
 
-      const instance = yield* Database.makeFromPath(projectDbPath)
-      const projectRow = yield* instance.db
-        .all<{ id: string }>(sql`SELECT id FROM session WHERE id = ${sessionID}`)
+      // Inspecionamos o arquivo diretamente: `Database.makeFromPath` reutiliza o
+      // SqlClient do ambiente (aqui :memory:), então não enxerga o arquivo particionado.
+      const projectRow = yield* Effect.sync(() => {
+        const file = new SQLite(projectDbPath)
+        const rows = file.query("SELECT id FROM session WHERE id = ?").all(sessionID) as { id: string }[]
+        file.close()
+        return rows
+      })
       expect(projectRow.length).toBe(1)
 
       // 5. Confirmar que NÃO houve dual-write: o banco global NÃO contém a sessão

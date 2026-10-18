@@ -100,13 +100,6 @@ export function buildLocationServiceMap(
         ])
         const location = LayerNode.hoist(locationServices, Node.tags.values.global, allReplacements)
 
-        Effect.runSync(
-          Effect.logInfo("hoisted debug", {
-            hoistedNames: (location.hoisted as any).dependencies?.map((d: any) => d.name),
-            locationNames: (location.node as any).dependencies?.map((d: any) => d.name),
-          }),
-        )
-
         return LayerNode.compile(location.node).pipe(
           Layer.fresh,
           Layer.provide(LayerNode.compile(location.hoisted)),
