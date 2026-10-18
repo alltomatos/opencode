@@ -1,10 +1,13 @@
 export * as EventV2 from "./event"
+export * as Bus from "./event/bus"
 
-import { Cause, Context, Effect, Layer, Option, PubSub, Queue, Schema, Stream } from "effect"
+import { Context, Effect, Layer, Option, PubSub, Queue, Schema, Stream } from "effect"
 import { Event } from "@opencode-ai/schema/event"
 import type { Data, Definition, Payload } from "@opencode-ai/schema/event"
 import { and, asc, eq, gt, inArray } from "drizzle-orm"
 import { Database } from "./database/database"
+import { EventBus } from "./event/bus"
+import type { Subscriber, Unsubscribe } from "./event/bus"
 import { EventSequenceTable, EventTable } from "./event/sql"
 import { Location } from "./location"
 import { makeGlobalNode } from "./effect/app-node"
@@ -14,9 +17,7 @@ import { Durable } from "@opencode-ai/schema/durable-event-manifest"
 export const ID = Event.ID
 export type ID = import("@opencode-ai/schema/event").ID
 export type { Data, Definition, Payload } from "@opencode-ai/schema/event"
-
-export type Subscriber<D extends Definition = Definition> = (event: Payload<D>) => Effect.Effect<void>
-export type Unsubscribe = Effect.Effect<void>
+export type { Subscriber, Unsubscribe } from "./event/bus"
 
 export const latestSequence = Effect.fn("EventV2.latestSequence")(function* (
   db: Database.Interface["db"],
@@ -173,35 +174,20 @@ export const layerWith = (options?: LayerOptions) =>
   Layer.effect(
     Service,
     Effect.gen(function* () {
+      const bus = yield* EventBus.Service
       const pubsub = {
-        all: yield* PubSub.unbounded<Payload>(),
         durable: new Map<string, Set<PubSub.PubSub<void>>>(),
-        typed: new Map<string, PubSub.PubSub<Payload>>(),
       }
       const projectors = new Map<string, Subscriber[]>()
       // TODO: Bind durable projectors to exact type+version before supporting incompatible historical payloads.
-      const listeners = new Array<Subscriber>()
       const { db } = yield* Database.Service
 
-      const getOrCreate = (definition: Definition) =>
-        Effect.gen(function* () {
-          const existing = pubsub.typed.get(definition.type)
-          if (existing) return existing
-          const created = yield* PubSub.unbounded<Payload>()
-          pubsub.typed.set(definition.type, created)
-          return created
-        })
-
       yield* Effect.addFinalizer(() =>
-        Effect.gen(function* () {
-          yield* PubSub.shutdown(pubsub.all)
-          yield* Effect.forEach(
-            pubsub.durable.values(),
-            (pubsubs) => Effect.forEach(pubsubs, PubSub.shutdown, { discard: true }),
-            { discard: true },
-          )
-          yield* Effect.forEach(pubsub.typed.values(), PubSub.shutdown, { discard: true })
-        }),
+        Effect.forEach(
+          pubsub.durable.values(),
+          (pubsubs) => Effect.forEach(pubsubs, PubSub.shutdown, { discard: true }),
+          { discard: true },
+        ),
       )
 
       function commitDurableEvent(
@@ -392,33 +378,12 @@ export const layerWith = (options?: LayerOptions) =>
                   version: definition.durable.version,
                 },
               }
-              yield* notify(event as Payload, true)
+              yield* bus.emit(event as Payload, { isolateListeners: true })
               return event
             }
           }
-          yield* notify(event as Payload, false)
+          yield* bus.emit(event as Payload)
           return event
-        })
-      }
-
-      const observe = (event: Payload, observer: (event: Payload) => Effect.Effect<void>) =>
-        Effect.suspend(() => observer(event)).pipe(
-          Effect.catchCauseIf(
-            (cause) => !Cause.hasInterrupts(cause),
-            (cause) => Effect.logError("Event listener failed", { eventID: event.id, eventType: event.type, cause }),
-          ),
-        )
-
-      function notify(event: Payload, isolateListeners: boolean) {
-        return Effect.gen(function* () {
-          yield* Effect.forEach(
-            listeners,
-            (listener) => (isolateListeners ? observe(event, listener) : listener(event)),
-            { discard: true },
-          )
-          const typed = pubsub.typed.get(event.type)
-          if (typed) yield* PubSub.publish(typed, event)
-          yield* PubSub.publish(pubsub.all, event)
         })
       }
 
@@ -467,7 +432,7 @@ export const layerWith = (options?: LayerOptions) =>
               strictOwner: options?.strictOwner,
             })
             if (committed && options?.publish) {
-              yield* notify(
+              yield* bus.emit(
                 {
                   ...payload,
                   durable: {
@@ -476,7 +441,7 @@ export const layerWith = (options?: LayerOptions) =>
                     version: definition.durable.version,
                   },
                 },
-                true,
+                { isolateListeners: true },
               )
             }
           }
@@ -536,13 +501,6 @@ export const layerWith = (options?: LayerOptions) =>
           .run()
           .pipe(Effect.orDie)
       }
-
-      const subscribe = <D extends Definition>(definition: D): Stream.Stream<Payload<D>> =>
-        Stream.unwrap(getOrCreate(definition).pipe(Effect.map((pubsub) => Stream.fromPubSub(pubsub)))).pipe(
-          Stream.map((event) => event as Payload<D>),
-        )
-
-      const streamAll = (): Stream.Stream<Payload> => Stream.fromPubSub(pubsub.all)
 
       const readAfter = (aggregateID: string, after: number) =>
         (options?.beforeAggregateRead?.(aggregateID) ?? Effect.void).pipe(
@@ -611,15 +569,6 @@ export const layerWith = (options?: LayerOptions) =>
           }),
         )
 
-      const listen = (listener: Subscriber): Effect.Effect<Unsubscribe> =>
-        Effect.sync(() => {
-          listeners.push(listener)
-          return Effect.sync(() => {
-            const index = listeners.indexOf(listener)
-            if (index >= 0) listeners.splice(index, 1)
-          })
-        })
-
       const project = <D extends Definition>(definition: D, projector: Subscriber<D>): Effect.Effect<void> =>
         Effect.sync(() => {
           const list = projectors.get(definition.type) ?? []
@@ -629,10 +578,10 @@ export const layerWith = (options?: LayerOptions) =>
 
       return Service.of({
         publish,
-        subscribe,
-        all: streamAll,
+        subscribe: bus.subscribe,
+        all: bus.all,
         durable,
-        listen,
+        listen: bus.listen,
         project,
         replay,
         replayAll,
@@ -643,4 +592,4 @@ export const layerWith = (options?: LayerOptions) =>
   )
 
 const layer = layerWith()
-export const node = makeGlobalNode({ service: Service, layer: layer, deps: [Database.node] })
+export const node = makeGlobalNode({ service: Service, layer: layer, deps: [Database.node, EventBus.node] })

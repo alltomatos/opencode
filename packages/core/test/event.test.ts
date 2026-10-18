@@ -10,6 +10,7 @@ import { SessionV1 } from "@opencode-ai/schema/session-v1"
 import { Database } from "@opencode-ai/core/database/database"
 import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
+import { EventBus } from "@opencode-ai/core/event/bus"
 import { EventSequenceTable, EventTable } from "@opencode-ai/core/event/sql"
 import { Location } from "@opencode-ai/core/location"
 import { AbsolutePath } from "@opencode-ai/core/schema"
@@ -467,7 +468,9 @@ describe("EventV2", () => {
           pause
             ? Deferred.succeed(readStarted, undefined).pipe(Effect.andThen(Deferred.await(continueRead)))
             : Effect.void,
-      }).pipe(Layer.provide(LayerNode.compile(Database.node)))
+      }).pipe(
+        Layer.provide(Layer.merge(LayerNode.compile(Database.node), LayerNode.compile(EventBus.node))),
+      )
 
       yield* Effect.gen(function* () {
         const events = yield* EventV2.Service
