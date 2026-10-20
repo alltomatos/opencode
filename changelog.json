@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "tag": "v1.21.92",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Fix: Correção de Crash ao Recarregar Projeto (reading 'temperature')",
+              "description": "Corrigido acesso inseguro a agent.request.settings em normalizeAgentList com encadeamento opcional e fallback seguro, prevenindo falha no bootstrap de projetos."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.91",
       "highlights": [
         {
