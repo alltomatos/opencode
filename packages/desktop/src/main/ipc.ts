@@ -23,6 +23,7 @@ import {
   updateTitlebar,
 } from "./windows"
 import { getSystemMaintenanceStatus, runSystemMaintenance } from "./maintenance"
+import { detectLegacyInstallations, importLegacySessions, listLegacySessions } from "./legacy-sessions"
 import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
@@ -110,6 +111,13 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("maintenance-status", () => getSystemMaintenanceStatus())
   ipcMain.handle("maintenance-run", (_event, options?: { purgeOldSessions?: boolean; maxAgeDays?: number; fullVacuum?: boolean }) =>
     runSystemMaintenance(options),
+  )
+  ipcMain.handle("legacy-installations-detect", () => detectLegacyInstallations())
+  ipcMain.handle("legacy-sessions-list", (_event, sourceDbPath: string, targetDirectory?: string) =>
+    listLegacySessions(sourceDbPath, targetDirectory),
+  )
+  ipcMain.handle("legacy-sessions-import", (_event, sourceDbPath: string, sessionIDs: string[], targetDirectory: string) =>
+    importLegacySessions(sourceDbPath, sessionIDs, targetDirectory),
   )
   ipcMain.handle("set-force-focus", (event: IpcMainInvokeEvent, enabled: boolean) =>
     setForceFocus(event.sender, enabled),

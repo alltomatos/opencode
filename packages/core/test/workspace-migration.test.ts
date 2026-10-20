@@ -133,7 +133,6 @@ describe("WorkspaceMigration", () => {
     const program = Effect.gen(function* () {
       const locations = yield* LocationServiceMap.Service
       const globalDb = (yield* Database.GlobalService).db
-      const events = yield* EventV2.Service
 
       const sessionID = SessionSchema.ID.create()
       const now = Date.now()
@@ -161,6 +160,7 @@ describe("WorkspaceMigration", () => {
 
       yield* Effect.gen(function* () {
         // Publicar criação de sessão dentro do escopo de localização do workspace
+        const events = yield* EventV2.Service
         yield* events.publish(SessionV1.Event.Created, { sessionID, info }, { location: { directory: AbsolutePath.make(testDir) } })
       }).pipe(
         Effect.provide(locationEnv),

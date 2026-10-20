@@ -94,6 +94,26 @@ export type ElectronAPI = {
     purgedEvents: number
     durationMs: number
   }>
+  detectLegacyInstallations: () => Promise<Array<{
+    id: string
+    name: string
+    dbPath: string
+    sessionCount: number
+    dbSizeBytes: number
+  }>>
+  listLegacySessions: (sourceDbPath: string, targetDirectory?: string) => Promise<Array<{
+    id: string
+    title: string
+    directory: string
+    timeUpdated: number
+    messageCount: number
+  }>>
+  importLegacySessions: (sourceDbPath: string, sessionIDs: string[], targetDirectory: string) => Promise<{
+    migratedSessions: number
+    migratedMessages: number
+    migratedParts: number
+    migratedEvents: number
+  }>
   updater: UpdaterAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>

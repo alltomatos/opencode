@@ -12,6 +12,10 @@ export function HomeSessions(props: {
     <HomeSessionsView
       language={props.sessions.copy.language}
       groups={props.sessions.data.groups}
+      records={props.sessions.data.records}
+      allSessions={props.sessions.data.allSessions}
+      selectedProject={props.sessions.project.selected}
+      onRefetchSessions={props.sessions.data.refetch}
       showProjectName={props.sessions.session.showProjectName}
       viewMode={props.sessions.view.mode}
       onSetViewMode={props.sessions.view.setMode}

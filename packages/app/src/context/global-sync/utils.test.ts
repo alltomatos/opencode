@@ -41,6 +41,38 @@ describe("normalizeAgentList", () => {
       },
     ])
   })
+
+  test("handles agents without request settings safely", () => {
+    const result = normalizeAgentList([
+      {
+        id: "plan",
+        name: "Plan",
+        mode: "primary",
+        hidden: false,
+        request: { headers: {}, body: {} },
+        system: "Plan tasks",
+        permissions: [],
+      },
+    ] as unknown as AgentListOutput["data"])
+
+    expect(result).toEqual([
+      {
+        name: "plan",
+        description: undefined,
+        mode: "primary",
+        hidden: false,
+        temperature: undefined,
+        topP: undefined,
+        color: undefined,
+        permission: [],
+        model: undefined,
+        variant: undefined,
+        prompt: "Plan tasks",
+        options: {},
+        steps: undefined,
+      },
+    ])
+  })
 })
 
 describe("normalizePermissionRequest", () => {

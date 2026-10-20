@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "tag": "v1.21.92",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "Fix: Correção de Crash ao Recarregar Projeto (reading 'temperature')",
+              "description": "Corrigido acesso inseguro a agent.request.settings em normalizeAgentList com encadeamento opcional e fallback seguro, prevenindo falha no bootstrap de projetos."
+            },
+            {
+              "title": "Rotinas: Painel de Saúde do Scheduler e Detecção de Atraso",
+              "description": "Adicionado monitoramento em tempo real da saúde das rotinas com métricas de sucesso, falhas e detecção de rotinas em atraso."
+            },
+            {
+              "title": "Projetos: KPIs de Consumo e Importação de Sessões",
+              "description": "Adicionados indicadores de tempo gasto, tokens totais e tokens/min no cabeçalho do projeto, além de suporte a importação de sessões legadas."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.91",
       "highlights": [
         {

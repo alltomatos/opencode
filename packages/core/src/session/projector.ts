@@ -225,7 +225,32 @@ const layer = Layer.effectDiscard(
           .returning({ sessionID: SessionTable.id })
           .get()
           .pipe(Effect.orDie)
-        if (!stored) return yield* Effect.die(new SessionAlreadyProjected())
+        if (!stored) {
+          // Reconciliação do índice em caso de redelivery / já projetado (ADR 0006 §3)
+          yield* globalDb
+            .insert(SessionLocationTable)
+            .values({
+              session_id: event.data.info.id,
+              directory: event.data.info.directory,
+              workspace_id: event.data.info.workspaceID,
+              workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+              time_created: event.data.info.time.created,
+              time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+            })
+            .onConflictDoUpdate({
+              target: SessionLocationTable.session_id,
+              set: {
+                directory: event.data.info.directory,
+                workspace_id: event.data.info.workspaceID,
+                workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+                time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+              },
+            })
+            .run()
+            .pipe(Effect.orDie)
+
+          return yield* Effect.die(new SessionAlreadyProjected())
+        }
 
         // 2. Atualizar índice global session_location no globalDb
         yield* globalDb
