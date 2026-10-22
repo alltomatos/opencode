@@ -526,6 +526,14 @@ import type {
   WhatsappIzapiaGroupsResponses,
   WhatsappIzapiaSessionsErrors,
   WhatsappIzapiaSessionsResponses,
+  WhatsappPapiCreateInstanceErrors,
+  WhatsappPapiCreateInstanceResponses,
+  WhatsappPapiGroupsErrors,
+  WhatsappPapiGroupsResponses,
+  WhatsappPapiInstancesErrors,
+  WhatsappPapiInstancesResponses,
+  WhatsappPapiSetupWebhookErrors,
+  WhatsappPapiSetupWebhookResponses,
   WhatsappWebhookErrors,
   WhatsappWebhookResponses,
   WorkspaceSource,
@@ -6815,6 +6823,149 @@ export class Whatsapp extends HeyApiClient {
       ThrowOnError
     >({
       url: "/whatsapp/izapia/group-participants",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List Papi Cloud instances
+   *
+   * Lists WhatsApp instances for the account that owns the given Papi profile token.
+   */
+  public papiInstances<ThrowOnError extends boolean = false>(
+    parameters?: {
+      token?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "body", key: "token" }] }])
+    return (options?.client ?? this.client).post<
+      WhatsappPapiInstancesResponses,
+      WhatsappPapiInstancesErrors,
+      ThrowOnError
+    >({
+      url: "/whatsapp/papi/instances",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Create Papi Cloud instance
+   *
+   * Creates a new WhatsApp instance on Papi Cloud using the profile token.
+   */
+  public papiCreateInstance<ThrowOnError extends boolean = false>(
+    parameters?: {
+      token?: string
+      instanceName?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "body", key: "token" },
+            { in: "body", key: "instanceName" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      WhatsappPapiCreateInstanceResponses,
+      WhatsappPapiCreateInstanceErrors,
+      ThrowOnError
+    >({
+      url: "/whatsapp/papi/create-instance",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Configure Papi Cloud webhook
+   *
+   * Configures real-time inbound webhook on Papi Cloud instance pointing to this agent.
+   */
+  public papiSetupWebhook<ThrowOnError extends boolean = false>(
+    parameters?: {
+      token?: string
+      instanceId?: string
+      webhookUrl?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "body", key: "token" },
+            { in: "body", key: "instanceId" },
+            { in: "body", key: "webhookUrl" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      WhatsappPapiSetupWebhookResponses,
+      WhatsappPapiSetupWebhookErrors,
+      ThrowOnError
+    >({
+      url: "/whatsapp/papi/setup-webhook",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List Papi Cloud groups
+   *
+   * Lists WhatsApp groups across the given Papi instances, deduped by group id.
+   */
+  public papiGroups<ThrowOnError extends boolean = false>(
+    parameters?: {
+      token?: string
+      instanceIds?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "body", key: "token" },
+            { in: "body", key: "instanceIds" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<WhatsappPapiGroupsResponses, WhatsappPapiGroupsErrors, ThrowOnError>({
+      url: "/whatsapp/papi/groups",
       ...options,
       ...params,
       headers: {
