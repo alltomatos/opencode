@@ -316,6 +316,7 @@ export function AgentUIFormPage() {
   // asked for, so it can't be mistaken for "regenerate this agent".
   const [aiOpen, setAiOpen] = createSignal(!isEdit)
   const [aiDescription, setAiDescription] = createSignal("")
+  const [aiModel, setAiModel] = createSignal("")
   const [aiGenerating, setAiGenerating] = createSignal(false)
   const [aiError, setAiError] = createSignal<string | undefined>()
 
@@ -324,7 +325,11 @@ export function AgentUIFormPage() {
     setAiError(undefined)
     setAiGenerating(true)
     try {
-      const result = await serverSDK().client.agentui.generate({ description: aiDescription() })
+      const selectedModel = aiModel().trim() || form.model.trim() || undefined
+      const result = await serverSDK().client.agentui.generate({
+        description: aiDescription(),
+        model: selectedModel,
+      } as any)
       const draft = result.data
       if (!draft) throw new Error(language.t("common.requestFailed"))
       setForm("name", draft.name)
@@ -332,10 +337,23 @@ export function AgentUIFormPage() {
       setForm("commandTriggers", draft.commandTriggers.join(" "))
       setForm("guardrailsEnabled", draft.guardrails.enabled)
       setForm("guardrailsLevel", draft.guardrails.level as "basic" | "strict")
+      if (selectedModel) {
+        setForm("model", selectedModel)
+      } else if (!form.model && (draft as any).model) {
+        setForm("model", (draft as any).model)
+      }
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.agentui.ai.toast.generated") })
       setAiOpen(false)
-    } catch (cause) {
-      setAiError(cause instanceof Error ? cause.message : String(cause))
+    } catch (cause: any) {
+      const reason =
+        cause?.cause?.body?.reason ||
+        cause?.cause?.body?.message ||
+        cause?.data?.reason ||
+        cause?.response?.data?.reason ||
+        cause?.error?.reason ||
+        cause?.message ||
+        String(cause)
+      setAiError(reason)
     } finally {
       setAiGenerating(false)
     }
@@ -722,6 +740,35 @@ export function AgentUIFormPage() {
                           placeholder={language.t("settings.agentui.ai.placeholder")}
                           onInput={(event) => setAiDescription(event.currentTarget.value)}
                         />
+                        <div class="flex flex-col gap-1.5">
+                          <div class="flex items-center justify-between">
+                            <label class="settings-v2-server-dialog-label font-medium text-11-medium">
+                              {language.t("settings.agentui.field.model")} para geração:
+                            </label>
+                            <Show when={aiModel()}>
+                              <button
+                                type="button"
+                                class="text-11-regular text-v2-text-text-muted hover:text-v2-text-text-base underline"
+                                onClick={() => setAiModel("")}
+                              >
+                                Usar padrão do sistema / combo
+                              </button>
+                            </Show>
+                          </div>
+                          <ModelPickerV2
+                            value={aiModel()}
+                            onChange={(value) => setAiModel(value)}
+                            directory={directory()}
+                          />
+                          <Show when={!aiModel()}>
+                            <p class="text-11-regular text-v2-text-text-muted">
+                              Nenhum modelo específico selecionado. Usando:{" "}
+                              <span class="font-medium text-v2-text-text-base">
+                                {form.model ? form.model : "Padrão do sistema / Combo"}
+                              </span>
+                            </p>
+                          </Show>
+                        </div>
                         <Show when={aiError()}>
                           <span class="settings-v2-server-dialog-error">{aiError()}</span>
                         </Show>

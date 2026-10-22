@@ -345,16 +345,16 @@ export function createRoutes(
         [SessionExecution.node, SessionExecutionLocal.node],
       ]),
     ),
-    Layer.provide(locationServiceMapV2),
-
     Layer.provide(
       AppNodeBuilderV1.build(app, [
+        [LocationServiceMap.node, locationServiceMapV2],
         [ScheduleRunner.mcpCallerNode, ScheduleMcpCaller.node],
         [ScheduleRunner.skillCallerNode, ScheduleSkillCaller.node],
         [ScheduleRunner.agentUICallerNode, ScheduleAgentUICaller.node],
         [ScheduleRunner.reminderCallerNode, ScheduleReminderCaller.node],
       ]),
     ),
+    Layer.provide(locationServiceMapV2),
     // Must stay last: layers provided later in this pipe build beneath earlier ones,
     // so Observability must come after every service graph. Otherwise eagerly forked
     // fibers (e.g. the ModelsDev background refresh) capture Effect's default stdout
