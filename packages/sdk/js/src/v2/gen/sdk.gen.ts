@@ -2023,6 +2023,7 @@ export class Agentui extends HeyApiClient {
       directory?: string
       workspace?: string
       description?: string
+      model?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2034,6 +2035,7 @@ export class Agentui extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "body", key: "description" },
+            { in: "body", key: "model" },
           ],
         },
       ],
