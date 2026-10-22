@@ -4,6 +4,8 @@
 // business logic. Keep the two in sync when adding/removing a provider or
 // changing a field name (the backend's `config` keys must match exactly).
 export type WhatsAppProvider =
+  | "papi"
+  | "izapia"
   | "waha"
   | "evolution"
   | "zapi"
@@ -12,7 +14,6 @@ export type WhatsAppProvider =
   | "wuzapi"
   | "quepasa"
   | "wppconnect"
-  | "izapia"
 
 export interface WhatsAppProviderField {
   key: string
@@ -21,6 +22,7 @@ export interface WhatsAppProviderField {
 }
 
 export const WHATSAPP_PROVIDER_LABELS: Record<WhatsAppProvider, string> = {
+  papi: "Papi Cloud (SaaS, papi.api.br)",
   izapia: "izapia",
   waha: "WAHA (self-hosted, Docker)",
   evolution: "Evolution GO (self-hosted, Docker)",
@@ -37,10 +39,15 @@ export const WHATSAPP_PROVIDER_LABELS: Record<WhatsAppProvider, string> = {
 // existe uma URL confirmada (não um chute) — providers self-hosted não têm
 // uma, já que rodam no servidor da própria pessoa.
 export const WHATSAPP_PROVIDER_LINKS: Partial<Record<WhatsAppProvider, string>> = {
+  papi: "https://papi.api.br",
   izapia: "https://app.izapia.com/login",
 }
 
 export const WHATSAPP_PROVIDER_FIELDS: Record<WhatsAppProvider, WhatsAppProviderField[]> = {
+  papi: [
+    { key: "token", required: true, label: "Token do Perfil (x-panel-token do papi.api.br)" },
+    { key: "instanceId", required: false, label: "ID da Instância (opcional, selecione abaixo)" },
+  ],
   waha: [
     { key: "baseUrl", required: true, label: "URL base (ex.: http://localhost:3000)" },
     { key: "apiKey", required: true, label: "API Key (X-Api-Key)" },

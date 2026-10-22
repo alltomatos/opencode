@@ -43,6 +43,8 @@ import "@/components/settings-v2/settings-v2.css"
 // for groups) means only the first visit per key pays that cost.
 const izapiaSessionsCache = new Map<string, { id: string; name?: string; status: string; jid?: string }[]>()
 const izapiaGroupsCache = new Map<string, { id: string; subject: string; sessionId: string; participantCount: number }[]>()
+const papiInstancesCache = new Map<string, { id: string; name?: string; status: string; jid?: string }[]>()
+const papiGroupsCache = new Map<string, { id: string; subject: string; sessionId: string; participantCount: number }[]>()
 
 type RagSource = { id: string; kind: "text" | "url"; label: string; value: string }
 type AgentUIFormState = {
@@ -89,7 +91,7 @@ function emptyForm(): AgentUIFormState {
     telegram: false,
     telegramToken: "",
     whatsapp: false,
-    whatsappProvider: "izapia",
+    whatsappProvider: "papi",
     whatsappConfig: {},
     whatsappSessionIds: [],
     whatsappAllowedGroups: [],
@@ -172,7 +174,7 @@ export function AgentUIFormPage() {
       telegram: agent.channels.some((c) => c.type === "telegram"),
       telegramToken: agent.channels.find((c) => c.type === "telegram")?.token ?? "",
       whatsapp: agent.channels.some((c) => c.type === "whatsapp"),
-      whatsappProvider: (agent.channels.find((c) => c.type === "whatsapp")?.provider as WhatsAppProvider) ?? "waha",
+      whatsappProvider: (agent.channels.find((c) => c.type === "whatsapp")?.provider as WhatsAppProvider) ?? "papi",
       whatsappConfig: agent.channels.find((c) => c.type === "whatsapp")?.config ?? {},
       whatsappSessionIds: [...(agent.channels.find((c) => c.type === "whatsapp")?.sessionIds ?? [])],
       whatsappAllowedGroups: [...(agent.channels.find((c) => c.type === "whatsapp")?.allowedGroups ?? [])],
@@ -201,12 +203,20 @@ export function AgentUIFormPage() {
     const agent = existing()
     if (!agent || !isEdit) return
     const channel = agent.channels.find((c) => c.type === "whatsapp")
-    if (channel?.type !== "whatsapp" || channel.provider !== "izapia") return
-    const apiKey = channel.config.apiKey?.trim()
-    if (!apiKey) return
-    void fetchIzapiaSessions().then(() => {
-      if (form.whatsappSessionIds.length > 0) void fetchIzapiaGroups()
-    })
+    if (channel?.type !== "whatsapp") return
+    if (channel.provider === "papi") {
+      const token = channel.config.token?.trim()
+      if (!token) return
+      void fetchPapiInstances().then(() => {
+        if (form.whatsappSessionIds.length > 0) void fetchPapiGroups()
+      })
+    } else if (channel.provider === "izapia") {
+      const apiKey = channel.config.apiKey?.trim()
+      if (!apiKey) return
+      void fetchIzapiaSessions().then(() => {
+        if (form.whatsappSessionIds.length > 0) void fetchIzapiaGroups()
+      })
+    }
   })
 
   const addRagSource = () =>
@@ -299,6 +309,131 @@ export function AgentUIFormPage() {
   const toggleIzapiaGroup = (id: string, checked: boolean) =>
     setForm("whatsappAllowedGroups", (list) => (checked ? [...list, id] : list.filter((item) => item !== id)))
 
+  const [papiInstances, setPapiInstances] = createSignal<
+    { id: string; name?: string; status: string; jid?: string }[]
+  >([])
+  const [papiInstancesLoading, setPapiInstancesLoading] = createSignal(false)
+  const [papiInstancesError, setPapiInstancesError] = createSignal<string | undefined>()
+
+  const [papiGroups, setPapiGroups] = createSignal<
+    { id: string; subject: string; sessionId: string; participantCount: number }[]
+  >([])
+  const [papiGroupsLoading, setPapiGroupsLoading] = createSignal(false)
+  const [papiGroupsError, setPapiGroupsError] = createSignal<string | undefined>()
+
+  const [papiWebhookConfiguring, setPapiWebhookConfiguring] = createSignal(false)
+  const [papiWebhookSuccess, setPapiWebhookSuccess] = createSignal<string | undefined>()
+  const [papiWebhookError, setPapiWebhookError] = createSignal<string | undefined>()
+
+  const [papiCreatingInstance, setPapiCreatingInstance] = createSignal(false)
+  const [papiNewInstanceName, setPapiNewInstanceName] = createSignal("")
+  const [papiCreateError, setPapiCreateError] = createSignal<string | undefined>()
+
+  const fetchPapiInstances = async (options?: { force?: boolean }) => {
+    const token = form.whatsappConfig.token?.trim()
+    if (!token || papiInstancesLoading()) return
+    if (!options?.force) {
+      const cached = papiInstancesCache.get(token)
+      if (cached) {
+        setPapiInstances(cached)
+        return
+      }
+    }
+    setPapiInstancesError(undefined)
+    setPapiInstancesLoading(true)
+    try {
+      const result = await serverSDK().client.whatsapp.papiInstances({ token })
+      papiInstancesCache.set(token, result.data ?? [])
+      setPapiInstances(result.data ?? [])
+      if (!result.data?.length) setPapiInstancesError("Nenhuma instância encontrada para este token na Papi Cloud.")
+    } catch (cause) {
+      setPapiInstancesError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setPapiInstancesLoading(false)
+    }
+  }
+
+  const togglePapiInstance = (id: string, checked: boolean) => {
+    setForm("whatsappSessionIds", (list) => (checked ? [...list, id] : list.filter((item) => item !== id)))
+    setPapiGroups([])
+    setPapiGroupsError(undefined)
+    setForm("whatsappAllowedGroups", [])
+  }
+
+  const fetchPapiGroups = async (options?: { force?: boolean }) => {
+    const token = form.whatsappConfig.token?.trim()
+    if (!token || form.whatsappSessionIds.length === 0 || papiGroupsLoading()) return
+    const cacheKey = `${token}:${[...form.whatsappSessionIds].sort().join(",")}`
+    if (!options?.force) {
+      const cached = papiGroupsCache.get(cacheKey)
+      if (cached) {
+        setPapiGroups(cached)
+        return
+      }
+    }
+    setPapiGroupsError(undefined)
+    setPapiGroupsLoading(true)
+    try {
+      const result = await serverSDK().client.whatsapp.papiGroups({ token, instanceIds: form.whatsappSessionIds })
+      const groups = (result.data ?? []).map((group) => ({ ...group, participantCount: Number(group.participantCount) }))
+      papiGroupsCache.set(cacheKey, groups)
+      setPapiGroups(groups)
+      if (!result.data?.length) setPapiGroupsError("Nenhum grupo encontrado nas instâncias selecionadas.")
+    } catch (cause) {
+      setPapiGroupsError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setPapiGroupsLoading(false)
+    }
+  }
+
+  const configurePapiWebhook = async (instanceId: string) => {
+    const token = form.whatsappConfig.token?.trim()
+    if (!token || !instanceId || papiWebhookConfiguring()) return
+    let secret = form.whatsappWebhookSecret
+    if (!secret) {
+      secret = crypto.randomUUID()
+      setForm("whatsappWebhookSecret", secret)
+    }
+    const base = (publicTunnelUrl() ?? form.whatsappPublicUrl ?? serverSDK().url).replace(/\/$/, "")
+    const dir = form.whatsappDirectory ? `?directory=${encodeURIComponent(form.whatsappDirectory)}` : ""
+    const url = `${base}/whatsapp/webhook/${form.id}/${secret}${dir}`
+    setPapiWebhookConfiguring(true)
+    setPapiWebhookError(undefined)
+    setPapiWebhookSuccess(undefined)
+    try {
+      await serverSDK().client.whatsapp.papiSetupWebhook({
+        token,
+        instanceId,
+        webhookUrl: url,
+      })
+      setPapiWebhookSuccess(`Webhook configurado com sucesso na Papi Cloud (${instanceId})!`)
+    } catch (cause) {
+      setPapiWebhookError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setPapiWebhookConfiguring(false)
+    }
+  }
+
+  const createPapiInstance = async () => {
+    const token = form.whatsappConfig.token?.trim()
+    const name = papiNewInstanceName().trim()
+    if (!token || !name || papiCreatingInstance()) return
+    setPapiCreatingInstance(true)
+    setPapiCreateError(undefined)
+    try {
+      const res = await serverSDK().client.whatsapp.papiCreateInstance({ token, instanceName: name })
+      setPapiNewInstanceName("")
+      await fetchPapiInstances({ force: true })
+      if (res.data?.id) {
+        setForm("whatsappSessionIds", (list) => [...list, res.data.id])
+      }
+    } catch (cause) {
+      setPapiCreateError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setPapiCreatingInstance(false)
+    }
+  }
+
   // Audit log: one row per real turn (incoming message + the agent's
   // reply), across every channel — see AgentUI.Service.logAudit. A dedicated
   // full-page view (AgentUIAuditPage, /agentui/:id/audit), not a tab here —
@@ -308,6 +443,22 @@ export function AgentUIFormPage() {
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal<string | undefined>()
   const [filterAudioOnly, setFilterAudioOnly] = createSignal(false)
+  const [activeTab, setActiveTab] = createSignal<string>("general")
+  const [manualGroupId, setManualGroupId] = createSignal("")
+
+  const addManualGroup = () => {
+    const raw = manualGroupId().trim()
+    if (!raw) return
+    const id = raw.includes("@") ? raw : `${raw}@g.us`
+    if (!form.whatsappAllowedGroups.includes(id)) {
+      setForm("whatsappAllowedGroups", (list) => [...list, id])
+    }
+    setManualGroupId("")
+  }
+
+  const removeGroup = (groupId: string) => {
+    setForm("whatsappAllowedGroups", (list) => list.filter((id) => id !== groupId))
+  }
 
   // "Criar com IA": one-shot generation, not a conversation — the user
   // describes the agent once, the draft lands in the form fields below for
@@ -316,6 +467,7 @@ export function AgentUIFormPage() {
   // asked for, so it can't be mistaken for "regenerate this agent".
   const [aiOpen, setAiOpen] = createSignal(!isEdit)
   const [aiDescription, setAiDescription] = createSignal("")
+  const [aiModel, setAiModel] = createSignal("")
   const [aiGenerating, setAiGenerating] = createSignal(false)
   const [aiError, setAiError] = createSignal<string | undefined>()
 
@@ -324,7 +476,11 @@ export function AgentUIFormPage() {
     setAiError(undefined)
     setAiGenerating(true)
     try {
-      const result = await serverSDK().client.agentui.generate({ description: aiDescription() })
+      const selectedModel = aiModel().trim() || form.model.trim() || undefined
+      const result = await serverSDK().client.agentui.generate({
+        description: aiDescription(),
+        model: selectedModel,
+      } as any)
       const draft = result.data
       if (!draft) throw new Error(language.t("common.requestFailed"))
       setForm("name", draft.name)
@@ -332,28 +488,93 @@ export function AgentUIFormPage() {
       setForm("commandTriggers", draft.commandTriggers.join(" "))
       setForm("guardrailsEnabled", draft.guardrails.enabled)
       setForm("guardrailsLevel", draft.guardrails.level as "basic" | "strict")
+      if (selectedModel) {
+        setForm("model", selectedModel)
+      } else if (!form.model && (draft as any).model) {
+        setForm("model", (draft as any).model)
+      }
       showToast({ variant: "success", icon: "circle-check", title: language.t("settings.agentui.ai.toast.generated") })
       setAiOpen(false)
-    } catch (cause) {
-      setAiError(cause instanceof Error ? cause.message : String(cause))
+    } catch (cause: any) {
+      const reason =
+        cause?.cause?.body?.reason ||
+        cause?.cause?.body?.message ||
+        cause?.data?.reason ||
+        cause?.response?.data?.reason ||
+        cause?.error?.reason ||
+        cause?.message ||
+        String(cause)
+      setAiError(reason)
     } finally {
       setAiGenerating(false)
     }
   }
 
   const save = async () => {
-    if (!form.name.trim() || !form.model) {
-      setError(language.t("settings.agentui.error.incomplete"))
+    if (!form.name.trim()) {
+      setActiveTab("general")
+      const msg = "Dê um nome ao agente na aba Geral antes de salvar."
+      setError(msg)
+      showToast({
+        variant: "error",
+        title: "Nome do agente obrigatório",
+        description: msg,
+      })
+      return
+    }
+    if (!form.model) {
+      setActiveTab("general")
+      const msg = "Selecione o Modelo de IA na aba Geral antes de salvar."
+      setError(msg)
+      showToast({
+        variant: "error",
+        title: "Modelo de IA obrigatório",
+        description: msg,
+      })
       return
     }
     const ownBotToken = form.telegram ? form.telegramToken.trim() : ""
-    const whatsappFields = WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]
-    const whatsappMissingField = form.whatsapp && whatsappFields.some((f) => f.required && !form.whatsappConfig[f.key]?.trim())
-    const whatsappMissingSession =
-      form.whatsapp && form.whatsappProvider === "izapia" && form.whatsappSessionIds.length === 0
-    if (form.whatsapp && (whatsappMissingField || whatsappMissingSession)) {
-      setError(language.t("settings.agentui.error.whatsappIncomplete"))
-      return
+    if (form.whatsapp) {
+      const whatsappFields = WHATSAPP_PROVIDER_FIELDS[form.whatsappProvider]
+      const missingField = whatsappFields.find((f) => f.required && !form.whatsappConfig[f.key]?.trim())
+      if (missingField) {
+        setActiveTab("channels")
+        const msg = `Preencha o campo obrigatório "${missingField.label}" nas configurações do WhatsApp.`
+        setError(msg)
+        showToast({
+          variant: "error",
+          title: "Campo obrigatório do WhatsApp",
+          description: msg,
+        })
+        return
+      }
+
+      if (form.whatsappProvider === "papi") {
+        const manualInstance = form.whatsappConfig.instanceId?.trim()
+        if (manualInstance && !form.whatsappSessionIds.includes(manualInstance)) {
+          setForm("whatsappSessionIds", (list) => [...list, manualInstance])
+        }
+      }
+
+      const whatsappMissingSession =
+        (form.whatsappProvider === "izapia" || form.whatsappProvider === "papi") &&
+        form.whatsappSessionIds.length === 0 &&
+        !form.whatsappConfig.instanceId?.trim()
+
+      if (whatsappMissingSession) {
+        setActiveTab("channels")
+        const msg =
+          form.whatsappProvider === "papi"
+            ? "Selecione ou crie pelo menos uma instância da Papi Cloud para o agente escutar."
+            : "Selecione pelo menos uma sessão do WhatsApp para o agente escutar."
+        setError(msg)
+        showToast({
+          variant: "error",
+          title: "Instância do WhatsApp necessária",
+          description: msg,
+        })
+        return
+      }
     }
     setError(undefined)
     setSaving(true)
@@ -388,8 +609,14 @@ export function AgentUIFormPage() {
         type: "whatsapp",
         provider: form.whatsappProvider,
         config: form.whatsappConfig,
-        sessionIds: form.whatsappProvider === "izapia" ? form.whatsappSessionIds : undefined,
-        allowedGroups: form.whatsappProvider === "izapia" ? form.whatsappAllowedGroups : undefined,
+        sessionIds:
+          form.whatsappProvider === "izapia" || form.whatsappProvider === "papi"
+            ? form.whatsappSessionIds
+            : undefined,
+        allowedGroups:
+          form.whatsappProvider === "izapia" || form.whatsappProvider === "papi"
+            ? form.whatsappAllowedGroups
+            : undefined,
         allowedSenders: senders.length > 0 ? senders : undefined,
         groupAllowedSenders:
           Object.keys(form.whatsappGroupAllowedSenders).length > 0 ? form.whatsappGroupAllowedSenders : undefined,
@@ -432,9 +659,12 @@ export function AgentUIFormPage() {
       setEverSaved(true)
       if (!isEdit) navigate(`/agentui/${form.id}/edit`, { replace: true })
     } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause)
+      setError(message)
       showToast({
+        variant: "error",
         title: language.t("common.requestFailed"),
-        description: cause instanceof Error ? cause.message : String(cause),
+        description: message,
       })
     } finally {
       setSaving(false)
@@ -586,9 +816,25 @@ export function AgentUIFormPage() {
         />
       </div>
 
+      <Show when={error()}>
+        <div class="flex items-center justify-between border-b border-red-500/30 bg-red-500/10 px-4 py-2.5 text-13-regular text-red-400 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-14-medium">⚠️</span>
+            <span class="font-medium">{error()}</span>
+          </div>
+          <IconButtonV2
+            variant="ghost-muted"
+            size="small"
+            icon={<IconV2 name="xmark-small" />}
+            aria-label="Fechar erro"
+            onClick={() => setError(undefined)}
+          />
+        </div>
+      </Show>
+
       <Show when={ready()} fallback={<GlobalLoading size="normal" class="flex-1" />}>
         <div class="flex min-h-0 flex-1 flex-col">
-          <TabsV2 defaultValue="general" class="flex min-h-0 flex-1 flex-col">
+          <TabsV2 value={activeTab()} onChange={setActiveTab} class="flex min-h-0 flex-1 flex-col">
             <div class="border-b border-v2-border-border-base bg-v2-background-bg-layer-01/40 px-3">
               <TabsV2.List>
                 <TabsV2.Trigger value="general">{language.t("settings.agentui.tabs.general")}</TabsV2.Trigger>
@@ -722,6 +968,35 @@ export function AgentUIFormPage() {
                           placeholder={language.t("settings.agentui.ai.placeholder")}
                           onInput={(event) => setAiDescription(event.currentTarget.value)}
                         />
+                        <div class="flex flex-col gap-1.5">
+                          <div class="flex items-center justify-between">
+                            <label class="settings-v2-server-dialog-label font-medium text-11-medium">
+                              {language.t("settings.agentui.field.model")} para geração:
+                            </label>
+                            <Show when={aiModel()}>
+                              <button
+                                type="button"
+                                class="text-11-regular text-v2-text-text-muted hover:text-v2-text-text-base underline"
+                                onClick={() => setAiModel("")}
+                              >
+                                Usar padrão do sistema / combo
+                              </button>
+                            </Show>
+                          </div>
+                          <ModelPickerV2
+                            value={aiModel()}
+                            onChange={(value) => setAiModel(value)}
+                            directory={directory()}
+                          />
+                          <Show when={!aiModel()}>
+                            <p class="text-11-regular text-v2-text-text-muted">
+                              Nenhum modelo específico selecionado. Usando:{" "}
+                              <span class="font-medium text-v2-text-text-base">
+                                {form.model ? form.model : "Padrão do sistema / Combo"}
+                              </span>
+                            </p>
+                          </Show>
+                        </div>
                         <Show when={aiError()}>
                           <span class="settings-v2-server-dialog-error">{aiError()}</span>
                         </Show>
@@ -782,6 +1057,12 @@ export function AgentUIFormPage() {
                                   setIzapiaSessionsError(undefined)
                                   setIzapiaGroups([])
                                   setIzapiaGroupsError(undefined)
+                                  setPapiInstances([])
+                                  setPapiInstancesError(undefined)
+                                  setPapiGroups([])
+                                  setPapiGroupsError(undefined)
+                                  setPapiWebhookSuccess(undefined)
+                                  setPapiWebhookError(undefined)
                                 }}
                               >
                                 <For each={Object.entries(WHATSAPP_PROVIDER_LABELS)}>
@@ -988,6 +1269,300 @@ export function AgentUIFormPage() {
                                   checked={form.whatsappMentionOnly}
                                   onChange={(checked) => setForm("whatsappMentionOnly", checked)}
                                 />
+                              </div>
+                            </Show>
+
+                            <Show when={form.whatsappProvider === "papi"}>
+                              <div class="flex flex-col gap-2 rounded-lg border border-v2-border-border-base bg-v2-background-bg-layer-02/60 p-3.5">
+                                <div class="flex items-center gap-2 text-v2-text-text-base font-medium text-13-medium">
+                                  <span class="flex h-5 w-5 items-center justify-center rounded-full bg-v2-primary-primary-base/20 text-v2-primary-primary-base text-11-medium">ℹ</span>
+                                  Como conectar a Papi Cloud (papi.api.br)
+                                </div>
+                                <p class="text-12-regular text-v2-text-text-muted leading-relaxed">
+                                  1. Acesse o painel em <a href="https://papi.api.br" target="_blank" rel="noreferrer" class="text-v2-text-text-accent underline font-medium">papi.api.br</a> e faça login.<br />
+                                  2. No menu do seu perfil, copie o seu <strong>Token do Perfil</strong> (<code class="font-mono text-11-regular px-1 py-0.5 rounded bg-v2-surface-surface-base">x-panel-token</code>).<br />
+                                  3. Cole o token no campo acima e clique em <strong>Buscar Instâncias</strong> para carregar ou criar conexões.<br />
+                                  4. Selecione a instância desejada e clique em <strong>Configurar Webhook</strong> para receber mensagens automaticamente.
+                                </p>
+                              </div>
+
+                              <div class="flex flex-col gap-3 p-1">
+                                <div class="flex items-center justify-between">
+                                  <div>
+                                    <label class="settings-v2-server-dialog-label font-medium">
+                                      Instâncias Papi Cloud
+                                    </label>
+                                    <p class="text-11-regular text-v2-text-text-muted mt-0.5">Marque quais instâncias este agente deve escutar.</p>
+                                  </div>
+                                  <ButtonV2
+                                    variant="outline"
+                                    size="small"
+                                    disabled={!form.whatsappConfig.token?.trim() || papiInstancesLoading()}
+                                    onClick={() => void fetchPapiInstances({ force: true })}
+                                  >
+                                    {papiInstancesLoading() ? "Carregando…" : "Buscar Instâncias ⟳"}
+                                  </ButtonV2>
+                                </div>
+
+                                <Show when={papiInstancesError()}>
+                                  <span class="settings-v2-server-dialog-error">{papiInstancesError()}</span>
+                                </Show>
+
+                                <div class="flex items-center gap-2 rounded-md border border-dashed border-v2-border-border-base/70 p-2 bg-v2-background-bg-layer-01/30">
+                                  <TextInputV2
+                                    class="flex-1"
+                                    placeholder="Nome da nova instância (ex: suporte-atendimento)"
+                                    value={papiNewInstanceName()}
+                                    onInput={(e) => setPapiNewInstanceName(e.currentTarget.value)}
+                                  />
+                                  <ButtonV2
+                                    variant="outline"
+                                    size="small"
+                                    disabled={!papiNewInstanceName().trim() || !form.whatsappConfig.token?.trim() || papiCreatingInstance()}
+                                    onClick={() => void createPapiInstance()}
+                                  >
+                                    {papiCreatingInstance() ? "Criando…" : "+ Criar Instância"}
+                                  </ButtonV2>
+                                </div>
+                                <Show when={papiCreateError()}>
+                                  <span class="settings-v2-server-dialog-error">{papiCreateError()}</span>
+                                </Show>
+
+                                <Show when={papiInstances().length > 0}>
+                                  <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                                    <For each={papiInstances()}>
+                                      {(instance) => (
+                                        <div
+                                          class={`
+                                            flex items-center justify-between gap-2 rounded-md border
+                                            px-3 py-2 text-13-regular transition-all duration-150
+                                            ${
+                                              form.whatsappSessionIds.includes(instance.id)
+                                                ? "border-v2-border-border-base bg-v2-background-bg-layer-02/70 text-v2-text-text-base shadow-sm"
+                                                : "border-v2-border-border-base/50 bg-v2-surface-surface-raised/20 text-v2-text-text-muted hover:border-v2-border-border-base hover:bg-v2-background-bg-layer-01"
+                                            }
+                                          `}
+                                        >
+                                          <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+                                            <input
+                                              type="checkbox"
+                                              class="rounded border-v2-border-border-base text-v2-primary-primary-base focus:ring-1 focus:ring-v2-border-border-focus"
+                                              checked={form.whatsappSessionIds.includes(instance.id)}
+                                              onChange={(event) => togglePapiInstance(instance.id, event.currentTarget.checked)}
+                                            />
+                                            <span class="truncate font-medium text-v2-text-text-base">
+                                              {instance.name || instance.jid || instance.id}
+                                            </span>
+                                          </label>
+                                          <div class="flex items-center gap-2 shrink-0">
+                                            <ButtonV2
+                                              variant="outline"
+                                              size="small"
+                                              class="text-11-medium px-2 py-0.5 h-6"
+                                              disabled={papiWebhookConfiguring()}
+                                              onClick={(e: MouseEvent) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                void configurePapiWebhook(instance.id)
+                                              }}
+                                            >
+                                              {papiWebhookConfiguring() ? "Configurando…" : "Configurar Webhook"}
+                                            </ButtonV2>
+                                            <span class="shrink-0 rounded px-1.5 py-0.5 text-11-regular font-mono bg-v2-surface-surface-base text-v2-text-text-muted border border-v2-border-border-base">
+                                              {instance.status}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </For>
+                                  </div>
+                                </Show>
+
+                                <Show when={papiWebhookSuccess()}>
+                                  <span class="text-12-medium text-emerald-500">{papiWebhookSuccess()}</span>
+                                </Show>
+                                <Show when={papiWebhookError()}>
+                                  <span class="settings-v2-server-dialog-error">{papiWebhookError()}</span>
+                                </Show>
+                              </div>
+
+                              <div class="flex flex-col gap-4 rounded-lg border border-v2-border-border-base bg-v2-background-bg-layer-01/40 p-4">
+                                <div class="border-b border-v2-border-border-base pb-3">
+                                  <span class="text-13-medium text-v2-text-text-base">Regras de Comunicação &amp; Allowlist (Papi Cloud)</span>
+                                  <p class="text-11-regular text-v2-text-text-muted mt-0.5">
+                                    Defina quais números e grupos o agente tem permissão para responder.
+                                  </p>
+                                </div>
+
+                                {/* Allowlist de Contatos / Telefones */}
+                                <div class="flex flex-col gap-2">
+                                  <div class="flex items-center justify-between">
+                                    <label class="settings-v2-server-dialog-label font-medium">
+                                      Allowlist de Números / Contatos Permitidos
+                                    </label>
+                                    <Show
+                                      when={form.whatsappAllowedSenders.trim()}
+                                      fallback={
+                                        <span class="rounded bg-emerald-500/10 px-2 py-0.5 text-10-medium text-emerald-400 border border-emerald-500/20">
+                                          🔓 Aberto ao público (responde a todos)
+                                        </span>
+                                      }
+                                    >
+                                      <span class="rounded bg-amber-500/10 px-2 py-0.5 text-10-medium text-amber-400 border border-amber-500/20">
+                                        🔒 Restrito ({form.whatsappAllowedSenders.split(/[,\n]/).filter((s) => s.trim().length > 0).length} número(s) autorizados)
+                                      </span>
+                                    </Show>
+                                  </div>
+                                  <TextInputV2
+                                    value={form.whatsappAllowedSenders}
+                                    onInput={(event) => setForm("whatsappAllowedSenders", event.currentTarget.value)}
+                                    placeholder="ex.: 5511999998888, 5585998490991 (separados por vírgula)"
+                                  />
+                                  <p class="text-11-regular text-v2-text-text-muted leading-relaxed">
+                                    Informe os telefones com DDI e DDD autorizados a conversar com o agente. Deixe em <strong>branco</strong> para permitir que qualquer pessoa converse com o agente.
+                                  </p>
+                                </div>
+
+                                {/* Allowlist de Grupos */}
+                                <div class="flex flex-col gap-3 pt-3 border-t border-v2-border-border-base/70">
+                                  <div class="flex items-center justify-between">
+                                    <div>
+                                      <label class="settings-v2-server-dialog-label font-medium">
+                                        Allowlist de Grupos do WhatsApp
+                                      </label>
+                                      <p class="text-11-regular text-v2-text-text-muted mt-0.5">
+                                        Marque ou adicione os grupos autorizados. Grupos não listados serão ignorados pelo agente.
+                                      </p>
+                                    </div>
+                                    <ButtonV2
+                                      variant="outline"
+                                      size="small"
+                                      disabled={form.whatsappSessionIds.length === 0 || papiGroupsLoading()}
+                                      onClick={() => void fetchPapiGroups({ force: true })}
+                                    >
+                                      {papiGroupsLoading() ? "Carregando…" : "Buscar grupos ⟳"}
+                                    </ButtonV2>
+                                  </div>
+
+                                  <div class="flex items-center gap-2">
+                                    <TextInputV2
+                                      class="flex-1"
+                                      placeholder="Adicionar ID de grupo manualmente (ex: 120363028391823901@g.us)"
+                                      value={manualGroupId()}
+                                      onInput={(e) => setManualGroupId(e.currentTarget.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault()
+                                          addManualGroup()
+                                        }
+                                      }}
+                                    />
+                                    <ButtonV2
+                                      variant="outline"
+                                      size="small"
+                                      disabled={!manualGroupId().trim()}
+                                      onClick={addManualGroup}
+                                    >
+                                      + Adicionar ID
+                                    </ButtonV2>
+                                  </div>
+
+                                  <Show when={papiGroupsError()}>
+                                    <span class="settings-v2-server-dialog-error">{papiGroupsError()}</span>
+                                  </Show>
+
+                                  <Show
+                                    when={form.whatsappAllowedGroups.length > 0}
+                                    fallback={
+                                      <p class="text-11-regular text-v2-text-text-muted italic">
+                                        Nenhum grupo autorizado. O agente só responderá a conversas diretas individuais.
+                                      </p>
+                                    }
+                                  >
+                                    <div class="flex flex-col gap-1.5">
+                                      <span class="text-11-medium text-v2-text-text-base">
+                                        Grupos autorizados ({form.whatsappAllowedGroups.length}):
+                                      </span>
+                                      <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                                        <For each={form.whatsappAllowedGroups}>
+                                          {(groupId) => {
+                                            const group = papiGroups().find((g) => g.id === groupId)
+                                            return (
+                                              <span class="inline-flex items-center gap-1.5 rounded-md border border-v2-border-border-base bg-v2-surface-surface-raised px-2.5 py-1 text-12-regular text-v2-text-text-base">
+                                                <span class="truncate max-w-[200px]">{group?.subject || groupId}</span>
+                                                <button
+                                                  type="button"
+                                                  class="text-v2-text-text-muted hover:text-red-400 transition-colors ml-1 font-bold"
+                                                  onClick={() => removeGroup(groupId)}
+                                                  aria-label="Remover grupo"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </span>
+                                            )
+                                          }}
+                                        </For>
+                                      </div>
+                                    </div>
+                                  </Show>
+
+                                  <Show when={papiGroups().length > 0}>
+                                    <div class="flex flex-col gap-1.5 mt-1">
+                                      <span class="text-11-medium text-v2-text-text-base">Grupos encontrados na sua conta:</span>
+                                      <div class="flex flex-col gap-1 max-h-48 overflow-y-auto pr-1">
+                                        <For each={papiGroups()}>
+                                          {(group) => (
+                                            <label
+                                              class={`
+                                                flex items-center justify-between gap-2 rounded-md border
+                                                px-3 py-1.5 text-12-regular transition-all duration-150 cursor-pointer
+                                                ${
+                                                  form.whatsappAllowedGroups.includes(group.id)
+                                                    ? "border-v2-border-border-base bg-v2-background-bg-layer-02/70 text-v2-text-text-base shadow-sm"
+                                                    : "border-v2-border-border-base/50 bg-v2-surface-surface-raised/20 text-v2-text-text-muted hover:border-v2-border-border-base hover:bg-v2-background-bg-layer-01"
+                                                }
+                                              `}
+                                            >
+                                              <span class="flex min-w-0 flex-1 items-center gap-2">
+                                                <input
+                                                  type="checkbox"
+                                                  class="rounded border-v2-border-border-base text-v2-primary-primary-base focus:ring-1 focus:ring-v2-border-border-focus"
+                                                  checked={form.whatsappAllowedGroups.includes(group.id)}
+                                                  onChange={(event) =>
+                                                    setForm("whatsappAllowedGroups", (list) =>
+                                                      event.currentTarget.checked
+                                                        ? [...list, group.id]
+                                                        : list.filter((item) => item !== group.id),
+                                                    )
+                                                  }
+                                                />
+                                                <span class="truncate font-medium text-v2-text-text-base">{group.subject}</span>
+                                              </span>
+                                              <span class="rounded px-1.5 py-0.5 text-10-regular font-mono bg-v2-surface-surface-base text-v2-text-text-muted border border-v2-border-border-base shrink-0">
+                                                {group.participantCount ? `${group.participantCount} membros` : group.id}
+                                              </span>
+                                            </label>
+                                          )}
+                                        </For>
+                                      </div>
+                                    </div>
+                                  </Show>
+
+                                  <div class="flex items-center justify-between rounded-lg border border-v2-border-border-base bg-v2-background-bg-layer-01/30 p-3 mt-1">
+                                    <div class="flex flex-col gap-0.5 pr-4">
+                                      <span class="text-12-medium text-v2-text-text-base">
+                                        Apenas quando mencionado (@) nos grupos
+                                      </span>
+                                      <p class="text-11-regular text-v2-text-text-muted">
+                                        Quando ativado, o agente só responderá nos grupos autorizados se for expressamente marcado com @ ou citado.
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={form.whatsappMentionOnly}
+                                      onChange={(checked) => setForm("whatsappMentionOnly", checked)}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </Show>
 

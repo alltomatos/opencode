@@ -9,12 +9,21 @@ import { wuzapi } from "waconector/wuzapi"
 import { quepasa } from "waconector/quepasa"
 import { wppconnect } from "waconector/wppconnect"
 import { izapia } from "waconector/izapia"
+import { papi } from "./papi"
 
 export const IZAPIA_BASE_URL = "https://api.izapia.com"
 
 export function buildAdapter(channel: ConfigAgentUIV1.WhatsAppChannelBinding, sidOverride?: string): WaAdapter {
   const cfg = channel.config
   switch (channel.provider) {
+    case "papi":
+      return papi({
+        token: cfg.token ?? "",
+        instanceId: sidOverride || channel.sessionIds?.[0] || cfg.instanceId || "",
+        apiKey: cfg.apiKey,
+        baseUrl: cfg.baseUrl,
+        panelUrl: cfg.panelUrl,
+      })
     case "waha":
       return waha({ baseUrl: cfg.baseUrl ?? "", apiKey: cfg.apiKey, session: sidOverride ?? cfg.session })
     case "evolution":

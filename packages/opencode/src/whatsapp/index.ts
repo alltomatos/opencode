@@ -10,6 +10,7 @@ import os from "node:os"
 import { createConnector, type WaAdapter, type WaMessage } from "waconector"
 import { izapia } from "waconector/izapia"
 import { buildAdapter, IZAPIA_BASE_URL } from "./adapter"
+import { papi, PAPI_BASE_URL, PAPI_PANEL_URL } from "./papi"
 
 export { buildAdapter }
 
@@ -65,6 +66,23 @@ export const IzapiaGroupParticipant = Schema.Struct({
   isSuperAdmin: Schema.Boolean,
 })
 export type IzapiaGroupParticipant = Schema.Schema.Type<typeof IzapiaGroupParticipant>
+
+export const PapiInstance = Schema.Struct({
+  id: Schema.String,
+  name: Schema.optional(Schema.String),
+  status: Schema.String,
+  jid: Schema.optional(Schema.String),
+  apiKey: Schema.optional(Schema.String),
+})
+export type PapiInstance = Schema.Schema.Type<typeof PapiInstance>
+
+export const PapiGroup = Schema.Struct({
+  id: Schema.String,
+  subject: Schema.String,
+  sessionId: Schema.String,
+  participantCount: Schema.Number,
+})
+export type PapiGroup = Schema.Schema.Type<typeof PapiGroup>
 
 // izapia is multi-tenant / multi-session: its API base is fixed across all
 // accounts (unlike self-hosted WAHA/Evolution which need a user-provided
@@ -203,6 +221,22 @@ export interface Interface {
     sid: string
     groupId: string
   }) => Effect.Effect<IzapiaGroupParticipant[], WhatsAppProviderApiError>
+  readonly listPapiInstances: (input: {
+    token: string
+  }) => Effect.Effect<PapiInstance[], WhatsAppProviderApiError>
+  readonly createPapiInstance: (input: {
+    token: string
+    instanceName: string
+  }) => Effect.Effect<PapiInstance, WhatsAppProviderApiError>
+  readonly setupPapiWebhook: (input: {
+    token: string
+    instanceId: string
+    webhookUrl: string
+  }) => Effect.Effect<{ ok: true; url: string }, WhatsAppProviderApiError>
+  readonly listPapiGroups: (input: {
+    token: string
+    instanceIds: readonly string[]
+  }) => Effect.Effect<PapiGroup[], never>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/WhatsApp") {}
@@ -651,7 +685,147 @@ const layer = Layer.effect(
       return participants
     })
 
-    return Service.of({ handleWebhook, listIzapiaSessions, listIzapiaGroups, listIzapiaGroupParticipants })
+    const listPapiInstances = Effect.fn("WhatsApp.listPapiInstances")(function* (input: { token: string }) {
+      const cleanToken = input.token.trim()
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          fetch(`${PAPI_PANEL_URL}/api/v1/instances`, {
+            headers: { "x-panel-token": cleanToken },
+          }),
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })
+      if (!response.ok) {
+        return yield* new WhatsAppProviderApiError({ reason: `Papi respondeu ${response.status} ao listar instâncias` })
+      }
+      const body = yield* Effect.tryPromise({
+        try: () => response.json() as Promise<unknown>,
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })
+      const record = body && typeof body === "object" ? (body as Record<string, unknown>) : undefined
+      const list = Array.isArray(body)
+        ? body
+        : Array.isArray(record?.instances)
+          ? (record.instances as unknown[])
+          : Array.isArray(record?.data)
+            ? (record.data as unknown[])
+            : undefined
+      if (!list) return yield* new WhatsAppProviderApiError({ reason: "resposta inesperada da API da Papi Cloud" })
+      return list
+        .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+        .map((item) => ({
+          id: String(item.id || item.instanceId || item.uuid || item.name || ""),
+          name: typeof item.instanceName === "string" ? item.instanceName : typeof item.name === "string" ? item.name : undefined,
+          status: String(item.status || item.connectionStatus || item.state || "unknown"),
+          jid: typeof item.jid === "string" ? item.jid : typeof item.ownerJid === "string" ? item.ownerJid : undefined,
+          apiKey: typeof item.apiKey === "string" ? item.apiKey : typeof item.apikey === "string" ? item.apikey : undefined,
+        }))
+        .filter((session) => session.id)
+    })
+
+    const createPapiInstance = Effect.fn("WhatsApp.createPapiInstance")(function* (input: {
+      token: string
+      instanceName: string
+    }) {
+      const cleanToken = input.token.trim()
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          fetch(`${PAPI_PANEL_URL}/api/v1/instances`, {
+            method: "POST",
+            headers: {
+              "x-panel-token": cleanToken,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ instanceName: input.instanceName }),
+          }),
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })
+      if (!response.ok) {
+        return yield* new WhatsAppProviderApiError({ reason: `Papi respondeu ${response.status} ao criar instância` })
+      }
+      const body = (yield* Effect.tryPromise({
+        try: () => response.json() as Promise<any>,
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })) as any
+      const item = body?.instance || body?.data || body
+      return {
+        id: String(item.id || item.instanceId || item.uuid || input.instanceName),
+        name: typeof item.instanceName === "string" ? item.instanceName : input.instanceName,
+        status: String(item.status || "created"),
+        jid: typeof item.jid === "string" ? item.jid : undefined,
+        apiKey: typeof item.apiKey === "string" ? item.apiKey : typeof item.apikey === "string" ? item.apikey : undefined,
+      }
+    })
+
+    const setupPapiWebhook = Effect.fn("WhatsApp.setupPapiWebhook")(function* (input: {
+      token: string
+      instanceId: string
+      webhookUrl: string
+    }) {
+      const cleanToken = input.token.trim()
+      const headers: Record<string, string> = {
+        "x-panel-token": cleanToken,
+        apikey: cleanToken,
+        authorization: `Bearer ${cleanToken}`,
+        "Content-Type": "application/json",
+      }
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          fetch(`${PAPI_BASE_URL}/api/instances/${input.instanceId}/webhook`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              url: input.webhookUrl,
+              enabled: true,
+              events: ["messages", "status"],
+            }),
+          }),
+        catch: (cause) => new WhatsAppProviderApiError({ reason: String(cause) }),
+      })
+      if (!response.ok) {
+        return yield* new WhatsAppProviderApiError({ reason: `Papi respondeu ${response.status} ao configurar webhook` })
+      }
+      return { ok: true as const, url: input.webhookUrl }
+    })
+
+    const listPapiGroups = Effect.fn("WhatsApp.listPapiGroups")(function* (input: {
+      token: string
+      instanceIds: readonly string[]
+    }) {
+      const byID = new Map<string, PapiGroup>()
+      yield* Effect.forEach(
+        input.instanceIds,
+        (instanceId) =>
+          Effect.tryPromise(() =>
+            createConnector(papi({ token: input.token, instanceId })).groups.list(),
+          ).pipe(
+            Effect.map((groups) => {
+              for (const group of groups) {
+                if (byID.has(group.id)) continue
+                byID.set(group.id, {
+                  id: group.id,
+                  subject: group.subject,
+                  sessionId: instanceId,
+                  participantCount: group.participants.length,
+                })
+              }
+            }),
+            Effect.ignore,
+          ),
+        { concurrency: "unbounded" },
+      )
+      return Array.from(byID.values()).sort((a, b) => a.subject.localeCompare(b.subject))
+    })
+
+    return Service.of({
+      handleWebhook,
+      listIzapiaSessions,
+      listIzapiaGroups,
+      listIzapiaGroupParticipants,
+      listPapiInstances,
+      createPapiInstance,
+      setupPapiWebhook,
+      listPapiGroups,
+    })
   }),
 )
 

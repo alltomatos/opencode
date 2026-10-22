@@ -34,6 +34,8 @@ export type TelegramChannelBinding = Schema.Schema.Type<typeof TelegramChannelBi
 // untyped here on purpose: validating it against the right shape for the
 // selected `provider` is WhatsApp.Service's job, at connect time.
 export const WHATSAPP_PROVIDERS = [
+  "papi",
+  "izapia",
   "waha",
   "evolution",
   "zapi",
@@ -42,7 +44,6 @@ export const WHATSAPP_PROVIDERS = [
   "wuzapi",
   "quepasa",
   "wppconnect",
-  "izapia",
 ] as const
 export type WhatsAppProvider = (typeof WHATSAPP_PROVIDERS)[number]
 

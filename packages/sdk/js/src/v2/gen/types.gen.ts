@@ -1932,7 +1932,7 @@ export type AgentUiWhatsAppChannelBinding = {
   /**
    * Which unofficial WhatsApp API this channel connects through (see waconector).
    */
-  provider: "waha" | "evolution" | "zapi" | "uazapi" | "whapi" | "wuzapi" | "quepasa" | "wppconnect" | "izapia"
+  provider: "papi" | "izapia" | "waha" | "evolution" | "zapi" | "uazapi" | "whapi" | "wuzapi" | "quepasa" | "wppconnect"
   /**
    * Provider-specific connection fields (e.g. baseUrl+apiKey for WAHA, instanceId+token for Z-API). Shape depends on `provider`.
    */
@@ -2224,6 +2224,7 @@ export type AgentUiNotFoundError = {
 export type AgentUiGenerateFailedError = {
   _tag: "AgentUIGenerateFailedError"
   reason: string
+  message?: string
 }
 
 export type Model = {
@@ -8218,6 +8219,7 @@ export type AgentuiGetResponse = AgentuiGetResponses[keyof AgentuiGetResponses]
 export type AgentuiGenerateData = {
   body?: {
     description: string
+    model?: string
   }
   path?: never
   query?: {
@@ -8229,13 +8231,9 @@ export type AgentuiGenerateData = {
 
 export type AgentuiGenerateErrors = {
   /**
-   * Bad request
+   * AgentUIGenerateFailedError | InvalidRequestError
    */
-  400: BadRequestError
-  /**
-   * AgentUIGenerateFailedError
-   */
-  500: AgentUiGenerateFailedError
+  400: AgentUiGenerateFailedError | InvalidRequestError
 }
 
 export type AgentuiGenerateError = AgentuiGenerateErrors[keyof AgentuiGenerateErrors]
@@ -8249,6 +8247,7 @@ export type AgentuiGenerateResponses = {
     personality: string
     commandTriggers: Array<string>
     guardrails: AgentUiGuardrails
+    model?: string
   }
 }
 
@@ -13040,6 +13039,152 @@ export type WhatsappIzapiaGroupParticipantsResponses = {
 
 export type WhatsappIzapiaGroupParticipantsResponse =
   WhatsappIzapiaGroupParticipantsResponses[keyof WhatsappIzapiaGroupParticipantsResponses]
+
+export type WhatsappPapiInstancesData = {
+  body?: {
+    token: string
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/papi/instances"
+}
+
+export type WhatsappPapiInstancesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * WhatsAppProviderApiError
+   */
+  500: WhatsAppProviderApiError
+}
+
+export type WhatsappPapiInstancesError = WhatsappPapiInstancesErrors[keyof WhatsappPapiInstancesErrors]
+
+export type WhatsappPapiInstancesResponses = {
+  /**
+   * Instances for this Papi Cloud profile
+   */
+  200: Array<{
+    id: string
+    name?: string
+    status: string
+    jid?: string
+    apiKey?: string
+  }>
+}
+
+export type WhatsappPapiInstancesResponse = WhatsappPapiInstancesResponses[keyof WhatsappPapiInstancesResponses]
+
+export type WhatsappPapiCreateInstanceData = {
+  body?: {
+    token: string
+    instanceName: string
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/papi/create-instance"
+}
+
+export type WhatsappPapiCreateInstanceErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * WhatsAppProviderApiError
+   */
+  500: WhatsAppProviderApiError
+}
+
+export type WhatsappPapiCreateInstanceError = WhatsappPapiCreateInstanceErrors[keyof WhatsappPapiCreateInstanceErrors]
+
+export type WhatsappPapiCreateInstanceResponses = {
+  /**
+   * Created Papi Cloud instance
+   */
+  200: {
+    id: string
+    name?: string
+    status: string
+    jid?: string
+    apiKey?: string
+  }
+}
+
+export type WhatsappPapiCreateInstanceResponse =
+  WhatsappPapiCreateInstanceResponses[keyof WhatsappPapiCreateInstanceResponses]
+
+export type WhatsappPapiSetupWebhookData = {
+  body?: {
+    token: string
+    instanceId: string
+    webhookUrl: string
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/papi/setup-webhook"
+}
+
+export type WhatsappPapiSetupWebhookErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * WhatsAppProviderApiError
+   */
+  500: WhatsAppProviderApiError
+}
+
+export type WhatsappPapiSetupWebhookError = WhatsappPapiSetupWebhookErrors[keyof WhatsappPapiSetupWebhookErrors]
+
+export type WhatsappPapiSetupWebhookResponses = {
+  /**
+   * Papi webhook configured
+   */
+  200: {
+    ok: true
+    url: string
+  }
+}
+
+export type WhatsappPapiSetupWebhookResponse =
+  WhatsappPapiSetupWebhookResponses[keyof WhatsappPapiSetupWebhookResponses]
+
+export type WhatsappPapiGroupsData = {
+  body?: {
+    token: string
+    instanceIds: Array<string>
+  }
+  path?: never
+  query?: never
+  url: "/whatsapp/papi/groups"
+}
+
+export type WhatsappPapiGroupsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type WhatsappPapiGroupsError = WhatsappPapiGroupsErrors[keyof WhatsappPapiGroupsErrors]
+
+export type WhatsappPapiGroupsResponses = {
+  /**
+   * Groups across the given Papi instances
+   */
+  200: Array<{
+    id: string
+    subject: string
+    sessionId: string
+    participantCount: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }>
+}
+
+export type WhatsappPapiGroupsResponse = WhatsappPapiGroupsResponses[keyof WhatsappPapiGroupsResponses]
 
 export type TunnelStartData = {
   body?: {

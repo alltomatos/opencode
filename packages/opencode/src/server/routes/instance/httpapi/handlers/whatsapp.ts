@@ -49,10 +49,42 @@ export const whatsappHandlers = HttpApiBuilder.group(InstanceHttpApi, "whatsapp"
       })
     })
 
+    const papiInstances = Effect.fn("WhatsAppHttpApi.papiInstances")(function* (ctx: {
+      payload: { token: string }
+    }) {
+      return yield* whatsapp.listPapiInstances({ token: ctx.payload.token })
+    })
+
+    const papiCreateInstance = Effect.fn("WhatsAppHttpApi.papiCreateInstance")(function* (ctx: {
+      payload: { token: string; instanceName: string }
+    }) {
+      return yield* whatsapp.createPapiInstance({ token: ctx.payload.token, instanceName: ctx.payload.instanceName })
+    })
+
+    const papiSetupWebhook = Effect.fn("WhatsAppHttpApi.papiSetupWebhook")(function* (ctx: {
+      payload: { token: string; instanceId: string; webhookUrl: string }
+    }) {
+      return yield* whatsapp.setupPapiWebhook({
+        token: ctx.payload.token,
+        instanceId: ctx.payload.instanceId,
+        webhookUrl: ctx.payload.webhookUrl,
+      })
+    })
+
+    const papiGroups = Effect.fn("WhatsAppHttpApi.papiGroups")(function* (ctx: {
+      payload: { token: string; instanceIds: readonly string[] }
+    }) {
+      return yield* whatsapp.listPapiGroups({ token: ctx.payload.token, instanceIds: ctx.payload.instanceIds })
+    })
+
     return handlers
       .handleRaw("webhook", webhook)
       .handle("izapiaSessions", izapiaSessions)
       .handle("izapiaGroups", izapiaGroups)
       .handle("izapiaGroupParticipants", izapiaGroupParticipants)
+      .handle("papiInstances", papiInstances)
+      .handle("papiCreateInstance", papiCreateInstance)
+      .handle("papiSetupWebhook", papiSetupWebhook)
+      .handle("papiGroups", papiGroups)
   }),
 )

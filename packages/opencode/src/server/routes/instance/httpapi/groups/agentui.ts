@@ -35,12 +35,16 @@ export type DiagnoseResponse = Schema.Schema.Type<typeof DiagnoseResponse>
 // (query_directory vs body_directory).
 export const TestPayload = Schema.Struct({ projectDirectory: Schema.String, message: Schema.String })
 export const TestResponse = Schema.Struct({ reply: Schema.String, blocked: Schema.Boolean })
-export const GenerateDraftPayload = Schema.Struct({ description: Schema.String })
+export const GenerateDraftPayload = Schema.Struct({
+  description: Schema.String,
+  model: Schema.optional(Schema.String),
+})
 export const GenerateDraftResponse = Schema.Struct({
   name: Schema.String,
   personality: Schema.String,
   commandTriggers: Schema.Array(Schema.String),
   guardrails: ConfigAgentUIV1.Guardrails,
+  model: Schema.optional(Schema.String),
 })
 
 export const AgentUIApi = HttpApi.make("agentui")

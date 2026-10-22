@@ -120,7 +120,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service> = La
 
     const get = Effect.fn("Combo.get")(function* (id: string) {
       const combos = yield* list()
-      const found = combos.find((item) => item.id === id)
+      const found = combos.find((item) => item.id === id || item.name.toLowerCase() === id.toLowerCase())
       if (!found) return yield* new ComboNotFoundError({ id })
       return found
     })

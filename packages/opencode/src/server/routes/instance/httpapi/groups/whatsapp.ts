@@ -5,6 +5,8 @@ import {
   IzapiaGroup,
   IzapiaGroupParticipant,
   IzapiaSession,
+  PapiGroup,
+  PapiInstance,
   WhatsAppChannelNotConfiguredError,
   WhatsAppInvalidWebhookError,
   WhatsAppProviderApiError,
@@ -23,6 +25,14 @@ export const IzapiaGroupParticipantsPayload = Schema.Struct({
   sid: Schema.String,
   groupId: Schema.String,
 })
+export const PapiInstancesPayload = Schema.Struct({ token: Schema.String })
+export const PapiCreateInstancePayload = Schema.Struct({ token: Schema.String, instanceName: Schema.String })
+export const PapiSetupWebhookPayload = Schema.Struct({
+  token: Schema.String,
+  instanceId: Schema.String,
+  webhookUrl: Schema.String,
+})
+export const PapiGroupsPayload = Schema.Struct({ token: Schema.String, instanceIds: Schema.Array(Schema.String) })
 
 export const WhatsAppApi = HttpApi.make("whatsapp")
   .add(
@@ -93,6 +103,49 @@ export const WhatsAppApi = HttpApi.make("whatsapp")
             identifier: "whatsapp.izapiaGroupParticipants",
             summary: "List izapia group participants",
             description: "Lists participants of a specific izapia WhatsApp group with resolved profile names.",
+          }),
+        ),
+        HttpApiEndpoint.post("papiInstances", `${root}/papi/instances`, {
+          payload: PapiInstancesPayload,
+          success: described(Schema.Array(PapiInstance), "Instances for this Papi Cloud profile"),
+          error: WhatsAppProviderApiError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "whatsapp.papiInstances",
+            summary: "List Papi Cloud instances",
+            description: "Lists WhatsApp instances for the account that owns the given Papi profile token.",
+          }),
+        ),
+        HttpApiEndpoint.post("papiCreateInstance", `${root}/papi/create-instance`, {
+          payload: PapiCreateInstancePayload,
+          success: described(PapiInstance, "Created Papi Cloud instance"),
+          error: WhatsAppProviderApiError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "whatsapp.papiCreateInstance",
+            summary: "Create Papi Cloud instance",
+            description: "Creates a new WhatsApp instance on Papi Cloud using the profile token.",
+          }),
+        ),
+        HttpApiEndpoint.post("papiSetupWebhook", `${root}/papi/setup-webhook`, {
+          payload: PapiSetupWebhookPayload,
+          success: described(Schema.Struct({ ok: Schema.Literal(true), url: Schema.String }), "Papi webhook configured"),
+          error: WhatsAppProviderApiError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "whatsapp.papiSetupWebhook",
+            summary: "Configure Papi Cloud webhook",
+            description: "Configures real-time inbound webhook on Papi Cloud instance pointing to this agent.",
+          }),
+        ),
+        HttpApiEndpoint.post("papiGroups", `${root}/papi/groups`, {
+          payload: PapiGroupsPayload,
+          success: described(Schema.Array(PapiGroup), "Groups across the given Papi instances"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "whatsapp.papiGroups",
+            summary: "List Papi Cloud groups",
+            description: "Lists WhatsApp groups across the given Papi instances, deduped by group id.",
           }),
         ),
       )
