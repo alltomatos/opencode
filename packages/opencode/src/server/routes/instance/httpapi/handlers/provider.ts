@@ -107,9 +107,18 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
         return {
           providers: all.map((item) => Provider.fromCatalog(item, models.filter((model) => model.providerID === item.id))),
           available: (yield* catalog.provider.available()).map((item) => item.id),
+          integrations: all.flatMap((item) => (item.integrationID ? [item.id as string] : [])),
         }
       }),
-    ).pipe(Effect.catch(() => Effect.succeed({ providers: [] as Provider.Info[], available: [] as ProviderV2.ID[] })))
+    ).pipe(
+      Effect.catch(() =>
+        Effect.succeed({
+          providers: [] as Provider.Info[],
+          available: [] as ProviderV2.ID[],
+          integrations: [] as string[],
+        }),
+      ),
+    )
 
     const list = Effect.fn("ProviderHttpApi.list")(function* () {
       const config = yield* cfg.get()
@@ -138,6 +147,22 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
         if (activeIntegrationIDs.has(catalogItem.id) && !providers[catalogItem.id]) {
           providers[catalogItem.id] = catalogItem
         }
+      }
+
+      // The legacy provider list only knows the Models.dev snapshot. Catalog
+      // entries managed by an integration can carry newer free models, so merge
+      // them without replacing the existing provider (auth/headers/options).
+      const managed = new Set(catalogData.integrations)
+      for (const catalogItem of catalogList) {
+        const existing = providers[catalogItem.id]
+        if (!existing || !managed.has(catalogItem.id)) continue
+        const free = Object.fromEntries(
+          Object.entries(catalogItem.models).filter(
+            ([, model]) => model.status !== "deprecated" && model.cost?.input === 0,
+          ),
+        )
+        if (Object.keys(free).length === 0) continue
+        providers[catalogItem.id] = { ...existing, models: { ...existing.models, ...free } }
       }
 
       const comboSvc = yield* Combo.Service.pipe(Effect.orElseSucceed(() => undefined))

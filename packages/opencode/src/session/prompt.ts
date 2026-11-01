@@ -241,7 +241,9 @@ const layer = Layer.effect(
           tools: {},
           model: mdl,
           sessionID: input.session.id,
-          retries: 2,
+          // Free-tier 429s carry a quota reset, not a transient failure; a retry
+          // just burns the same budget, so the title call fails fast.
+          retries: mdl.providerID.startsWith("opencode") ? 0 : 2,
           messages: [{ role: "user", content: "Generate a title for this conversation:\n" }, ...msgs],
         })
         .pipe(
@@ -610,7 +612,11 @@ const layer = Layer.effect(
     // retry once before giving up. A directory that was never a Catalog
     // hit either (e.g. a genuinely wrong model id) just falls through to
     // the original error below, unchanged.
-    const syncFromCatalog = Effect.fnUntraced(function* (providerID: ProviderV2.ID, modelID: ModelV2.ID) {
+    const syncFromCatalog = Effect.fnUntraced(function* (
+      providerID: ProviderV2.ID,
+      modelID: ModelV2.ID,
+      opts?: { requireIntegration?: boolean },
+    ) {
       const ctx = yield* InstanceState.context
       return yield* Effect.gen(function* () {
         const internal = yield* PluginInternal.Service
@@ -621,6 +627,7 @@ const layer = Layer.effect(
         if (!model) return false
         const catalogProvider = yield* catalog.provider.get(providerID)
         if (!catalogProvider) return false
+        if (opts?.requireIntegration && !catalogProvider.integrationID) return false
         const integrationID = catalogProvider.integrationID ?? Integration.ID.make(providerID)
         const connections = yield* integrations.connection.list(integrationID)
         const picked = IntegrationRotation.pick(integrationID, connections)
@@ -631,6 +638,20 @@ const layer = Layer.effect(
         Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))),
         Effect.catch(() => Effect.succeed(false)),
       )
+    })
+
+    // A model that already exists in the legacy provider can still be running
+    // with a placeholder key ("public"/{env}/absent) because the opencode
+    // provider is catalog-managed by an integration the legacy auth store does
+    // not know about. Sync the active integration credential before using it.
+    const authenticateFromCatalog = Effect.fnUntraced(function* (
+      providerID: ProviderV2.ID,
+      modelID: ModelV2.ID,
+    ) {
+      if (!providerID.startsWith("opencode")) return false
+      const info = yield* provider.getProvider(providerID)
+      if (info?.key || !Provider.isUnauthenticatedKey(info?.options?.apiKey)) return false
+      return yield* syncFromCatalog(providerID, modelID, { requireIntegration: true })
     })
 
     const getModel = Effect.fn("SessionPrompt.getModel")(function* (
@@ -646,7 +667,12 @@ const layer = Layer.effect(
         modelID = ModelV2.ID.make(resolved.modelID)
       }
       const exit = yield* provider.getModel(providerID, modelID).pipe(Effect.exit)
-      if (Exit.isSuccess(exit)) return exit.value
+      if (Exit.isSuccess(exit)) {
+        if (!(yield* authenticateFromCatalog(providerID, modelID))) return exit.value
+        const retry = yield* provider.getModel(providerID, modelID).pipe(Effect.exit)
+        if (Exit.isSuccess(retry)) return retry.value
+        return yield* Effect.die(Cause.squash(retry.cause))
+      }
       let err = Cause.squash(exit.cause)
       if (Provider.ModelNotFoundError.isInstance(err) && (yield* syncFromCatalog(providerID, modelID))) {
         const retry = yield* provider.getModel(providerID, modelID).pipe(Effect.exit)

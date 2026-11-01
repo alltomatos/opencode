@@ -29,6 +29,9 @@ export const RETRY_JITTER_FACTOR = 0.25
 export const RETRY_MAX_DELAY_NO_HEADERS = 30_000 // 30 seconds
 export const RETRY_MAX_DELAY = 2_147_483_647 // max 32-bit signed integer for setTimeout
 export const RETRY_MAX_RETRIES = 5
+// A server-supplied retry-after beyond this turns into a dead wait for an
+// interactive turn; fail fast and surface the error instead of parking the UI.
+export const RETRY_MAX_INTERACTIVE_DELAY = 5 * 60_000
 
 const RETRYABLE_MESSAGE_PATTERNS = [
   /429|500|502|503|504|524/i,
@@ -191,8 +194,9 @@ export function policy(opts: {
       const retry = retryable(error, opts.provider)
       if (!retry) return Cause.done(meta.attempt)
       if (meta.attempt > RETRY_MAX_RETRIES) return Cause.done(meta.attempt)
+      const wait = delay(meta.attempt, SessionV1.APIError.isInstance(error) ? error : undefined)
+      if (wait > RETRY_MAX_INTERACTIVE_DELAY) return Cause.done(meta.attempt)
       return Effect.gen(function* () {
-        const wait = delay(meta.attempt, SessionV1.APIError.isInstance(error) ? error : undefined)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({
           attempt: meta.attempt,

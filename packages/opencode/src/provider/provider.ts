@@ -35,6 +35,7 @@ import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
 import { ensureRelay, DEFAULT_PORT as AGENTROUTER_DEFAULT_PORT } from "./agentrouter/manager"
+import { OpencodeCompat } from "@/session/llm/opencode-compat"
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 300_000
 
@@ -1581,9 +1582,19 @@ export function fromCatalog(provider: ProviderV2.Info, models: ModelV2.Info[]): 
     source: "custom",
     name: provider.name,
     env: [],
-    options: {},
+    options: Object.keys(provider.request.headers).length > 0 ? { headers: provider.request.headers } : {},
     models: entries,
   }
+}
+
+// A provider key counts as unauthenticated when the catalog only supplied a
+// placeholder: absent/empty, the anonymous "public" tier, or an unresolved
+// `{ env }` reference. Used to decide whether an integration credential still
+// has to be synced into the legacy provider before a request is sent.
+export function isUnauthenticatedKey(value: unknown): boolean {
+  if (value === undefined || value === null || value === "") return true
+  if (value === "public") return true
+  return typeof value === "object" && "env" in value
 }
 
 function modeOptions(model: Model, body: Record<string, unknown> | undefined) {
@@ -2039,7 +2050,9 @@ const layer = Layer.effect(
         const existing = s.sdk.get(key)
         if (existing) return existing
 
-        options["fetch"] = timeoutFetch(options)
+        options["fetch"] = model.providerID.startsWith("opencode")
+          ? OpencodeCompat.retryFetch(timeoutFetch(options))
+          : timeoutFetch(options)
         delete options["chunkTimeout"]
         delete options["headerTimeout"]
 
@@ -2113,7 +2126,12 @@ const layer = Layer.effect(
       const info = fromCatalog(catalogProvider, models)
       const credential =
         integrationCredential ?? (yield* auth.get(providerID).pipe(Effect.orElseSucceed(() => undefined)))
-      if (credential?.type === "api" || credential?.type === "key") info.key = credential.key
+      if (credential?.type === "api" || credential?.type === "key") {
+        info.key = credential.key
+        // The loader may have installed the anonymous "public" placeholder;
+        // the credential must win so requests leave with the real key.
+        info.options = { ...info.options, apiKey: credential.key }
+      }
       if (credential?.type === "oauth") {
         info.key = credential.access
         const meta = (credential as any).metadata

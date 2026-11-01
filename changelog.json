@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "tag": "v1.21.93",
+      "highlights": [
+        {
+          "source": "desktop",
+          "items": [
+            {
+              "title": "OpenCode Free: Identidade de Cliente Alinhada ao CLI",
+              "description": "As requisições ao tier gratuito do opencode.ai agora se identificam como o CLI oficial (User-Agent opencode/1.21.65, headers x-opencode-*, quarteto de tools nativo e tool_choice auto), com retry automático para uma identidade alternativa quando o gateway recusa o cliente e falha rápida em esperas de quota longas."
+            },
+            {
+              "title": "Seletor de Modelos: Provedor OpenCode com Modelos Disponíveis",
+              "description": "O filtro que ocultava o provedor opencode quando não havia modelo pago passou a considerar qualquer modelo disponível, mantendo o seletor, as configurações e a galeria de mídia consistentes."
+            },
+            {
+              "title": "Credenciais: Sincronização do Catálogo Antes do Uso",
+              "description": "Modelos gerenciados por integração agora sincronizam a credencial ativa do catálogo antes da chamada, evitando requisições anônimas com a chave pública."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "tag": "v1.21.92",
       "highlights": [
         {

@@ -103,6 +103,13 @@ const live: Layer.Layer<
       )
 
       const isWorkflow = language instanceof GitLabWorkflowLanguageModel
+      // O gate do free tier recusa `tool_choice: "none"`; ele exige `auto`
+      // mesmo em turnos sem tools (título/compactação).
+      const toolChoice =
+        input.model.providerID.startsWith("opencode") &&
+        (input.toolChoice === "none" || input.toolChoice === undefined)
+          ? "auto"
+          : input.toolChoice
       const prepared = yield* LLMRequestPrep.prepare({
         ...input,
         provider: item,
@@ -231,7 +238,7 @@ const live: Layer.Layer<
           llmClient,
           messages: prepared.messages,
           tools: prepared.tools,
-          toolChoice: input.toolChoice,
+          toolChoice,
           temperature: prepared.params.temperature,
           topP: prepared.params.topP,
           topK: prepared.params.topK,
@@ -316,7 +323,7 @@ const live: Layer.Layer<
           providerOptions: ProviderTransform.providerOptions(input.model, prepared.params.options),
           activeTools: Object.keys(prepared.tools).filter((x) => x !== "invalid"),
           tools: prepared.tools,
-          toolChoice: input.toolChoice,
+          toolChoice,
           maxOutputTokens: prepared.params.maxOutputTokens,
           abortSignal: input.abort,
           headers: prepared.headers,
