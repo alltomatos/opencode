@@ -304,6 +304,11 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     checkTailscale: () => window.api.checkTailscale(),
     getMaintenanceStatus: () => window.api.getMaintenanceStatus(),
     runMaintenance: () => window.api.runMaintenance(),
+    detectLegacyInstallations: () => window.api.detectLegacyInstallations(),
+    listLegacySessions: (sourceDbPath: string, targetDirectory?: string) =>
+      window.api.listLegacySessions(sourceDbPath, targetDirectory),
+    importLegacySessions: (sourceDbPath: string, sessionIDs: string[], targetDirectory: string) =>
+      window.api.importLegacySessions(sourceDbPath, sessionIDs, targetDirectory),
 
     getDisplayBackend: async () => {
       return window.api.getDisplayBackend().catch(() => null)

@@ -1,11 +1,16 @@
 import { Effect, Layer, LayerMap } from "effect"
 import { AgentV2 } from "./agent"
+import { EventLog } from "./event/log"
+import { EventV2 } from "./event"
 import { AISDK } from "./aisdk"
 import { Catalog } from "./catalog"
 import { CommandV2 } from "./command"
 import { Config } from "./config"
 import { LayerNode } from "./effect/layer-node"
-import { Node } from "./effect/app-node"
+import { WorkspaceMigration } from "./database/workspace-migration"
+import { Database } from "./database/database"
+import { EventBus } from "./event/bus"
+import { makeGlobalNode, Node } from "./effect/app-node"
 import { FileMutation } from "./file-mutation"
 import { FileSystem } from "./filesystem"
 import { FileSystemSearch } from "./filesystem/search"
@@ -15,6 +20,7 @@ import { Integration } from "./integration"
 import { Location } from "./location"
 import { LocationMutation } from "./location-mutation"
 import { LocationServiceMap } from "./location-service-map"
+import { LocationsResolver } from "./location-resolver"
 import { PermissionV2 } from "./permission"
 import { PluginV2 } from "./plugin"
 import { PluginInternal } from "./plugin/internal"
@@ -27,6 +33,7 @@ import { ReferenceGuidance } from "./reference/guidance"
 import * as SessionRunnerLLM from "./session/runner/llm"
 import { SessionRunnerModel } from "./session/runner/model"
 import { SessionTodo } from "./session/todo"
+import { SessionProjector } from "./session/projector"
 import { SkillV2 } from "./skill"
 import { SkillGuidance } from "./skill/guidance"
 import { Snapshot } from "./snapshot"
@@ -40,6 +47,10 @@ import { ToolOutputStore } from "./tool-output-store"
 export { LocationServiceMap } from "./location-service-map"
 
 export const locationServices = LayerNode.group([
+  Database.node,
+  EventBus.node,
+  EventLog.node,
+  EventV2.node,
   Location.node,
   Policy.node,
   Config.node,
@@ -76,6 +87,7 @@ export const locationServices = LayerNode.group([
   SessionRunnerModel.node,
   Snapshot.node,
   SessionRunnerLLM.node,
+  SessionProjector.node,
 ])
 
 export type LocationServices = LayerNode.Output<typeof locationServices>
@@ -88,22 +100,27 @@ export function buildLocationServiceMap(
     LocationServiceMap.Service,
     LayerMap.make(
       (ref: Location.Ref) => {
-        const allReplacements = replacements.concat([[Location.node, Location.boundNode(ref)]])
-        // Apply replacements during hoist, not afterward: replacements can
-        // introduce new tagged dependencies (Location.boundNode depends on
-        // Project), and the hoist walk is the only pass that can still slice
-        // those back out.
+        const workspaceHash = WorkspaceMigration.directoryToWorkspaceHash(ref.directory)
+        const allReplacements = replacements.concat([
+          [Location.node, Location.boundNode(ref)],
+          [Database.node, Database.locationNode(workspaceHash)],
+          [EventV2.node, EventV2.locationNode],
+          [Database.globalNode, Database.globalNode],
+          [LocationsResolver.node, LocationsResolver.localNode],
+        ])
         const location = LayerNode.hoist(locationServices, Node.tags.values.global, allReplacements)
 
         return LayerNode.compile(location.node).pipe(
           Layer.fresh,
+          Layer.provide(LayerNode.compile(location.hoisted)),
+          Layer.provide(Database.globalLayer),
           Layer.tap(() =>
             Effect.logInfo("booting location services", {
               directory: ref.directory,
               workspaceID: ref.workspaceID,
+              workspaceHash,
             }),
           ),
-          Layer.provide(LayerNode.compile(location.hoisted)),
         )
       },
       { idleTimeToLive: "60 minutes" },

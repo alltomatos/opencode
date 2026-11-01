@@ -16,6 +16,23 @@ import { Context, Duration, Effect, Layer, Schedule, Schema, Cause } from "effec
 import { jsonSchema, streamText, tool } from "ai"
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
+import {
+  projectKey,
+  todayFile,
+  globalDir,
+  workspaceMemoryDir,
+  legacyWorkspaceMemoryDir,
+  legacyProjectDir,
+  projectDir,
+  processedSessionsFile,
+  syncStateFile,
+  appendMemoryEntry,
+  readRecentMemoryFiles,
+  readRecentProjectMemoryFiles,
+} from "./paths"
+import { buildTranscript, extractHeuristicSummary } from "./transcript"
+
+export { workspaceMemoryDir, legacyProjectDir }
 
 // Extracted from the `breniac` branch's memory feature (commit 96c044467c and
 // follow-ups), which was Breniac-voice-exclusive — this makes the same
@@ -63,46 +80,6 @@ const DEFAULT_MODEL_CANDIDATES = [
   "agentrouter/glm-5.3",
   "kc/anthropic/claude-haiku-4.5",
 ]
-
-function projectKey(directory: string) {
-  return directory.replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+/g, "_").slice(-80) || "root"
-}
-
-function todayFile() {
-  return `${new Date().toISOString().slice(0, 10)}.md`
-}
-
-async function appendMemoryEntry(file: string, entry: string) {
-  await mkdir(path.dirname(file), { recursive: true })
-  const existing = await readFile(file, "utf8").catch(() => "")
-  await writeFile(file, existing + entry, "utf8")
-}
-
-async function readRecentMemoryFiles(dir: string, count: number) {
-  const entries = await readdir(dir).catch(() => [] as string[])
-  const files = entries
-    .filter((entry) => entry.endsWith(".md"))
-    .sort()
-    .slice(-count)
-  const contents = await Promise.all(files.map((file) => readFile(path.join(dir, file), "utf8").catch(() => "")))
-  return contents.filter(Boolean).join("\n")
-}
-
-function globalDir() {
-  return path.join(Global.Path.data, "memory", "global")
-}
-
-function projectDir(directory: string) {
-  return path.join(Global.Path.data, "memory", "projects", projectKey(directory))
-}
-
-function processedSessionsFile() {
-  return path.join(Global.Path.data, "memory", "processed_sessions.json")
-}
-
-function syncStateFile() {
-  return path.join(Global.Path.data, "memory", "sync_state.json")
-}
 
 type SyncState = {
   lastSyncAt?: string
@@ -214,41 +191,6 @@ export type BackfillResult = {
   purgedSessions?: number
   projectsCount: number
   errors: string[]
-}
-
-function buildTranscript(messages: SessionV1.WithParts[]): string {
-  const lines: string[] = []
-  for (const msg of messages) {
-    const role = msg.info.role === "user" ? "Usuário" : "Assistente"
-    const textParts: string[] = []
-    for (const part of msg.parts) {
-      if ("text" in part && typeof part.text === "string" && part.text.trim()) {
-        textParts.push(part.text.trim())
-      } else if (part.type === "tool" && "tool" in part) {
-        textParts.push(`[Chamou ferramenta: ${part.tool}]`)
-      } else if (part.type === "patch" && "file" in part) {
-        textParts.push(`[Alterou arquivo: ${part.file}]`)
-      }
-    }
-    if (textParts.length > 0) {
-      lines.push(`${role}: ${textParts.join("\n")}`)
-    }
-  }
-  return lines.join("\n\n")
-}
-
-function extractHeuristicSummary(transcript: string): string {
-  const lines = transcript.split("\n").map((l) => l.trim()).filter(Boolean)
-  const keyPoints: string[] = []
-  for (const line of lines) {
-    if (line.startsWith("Usuário:") || line.startsWith("User:")) {
-      const clean = line.replace(/^(Usuário|User):\s*/, "").slice(0, 200)
-      if (clean.length > 5) keyPoints.push(`- **Pedido/Discussão**: ${clean}`)
-    } else if (line.startsWith("[Alterou arquivo:")) {
-      keyPoints.push(`- **Alteração**: ${line}`)
-    }
-  }
-  return keyPoints.slice(0, 8).join("\n") || "- Registro automático da sessão."
 }
 
 export interface Interface {
@@ -538,7 +480,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       let project = ""
       if (input.directory) {
         project = yield* Effect.tryPromise({
-          try: () => readRecentMemoryFiles(projectDir(input.directory!), 3),
+          try: () => readRecentProjectMemoryFiles(input.directory!, 3),
           catch: () => "",
         }).pipe(Effect.orElseSucceed(() => ""))
       }
@@ -547,7 +489,7 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
 
     const loadProject = Effect.fn("Memory.loadProject")(function* (directory: string) {
       const content = yield* Effect.tryPromise({
-        try: () => readRecentMemoryFiles(projectDir(directory), 30),
+        try: () => readRecentProjectMemoryFiles(directory, 30),
         catch: () => "",
       }).pipe(Effect.orElseSucceed(() => ""))
       return { content }
@@ -562,16 +504,32 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
     })
 
     const forgetProject = Effect.fn("Memory.forgetProject")(function* (directory: string) {
-      yield* Effect.tryPromise({ try: () => rm(projectDir(directory), { recursive: true, force: true }), catch: () => undefined }).pipe(
-        Effect.orDie,
-      )
+      yield* Effect.tryPromise({
+        try: async () => {
+          await rm(workspaceMemoryDir(directory), { recursive: true, force: true }).catch(() => undefined)
+          await rm(legacyWorkspaceMemoryDir(directory), { recursive: true, force: true }).catch(() => undefined)
+          await rm(legacyProjectDir(directory), { recursive: true, force: true }).catch(() => undefined)
+        },
+        catch: () => undefined,
+      }).pipe(Effect.orDie)
     })
 
     const hasProjectMemory = Effect.fn("Memory.hasProjectMemory")(function* (directory: string) {
-      const entries = yield* Effect.tryPromise({ try: () => readdir(projectDir(directory)), catch: () => [] as string[] }).pipe(
-        Effect.orElseSucceed(() => [] as string[]),
+      const [primaryEntries, legacyHashEntries, legacyEntries] = yield* Effect.tryPromise({
+        try: () =>
+          Promise.all([
+            readdir(workspaceMemoryDir(directory)).catch(() => [] as string[]),
+            readdir(legacyWorkspaceMemoryDir(directory)).catch(() => [] as string[]),
+            readdir(legacyProjectDir(directory)).catch(() => [] as string[]),
+          ]),
+        catch: () => [[], [], []] as [string[], string[], string[]],
+      }).pipe(Effect.orElseSucceed(() => [[], [], []] as [string[], string[], string[]]))
+
+      return (
+        primaryEntries.some((entry) => entry.endsWith(".md")) ||
+        legacyHashEntries.some((entry) => entry.endsWith(".md")) ||
+        legacyEntries.some((entry) => entry.endsWith(".md"))
       )
-      return entries.some((entry) => entry.endsWith(".md"))
     })
 
     const backfill = Effect.fn("Memory.backfill")(function* (input?: BackfillInput) {
@@ -601,6 +559,8 @@ const layer: Layer.Layer<Service, never, Config.Service | Provider.Service | Ses
       for (const s of targets) {
         processedSessions++
         if (s.directory) projects.add(s.directory)
+
+        // Obter a transcrição fiel das mensagens e partes consolidadas
         const msgs = yield* sessions.messages({ sessionID: s.id as any }).pipe(Effect.orElseSucceed(() => []))
         if (msgs.length === 0) {
           processedIDs.add(s.id)

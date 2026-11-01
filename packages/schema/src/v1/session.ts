@@ -596,6 +596,10 @@ const events = {
   MessageUpdated: define({
     type: "message.updated",
     ...options,
+    durable: {
+      ...options.durable,
+      transient: true,
+    },
     schema: {
       sessionID: SessionID,
       info: Info,

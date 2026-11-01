@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test"
+import { afterEach, describe, expect, test } from "bun:test"
 import { mkdir, unlink } from "fs/promises"
 import path from "path"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
@@ -2116,3 +2116,24 @@ it.effect("opencode loader keeps paid models when auth exists", () =>
     expect(keyedCount).toBeGreaterThan(0)
   }).pipe(provideMultiInstance),
 )
+
+describe("provider catalog bridge", () => {
+  test("treats placeholder keys as unauthenticated", () => {
+    expect(Provider.isUnauthenticatedKey(undefined)).toBe(true)
+    expect(Provider.isUnauthenticatedKey("")).toBe(true)
+    expect(Provider.isUnauthenticatedKey("public")).toBe(true)
+    expect(Provider.isUnauthenticatedKey({ env: "OPENCODE_KEY" })).toBe(true)
+    expect(Provider.isUnauthenticatedKey("sk-real")).toBe(false)
+  })
+
+  test("keeps provider request headers from the catalog", () => {
+    const catalogProvider: ProviderV2.Info = {
+      id: ProviderV2.ID.make("opencode"),
+      name: "OpenCode",
+      api: { type: "native", settings: {} },
+      request: { headers: { "x-catalog": "1" }, body: {} },
+    }
+
+    expect(Provider.fromCatalog(catalogProvider, []).options).toEqual({ headers: { "x-catalog": "1" } })
+  })
+})

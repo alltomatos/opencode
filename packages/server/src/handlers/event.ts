@@ -1,3 +1,4 @@
+import { EventBus } from "@opencode-ai/core/event/bus"
 import { EventV2 } from "@opencode-ai/core/event"
 import { OpenCodeEvent } from "@opencode-ai/protocol/groups/event"
 import { Effect, Schema, Stream } from "effect"
@@ -19,7 +20,7 @@ function eventData(data: unknown): Sse.Event {
 
 export const EventHandler = HttpApiBuilder.group(Api, "server.event", (handlers) =>
   Effect.gen(function* () {
-    const events = yield* EventV2.Service
+    const bus = yield* EventBus.Service
     return handlers.handleRaw("event.subscribe", () =>
       Effect.gen(function* () {
         const connected = {
@@ -30,7 +31,7 @@ export const EventHandler = HttpApiBuilder.group(Api, "server.event", (handlers)
         const output = Stream.unwrap(
           Effect.gen(function* () {
             // Acquiring the bounded stream installs its listener before readiness is observable.
-            const live = yield* EventV2.allBounded(events, subscriberCapacity)
+            const live = yield* EventV2.allBounded(bus, subscriberCapacity)
             return Stream.make(connected).pipe(Stream.concat(live))
           }),
         ).pipe(Stream.map(eventData), Stream.pipeThroughChannel(Sse.encode()))

@@ -9,7 +9,12 @@ import { MessageDecodeError } from "./error"
 import { SessionMessage } from "./message"
 import { SessionSchema } from "./schema"
 import { SessionMessageTable, SessionTable } from "./sql"
+import { SessionLocationTable } from "./location.sql"
 import { fromRow } from "./info"
+import { Location } from "../location"
+import { LocationsResolver } from "../location-resolver"
+import { AbsolutePath } from "../schema"
+import { WorkspaceV2 } from "../workspace"
 
 export interface Interface {
   readonly get: (sessionID: SessionSchema.ID) => Effect.Effect<SessionSchema.Info | undefined>
@@ -29,12 +34,45 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const { db } = yield* Database.Service
+    const resolver = yield* LocationsResolver.Service
     const decodeMessage = Schema.decodeUnknownEffect(SessionMessage.Message)
 
     return Service.of({
       get: Effect.fn("SessionStore.get")(function* (sessionID) {
+        // 1. Tenta buscar no banco atual (global.db ou project.db ativo)
         const row = yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie)
-        return row ? fromRow(row) : undefined
+        if (row) return fromRow(row)
+
+        // 2. Se não encontrou, busca no índice global session_location para localizar o project.db da sessão
+        const loc = yield* db
+          .select({
+            directory: SessionLocationTable.directory,
+            workspaceID: SessionLocationTable.workspace_id,
+          })
+          .from(SessionLocationTable)
+          .where(eq(SessionLocationTable.session_id, sessionID))
+          .get()
+          .pipe(Effect.orDie)
+
+        if (!loc) return undefined
+
+        // 3. Lê a sessão do project.db da location pelo dono único das conexões
+        // (LocationsResolver), o mesmo Database.Interface que os serviços de
+        // location usam para essa ref.
+        const workspace = yield* resolver.get(
+          Location.Ref.make({
+            directory: AbsolutePath.make(loc.directory),
+            workspaceID: loc.workspaceID ? WorkspaceV2.ID.make(loc.workspaceID) : undefined,
+          }),
+        )
+
+        const projectRow = yield* workspace.db
+          .select()
+          .from(SessionTable)
+          .where(eq(SessionTable.id, sessionID))
+          .get()
+          .pipe(Effect.orDie)
+        return projectRow ? fromRow(projectRow) : undefined
       }),
       context: Effect.fn("SessionStore.context")(function* (sessionID) {
         return yield* SessionHistory.load(db, sessionID)
@@ -60,4 +98,4 @@ const layer = Layer.effect(
   }),
 )
 
-export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node] })
+export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node, LocationsResolver.node] })

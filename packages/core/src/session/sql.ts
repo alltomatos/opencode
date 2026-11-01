@@ -1,6 +1,5 @@
 import { sqliteTable, text, integer, index, primaryKey, real, uniqueIndex } from "drizzle-orm/sqlite-core"
 import * as DatabasePath from "../database/path"
-import { ProjectTable } from "../project/sql"
 import type { SessionMessage } from "./message"
 import type { Prompt } from "./prompt"
 import type { SessionInput } from "./input"
@@ -23,10 +22,7 @@ export const SessionTable = sqliteTable(
   "session",
   {
     id: text().$type<SessionSchema.ID>().primaryKey(),
-    project_id: text()
-      .$type<ProjectV2.ID>()
-      .notNull()
-      .references(() => ProjectTable.id, { onDelete: "cascade" }),
+    project_id: text().$type<ProjectV2.ID>().notNull(),
     workspace_id: text().$type<WorkspaceV2.ID>(),
     parent_id: text().$type<SessionSchema.ID>(),
     slug: text().notNull(),

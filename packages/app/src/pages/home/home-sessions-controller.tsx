@@ -1,7 +1,7 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
 import { preloadMarkdown } from "@opencode-ai/session-ui/markdown-cache"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { useQuery } from "@tanstack/solid-query"
+import { useQuery, useQueryClient } from "@tanstack/solid-query"
 import { DateTime } from "luxon"
 import { type Accessor, createEffect, createMemo, createRoot, createSignal, type JSX, onCleanup, startTransition } from "solid-js"
 import { produce } from "solid-js/store"
@@ -56,6 +56,7 @@ export function createHomeSessionsController(home: HomeController) {
   const command = useCommand()
   const dialog = useDialog()
   const language = useLanguage()
+  const queryClient = useQueryClient()
   const projectDirectories = createMemo(() => {
     const project = home.project.selected()
     if (!project) return home.project.list().flatMap(directories)
@@ -201,6 +202,12 @@ export function createHomeSessionsController(home: HomeController) {
       groups,
       loading: () => sessionLoad.isLoading,
       searchRecords: allRecords,
+      allSessions: indexedSessions,
+      refetch: () => queryClient.invalidateQueries({ queryKey: homeSessions().indexKey }),
+    },
+    project: {
+      selected: home.project.selected,
+      list: home.project.list,
     },
     session: {
       showProjectName: () => !home.project.selected(),

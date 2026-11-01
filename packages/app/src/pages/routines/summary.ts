@@ -72,3 +72,94 @@ export function actionSummary(action: {
     : ""
   return `${action.instructions ?? ""}${tools}`
 }
+
+function matchCronPart(part: string, value: number, min: number): boolean {
+  if (part === "*") return true
+  if (part.startsWith("*/")) {
+    const step = parseInt(part.slice(2), 10)
+    if (isNaN(step) || step <= 0) return false
+    return (value - min) % step === 0
+  }
+  if (part.includes(",")) {
+    return part.split(",").some((sub) => matchCronPart(sub.trim(), value, min))
+  }
+  if (part.includes("-")) {
+    const [startStr, endStr] = part.split("-")
+    const start = parseInt(startStr, 10)
+    const end = parseInt(endStr, 10)
+    if (isNaN(start) || isNaN(end)) return false
+    return value >= start && value <= end
+  }
+  const num = parseInt(part, 10)
+  return !isNaN(num) && num === value
+}
+
+export function matchesCronExpr(cron: string, date: Date = new Date()): boolean {
+  const parts = cron.trim().split(/\s+/)
+  if (parts.length !== 5) return false
+
+  const minute = date.getMinutes()
+  const hour = date.getHours()
+  const dayOfMonth = date.getDate()
+  const month = date.getMonth() + 1
+  const dayOfWeek = date.getDay()
+
+  if (!matchCronPart(parts[0], minute, 0)) return false
+  if (!matchCronPart(parts[1], hour, 0)) return false
+  if (!matchCronPart(parts[3], month, 1)) return false
+
+  const domPart = parts[2]
+  const dowPart = parts[4]
+  const domRestricted = domPart !== "*"
+  const dowRestricted = dowPart !== "*"
+  const domMatch = matchCronPart(domPart, dayOfMonth, 1)
+  const dowMatch = matchCronPart(dowPart, dayOfWeek, 0) || (dayOfWeek === 0 && matchCronPart(dowPart, 7, 0))
+
+  if (domRestricted && dowRestricted) {
+    if (!domMatch && !dowMatch) return false
+  } else {
+    if (domRestricted && !domMatch) return false
+    if (dowRestricted && !dowMatch) return false
+  }
+
+  return true
+}
+
+export function computeNextRun(
+  trigger: { kind: string; expr?: string; ms?: number | string; timestamp?: number | string },
+  lastRunAt?: number,
+  fromDateMs: number = Date.now(),
+): number | null {
+  if (trigger.kind === "manual") return null
+
+  if (trigger.kind === "once") {
+    const ts = typeof trigger.timestamp === "number" ? trigger.timestamp : Number(trigger.timestamp)
+    if (isNaN(ts)) return null
+    if (lastRunAt && lastRunAt >= ts) return null
+    return ts
+  }
+
+  if (trigger.kind === "interval") {
+    const ms = typeof trigger.ms === "number" ? trigger.ms : Number(trigger.ms)
+    if (isNaN(ms) || ms <= 0) return null
+    if (lastRunAt) {
+      const next = lastRunAt + ms
+      return next
+    }
+    return fromDateMs + ms
+  }
+
+  if (trigger.kind === "cron" && trigger.expr) {
+    const expr = trigger.expr.trim()
+    // Look ahead from current minute boundary + 1 minute up to 30 days
+    const startMs = Math.floor(fromDateMs / 60_000) * 60_000 + 60_000
+    const maxMs = startMs + 30 * 24 * 60 * 60_000
+    for (let t = startMs; t <= maxMs; t += 60_000) {
+      if (matchesCronExpr(expr, new Date(t))) {
+        return t
+      }
+    }
+  }
+
+  return null
+}

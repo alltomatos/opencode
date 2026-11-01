@@ -7,11 +7,17 @@ import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
+import { getProjectAvatarVariant, type LocalProject } from "@/context/layout"
 import { SessionTabAvatarView } from "@/pages/layout/session-tab-avatar"
+import { displayName, getProjectAvatarSource } from "@/pages/layout/helpers"
 import { sessionTitle } from "@/utils/session-title"
 import { getRelativeTime } from "@/utils/time"
+import { computeStats, formatDuration } from "@/pages/stats/stats-controller"
+import { DialogImportSession } from "@/components/dialog-import-session"
 import { shouldOpenSessionInBackground } from "../home-session-open"
 import {
   HomeSessionStatusController,
@@ -42,6 +48,10 @@ function isBackgroundOpen(event: MouseEvent) {
 export type HomeSessionsViewProps = {
   language: ReturnType<typeof useLanguage>
   groups: Accessor<HomeSessionGroup[]>
+  records?: Accessor<HomeSessionRecord[]>
+  allSessions?: Accessor<Session[]>
+  selectedProject?: Accessor<LocalProject | undefined>
+  onRefetchSessions?: () => void
   showProjectName: Accessor<boolean>
   viewMode?: Accessor<HomeSessionsLayoutMode>
   onSetViewMode?: (mode: HomeSessionsLayoutMode) => void
@@ -77,13 +87,129 @@ export type HomeSessionsViewProps = {
 }
 
 export function HomeSessionsView(props: HomeSessionsViewProps) {
+  const dialog = useDialog()
+  const numFmt = createMemo(() => new Intl.NumberFormat(props.language.intl()))
+  const compactFmt = createMemo(
+    () => new Intl.NumberFormat(props.language.intl(), { notation: "compact", maximumFractionDigits: 1 }),
+  )
+
+  const currentProjectSessions = createMemo(() => {
+    const list = props.records?.() ?? []
+    return list.map((r) => r.session)
+  })
+
+  const projectStats = createMemo(() => {
+    return computeStats(currentProjectSessions(), { range: "all" })
+  })
+
+  const tokensPerMinute = createMemo(() => {
+    const s = projectStats()
+    if (s.totalDurationMs <= 0) return 0
+    const minutes = s.totalDurationMs / 60000
+    return Math.round(s.totalTokens / minutes)
+  })
+
+  const openImportDialog = () => {
+    const proj = props.selectedProject?.()
+    dialog.push(() => (
+      <DialogImportSession
+        directory={proj?.worktree}
+        projectName={proj ? displayName(proj) : undefined}
+        onImportComplete={() => props.onRefetchSessions?.()}
+      />
+    ))
+  }
+
   return (
     <section
       ref={props.onSetHoverTarget}
       class="min-h-0 min-w-0 flex-1 flex flex-col"
       aria-label={props.language.t("sidebar.project.recentSessions")}
     >
-      <div class="sticky top-0 z-30 shrink-0 bg-v2-background-bg-base pb-3 pt-6 lg:pt-12" onWheel={props.onWheel}>
+      <div class="sticky top-0 z-30 shrink-0 bg-v2-background-bg-base pb-3 pt-4 lg:pt-8" onWheel={props.onWheel}>
+        {/* Cabeçalho do Projeto & KPIs */}
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-v2-border-border-base pb-3.5">
+          <div class="flex items-center gap-3 min-w-0">
+            <Show
+              when={props.selectedProject?.()}
+              fallback={
+                <div class="flex items-center gap-2.5">
+                  <div class="flex size-7 shrink-0 items-center justify-center rounded-[7px] bg-v2-background-bg-layer-02 text-v2-text-text-muted">
+                    <Icon name="folder" size="small" />
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="truncate text-15-semibold text-v2-text-text-base">
+                      {props.language.t("project.kpi.allProjects")}
+                    </span>
+                  </div>
+                </div>
+              }
+            >
+              {(project) => (
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="shrink-0 size-7">
+                    <ProjectAvatar
+                      fallback={displayName(project())}
+                      src={getProjectAvatarSource(project().id, project().icon)}
+                      variant={getProjectAvatarVariant(project().icon?.color)}
+                    />
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="truncate text-15-semibold text-v2-text-text-base leading-tight">
+                      {displayName(project())}
+                    </span>
+                    <span class="truncate text-11-regular text-v2-text-text-faint font-mono">
+                      {project().worktree}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </Show>
+          </div>
+
+          {/* KPIs do Projeto & Botão de Importação */}
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 rounded-[8px] bg-v2-background-bg-layer-01 p-1 border border-v2-border-border-base text-11-regular">
+              {/* Horas gastas */}
+              <div class="flex items-center gap-1.5 px-2 py-0.5">
+                <span class="text-v2-text-text-muted">{props.language.t("project.kpi.hoursSpent")}:</span>
+                <span class="font-medium text-v2-text-text-base">
+                  {formatDuration(projectStats().totalDurationMs)}
+                </span>
+              </div>
+              <div class="h-3.5 w-px bg-v2-border-border-base" />
+
+              {/* Tokens Totais */}
+              <div class="flex items-center gap-1.5 px-2 py-0.5">
+                <span class="text-v2-text-text-muted">{props.language.t("project.kpi.totalTokens")}:</span>
+                <span class="font-medium text-v2-text-text-base" title={`${numFmt().format(projectStats().totalTokens)} tokens`}>
+                  {compactFmt().format(projectStats().totalTokens)}
+                </span>
+              </div>
+              <div class="h-3.5 w-px bg-v2-border-border-base" />
+
+              {/* Média Tokens / Min */}
+              <div class="flex items-center gap-1.5 px-2 py-0.5">
+                <span class="text-v2-text-text-muted">{props.language.t("project.kpi.tokensPerMinute")}:</span>
+                <span class="font-medium text-v2-text-text-base">
+                  {compactFmt().format(tokensPerMinute())}
+                </span>
+              </div>
+            </div>
+
+            {/* Botão Importar Sessão */}
+            <ButtonV2
+              variant="outline"
+              size="normal"
+              class="shrink-0 h-8 px-2.5 [font-weight:500] text-12-regular"
+              onClick={openImportDialog}
+            >
+              <Icon name="arrow-down-to-line" size="small" class="mr-1.5" />
+              {props.language.t("project.import.button")}
+            </ButtonV2>
+          </div>
+        </div>
+
         <div class="flex items-center gap-3">
           <div class="min-w-0 flex-1">
             <HomeSessionSearch {...props} />

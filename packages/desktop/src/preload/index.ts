@@ -61,6 +61,11 @@ const api: ElectronAPI = {
   getMaintenanceStatus: () => ipcRenderer.invoke("maintenance-status"),
   runMaintenance: (options?: { purgeOldSessions?: boolean; maxAgeDays?: number; fullVacuum?: boolean }) =>
     ipcRenderer.invoke("maintenance-run", options),
+  detectLegacyInstallations: () => ipcRenderer.invoke("legacy-installations-detect"),
+  listLegacySessions: (sourceDbPath, targetDirectory) =>
+    ipcRenderer.invoke("legacy-sessions-list", sourceDbPath, targetDirectory),
+  importLegacySessions: (sourceDbPath, sessionIDs, targetDirectory) =>
+    ipcRenderer.invoke("legacy-sessions-import", sourceDbPath, sessionIDs, targetDirectory),
   updater: {
     subscribe: async (cb) => {
       updaterCallbacks.add(cb)

@@ -93,16 +93,24 @@ export function applyOnly(db: Database, input: Migration[]) {
       }
     }
 
-    for (const migration of input) {
-      if (completed.has(migration.id)) continue
-      yield* db.transaction((tx) =>
-        Effect.gen(function* () {
-          yield* migration.up(tx)
-          yield* tx.run(
-            sql`INSERT INTO ${sql.identifier("migration")} (id, time_completed) VALUES (${migration.id}, ${Date.now()})`,
-          )
-        }),
-      )
-    }
+    // Foreign key enforcement is disabled for the duration of the migration run
+    // so table-rebuild migrations can DROP a parent table (e.g. dropping an FK)
+    // without cascading into child rows. This must happen outside any
+    // transaction: SQLite treats `PRAGMA foreign_keys` as a no-op inside one.
+    // The pragma is a connection-level setting, so it is restored afterwards.
+    yield* db.run(sql`PRAGMA foreign_keys = OFF`)
+    yield* Effect.gen(function* () {
+      for (const migration of input) {
+        if (completed.has(migration.id)) continue
+        yield* db.transaction((tx) =>
+          Effect.gen(function* () {
+            yield* migration.up(tx)
+            yield* tx.run(
+              sql`INSERT INTO ${sql.identifier("migration")} (id, time_completed) VALUES (${migration.id}, ${Date.now()})`,
+            )
+          }),
+        )
+      }
+    }).pipe(Effect.ensuring(db.run(sql`PRAGMA foreign_keys = ON`).pipe(Effect.orDie)))
   })
 }

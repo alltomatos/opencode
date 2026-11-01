@@ -1,9 +1,47 @@
 import type { Argv } from "yargs"
 import { spawn } from "child_process"
 import { Database } from "@opencode-ai/core/database/database"
+import { DatabasePrune } from "@opencode-ai/core/database/prune"
+import { EventLogBackfill } from "@opencode-ai/core/database/event-log-backfill"
 import { Effect } from "effect"
 import { sql } from "drizzle-orm"
 import { effectCmd } from "../effect-cmd"
+
+const BackfillCommand = effectCmd({
+  command: "backfill",
+  describe: "idempotently backfill durable event log from global.db to workspace project.db files",
+  instance: false,
+  handler: Effect.fn("Cli.db.backfill")(function* () {
+    const { db } = yield* Database.Service
+    console.log("Iniciando backfill idempotente do event log para project.db...")
+    const summary = yield* EventLogBackfill.runOneShot(db).pipe(Effect.orDie)
+    console.log(
+      `Backfill concluído: ${summary.events} eventos e ${summary.sequences} sequências migradas em ${summary.workspaces} workspace(s) (${summary.aggregates} agregados, ${summary.skippedAggregates} ignorados sem workspace).`,
+    )
+  }),
+})
+
+const PruneCommand = effectCmd({
+  command: "prune",
+  describe: "prune transient streaming events and optionally run vacuum",
+  instance: false,
+  builder: (yargs: Argv) => {
+    return yargs.option("vacuum", {
+      type: "boolean",
+      default: true,
+      describe: "reclaim space with SQLite VACUUM after pruning",
+    })
+  },
+  handler: Effect.fn("Cli.db.prune")(function* (args: { vacuum: boolean }) {
+    const { db } = yield* Database.Service
+    console.log("Iniciando purga segura de eventos transitórios redundantes...")
+    const report = yield* DatabasePrune.prune(db, { vacuum: args.vacuum }).pipe(Effect.orDie)
+    console.log(`Eventos transitórios removidos: ${report.deletedEvents}`)
+    if (report.vacuumExecuted) {
+      console.log("VACUUM executado com sucesso. Espaço em disco recuperado.")
+    }
+  }),
+})
 
 const QueryCommand = effectCmd({
   command: "$0 [query]",
@@ -56,7 +94,7 @@ export const DbCommand = effectCmd({
   describe: "database tools",
   instance: false,
   builder: (yargs: Argv) => {
-    return yargs.command(QueryCommand).command(PathCommand).demandCommand()
+    return yargs.command(QueryCommand).command(PathCommand).command(PruneCommand).command(BackfillCommand).demandCommand()
   },
   handler: Effect.fn("Cli.db")(function* () {}),
 })

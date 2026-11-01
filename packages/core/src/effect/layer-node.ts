@@ -144,8 +144,16 @@ function replacementNode(source: AnyNode, replacement: AnyNode | Layer.Any) {
   if (source.name !== replacementNode.name) {
     throw new Error(`Cannot replace ${source.name} with ${replacementNode.name}`)
   }
-  if (source.tag !== replacementNode.tag) {
-    throw new Error(`Cannot replace ${source.name} across tags`)
+  // A node replacement may narrow a hoisted (global) node to a scoped
+  // (location) implementation: `hoist` keys off the replacement's own tag, so a
+  // location-tagged replacement stays inside the location graph instead of being
+  // hoisted next to the global node. Plain Layer replacements still inherit the
+  // source tag (see above), preserving global sharing for unsophisticated
+  // replacements.
+  if (replacementNode.tag !== undefined && source.tag !== replacementNode.tag && source.tag !== undefined) {
+    if (!(source.tag === "global" && replacementNode.tag === "location")) {
+      throw new Error(`Cannot replace ${source.name} across tags`)
+    }
   }
   return replacementNode
 }

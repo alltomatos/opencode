@@ -8,7 +8,8 @@ import { Flag } from "../flag/flag"
 import { isAbsolute, join } from "path"
 import { DatabaseMigration } from "./migration"
 import { InstallationChannel } from "../installation/version"
-import { makeGlobalNode } from "../effect/app-node"
+import { makeGlobalNode, makeLocationNode } from "../effect/app-node"
+import { WorkspaceMigration } from "./workspace-migration"
 
 const makeDatabase = EffectDrizzleSqlite.makeWithDefaults()
 type DatabaseShape = Effect.Success<typeof makeDatabase>
@@ -18,6 +19,8 @@ export interface Interface {
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/storage/Database") {}
+
+export class GlobalService extends Context.Service<GlobalService, Interface>()("@opencode/v2/storage/GlobalDatabase") {}
 
 const layer = Layer.effect(
   Service,
@@ -36,6 +39,16 @@ const layer = Layer.effect(
   }).pipe(Effect.orDie),
 )
 
+export const globalLayer = Layer.effect(
+  GlobalService,
+  Effect.gen(function* () {
+    const service = yield* Service
+    return GlobalService.of(service)
+  }),
+).pipe(Layer.provide(layerFromPath(path())))
+
+export const globalNode = makeGlobalNode({ service: GlobalService, layer: globalLayer, deps: [] })
+
 export function layerFromPath(filename: string) {
   return layer.pipe(Layer.provide(sqliteLayer({ filename })))
 }
@@ -45,13 +58,17 @@ export function path() {
     if (Flag.OPENCODE_DB === ":memory:" || isAbsolute(Flag.OPENCODE_DB)) return Flag.OPENCODE_DB
     return join(Global.Path.data, Flag.OPENCODE_DB)
   }
-  if (
-    ["latest", "beta", "prod"].includes(InstallationChannel) ||
-    process.env.OPENCODE_DISABLE_CHANNEL_DB === "1" ||
-    process.env.OPENCODE_DISABLE_CHANNEL_DB === "true"
-  )
-    return join(Global.Path.data, "opencode.db")
-  return join(Global.Path.data, `opencode-${InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")}.db`)
+  return join(Global.Path.data, "global.db")
 }
 
 export const node = makeGlobalNode({ service: Service, layer: layerFromPath(path()), deps: [] })
+
+// Location-scoped override of the global `Database.Service`. Tagged `location`
+// so `hoist` keeps it inside the location graph (the workspace `project.db`)
+// instead of hoisting it next to the global database.
+export const locationNode = (workspaceHash: string) =>
+  makeLocationNode({
+    service: Service,
+    layer: WorkspaceMigration.workspaceDatabaseLayer(workspaceHash),
+    deps: [] as const,
+  })

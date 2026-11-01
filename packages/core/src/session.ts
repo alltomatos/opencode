@@ -27,6 +27,7 @@ import { fromRow } from "./session/info"
 import { SessionRunner } from "./session/runner/index"
 import { SessionStore } from "./session/store"
 import { SessionExecution } from "./session/execution"
+import { LocationsResolver } from "./location-resolver"
 import { makeGlobalNode } from "./effect/app-node"
 import { LocationServiceMap } from "./location-service-map"
 import { MessageDecodeError } from "./session/error"
@@ -191,6 +192,7 @@ const layer = Layer.effect(
     const execution = yield* SessionExecution.Service
     const store = yield* SessionStore.Service
     const locations = yield* LocationServiceMap.Service
+    const resolver = yield* LocationsResolver.Service
     const decodeMessage = Schema.decodeUnknownEffect(SessionMessage.Message)
     const isDurableSessionEvent = Schema.is(SessionEvent.Durable)
     const decode = (row: typeof SessionMessageTable.$inferSelect) =>
@@ -265,10 +267,11 @@ const layer = Layer.effect(
         if (!session) return yield* new NotFoundError({ sessionID })
         return session
       }),
-      list: Effect.fn("V2Session.list")(function* (input = {}) {
+      list: Effect.fn("V2Session.list")(function* (input: ListInput = {}) {
         const direction = input.anchor?.direction ?? "next"
         const requestedOrder = input.order ?? "desc"
         const order = direction === "previous" ? (requestedOrder === "asc" ? "desc" : "asc") : requestedOrder
+
         const sortColumn = SessionTable.time_created
         const conditions: SQL[] = []
         if ("directory" in input) conditions.push(eq(SessionTable.directory, input.directory))
@@ -288,17 +291,36 @@ const layer = Layer.effect(
                 )!,
           )
         }
-        const query = db
-          .select()
-          .from(SessionTable)
-          .where(conditions.length > 0 ? and(...conditions) : undefined)
-          .orderBy(
-            order === "asc" ? asc(sortColumn) : desc(sortColumn),
-            order === "asc" ? asc(SessionTable.id) : desc(SessionTable.id),
-          )
-        const rows = yield* (input.limit === undefined ? query.all() : query.limit(input.limit).all()).pipe(
-          Effect.orDie,
-        )
+        const runQuery = (target: typeof db) => {
+          const query = target
+            .select()
+            .from(SessionTable)
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
+            .orderBy(
+              order === "asc" ? asc(sortColumn) : desc(sortColumn),
+              order === "asc" ? asc(SessionTable.id) : desc(SessionTable.id),
+            )
+          return input.limit === undefined ? query.all() : query.limit(input.limit).all()
+        }
+        // Com directory, lê o project.db daquela Location; senão usa o banco ativo
+        const rows =
+          "directory" in input && input.directory
+            ? yield* Effect.gen(function* () {
+                const target = yield* Database.Service
+                return yield* runQuery(target.db)
+              }).pipe(
+                Effect.provideService(Database.Service, database),
+                Effect.provide(
+                  locations.get(
+                    Location.Ref.make({
+                      directory: AbsolutePath.make(input.directory),
+                      workspaceID: input.workspaceID ? WorkspaceV2.ID.make(input.workspaceID) : undefined,
+                    }),
+                  ),
+                ),
+                Effect.orDie,
+              )
+            : yield* runQuery(db).pipe(Effect.orDie)
         return (direction === "previous" ? rows.toReversed() : rows).map((row) => fromRow(row))
       }),
       messages: Effect.fn("V2Session.messages")(function* (input) {
@@ -350,8 +372,9 @@ const layer = Layer.effect(
             .pipe(Effect.as(events.durable({ aggregateID: input.sessionID, after: input.after }))),
         ).pipe(Stream.filter((event): event is SessionEvent.DurableEvent => isDurableSessionEvent(event))),
       history: Effect.fn("V2Session.history")(function* (input) {
-        yield* result.get(input.sessionID)
-        return yield* EventV2.readAggregate(db, {
+        const session = yield* result.get(input.sessionID)
+        const workspace = yield* resolver.get(session.location).pipe(Effect.catch(() => Effect.succeed(database)))
+        return yield* EventV2.readAggregate(workspace.db, {
           ...input,
           aggregateID: input.sessionID,
           manifest: SessionDurable,
@@ -481,6 +504,6 @@ export const node = makeGlobalNode({
     SessionExecution.node,
     SessionStore.node,
     LocationServiceMap.node,
-    SessionProjector.node,
+    LocationsResolver.node,
   ],
 })

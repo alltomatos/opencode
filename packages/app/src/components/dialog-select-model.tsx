@@ -104,7 +104,7 @@ export function ModelProviderSelectorV2(props: {
     const integrationMap = new Map(extraIntegrations.map((i: IntegrationInfo) => [i.id, i]))
 
     const connectedProviders = providers.connected().filter((p) => {
-      if (p.id === "opencode" && !Object.values(p.models).find((m) => m.cost?.input)) return false
+      if (p.id === "opencode" && Object.keys(p.models).length === 0) return false
       const integrationID = "integrationID" in p && typeof p.integrationID === "string" ? p.integrationID : undefined
       const integration = integrationMap.get(p.id) ?? (integrationID ? integrationMap.get(integrationID) : undefined)
       if (integration) {

@@ -1,4 +1,4 @@
-import { createSignal, For, Show, type Component } from "solid-js"
+import { createSignal, createMemo, onMount, onCleanup, For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { useMutation } from "@tanstack/solid-query"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
@@ -16,7 +16,7 @@ import { sessionHref } from "@/utils/session-route"
 import { useServer } from "@/context/server"
 import { showToast } from "@/utils/toast"
 import { GlobalLoading } from "@/components/global-loading"
-import { triggerSummary, actionSummary } from "./routines/summary"
+import { triggerSummary, actionSummary, computeNextRun } from "./routines/summary"
 import { useRoutinesQuery } from "./routines/routines-cache"
 
 const ROUTINES_VIEW_STORAGE_KEY = "routines.view.mode"
@@ -77,6 +77,53 @@ export const RoutinesPage: Component = () => {
   const dialog = useDialog()
   const routines = useRoutinesQuery()
   const [viewMode, setViewModeSignal] = createSignal<ViewMode>(loadViewMode())
+  const [nowMs, setNowMs] = createSignal<number>(Date.now())
+
+  onMount(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30_000)
+    onCleanup(() => clearInterval(timer))
+  })
+
+  // Estatísticas de saúde das rotinas
+  const stats = createMemo(() => {
+    const list = routines.schedules()
+    const now = nowMs()
+    let active = 0
+    let failed = 0
+    let success = 0
+    let delayed = 0
+    let pending = 0
+
+    for (const item of list) {
+      if (item.enabled) active++
+      if (item.lastStatus === "error") {
+        failed++
+      } else if (item.lastStatus === "success") {
+        success++
+      } else {
+        pending++
+      }
+
+      if (item.enabled) {
+        const lastRun = typeof item.lastRunAt === "number" ? item.lastRunAt : undefined
+        const next = computeNextRun(item.trigger, lastRun, now)
+        // Se a próxima execução calculada ou agendada era no passado (com tolerância de 2 minutos)
+        // e a última execução foi anterior a isso, a rotina está em atraso
+        if (next && now - next > 120_000 && (!lastRun || lastRun < next - 60_000)) {
+          delayed++
+        }
+      }
+    }
+
+    return {
+      total: list.length,
+      active,
+      failed,
+      success,
+      delayed,
+      pending,
+    }
+  })
 
   const setViewMode = (mode: ViewMode) => {
     setViewModeSignal(mode)
@@ -213,6 +260,99 @@ export const RoutinesPage: Component = () => {
             </span>
           </div>
 
+          {/* Painel de Saúde das Rotinas */}
+          <div class="flex flex-col gap-3 rounded-lg border border-v2-border-border-base bg-v2-background-bg-layer-02 p-4 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <span class="text-13-medium font-semibold text-v2-text-text-base">Saúde do Agendador (Scheduler)</span>
+                <Show
+                  when={stats().failed === 0 && stats().delayed === 0}
+                  fallback={
+                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-11-medium font-medium bg-v2-state-bg-warning text-v2-state-fg-warning border border-v2-border-border-base">
+                      <span class="size-2 rounded-full bg-v2-state-fg-warning animate-pulse" />
+                      Atenção necessária
+                    </span>
+                  }
+                >
+                  <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-11-medium font-medium bg-v2-state-bg-success text-v2-state-fg-success border border-v2-border-border-base">
+                    <span class="size-2 rounded-full bg-v2-state-fg-success" />
+                    Saudável
+                  </span>
+                </Show>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <ButtonV2
+                  variant="neutral"
+                  size="small"
+                  onClick={() => routines.invalidate()}
+                  title="Atualizar status das rotinas"
+                >
+                  <IconV2 name="outline-reset" size="small" />
+                  Atualizar status
+                </ButtonV2>
+              </div>
+            </div>
+
+            {/* Grid de Métricas de Saúde */}
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+              <div class="flex flex-col gap-1 p-2.5 rounded-md bg-v2-background-bg-layer-01 border border-v2-border-border-base">
+                <span class="text-11-medium text-v2-text-text-muted">Ativas / Total</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-16-semibold text-v2-text-text-base">{stats().active}</span>
+                  <span class="text-11-regular text-v2-text-text-muted">/ {stats().total}</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1 p-2.5 rounded-md bg-v2-background-bg-layer-01 border border-v2-border-border-base">
+                <span class="text-11-medium text-v2-text-text-muted">Último Sucesso</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-16-semibold text-v2-state-fg-success">{stats().success}</span>
+                  <span class="text-11-regular text-v2-text-text-muted">rotinas</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1 p-2.5 rounded-md bg-v2-background-bg-layer-01 border border-v2-border-border-base">
+                <span class="text-11-medium text-v2-text-text-muted">Falhas Recentes</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class={`text-16-semibold ${stats().failed > 0 ? "text-v2-state-fg-danger font-bold" : "text-v2-text-text-base"}`}>
+                    {stats().failed}
+                  </span>
+                  <span class="text-11-regular text-v2-text-text-muted">{stats().failed === 1 ? "falha" : "falhas"}</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1 p-2.5 rounded-md bg-v2-background-bg-layer-01 border border-v2-border-border-base">
+                <span class="text-11-medium text-v2-text-text-muted">Em Atraso / Perdidas</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class={`text-16-semibold ${stats().delayed > 0 ? "text-v2-state-fg-warning font-bold" : "text-v2-text-text-base"}`}>
+                    {stats().delayed}
+                  </span>
+                  <span class="text-11-regular text-v2-text-text-muted">pendentes</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dica / Alerta Explicativo se houver atrasos ou falhas */}
+            <Show when={stats().delayed > 0 || stats().failed > 0}>
+              <div class="flex items-start gap-2.5 p-2.5 rounded-md bg-v2-background-bg-layer-01 border border-v2-border-border-base text-12-regular text-v2-text-text-muted">
+                <span class="text-v2-state-fg-warning font-bold">ℹ</span>
+                <div class="flex flex-col gap-0.5">
+                  <Show when={stats().delayed > 0}>
+                    <span>
+                      Existem rotinas cujo horário previsto de execução passou sem disparo automático. O OpenCode precisa estar em execução para que o loop do agendador dispare os horários programados.
+                    </span>
+                  </Show>
+                  <Show when={stats().failed > 0}>
+                    <span>
+                      Uma ou mais rotinas falharam na última execução. Verifique a mensagem de erro no card correspondente.
+                    </span>
+                  </Show>
+                </div>
+              </div>
+            </Show>
+          </div>
+
           <Show
             when={!routines.loading()}
             fallback={<GlobalLoading size="small" class="py-12" />}
@@ -257,6 +397,15 @@ export const RoutinesPage: Component = () => {
                       schedule.name?.trim() || triggerSummary(schedule.trigger)
                     const hasSession = () => Boolean(schedule.lastSessionId)
                     const modelName = () => (schedule.action as any)?.model
+                    const lastRun = () => (typeof schedule.lastRunAt === "number" ? schedule.lastRunAt : undefined)
+                    const nextRun = () => computeNextRun(schedule.trigger, lastRun(), nowMs())
+                    const isDelayed = () => {
+                      if (!schedule.enabled) return false
+                      const next = nextRun()
+                      const now = nowMs()
+                      const last = lastRun()
+                      return Boolean(next && now - next > 120_000 && (!last || last < next - 60_000))
+                    }
 
                     return (
                       <div
@@ -294,6 +443,11 @@ export const RoutinesPage: Component = () => {
                                     <Tag variant="accent">rodando…</Tag>
                                   </Show>
                                 </Show>
+                                <Show when={isDelayed()}>
+                                  <Tag variant="accent" class="text-v2-state-fg-warning bg-v2-state-bg-warning border border-v2-border-border-base">
+                                    Em atraso
+                                  </Tag>
+                                </Show>
                               </div>
                             </div>
 
@@ -320,20 +474,23 @@ export const RoutinesPage: Component = () => {
 
                         {/* Rodapé do Card com Ações e Metadados */}
                         <div class="flex flex-col gap-2.5 pt-2 border-t border-v2-border-border-base">
-                          <Show when={schedule.lastRunAt || (schedule.lastStatus === "error" && schedule.lastError)}>
-                            <div class="flex items-center gap-2 text-11-regular flex-wrap">
-                              <Show when={schedule.lastRunAt}>
-                                <span class="text-v2-text-text-faint truncate">
-                                  Última execução: {new Date(schedule.lastRunAt!).toLocaleString()}
-                                </span>
-                              </Show>
-                              <Show when={schedule.lastStatus === "error" && schedule.lastError}>
-                                <span class="truncate text-v2-state-fg-danger font-mono" title={schedule.lastError}>
-                                  Erro: {schedule.lastError}
-                                </span>
-                              </Show>
-                            </div>
-                          </Show>
+                          <div class="flex items-center gap-2 text-11-regular flex-wrap">
+                            <Show when={schedule.lastRunAt}>
+                              <span class="text-v2-text-text-faint truncate">
+                                Última: {new Date(schedule.lastRunAt!).toLocaleString()}
+                              </span>
+                            </Show>
+                            <Show when={nextRun() && schedule.enabled}>
+                              <span class={`truncate ${isDelayed() ? "text-v2-state-fg-warning font-semibold" : "text-v2-text-text-muted"}`}>
+                                Próxima: {new Date(nextRun()!).toLocaleString()} {isDelayed() ? "(atrasada)" : ""}
+                              </span>
+                            </Show>
+                            <Show when={schedule.lastStatus === "error" && schedule.lastError}>
+                              <span class="truncate text-v2-state-fg-danger font-mono" title={schedule.lastError}>
+                                Erro: {schedule.lastError}
+                              </span>
+                            </Show>
+                          </div>
 
                           <div class="flex items-center justify-end gap-1.5 flex-wrap">
                             <ButtonV2

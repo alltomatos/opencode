@@ -4,7 +4,7 @@ import { and, desc, eq, gt, or, sql } from "drizzle-orm"
 import { DateTime, Effect, Layer, Schema } from "effect"
 import { Database } from "../database/database"
 import { EventV2 } from "../event"
-import { makeGlobalNode } from "../effect/app-node"
+import { makeLocationNode } from "../effect/app-node"
 import { SessionEvent } from "./event"
 import { SessionV1 } from "../v1/session"
 import { WorkspaceTable } from "../control-plane/workspace.sql"
@@ -13,6 +13,8 @@ import { SessionMessageUpdater } from "./message-updater"
 import { SessionInput } from "./input"
 import { WorkspaceV2 } from "../workspace"
 import { MessageTable, PartTable, SessionInputTable, SessionMessageTable, SessionTable } from "./sql"
+import { SessionLocationTable } from "./location.sql"
+import { WorkspaceMigration } from "../database/workspace-migration"
 import type { DeepMutable } from "../schema"
 
 type DatabaseService = Database.Interface["db"]
@@ -211,8 +213,11 @@ const layer = Layer.effectDiscard(
   Effect.gen(function* () {
     const events = yield* EventV2.Service
     const { db } = yield* Database.Service
+    const globalDb = (yield* Effect.serviceOption(Database.GlobalService).pipe(Effect.map((opt) => opt._tag === "Some" ? opt.value.db : db)))
+
     yield* events.project(SessionV1.Event.Created, (event) =>
       Effect.gen(function* () {
+        // 1. Grava no banco da instância do projetor (se for locationServices, já é o project.db!)
         const stored = yield* db
           .insert(SessionTable)
           .values(sessionRow(event.data.info))
@@ -220,9 +225,58 @@ const layer = Layer.effectDiscard(
           .returning({ sessionID: SessionTable.id })
           .get()
           .pipe(Effect.orDie)
-        if (!stored) return yield* Effect.die(new SessionAlreadyProjected())
+        if (!stored) {
+          // Reconciliação do índice em caso de redelivery / já projetado (ADR 0006 §3)
+          yield* globalDb
+            .insert(SessionLocationTable)
+            .values({
+              session_id: event.data.info.id,
+              directory: event.data.info.directory,
+              workspace_id: event.data.info.workspaceID,
+              workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+              time_created: event.data.info.time.created,
+              time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+            })
+            .onConflictDoUpdate({
+              target: SessionLocationTable.session_id,
+              set: {
+                directory: event.data.info.directory,
+                workspace_id: event.data.info.workspaceID,
+                workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+                time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+              },
+            })
+            .run()
+            .pipe(Effect.orDie)
+
+          return yield* Effect.die(new SessionAlreadyProjected())
+        }
+
+        // 2. Atualizar índice global session_location no globalDb
+        yield* globalDb
+          .insert(SessionLocationTable)
+          .values({
+            session_id: event.data.info.id,
+            directory: event.data.info.directory,
+            workspace_id: event.data.info.workspaceID,
+            workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+            time_created: event.data.info.time.created,
+            time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+          })
+          .onConflictDoUpdate({
+            target: SessionLocationTable.session_id,
+            set: {
+              directory: event.data.info.directory,
+              workspace_id: event.data.info.workspaceID,
+              workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.info.directory),
+              time_updated: event.data.info.time.updated ?? event.data.info.time.created,
+            },
+          })
+          .run()
+          .pipe(Effect.orDie)
+
         if (event.data.info.workspaceID) {
-          yield* db
+          yield* globalDb
             .update(WorkspaceTable)
             .set({ time_used: Date.now() })
             .where(eq(WorkspaceTable.id, event.data.info.workspaceID))
@@ -252,10 +306,25 @@ const layer = Layer.effectDiscard(
           .where(eq(SessionTable.id, event.data.sessionID))
           .run()
           .pipe(Effect.orDie)
+
+        yield* globalDb
+          .update(SessionLocationTable)
+          .set({
+            directory: event.data.location.directory,
+            workspace_id: event.data.location.workspaceID ? WorkspaceV2.ID.make(event.data.location.workspaceID) : null,
+            workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(event.data.location.directory),
+            time_updated: DateTime.toEpochMillis(event.data.timestamp),
+          })
+          .where(eq(SessionLocationTable.session_id, event.data.sessionID))
+          .run()
+          .pipe(Effect.orDie)
       }),
     )
     yield* events.project(SessionV1.Event.Deleted, (event) =>
-      db.delete(SessionTable).where(eq(SessionTable.id, event.data.sessionID)).run().pipe(Effect.orDie),
+      Effect.gen(function* () {
+        yield* db.delete(SessionTable).where(eq(SessionTable.id, event.data.sessionID)).run().pipe(Effect.orDie)
+        yield* globalDb.delete(SessionLocationTable).where(eq(SessionLocationTable.session_id, event.data.sessionID)).run().pipe(Effect.orDie)
+      }),
     )
     yield* events.project(SessionV1.Event.MessageUpdated, (event) =>
       Effect.gen(function* () {
@@ -452,4 +521,4 @@ const layer = Layer.effectDiscard(
   }),
 )
 
-export const node = makeGlobalNode({ name: "session-projector", layer, deps: [EventV2.node, Database.node] })
+export const node = makeLocationNode({ name: "session-projector", layer, deps: [EventV2.node, Database.node, Database.globalNode] })

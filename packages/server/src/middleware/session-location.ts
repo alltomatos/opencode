@@ -3,8 +3,10 @@ import { LocationServiceMap } from "@opencode-ai/core/location-services"
 import { Location } from "@opencode-ai/core/location"
 import { AbsolutePath } from "@opencode-ai/core/schema"
 import { SessionV2 } from "@opencode-ai/core/session"
+import { SessionLocationTable } from "@opencode-ai/core/session/location.sql"
 import { SessionTable } from "@opencode-ai/core/session/sql"
 import { WorkspaceV2 } from "@opencode-ai/core/workspace"
+import { WorkspaceMigration } from "@opencode-ai/core/database/workspace-migration"
 import { eq } from "drizzle-orm"
 import { Effect, Layer, Schema } from "effect"
 import { HttpRouter } from "effect/unstable/http"
@@ -39,13 +41,43 @@ export const sessionLocationLayer = Layer.effect(
               }),
           ),
         )
-        const row = yield* db
-          .select({ directory: SessionTable.directory, workspaceID: SessionTable.workspace_id })
-          .from(SessionTable)
-          .where(eq(SessionTable.id, sessionID))
+        // 1. Resolução estrita O(1) pelo índice global session_location
+        let resolved = yield* db
+          .select({ directory: SessionLocationTable.directory, workspaceID: SessionLocationTable.workspace_id })
+          .from(SessionLocationTable)
+          .where(eq(SessionLocationTable.session_id, sessionID))
           .get()
           .pipe(Effect.orDie)
-        if (!row)
+
+        // 2. Auto-reconciliação resiliente: se a sessão existe na tabela legado session do global.db
+        // mas ainda não foi projetada ou o índice não foi inserido, reconcilia imediatamente.
+        if (!resolved) {
+          const fallback = yield* db
+            .select({ directory: SessionTable.directory, workspaceID: SessionTable.workspace_id })
+            .from(SessionTable)
+            .where(eq(SessionTable.id, sessionID))
+            .get()
+            .pipe(Effect.orDie)
+
+          if (fallback) {
+            resolved = fallback
+            yield* db
+              .insert(SessionLocationTable)
+              .values({
+                session_id: sessionID,
+                directory: fallback.directory,
+                workspace_id: fallback.workspaceID,
+                workspace_hash: WorkspaceMigration.directoryToWorkspaceHash(fallback.directory),
+                time_created: Date.now(),
+                time_updated: Date.now(),
+              })
+              .onConflictDoNothing()
+              .run()
+              .pipe(Effect.orDie)
+          }
+        }
+
+        if (!resolved)
           return yield* new SessionNotFoundError({
             sessionID,
             message: `Session not found: ${sessionID}`,
@@ -55,8 +87,8 @@ export const sessionLocationLayer = Layer.effect(
           Effect.provide(
             locations.get(
               Location.Ref.make({
-                directory: AbsolutePath.make(row.directory),
-                workspaceID: row.workspaceID ? WorkspaceV2.ID.make(row.workspaceID) : undefined,
+                directory: AbsolutePath.make(resolved.directory),
+                workspaceID: resolved.workspaceID ? WorkspaceV2.ID.make(resolved.workspaceID) : undefined,
               }),
             ),
           ),
